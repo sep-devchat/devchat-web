@@ -1,4 +1,4 @@
-# My React Templete
+# React + Vite template (TanStack Router, TanStack Query, Shadcn)
 
 ## 1. Introduction
 This is a template React for projects if you lazy and don't want spend most time for first setup steps. Hope my repository can help you.
@@ -8,8 +8,9 @@ This is a template React for projects if you lazy and don't want spend most time
   <img src="https://github.com/devicons/devicon/blob/master/icons/react/react-original.svg" alt="React" height="50" />
   <img src="https://github.com/devicons/devicon/blob/master/icons/vitejs/vitejs-original.svg" alt="Vitejs" height="50" />
   <img src="https://github.com/devicons/devicon/blob/master/icons/typescript/typescript-original.svg" alt="TypeScript" height="50" />
-  <img src="https://github.com/devicons/devicon/blob/master/icons/antdesign/antdesign-original.svg" alt="Ant Design" height="50" />
   <img src="https://github.com/devicons/devicon/blob/master/icons/redux/redux-original.svg" alt="Redux" height="50" />
+  <img src="https://raw.githubusercontent.com/TanStack/router/main/media/TanStack-Router.png" alt="TanStack Router" height="50" />
+  <img src="https://raw.githubusercontent.com/TanStack/query/main/media/TanStack-Query-Icon.svg" alt="TanStack Query" height="50" />
   <img src="https://github.com/devicons/devicon/blob/master/icons/axios/axios-plain-wordmark.svg" alt="Axios" height="50" />
   <img src="https://github.com/devicons/devicon/blob/master/icons/tailwindcss/tailwindcss-original.svg" alt="Tailwind" height="50" />
 </div>
@@ -26,8 +27,23 @@ This is a template React for projects if you lazy and don't want spend most time
 
 ### Setup time!
 - Create and edit `.env` file base on `.env.example`
-- Run `pnpm install` to install dependencies
-- Run `pnpm run dev` to start in watch mode
+- Install deps
+
+```powershell
+pnpm install
+```
+
+- Start dev server
+
+```powershell
+pnpm dev
+```
+
+- Build
+
+```powershell
+pnpm build
+```
 
 ## 4. Project structure
 
@@ -177,17 +193,35 @@ export default SamplePage;
 ===
 
 Now it's time to connect two parts before
-`@routes`
-1. Open `MainRoutes.tsx` file in `@routes`
-2. Add path and page you want to display:
+`@routes` (TanStack Router)
+1. Open `src/routes/index.ts`
+2. Add a new route using `createRoute` and attach to the root:
+
 ```ts
-import SamplePage from '@/pages/SamplePage';
-//...
-const publicRoutes = {
-    children: [
-        //...
-        { path: config.routes.public.sample, element: <SamplePage /> }
-    ]
-};
-//...
+import SamplePage from '@/pages/SamplePage'
+import { createRoute } from '@tanstack/react-router'
+import { rootRoute } from '@/routes/root' // if you split files. In this template, rootRoute is in routes/index.ts
+
+const sampleRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: config.routes.public.sample,
+  component: SamplePage,
+})
+
+// Then add it to the routeTree (see routes/index.ts for pattern)
 ```
+
+Navigation: use `<Link to="/path">` and `useRouter()` from `@tanstack/react-router`.
+
+Query data: use `useQuery`/`useMutation` from `@tanstack/react-query`. The provider is configured in `src/providers.tsx` with sensible defaults. Devtools are enabled in dev.
+
+Shadcn UI: components live in `src/components/ui`. Example usage is in `src/pages/Home/Home.tsx`.
+
+Team notes (5 members):
+- Routing: add routes only in `src/routes/index.ts`. Keep pages in `src/pages/<Page>/`.
+- Data fetching: create API wrappers in `src/services`, then use React Query in pages/components. Co-locate queries with the component that consumes them.
+- State: prefer React Query for server state, Redux/store for client app state.
+- Styling: Tailwind for utilities + Shadcn for components. For complex scoped styles, use styled-components (already configured).
+- Conventions: use absolute imports via `@/` alias, PascalCase for components, camelCase for functions/vars.
+- Comments: add a one-liner at the top of new files describing purpose and owner.
+- PRs: small, focused, include a brief testing note and screenshots when UI changes.

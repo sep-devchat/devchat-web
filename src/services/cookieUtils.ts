@@ -28,7 +28,7 @@ class CookieUtils {
             try {
                 const jwtUser = jwtDecode(token);
                 return jwtUser;
-            } catch (err) {
+            } catch {
                 this.deleteUser();
             }
         }

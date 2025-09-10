@@ -1,12 +1,12 @@
-import { BrowserRouter as Router } from 'react-router-dom'
-import RoutesComponent from './routes'
+// App-level shell. Providers wrap the app (TanStack Router, React Query, etc.)
+// Keep this file minimal and free of page logic.
+import Providers from './providers'
 
 const App = () => {
   return (
     <>
-      <Router>
-        <RoutesComponent />
-      </Router>
+      {/* Providers mount here. See src/providers.tsx for configuration and team notes. */}
+      <Providers />
     </>
   )
 }

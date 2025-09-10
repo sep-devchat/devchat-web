@@ -1,12 +1,11 @@
 import { useEffect } from "react";
-import { useLocation } from "react-router-dom"
+// Note: With TanStack Router's scrollRestoration enabled, basic scroll behavior is automatic.
+// This hook is a placeholder if teams need custom behavior per-route.
 
 const useScrollToTop = () => {
-    const { pathname } = useLocation();
-
     useEffect(() => {
-        window.scrollTo(0, 0);
-    }, [pathname]);
+        // custom scroll logic can be placed here
+    }, []);
 };
 
 export default useScrollToTop;

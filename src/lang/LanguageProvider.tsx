@@ -15,6 +15,7 @@ i18n.enableFallback = true;
 interface LanguageContextType {
     i18n: I18n;
     locale: string;
+    t: (key: string, options?: Record<string, unknown>) => string;
     switchLanguage: (newLocale: keyof typeof translations) => void;
 }
 
@@ -22,11 +23,18 @@ interface LanguageContextType {
 const LanguageContext = createContext<LanguageContextType | null>(null);
 
 // Provider cho ngữ cảnh ngôn ngữ
+const STORAGE_KEY = 'locale'
+
 const LanguageProvider = ({ children }: { children: ReactNode }) => {
-    const [locale, setLocale] = useState<string>(i18n.defaultLocale);
+    const [locale, setLocale] = useState<string>(() => {
+        const saved = localStorage.getItem(STORAGE_KEY)
+        return saved && translations[saved as keyof typeof translations] ? saved : i18n.defaultLocale
+    });
 
     useEffect(() => {
         i18n.locale = locale;
+        document.documentElement.setAttribute('lang', locale)
+        localStorage.setItem(STORAGE_KEY, locale)
     }, [locale]);
 
     const switchLanguage = (newLocale: keyof typeof translations) => {
@@ -37,8 +45,10 @@ const LanguageProvider = ({ children }: { children: ReactNode }) => {
         }
     };
 
+    const t = (key: string, options?: Record<string, unknown>) => i18n.t(key, { locale, ...options })
+
     return (
-        <LanguageContext.Provider value={{ i18n, locale, switchLanguage }}>
+        <LanguageContext.Provider value={{ i18n, locale, t, switchLanguage }}>
             {children}
         </LanguageContext.Provider>
     );
