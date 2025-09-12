@@ -3,7 +3,7 @@ import { rootRoute } from "@/routes/root";
 import { loginGitHub } from "@/services/authAPI";
 import { useMutation } from "@tanstack/react-query";
 import { createRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 
 const LoginGitHubRoute = createRoute({
   getParentRoute: () => rootRoute,

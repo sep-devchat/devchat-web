@@ -1,0 +1,4 @@
+echo "Pre-commit hook running..."
+
+echo "Test build..."
+yarn build
