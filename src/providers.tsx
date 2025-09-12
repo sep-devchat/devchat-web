@@ -4,6 +4,8 @@ import { RouterProvider } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/router-devtools";
 import router from "@/routes";
 import config from "./config";
+import { GoogleOAuthProvider } from "@react-oauth/google";
+import publicRuntimeConfig from "./config/publicRuntime";
 
 // Central place to mount app-wide providers (Query, Router, etc.)
 // Team note: add more providers here (auth, analytics) to keep main.tsx clean.
@@ -19,11 +21,20 @@ const queryClient = new QueryClient({
 
 export function Providers() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <RouterProvider router={router} />
-      {config.publicRuntime.DEV_ENABLED ? <ReactQueryDevtools initialIsOpen={false} buttonPosition="bottom-left" /> : null}
-      {config.publicRuntime.DEV_ENABLED ? <TanStackRouterDevtools router={router} position="bottom-right" /> : null}
-    </QueryClientProvider>
+    <GoogleOAuthProvider clientId={publicRuntimeConfig.GOOGLE_CLIENT_ID}>
+      <QueryClientProvider client={queryClient}>
+        <RouterProvider router={router} />
+        {config.publicRuntime.DEV_ENABLED ? (
+          <ReactQueryDevtools
+            initialIsOpen={false}
+            buttonPosition="bottom-left"
+          />
+        ) : null}
+        {config.publicRuntime.DEV_ENABLED ? (
+          <TanStackRouterDevtools router={router} position="bottom-right" />
+        ) : null}
+      </QueryClientProvider>
+    </GoogleOAuthProvider>
   );
 }
 
