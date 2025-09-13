@@ -5,8 +5,9 @@ import { Separator } from "@/components/ui/separator";
 import config from "@/config";
 import publicRuntimeConfig from "@/config/publicRuntime";
 import { rootRoute } from "@/routes/root";
-import { loginGoogle } from "@/services/authAPI";
+import { login } from "@/services/authAPI";
 import { GoogleLogin } from "@react-oauth/google";
+import { useMutation } from "@tanstack/react-query";
 import { createRoute } from "@tanstack/react-router";
 import { useState } from "react";
 
@@ -21,6 +22,9 @@ function Login() {
     usernameOrEmail: "",
     password: "",
   });
+  const loginMutation = useMutation({
+    mutationFn: login,
+  })
 
   return (
     <div>
@@ -51,7 +55,9 @@ function Login() {
         </div>
 
         <div>
-          <Button onClick={() => console.log(loginData)}>Login</Button>
+          <Button onClick={() => {
+            loginMutation.mutate({ method: "basic", code: btoa(`${loginData.usernameOrEmail}:${loginData.password}`) })
+          }}>Login</Button>
         </div>
       </div>
 
@@ -62,8 +68,7 @@ function Login() {
           onSuccess={async (credentialResponse) => {
             console.log(credentialResponse);
             if (!credentialResponse.credential) return;
-            const data = await loginGoogle(credentialResponse.credential);
-            console.log(data);
+            loginMutation.mutate({ method: "google", code: credentialResponse.credential });
           }}
           onError={() => {
             console.log("Login Failed");
