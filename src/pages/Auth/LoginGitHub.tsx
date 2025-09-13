@@ -1,6 +1,6 @@
 import config from "@/config";
 import { rootRoute } from "@/routes/root";
-import { loginGitHub } from "@/services/authAPI";
+import { login } from "@/services/authAPI";
 import { useMutation } from "@tanstack/react-query";
 import { createRoute } from "@tanstack/react-router";
 import { useEffect } from "react";
@@ -13,8 +13,8 @@ const LoginGitHubRoute = createRoute({
 
 function LoginGitHub() {
   const searchParams: any = LoginGitHubRoute.useSearch();
-  const loginGitHubMutation = useMutation({
-    mutationFn: loginGitHub,
+  const loginMutation = useMutation({
+    mutationFn: login,
     onSuccess: (data) => {
       console.log("GitHub login successful:", data);
       window.location.href = "/";
@@ -23,17 +23,17 @@ function LoginGitHub() {
 
   useEffect(() => {
     if (searchParams.code) {
-      loginGitHubMutation.mutate(searchParams.code);
+      loginMutation.mutate({ method: "github", code: searchParams.code });
     }
   }, [searchParams]);
 
   return (
     <div>
-      {loginGitHubMutation.isSuccess ? (
+      {loginMutation.isSuccess ? (
         <div>Login successful!</div>
-      ) : loginGitHubMutation.isPending ? (
+      ) : loginMutation.isPending ? (
         <div>Logging in...</div>
-      ) : loginGitHubMutation.isError ? (
+      ) : loginMutation.isError ? (
         <div>Error during login. Please try again.</div>
       ) : (
         <div>Redirecting to GitHub for authentication...</div>

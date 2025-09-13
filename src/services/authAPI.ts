@@ -1,9 +1,10 @@
 import { post } from "./apiCaller"
 
-export const loginGoogle = async (credential: string) => {
-    return post("/api/auth/login-google", { credential })
+export interface LoginRequest {
+    method: string;
+    code: string;
 }
 
-export const loginGitHub = async (code: string) => {
-    return post("/api/auth/login-github", { code });
+export const login = async (dto: LoginRequest) => {
+    return post("/api/auth/login", dto);
 }
