@@ -1,3 +1,4 @@
+import { Card, CardHeader } from '@/components/ui/card'
 import { createFileRoute } from '@tanstack/react-router'
 
 export const Route = createFileRoute('/profile')({
@@ -5,5 +6,11 @@ export const Route = createFileRoute('/profile')({
 })
 
 function RouteComponent() {
-  return <div>Hello "/profile"!</div>
+  return (
+    <>
+      <Card>
+        <CardHeader>Hello</CardHeader>
+      </Card>
+    </>
+  )
 }
