@@ -2,22 +2,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import config from "@/config";
 import publicRuntimeConfig from "@/config/publicRuntime";
-import { rootRoute } from "@/routes/root";
 import { login } from "@/services/authAPI";
 import { GoogleLogin } from "@react-oauth/google";
 import { useMutation } from "@tanstack/react-query";
-import { createRoute } from "@tanstack/react-router";
 import { useState } from "react";
 
-const LoginRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: config.routes.public.login,
-  component: Login,
-});
-
-function Login() {
+const Login = () => {
   const [loginData, setLoginData] = useState({
     usernameOrEmail: "",
     password: "",
@@ -88,4 +79,4 @@ function Login() {
   );
 }
 
-export default LoginRoute;
+export default Login;

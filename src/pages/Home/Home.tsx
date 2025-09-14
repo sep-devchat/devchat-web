@@ -13,7 +13,6 @@ const Home = () => {
     const { theme, toggleTheme } = useTheme();
     const { t, locale, switchLanguage } = useTranslation();
     const [count, setCount] = useState(0);
-
     return (
         <>
             <HomeWrapper>
@@ -65,9 +64,9 @@ const Home = () => {
                             <span className="pill">important</span>
                         </div>
                         <ul>
-                            <li>Install deps: <code>pnpm install</code></li>
-                            <li>Run dev: <code>pnpm dev</code></li>
-                            <li>Build: <code>pnpm build</code></li>
+                            <li>Install deps: <code>yarn</code></li>
+                            <li>Run dev: <code>yarn dev</code></li>
+                            <li>Build: <code>yarn build</code></li>
                         </ul>
                     </div>
 
@@ -88,22 +87,6 @@ const Home = () => {
                                 <li><code>docs/TEAM_GUIDE.md</code>: Team conventions</li>
                             </ul>
                         </div>
-                    </div>
-
-                    <div className="guide-card">
-                        <div className="guide-title">
-                            <span className="icon">🧭</span>
-                            <h2>Add a new page (route)</h2>
-                        </div>
-                        <pre>{`// src/routes/index.ts
-import { createRoute } from '@tanstack/react-router'
-import SamplePage from '@/pages/SamplePage'
-const sampleRoute = createRoute({
-    getParentRoute: () => rootRoute,
-    path: '/sample',
-    component: SamplePage,
-})
-// Add to routeTree via rootRoute.addChildren([...])`}</pre>
                     </div>
 
                     <div className="guide-card">

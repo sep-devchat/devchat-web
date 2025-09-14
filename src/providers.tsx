@@ -1,11 +1,16 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
-import { RouterProvider } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/router-devtools";
-import router from "@/routes";
 import config from "./config";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import publicRuntimeConfig from "./config/publicRuntime";
+
+// Import the generated route tree
+import { routeTree } from './routeTree.gen.ts'
+import { createRouter, RouterProvider } from '@tanstack/react-router';
+
+// Create a new router instance
+const router = createRouter({ routeTree })
 
 // Central place to mount app-wide providers (Query, Router, etc.)
 // Team note: add more providers here (auth, analytics) to keep main.tsx clean.
