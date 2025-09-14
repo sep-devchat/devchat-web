@@ -1,18 +1,9 @@
-import config from "@/config";
-import { rootRoute } from "@/routes/root";
 import { login } from "@/services/authAPI";
 import { useMutation } from "@tanstack/react-query";
-import { createRoute } from "@tanstack/react-router";
 import { useEffect } from "react";
 
-const LoginGitHubRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: config.routes.public.loginGitHub,
-  component: LoginGitHub,
-});
-
-function LoginGitHub() {
-  const searchParams: any = LoginGitHubRoute.useSearch();
+function LoginGitHub(route: any) {
+  const searchParams: any = route.useSearch();
   const loginMutation = useMutation({
     mutationFn: login,
     onSuccess: (data) => {
@@ -42,4 +33,4 @@ function LoginGitHub() {
   );
 }
 
-export default LoginGitHubRoute;
+export default LoginGitHub;

@@ -1,13 +1,12 @@
-import React from 'react';
 import { createRoot } from 'react-dom/client';
-import './index.css';
-import App from './App.tsx';
 import { DefaultTheme, ThemeProvider } from 'styled-components';
 import { Provider } from 'react-redux';
 import { createStyledBreakpointsTheme } from 'styled-breakpoints';
 import GlobalStyles from './themes/globalStyles.ts';
 import { store } from './store/index.ts';
 import LanguageProvider from './lang/LanguageProvider.tsx';
+import Providers from './providers.tsx';
+import './index.css';
 
 export const breakpoints = {
   xs: '360px',
@@ -23,14 +22,12 @@ const theme: DefaultTheme = createStyledBreakpointsTheme({
 });
 
 createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>
-    <ThemeProvider theme={theme}>
-      <Provider store={store}>
-        <LanguageProvider>
-          <App />
-        </LanguageProvider>
-      </Provider>
-      <GlobalStyles />
-    </ThemeProvider>
-  </React.StrictMode>,
+  <ThemeProvider theme={theme}>
+    <Provider store={store}>
+      <LanguageProvider>
+        <Providers />
+      </LanguageProvider>
+    </Provider>
+    <GlobalStyles />
+  </ThemeProvider>
 )
