@@ -3,18 +3,18 @@ import cookieUtils from "./cookieUtils.ts";
 import config from "@/config/index.ts";
 
 export const request = (
-    endpoint: string, 
+    endpoint: string,
     method: string,
     headers: object = {},
     params: object = {},
     body: object = {},
 ): Promise<AxiosResponse> => {
     const token = cookieUtils.getToken();
-    
+
     return axios({
         url: config.publicRuntime.API_URL + endpoint,
         method: method,
-        headers: Object.assign({}, headers, {Authorization: `Bearer ${token}`}),
+        headers: Object.assign({}, headers, { Authorization: `Bearer ${token}` }),
         params: Object.assign(params),
         data: body,
     });
@@ -47,7 +47,7 @@ export const put = (
 }
 
 export const remove = (
-    endpoint: string, 
+    endpoint: string,
     body: object = {},
     params: object = {},
     headers: object = {}
