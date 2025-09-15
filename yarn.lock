@@ -1377,6 +1377,15 @@
     "@tanstack/store" "0.7.5"
     use-sync-external-store "^1.5.0"
 
+"@tanstack/router-cli@^1.131.41":
+  version "1.131.41"
+  resolved "https://registry.yarnpkg.com/@tanstack/router-cli/-/router-cli-1.131.41.tgz#3324c891d6f623fb4033a403e7289467d945ee76"
+  integrity sha512-EpLnnCwwCd94HRCWHoa1GZGtIWIffx4rPBb6gbWm4cvyEIGV2Gq+27vL2OEw819/elxyBQmG2RrPB8+7dfVACw==
+  dependencies:
+    "@tanstack/router-generator" "1.131.41"
+    chokidar "^3.6.0"
+    yargs "^17.7.2"
+
 "@tanstack/router-core@1.131.41":
   version "1.131.41"
   resolved "https://registry.yarnpkg.com/@tanstack/router-core/-/router-core-1.131.41.tgz#ce8a5f9d21ecb5023bc36d2507194c6bd6c1b755"
