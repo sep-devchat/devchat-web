@@ -1,5 +1,5 @@
-const PRIMARY_COLOR: string = '#151542';
-const SECONDARY_COLOR: string = '#FFFFFF';
+const PRIMARY_COLOR: string = '#1952B3';
+const SECONDARY_COLOR: string = '#E2E2B6';
 
 export const theme = {
     light: '',
@@ -51,6 +51,8 @@ export const theme = {
         borderSchedule: '#EBEBEB',
         toolbarBg: '#F5F5F5',
         adminBackground: '#f8f9fa',
+        primary30: '#A6C2F2',
+        primary90: '#0D2959',
     },
     transition: {
         primary: 'all 0.25s linear',
