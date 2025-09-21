@@ -5,7 +5,6 @@ import { Link } from "@tanstack/react-router";
 import publicRuntimeConfig from "@/config/publicRuntime";
 import registerBgImage from "@/assets/registerBackground.png";
 import testImage from "@/assets/test.jpg";
-import googleIcon from "@/assets/google-icon.png";
 import githubIcon from "@/assets/github-icon.png";
 import {
     RegisterContainer,
@@ -21,17 +20,19 @@ import {
     RegisterButton,
     Divider,
     DividerText,
-    GoogleButton,
     GitHubButton,
     SignInText,
     SignInLink,
-    GoogleIcon,
     GitHubIcon,
     LabelOption,
     PasswordInputWrapper,
     EyeIcon,
+    SocialButtonsContainer,
+    SocialButtonsRow,
+    SocialButtonWrapper,
+    GoogleLoginWrapper,
+    IconWrapper,
 } from "./Register.styled";
-
 
 interface RegisterPageProps {
     codeChallenge?: string;
@@ -40,14 +41,13 @@ interface RegisterPageProps {
     registerPkceMutation: UseMutationResult<any, unknown, any, unknown>;
 }
 
-
 interface ValidationErrors {
     username?: string;
     email?: string;
     password?: string;
     confirmPassword?: string;
+    general?: string;
 }
-
 
 const RegisterPage: React.FC<RegisterPageProps> = ({
     codeChallenge,
@@ -63,22 +63,18 @@ const RegisterPage: React.FC<RegisterPageProps> = ({
         confirmPassword: "",
     });
 
-
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [errors, setErrors] = useState<ValidationErrors>({});
     const [touched, setTouched] = useState<Set<string>>(new Set());
-
+    const [successMessage, setSuccessMessage] = useState("");
 
     const validateForm = (): boolean => {
         const newErrors: ValidationErrors = {};
 
-
-        // Validate required fields
         if (!registerData.username.trim()) {
             newErrors.username = "Username is required";
         }
-
 
         if (!registerData.email.trim()) {
             newErrors.email = "Email is required";
@@ -86,13 +82,11 @@ const RegisterPage: React.FC<RegisterPageProps> = ({
             newErrors.email = "Please enter a valid email address";
         }
 
-
         if (!registerData.password) {
             newErrors.password = "Password is required";
         } else if (registerData.password.length < 8) {
             newErrors.password = "Password must be at least 8 characters";
         }
-
 
         if (!registerData.confirmPassword) {
             newErrors.confirmPassword = "Please confirm your password";
@@ -101,25 +95,17 @@ const RegisterPage: React.FC<RegisterPageProps> = ({
             newErrors.password = "Passwords do not match";
         }
 
-
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
 
-
     const handleInputChange = (field: string, value: string) => {
         setRegisterData({ ...registerData, [field]: value });
 
-
-        // Mark field as touched
         setTouched(prev => new Set(prev).add(field));
 
-
-        // Clear errors for this field when user starts typing (except password matching errors)
         if (errors[field as keyof ValidationErrors]) {
-            // Only clear non-password-matching errors when typing
             if (field === 'password' || field === 'confirmPassword') {
-                // Only clear if it's not a password match error, or clear other validation errors
                 const currentError = errors[field as keyof ValidationErrors];
                 if (currentError && currentError !== "Passwords do not match") {
                     setErrors(prev => ({ ...prev, [field]: undefined }));
@@ -130,77 +116,138 @@ const RegisterPage: React.FC<RegisterPageProps> = ({
         }
     };
 
-
-    const handleRegister = () => {
-        // Mark all required fields as touched
+    const handleRegister = async () => {
         setTouched(new Set(['username', 'email', 'password', 'confirmPassword']));
-
+        setErrors({});
+        setSuccessMessage("");
 
         if (!validateForm()) {
             return;
         }
 
-
         const registrationInfo = {
             username: registerData.username,
-            displayName: registerData.displayName,
+            displayName: registerData.displayName || registerData.username,
             email: registerData.email,
             password: registerData.password,
         };
 
+        try {
+            let mutationPromise;
 
-        if (codeChallenge && codeChallengeMethod) {
-            registerPkceMutation.mutate({
-                method: "basic",
-                data: registrationInfo,
-                codeChallenge: codeChallenge,
-                codeChallengeMethod: codeChallengeMethod,
+            if (codeChallenge && codeChallengeMethod) {
+                mutationPromise = registerPkceMutation.mutateAsync({
+                    method: "basic",
+                    data: registrationInfo,
+                    codeChallenge: codeChallenge,
+                    codeChallengeMethod: codeChallengeMethod,
+                });
+            } else {
+                mutationPromise = registerMutation.mutateAsync({
+                    method: "basic",
+                    data: registrationInfo,
+                });
+            }
+
+            const result = await mutationPromise;
+
+            console.log('Registration successful:', result);
+
+            setSuccessMessage("Registration successful! Please check your email for verification.");
+
+            setRegisterData({
+                username: "",
+                displayName: "",
+                email: "",
+                password: "",
+                confirmPassword: "",
             });
-        } else {
-            registerMutation.mutate({
-                method: "basic",
-                data: registrationInfo,
-            });
+
+            setTouched(new Set());
+
+            setTimeout(() => {
+                // navigate('/auth/login') or window.location.href = '/auth/login'
+            }, 2000);
+
+        } catch (error: any) {
+            console.error('Registration failed:', error);
+
+            if (error?.response?.data?.message) {
+                const serverMessage = error.response.data.message;
+
+                if (serverMessage.toLowerCase().includes('username')) {
+                    setErrors({ username: serverMessage });
+                } else if (serverMessage.toLowerCase().includes('email')) {
+                    setErrors({ email: serverMessage });
+                } else {
+                    setErrors({ general: serverMessage });
+                }
+            } else if (error?.response?.data?.errors) {
+                const serverErrors = error.response.data.errors;
+                setErrors(serverErrors);
+            } else if (error?.message) {
+                setErrors({ general: error.message });
+            } else {
+                setErrors({ general: "Registration failed. Please try again later." });
+            }
+
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         }
     };
-
+    const isLoading = registerMutation.isPending || registerPkceMutation.isPending;
 
     const handleGoogleSuccess = async (credentialResponse: any) => {
-        if (!credentialResponse.credential) return;
+        console.log('Google registration success:', credentialResponse);
+        if (!credentialResponse.credential) {
+            console.error('No credential received from Google');
+            setErrors({ general: "Google registration failed. No credential received." });
+            return;
+        }
 
+        setErrors({});
+        setSuccessMessage("");
 
-        if (codeChallenge && codeChallengeMethod) {
-            registerPkceMutation.mutate({
-                method: "google",
-                code: credentialResponse.credential,
-                codeChallenge: codeChallenge,
-                codeChallengeMethod: codeChallengeMethod,
-            });
-        } else {
-            registerMutation.mutate({
-                method: "google",
-                code: credentialResponse.credential,
-            });
+        try {
+            if (codeChallenge && codeChallengeMethod) {
+                localStorage.setItem("codeChallenge", codeChallenge);
+                localStorage.setItem("codeChallengeMethod", codeChallengeMethod);
+
+                registerPkceMutation.mutate({
+                    method: "google",
+                    code: credentialResponse.credential,
+                    codeChallenge: codeChallenge,
+                    codeChallengeMethod: codeChallengeMethod,
+                });
+            } else {
+                registerMutation.mutate({
+                    method: "google",
+                    code: credentialResponse.credential,
+                });
+            }
+        } catch (error) {
+            console.error('Error during Google registration mutation:', error);
+            setErrors({ general: "Google registration failed. Please try again." });
         }
     };
 
+    const handleGoogleError = () => {
+        console.error("Google Registration Failed");
+        setErrors({ general: "Google registration failed. Please try again." });
+    };
 
     const handleGitHubRegister = () => {
         const githubAuthUrl = `https://github.com/login/oauth/authorize?scope=user:email&client_id=${publicRuntimeConfig.GITHUB_CLIENT_ID}`;
         window.location.href = githubAuthUrl;
     };
 
-
     const hasError = (field: string) => {
         return touched.has(field) && errors[field as keyof ValidationErrors];
     };
-
 
     return (
         <RegisterContainer backgroundImage={registerBgImage}>
             <ContentContainer>
                 <ImageSection backgroundImage={testImage} />
-
 
                 <RegisterCard>
                     <WelcomeTitle>Register Individual Account!</WelcomeTitle>
@@ -208,6 +255,35 @@ const RegisterPage: React.FC<RegisterPageProps> = ({
                         For the purpose of industry regulation, your details are required.
                     </WelcomeSubtitle>
 
+                    {errors.general && (
+                        <div style={{
+                            color: '#ef4444',
+                            fontSize: '14px',
+                            marginBottom: '16px',
+                            padding: '8px',
+                            backgroundColor: '#fef2f2',
+                            border: '1px solid #fecaca',
+                            borderRadius: '4px',
+                            textAlign: 'center'
+                        }}>
+                            {errors.general}
+                        </div>
+                    )}
+
+                    {successMessage && (
+                        <div style={{
+                            color: '#10b981',
+                            fontSize: '14px',
+                            marginBottom: '16px',
+                            padding: '8px',
+                            backgroundColor: '#f0fdf4',
+                            border: '1px solid #bbf7d0',
+                            borderRadius: '4px',
+                            textAlign: 'center'
+                        }}>
+                            {successMessage}
+                        </div>
+                    )}
 
                     <FormRow>
                         <FormGroup>
@@ -220,6 +296,7 @@ const RegisterPage: React.FC<RegisterPageProps> = ({
                                 onChange={(e) => handleInputChange('username', e.target.value)}
                                 onBlur={() => setTouched(prev => new Set(prev).add('username'))}
                                 required
+                                disabled={isLoading}
                                 style={{
                                     borderColor: hasError('username') ? '#ef4444' : undefined,
                                     borderWidth: hasError('username') ? '2px' : '1px'
@@ -237,7 +314,6 @@ const RegisterPage: React.FC<RegisterPageProps> = ({
                             )}
                         </FormGroup>
 
-
                         <FormGroup>
                             <LabelOption htmlFor="displayName">Display name</LabelOption>
                             <Input
@@ -246,10 +322,10 @@ const RegisterPage: React.FC<RegisterPageProps> = ({
                                 placeholder="Display name (Optional)"
                                 value={registerData.displayName}
                                 onChange={(e) => handleInputChange('displayName', e.target.value)}
+                                disabled={isLoading}
                             />
                         </FormGroup>
                     </FormRow>
-
 
                     <FormGroup>
                         <Label htmlFor="email">Your email</Label>
@@ -261,6 +337,7 @@ const RegisterPage: React.FC<RegisterPageProps> = ({
                             onChange={(e) => handleInputChange('email', e.target.value)}
                             onBlur={() => setTouched(prev => new Set(prev).add('email'))}
                             required
+                            disabled={isLoading}
                             style={{
                                 borderColor: hasError('email') ? '#ef4444' : undefined,
                                 borderWidth: hasError('email') ? '2px' : '1px'
@@ -278,7 +355,6 @@ const RegisterPage: React.FC<RegisterPageProps> = ({
                         )}
                     </FormGroup>
 
-
                     <FormRow>
                         <FormGroup>
                             <Label htmlFor="password">Password</Label>
@@ -292,12 +368,13 @@ const RegisterPage: React.FC<RegisterPageProps> = ({
                                     onBlur={() => setTouched(prev => new Set(prev).add('password'))}
                                     autoComplete="new-password"
                                     required
+                                    disabled={isLoading}
                                     style={{
                                         borderColor: hasError('password') ? '#ef4444' : undefined,
                                         borderWidth: hasError('password') ? '2px' : '1px'
                                     }}
                                 />
-                                {registerData.password && (
+                                {registerData.password && !isLoading && (
                                     <EyeIcon
                                         type="button"
                                         onClick={() => setShowPassword(!showPassword)}
@@ -329,7 +406,6 @@ const RegisterPage: React.FC<RegisterPageProps> = ({
                             )}
                         </FormGroup>
 
-
                         <FormGroup>
                             <Label htmlFor="confirmPassword">Confirm password</Label>
                             <PasswordInputWrapper>
@@ -342,12 +418,13 @@ const RegisterPage: React.FC<RegisterPageProps> = ({
                                     onBlur={() => setTouched(prev => new Set(prev).add('confirmPassword'))}
                                     autoComplete="new-password"
                                     required
+                                    disabled={isLoading}
                                     style={{
                                         borderColor: hasError('confirmPassword') ? '#ef4444' : undefined,
                                         borderWidth: hasError('confirmPassword') ? '2px' : '1px'
                                     }}
                                 />
-                                {registerData.confirmPassword && (
+                                {registerData.confirmPassword && !isLoading && (
                                     <EyeIcon
                                         type="button"
                                         onClick={() => setShowConfirmPassword(!showConfirmPassword)}
@@ -380,45 +457,77 @@ const RegisterPage: React.FC<RegisterPageProps> = ({
                         </FormGroup>
                     </FormRow>
 
-
-                    <RegisterButton onClick={handleRegister}>Register Account</RegisterButton>
-
+                    <RegisterButton
+                        onClick={handleRegister}
+                        disabled={isLoading}
+                        style={{
+                            opacity: isLoading ? 0.6 : 1,
+                            cursor: isLoading ? 'not-allowed' : 'pointer'
+                        }}
+                    >
+                        {isLoading ? 'Registering...' : 'Register Account'}
+                    </RegisterButton>
 
                     <Divider>
                         <DividerText>or</DividerText>
                     </Divider>
 
+                    <SocialButtonsContainer>
+                        <SocialButtonsRow>
+                            <SocialButtonWrapper>
+                                <GoogleLoginWrapper>
+                                    <GoogleLogin
+                                        onSuccess={handleGoogleSuccess}
+                                        onError={handleGoogleError}
+                                        useOneTap={false}
+                                        auto_select={false}
+                                        text="signup_with"
+                                        theme="outline"
+                                        size="large"
+                                        width="250"
+                                        locale="en"
+                                        shape="rectangular"
+                                        type="standard"
+                                        logo_alignment="center"
+                                        containerProps={{
+                                            style: {
+                                                width: '100%',
+                                                opacity: isLoading ? 0.6 : 1,
+                                                pointerEvents: isLoading ? 'none' : 'auto',
+                                                filter: isLoading ? 'grayscale(0.5)' : 'none',
+                                                borderRadius: '16px',
+                                            }
+                                        }}
+                                    />
+                                </GoogleLoginWrapper>
+                            </SocialButtonWrapper>
 
-                    <GoogleButton>
-                        <GoogleIcon src={googleIcon} alt="Google Icon" />
-                        Register with Google
-                    </GoogleButton>
-
-
-                    <GitHubButton onClick={handleGitHubRegister}>
-                        <GitHubIcon src={githubIcon} alt="GitHub Icon" />
-                        Register with Github
-                    </GitHubButton>
-
+                            <SocialButtonWrapper>
+                                <GitHubButton
+                                    onClick={handleGitHubRegister}
+                                    disabled={isLoading}
+                                    style={{
+                                        opacity: isLoading ? 0.6 : 1,
+                                        cursor: isLoading ? 'not-allowed' : 'pointer',
+                                        minHeight: '40px'
+                                    }}
+                                >
+                                    <IconWrapper>
+                                        <GitHubIcon src={githubIcon} alt="GitHub Icon" />
+                                    </IconWrapper>
+                                    <span>Sign up with GitHub</span>
+                                </GitHubButton>
+                            </SocialButtonWrapper>
+                        </SocialButtonsRow>
+                    </SocialButtonsContainer>
 
                     <SignInText>
                         Already have an account? <SignInLink as={Link} to="/auth/login">Sign in</SignInLink>
                     </SignInText>
-
-
-                    <div style={{ display: "none" }}>
-                        <GoogleLogin
-                            onSuccess={handleGoogleSuccess}
-                            onError={() => {
-                                console.log("Registration Failed");
-                            }}
-                        />
-                    </div>
                 </RegisterCard>
             </ContentContainer>
         </RegisterContainer>
     );
 };
-
 
 export default RegisterPage;

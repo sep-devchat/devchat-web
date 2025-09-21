@@ -222,8 +222,8 @@ export const DividerText = styled.span`
 export const SocialButton = styled.button`
   width: 100%;
   padding: 10px 16px;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
+  border: 1px solid #DADCE0;
+  border-radius: 4px;
   background: #ffffff;
   font-size: 14px;
   font-weight: 500;
@@ -234,43 +234,21 @@ export const SocialButton = styled.button`
   justify-content: center;
   gap: 12px;
   margin-bottom: 10px;
- 
+
   &:hover {
-    background: #f9fafb;
-    border-color: #d1d5db;
-    transform: translateY(-1px);
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    background: #F0F5FE;
+    border-color: #D2E3FC;
   }
- 
+
   &:active {
     transform: translateY(0);
   }
 `;
 
-
-export const GoogleButton = styled(SocialButton)`
-  color: #666666;
-`;
-
-
 export const GitHubButton = styled(SocialButton)`
-  color: #666666;
+  color: #3C4043;
+  height: 38px;
 `;
-
-
-export const GoogleIcon = styled.img`
-  width: 20px;
-  height: 20px;
-  object-fit: contain;
-`;
-
-
-export const GitHubIcon = styled.img`
-  width: 20px;
-  height: 20px;
-  object-fit: contain;
-`;
-
 
 export const SignInText = styled.p`
   text-align: center;
@@ -316,5 +294,58 @@ export const EyeIcon = styled.button`
    
   &:focus {
     outline: none;
+  }
+`;
+
+export const SocialButtonsContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+`;
+
+export const SocialButtonsRow = styled.div`
+  display: flex;
+  gap: 12px;
+  width: 100%;
+  
+  @media (max-width: 480px) {
+    flex-direction: column;
+    gap: 10px;
+  }
+`;
+
+export const SocialButtonWrapper = styled.div`
+  position: relative;
+  flex: 1; 
+  min-width: 0;
+`;
+
+export const IconWrapper = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+`;
+
+export const GitHubIcon = styled.img`
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+`;
+
+export const GoogleLoginWrapper = styled.div`
+  width: 100%;
+  position: relative;
+  
+  & > div {
+    width: 100% !important;
+    border-radius: 16px !important;
+    min-height: 36px !important;
+  }
+  
+  & button {
+    min-height: 36px !important;
+    border-radius: 16px !important;
   }
 `;
