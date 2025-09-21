@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import {
     Palette,
     Shield,
@@ -30,9 +30,7 @@ import {
 import bgImage from "@/assets/loginBackground.png";
 import { Home, User, MessageCircle, Bell, Settings } from 'lucide-react';
 
-
 type SettingsSection = 'general' | 'appearance' | 'notification' | 'account' | 'privacy';
-
 
 interface MenuItemType {
     id: SettingsSection;
@@ -40,19 +38,19 @@ interface MenuItemType {
     icon: React.ComponentType<any>;
 }
 
-
 interface SettingsMenuProps {
     children: React.ReactNode;
     activeSection: SettingsSection;
     onSectionChange: (section: SettingsSection) => void;
 }
 
-
 export const SettingsMenu: React.FC<SettingsMenuProps> = ({
     children,
     activeSection,
     onSectionChange
 }) => {
+    const contentWrapperRef = useRef<HTMLDivElement>(null);
+
     const menuItems: MenuItemType[] = [
         { id: 'general', label: 'General', icon: Settings },
         { id: 'appearance', label: 'Appearance', icon: Palette },
@@ -60,7 +58,6 @@ export const SettingsMenu: React.FC<SettingsMenuProps> = ({
         { id: 'account', label: 'Account', icon: User },
         { id: 'privacy', label: 'Privacy', icon: Shield },
     ];
-
 
     const icons = [
         { Icon: Home, selected: false },
@@ -70,6 +67,18 @@ export const SettingsMenu: React.FC<SettingsMenuProps> = ({
         { Icon: Settings, selected: true }
     ];
 
+    useEffect(() => {
+        if (contentWrapperRef.current) {
+            contentWrapperRef.current.scrollTop = 0;
+        }
+    }, [activeSection]);
+
+    const handleSectionChange = (section: SettingsSection) => {
+        onSectionChange(section);
+        if (contentWrapperRef.current) {
+            contentWrapperRef.current.scrollTop = 0;
+        }
+    };
 
     return (
         <SettingsContainer backgroundImage={bgImage}>
@@ -86,7 +95,6 @@ export const SettingsMenu: React.FC<SettingsMenuProps> = ({
                     <LogoSection>
                         <LogoBox>LOGO</LogoBox>
                     </LogoSection>
-
 
                     <IndentedSection>
                         <IconContainer>
@@ -107,7 +115,6 @@ export const SettingsMenu: React.FC<SettingsMenuProps> = ({
                             <SearchInput placeholder="Search" />
                         </SearchContainer>
 
-
                         <MenuNav>
                             {menuItems.map((item) => {
                                 const IconComponent = item.icon;
@@ -115,7 +122,7 @@ export const SettingsMenu: React.FC<SettingsMenuProps> = ({
                                     <MenuItem
                                         key={item.id}
                                         $isActive={activeSection === item.id}
-                                        onClick={() => onSectionChange(item.id)}
+                                        onClick={() => handleSectionChange(item.id)}
                                     >
                                         <MenuIcon>
                                             <IconComponent size={20} />
@@ -128,9 +135,8 @@ export const SettingsMenu: React.FC<SettingsMenuProps> = ({
                     </SidebarContent>
                 </Sidebar>
 
-
                 <MainContent>
-                    <ContentWrapper>
+                    <ContentWrapper ref={contentWrapperRef}>
                         {children}
                     </ContentWrapper>
                 </MainContent>
