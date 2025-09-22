@@ -124,6 +124,10 @@ function RouteComponent() {
 
         <Button
           onClick={() => {
+            if (codeChallenge && codeChallengeMethod) {
+              localStorage.setItem("codeChallenge", codeChallenge);
+              localStorage.setItem("codeChallengeMethod", codeChallengeMethod);
+            }
             const githubAuthUrl = `https://github.com/login/oauth/authorize?scope=user:email&client_id=${publicRuntimeConfig.GITHUB_CLIENT_ID}`;
             window.location.href = githubAuthUrl;
           }}
