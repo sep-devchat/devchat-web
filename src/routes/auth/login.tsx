@@ -37,7 +37,6 @@ function RouteComponent() {
     },
   });
 
-
   return (
     <LoginPage
       codeChallenge={codeChallenge}
