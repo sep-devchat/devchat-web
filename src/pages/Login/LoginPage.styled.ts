@@ -1,7 +1,8 @@
 import styled from "styled-components";
 
+
 export const LoginContainer = styled.div<{ backgroundImage: string }>`
-  height: 100vh;
+  min-height: 100vh;
   width: 100%;
   background-image: url(${props => props.backgroundImage});
   background-size: cover;
@@ -18,7 +19,6 @@ export const ContentContainer = styled.div`
   display: flex;
   width: 100%;
   max-width: 1200px;
-  min-height: 500px;
   gap: 10px;
  
   @media (max-width: 768px) {
@@ -40,8 +40,8 @@ export const LoginCard = styled.div`
   justify-content: center;
   border-radius: 16px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-
-
+  max-height: 600px;
+  align-self: center;
  
   @media (max-width: 768px) {
     flex: none;
@@ -54,7 +54,6 @@ export const LoginCard = styled.div`
 
 export const ImageSection = styled.div<{ backgroundImage: string }>`
   flex: 0 0 50%;
-  min-height: 500px;
   background-image: url(${props => props.backgroundImage});
   background-size: cover;
   background-position: center;
@@ -63,6 +62,7 @@ export const ImageSection = styled.div<{ backgroundImage: string }>`
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
   margin: -15px;
   margin-left: 10px;
+  height: 670px;
  
   @media (max-width: 768px) {
     flex: none;
@@ -130,9 +130,9 @@ export const Input = styled.input`
 
 
 export const ForgotPasswordLink = styled.a`
-    position: absolute;
-    right: 0;
-    top: 80px;
+  position: absolute;
+  right: 0;
+  top: 80px;
   font-size: 12px;
   color: #608BC1;
   text-decoration: none;
@@ -224,10 +224,12 @@ export const SocialButton = styled.button`
   gap: 12px;
   margin-bottom: 10px;
 
+
   &:hover {
     background: #F0F5FE;
     border-color: #D2E3FC;
   }
+
 
   &:active {
     transform: translateY(0);
@@ -239,6 +241,7 @@ export const GitHubButton = styled(SocialButton)`
   color: #3C4043;
   height: 38px;
 `;
+
 
 export const SignUpText = styled.p`
   text-align: center;
@@ -283,10 +286,11 @@ export const EyeIcon = styled.button`
   }
 
 
-    &:focus {
+  &:focus {
     outline: none;
   }
 `;
+
 
 export const SocialButtonsContainer = styled.div`
   display: flex;
@@ -295,22 +299,25 @@ export const SocialButtonsContainer = styled.div`
   width: 100%;
 `;
 
+
 export const SocialButtonsRow = styled.div`
   display: flex;
   gap: 12px;
   width: 100%;
-  
+ 
   @media (max-width: 480px) {
     flex-direction: column;
     gap: 10px;
   }
 `;
 
+
 export const SocialButtonWrapper = styled.div`
   position: relative;
-  flex: 1; 
+  flex: 1;
   min-width: 0;
 `;
+
 
 export const IconWrapper = styled.div`
   display: flex;
@@ -319,22 +326,24 @@ export const IconWrapper = styled.div`
   flex-shrink: 0;
 `;
 
+
 export const GitHubIcon = styled.img`
   width: 18px;
   height: 18px;
   object-fit: contain;
 `;
 
+
 export const GoogleLoginWrapper = styled.div`
   width: 100%;
   position: relative;
-  
+ 
   & > div {
     width: 100% !important;
     border-radius: 16px !important;
     min-height: 36px !important;
   }
-  
+ 
   & button {
     min-height: 36px !important;
     border-radius: 16px !important;

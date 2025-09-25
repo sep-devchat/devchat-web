@@ -1,6 +1,5 @@
 import styled from "styled-components";
 
-
 export const RegisterContainer = styled.div<{ backgroundImage: string }>`
   min-height: 100vh;
   width: 100%;
@@ -13,7 +12,6 @@ export const RegisterContainer = styled.div<{ backgroundImage: string }>`
   justify-content: center;
   padding: 40px 24px;
 `;
-
 
 export const ContentContainer = styled.div`
   display: flex;
@@ -29,7 +27,6 @@ export const ContentContainer = styled.div`
   }
 `;
 
-
 export const RegisterCard = styled.div`
   flex: 0 0 50%;
   max-width: none;
@@ -42,7 +39,6 @@ export const RegisterCard = styled.div`
   border-radius: 16px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
 
-
   @media (max-width: 768px) {
     flex: none;
     padding: 24px 32px;
@@ -50,7 +46,6 @@ export const RegisterCard = styled.div`
     min-height: 400px;
   }
 `;
-
 
 export const ImageSection = styled.div<{ backgroundImage: string }>`
   flex: 0 0 50%;
@@ -71,7 +66,6 @@ export const ImageSection = styled.div<{ backgroundImage: string }>`
   }
 `;
 
-
 export const WelcomeTitle = styled.h1`
   font-size: 26px;
   font-weight: 600;
@@ -80,7 +74,6 @@ export const WelcomeTitle = styled.h1`
   line-height: 1.2;
 `;
 
-
 export const WelcomeSubtitle = styled.p`
   font-size: 15px;
   color: #666666;
@@ -88,13 +81,11 @@ export const WelcomeSubtitle = styled.p`
   line-height: 1.5;
 `;
 
-
 export const FormGroup = styled.div`
   margin-bottom: 20px;
   position: relative;
   flex: 1;
 `;
-
 
 export const FormRow = styled.div`
   display: flex;
@@ -105,7 +96,6 @@ export const FormRow = styled.div`
     gap: 0;
   }
 `;
-
 
 export const Label = styled.label`
   display: block;
@@ -119,7 +109,6 @@ export const Label = styled.label`
   }
 `;
 
-
 export const LabelOption = styled.label`
   display: block;
   font-size: 14px;
@@ -127,7 +116,6 @@ export const LabelOption = styled.label`
   color: #1A1A1A;
   margin-bottom: 6px;
 `;
-
 
 export const Input = styled.input`
   width: 100%;
@@ -152,7 +140,6 @@ export const Input = styled.input`
     border-color: #9ca3af;
   }
 `;
-
 
 export const RegisterButton = styled.button`
   width: 100%;
@@ -185,7 +172,6 @@ export const RegisterButton = styled.button`
   }
 `;
 
-
 export const Divider = styled.div`
   display: flex;
   align-items: center;
@@ -194,7 +180,6 @@ export const Divider = styled.div`
   color: #9ca3af;
   font-size: 14px;
 
-
   &::before,
   &::after {
     content: "";
@@ -202,22 +187,18 @@ export const Divider = styled.div`
     border-bottom: 1px solid #e5e7eb;
   }
 
-
   &::before {
     margin-right: 0.75em;
   }
-
 
   &::after {
     margin-left: 0.75em;
   }
 `;
 
-
 export const DividerText = styled.span`
   background: #fff;
 `;
-
 
 export const SocialButton = styled.button`
   width: 100%;
@@ -257,7 +238,6 @@ export const SignInText = styled.p`
   margin-top: 16px;
 `;
 
-
 export const SignInLink = styled.a`
   color: #608BC1;
   text-decoration: none;
@@ -268,11 +248,9 @@ export const SignInLink = styled.a`
   }
 `;
 
-
 export const PasswordInputWrapper = styled.div`
   position: relative;
 `;
-
 
 export const EyeIcon = styled.button`
   position: absolute;
@@ -308,7 +286,7 @@ export const SocialButtonsRow = styled.div`
   display: flex;
   gap: 12px;
   width: 100%;
-  
+ 
   @media (max-width: 480px) {
     flex-direction: column;
     gap: 10px;
@@ -317,7 +295,7 @@ export const SocialButtonsRow = styled.div`
 
 export const SocialButtonWrapper = styled.div`
   position: relative;
-  flex: 1; 
+  flex: 1;
   min-width: 0;
 `;
 
@@ -337,15 +315,131 @@ export const GitHubIcon = styled.img`
 export const GoogleLoginWrapper = styled.div`
   width: 100%;
   position: relative;
-  
+ 
   & > div {
     width: 100% !important;
     border-radius: 16px !important;
     min-height: 36px !important;
   }
-  
+ 
   & button {
     min-height: 36px !important;
     border-radius: 16px !important;
   }
+`;
+
+export const Select = styled.select<{ hasError?: boolean; isLoading?: boolean }>`
+    width: 100%;
+    padding: 12px 40px 12px 16px;
+    border: ${({ hasError }) => hasError ? '2px' : '1px'} solid ${({ hasError }) => hasError ? '#ef4444' : '#d1d5db'};
+    border-radius: 8px;
+    font-size: 14px;
+    background-color: ${({ isLoading }) => isLoading ? '#f3f4f6' : '#fff'};
+    color: ${({ isLoading, value }) => {
+    if (isLoading) return '#666666';
+    if (!value || value === '') return '#666666';
+    return '#1A1A1A';
+  }};
+    cursor: ${({ isLoading }) => isLoading ? 'not-allowed' : 'pointer'};
+    outline: none;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+    background-position: right 12px center;
+    background-repeat: no-repeat;
+    background-size: 16px;
+    transition: all 0.2s ease-in-out;
+
+
+    &:focus {
+        border-color: ${({ hasError }) => hasError ? '#ef4444' : '#3b82f6'};
+        box-shadow: 0 0 0 3px ${({ hasError }) => hasError ? 'rgba(239, 68, 68, 0.1)' : 'rgba(59, 130, 246, 0.1)'};
+    }
+
+
+    &:hover:not(:disabled) {
+        border-color: ${({ hasError }) => hasError ? '#ef4444' : '#9ca3af'};
+    }
+
+
+    &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        background-color: #f3f4f6;
+    }
+
+
+    option {
+        color: #1A1A1A;
+        background-color: #fff;
+        padding: 8px 12px;
+
+
+        &:first-child {
+            color: #9ca3af;
+            font-style: italic;
+        }
+
+
+        &:hover {
+            background-color: #f3f4f6;
+        }
+
+
+        &:checked,
+        &:selected {
+            background-color: #3b82f6;
+            color: #fff;
+            font-weight: 500;
+        }
+    }
+
+
+    &::-webkit-scrollbar {
+        width: 8px;
+    }
+
+
+    &::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 4px;
+    }
+
+
+    &::-webkit-scrollbar-thumb {
+        background: #c1c1c1;
+        border-radius: 4px;
+    }
+
+
+    &::-webkit-scrollbar-thumb:hover {
+        background: #a8a8a8;
+    }
+`;
+
+
+export const SelectWrapper = styled.div`
+    position: relative;
+    width: 100%;
+
+
+    &::after {
+        content: '';
+        position: absolute;
+        top: 50%;
+        right: 12px;
+        width: 16px;
+        height: 16px;
+        transform: translateY(-50%);
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+        background-repeat: no-repeat;
+        background-position: center;
+        background-size: contain;
+        pointer-events: none;
+        transition: transform 0.2s ease-in-out;
+    }
+
+
+    &:focus-within::after {
+        transform: translateY(-50%) rotate(180deg);
+    }
 `;

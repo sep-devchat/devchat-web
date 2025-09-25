@@ -32,7 +32,10 @@ import {
     SocialButtonWrapper,
     GoogleLoginWrapper,
     IconWrapper,
+    Select,
+    SelectWrapper,
 } from "./Register.styled";
+
 
 interface RegisterPageProps {
     codeChallenge?: string;
@@ -41,13 +44,41 @@ interface RegisterPageProps {
     registerPkceMutation: UseMutationResult<any, unknown, any, unknown>;
 }
 
+
 interface ValidationErrors {
     username?: string;
+    firstName?: string;
+    lastName?: string;
     email?: string;
     password?: string;
     confirmPassword?: string;
+    avatarUrl?: string;
+    timezone?: string;
     general?: string;
 }
+
+
+const timezones = [
+    { value: "", label: "Select timezone" },
+    { value: "UTC", label: "(UTC+00:00) UTC" },
+    { value: "Asia/Ho_Chi_Minh", label: "(UTC+07:00) Ho Chi Minh City" },
+    { value: "Asia/Bangkok", label: "(UTC+07:00) Bangkok" },
+    { value: "Asia/Singapore", label: "(UTC+08:00) Singapore" },
+    { value: "Asia/Shanghai", label: "(UTC+08:00) Shanghai" },
+    { value: "Asia/Tokyo", label: "(UTC+09:00) Tokyo" },
+    { value: "Asia/Seoul", label: "(UTC+09:00) Seoul" },
+    { value: "Australia/Sydney", label: "(UTC+10:00) Sydney" },
+    { value: "Europe/London", label: "(UTC+00:00) London" },
+    { value: "Europe/Paris", label: "(UTC+01:00) Paris" },
+    { value: "Europe/Berlin", label: "(UTC+01:00) Berlin" },
+    { value: "Europe/Moscow", label: "(UTC+03:00) Moscow" },
+    { value: "America/New_York", label: "(UTC-05:00) New York" },
+    { value: "America/Chicago", label: "(UTC-06:00) Chicago" },
+    { value: "America/Denver", label: "(UTC-07:00) Denver" },
+    { value: "America/Los_Angeles", label: "(UTC-08:00) Los Angeles" },
+    { value: "America/Sao_Paulo", label: "(UTC-03:00) São Paulo" },
+];
+
 
 const RegisterPage: React.FC<RegisterPageProps> = ({
     codeChallenge,
@@ -57,11 +88,16 @@ const RegisterPage: React.FC<RegisterPageProps> = ({
 }) => {
     const [registerData, setRegisterData] = useState({
         username: "",
+        firstName: "",
+        lastName: "",
         displayName: "",
         email: "",
         password: "",
         confirmPassword: "",
+        timezone: "",
+        avatarUrl: "",
     });
+
 
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -69,71 +105,230 @@ const RegisterPage: React.FC<RegisterPageProps> = ({
     const [touched, setTouched] = useState<Set<string>>(new Set());
     const [successMessage, setSuccessMessage] = useState("");
 
+
+    const isValidUrl = (url: string): boolean => {
+        if (!url) return true;
+        try {
+            const urlPattern = /^(https?|ftp):\/\/[^\s/$.?#].[^\s]*$/i;
+            return urlPattern.test(url) && new URL(url) !== null;
+        } catch {
+            return false;
+        }
+    };
+
+
+    const validateField = (field: string, value: string): string | undefined => {
+        switch (field) {
+            case 'username':
+                if (!value.trim()) {
+                    return "Username is required";
+                }
+                if (value.length > 50) {
+                    return "Username must not exceed 50 characters";
+                }
+                break;
+
+
+            case 'firstName':
+                if (!value.trim()) {
+                    return "First name is required";
+                }
+                if (value.length > 100) {
+                    return "First name must not exceed 100 characters";
+                }
+                break;
+
+
+            case 'lastName':
+                if (!value.trim()) {
+                    return "Last name is required";
+                }
+                if (value.length > 100) {
+                    return "Last name must not exceed 100 characters";
+                }
+                break;
+
+
+            case 'email':
+                if (!value.trim()) {
+                    return "Email is required";
+                }
+                if (value.length > 255) {
+                    return "Email must not exceed 255 characters";
+                }
+                if (!/\S+@\S+\.\S+/.test(value)) {
+                    return "Please enter a valid email address";
+                }
+                break;
+
+
+            case 'password':
+                if (!value) {
+                    return "Password is required";
+                }
+                if (value.length < 8) {
+                    return "Password must be at least 8 characters";
+                }
+                if (value.length > 128) {
+                    return "Password must not exceed 128 characters";
+                }
+                // Check if confirm password matches when password is valid
+                if (registerData.confirmPassword && value !== registerData.confirmPassword) {
+                    return "Passwords do not match";
+                }
+                break;
+
+
+            case 'confirmPassword':
+                if (!value) {
+                    return "Please confirm your password";
+                }
+                if (registerData.password !== value) {
+                    return "Passwords do not match";
+                }
+                break;
+
+
+            case 'avatarUrl':
+                if (value && !isValidUrl(value)) {
+                    return "Please enter a valid URL (e.g., https://example.com/image.jpg)";
+                }
+                break;
+
+
+            case 'timezone':
+                if (value && value.length > 50) {
+                    return "Timezone must not exceed 50 characters";
+                }
+                break;
+
+
+            default:
+                break;
+        }
+        return undefined;
+    };
+
+
     const validateForm = (): boolean => {
         const newErrors: ValidationErrors = {};
+        const fieldsToValidate = ['username', 'firstName', 'lastName', 'email', 'password', 'confirmPassword', 'avatarUrl', 'timezone'];
 
-        if (!registerData.username.trim()) {
-            newErrors.username = "Username is required";
-        }
 
-        if (!registerData.email.trim()) {
-            newErrors.email = "Email is required";
-        } else if (!/\S+@\S+\.\S+/.test(registerData.email)) {
-            newErrors.email = "Please enter a valid email address";
-        }
+        fieldsToValidate.forEach(field => {
+            const error = validateField(field, registerData[field as keyof typeof registerData]);
+            if (error) {
+                newErrors[field as keyof ValidationErrors] = error;
+            }
+        });
 
-        if (!registerData.password) {
-            newErrors.password = "Password is required";
-        } else if (registerData.password.length < 8) {
-            newErrors.password = "Password must be at least 8 characters";
-        }
 
-        if (!registerData.confirmPassword) {
-            newErrors.confirmPassword = "Please confirm your password";
-        } else if (registerData.password !== registerData.confirmPassword) {
-            newErrors.confirmPassword = "Passwords do not match";
+        if (registerData.password && registerData.confirmPassword && registerData.password !== registerData.confirmPassword) {
             newErrors.password = "Passwords do not match";
+            newErrors.confirmPassword = "Passwords do not match";
         }
+
 
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
 
+
     const handleInputChange = (field: string, value: string) => {
         setRegisterData({ ...registerData, [field]: value });
 
+
         setTouched(prev => new Set(prev).add(field));
 
-        if (errors[field as keyof ValidationErrors]) {
-            if (field === 'password' || field === 'confirmPassword') {
-                const currentError = errors[field as keyof ValidationErrors];
-                if (currentError && currentError !== "Passwords do not match") {
-                    setErrors(prev => ({ ...prev, [field]: undefined }));
-                }
+
+        const error = validateField(field, value);
+
+
+        if (field === 'password') {
+            const newErrors = { ...errors };
+            if (error) {
+                newErrors.password = error;
             } else {
-                setErrors(prev => ({ ...prev, [field]: undefined }));
+                delete newErrors.password;
+            }
+
+
+            if (registerData.confirmPassword) {
+                const confirmError = validateField('confirmPassword', registerData.confirmPassword);
+                if (confirmError) {
+                    newErrors.confirmPassword = confirmError;
+                } else {
+                    delete newErrors.confirmPassword;
+                }
+            }
+            setErrors(newErrors);
+        } else if (field === 'confirmPassword') {
+            const newErrors = { ...errors };
+            if (error) {
+                newErrors.confirmPassword = error;
+            } else {
+                delete newErrors.confirmPassword;
+            }
+
+
+            if (registerData.password && value === registerData.password) {
+                if (errors.password === "Passwords do not match") {
+                    delete newErrors.password;
+                }
+            }
+            setErrors(newErrors);
+        } else {
+            if (error) {
+                setErrors(prev => ({ ...prev, [field]: error }));
+            } else {
+                setErrors(prev => {
+                    const newErrors = { ...prev };
+                    delete newErrors[field as keyof ValidationErrors];
+                    return newErrors;
+                });
             }
         }
     };
 
+
+    const isFormValid = (): boolean => {
+        const hasErrors = Object.keys(errors).length > 0;
+        const requiredFields = ['username', 'firstName', 'lastName', 'email', 'password', 'confirmPassword'];
+        const hasAllRequiredFields = requiredFields.every(field =>
+            registerData[field as keyof typeof registerData].trim() !== ''
+        );
+
+
+        return !hasErrors && hasAllRequiredFields;
+    };
+
+
     const handleRegister = async () => {
-        setTouched(new Set(['username', 'email', 'password', 'confirmPassword']));
-        setErrors({});
+        const allFields = ['username', 'firstName', 'lastName', 'email', 'password', 'confirmPassword', 'avatarUrl', 'timezone'];
+        setTouched(new Set(allFields));
         setSuccessMessage("");
+
 
         if (!validateForm()) {
             return;
         }
 
+
         const registrationInfo = {
             username: registerData.username,
             displayName: registerData.displayName || registerData.username,
+            firstName: registerData.firstName,
+            lastName: registerData.lastName,
             email: registerData.email,
             password: registerData.password,
+            avatarUrl: registerData.avatarUrl || "",
+            timezone: registerData.timezone || "",
         };
+
 
         try {
             let mutationPromise;
+
 
             if (codeChallenge && codeChallengeMethod) {
                 mutationPromise = registerPkceMutation.mutateAsync({
@@ -149,31 +344,45 @@ const RegisterPage: React.FC<RegisterPageProps> = ({
                 });
             }
 
+
             const result = await mutationPromise;
+
 
             console.log('Registration successful:', result);
 
+
             setSuccessMessage("Registration successful! Please check your email for verification.");
+
 
             setRegisterData({
                 username: "",
+                firstName: "",
+                lastName: "",
                 displayName: "",
                 email: "",
                 password: "",
                 confirmPassword: "",
+                avatarUrl: "",
+                timezone: "",
             });
 
+
             setTouched(new Set());
+            setErrors({});
+
 
             setTimeout(() => {
                 // navigate('/auth/login') or window.location.href = '/auth/login'
             }, 2000);
 
+
         } catch (error: any) {
             console.error('Registration failed:', error);
 
+
             if (error?.response?.data?.message) {
                 const serverMessage = error.response.data.message;
+
 
                 if (serverMessage.toLowerCase().includes('username')) {
                     setErrors({ username: serverMessage });
@@ -191,10 +400,14 @@ const RegisterPage: React.FC<RegisterPageProps> = ({
                 setErrors({ general: "Registration failed. Please try again later." });
             }
 
+
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
     };
+
+
     const isLoading = registerMutation.isPending || registerPkceMutation.isPending;
+
 
     const handleGoogleSuccess = async (credentialResponse: any) => {
         console.log('Google registration success:', credentialResponse);
@@ -204,13 +417,16 @@ const RegisterPage: React.FC<RegisterPageProps> = ({
             return;
         }
 
+
         setErrors({});
         setSuccessMessage("");
+
 
         try {
             if (codeChallenge && codeChallengeMethod) {
                 localStorage.setItem("codeChallenge", codeChallenge);
                 localStorage.setItem("codeChallengeMethod", codeChallengeMethod);
+
 
                 registerPkceMutation.mutate({
                     method: "google",
@@ -230,30 +446,36 @@ const RegisterPage: React.FC<RegisterPageProps> = ({
         }
     };
 
+
     const handleGoogleError = () => {
         console.error("Google Registration Failed");
         setErrors({ general: "Google registration failed. Please try again." });
     };
+
 
     const handleGitHubRegister = () => {
         const githubAuthUrl = `https://github.com/login/oauth/authorize?scope=user:email&client_id=${publicRuntimeConfig.GITHUB_CLIENT_ID}`;
         window.location.href = githubAuthUrl;
     };
 
+
     const hasError = (field: string) => {
         return touched.has(field) && errors[field as keyof ValidationErrors];
     };
+
 
     return (
         <RegisterContainer backgroundImage={registerBgImage}>
             <ContentContainer>
                 <ImageSection backgroundImage={testImage} />
 
+
                 <RegisterCard>
                     <WelcomeTitle>Register Individual Account!</WelcomeTitle>
                     <WelcomeSubtitle>
                         For the purpose of industry regulation, your details are required.
                     </WelcomeSubtitle>
+
 
                     {errors.general && (
                         <div style={{
@@ -270,6 +492,7 @@ const RegisterPage: React.FC<RegisterPageProps> = ({
                         </div>
                     )}
 
+
                     {successMessage && (
                         <div style={{
                             color: '#10b981',
@@ -284,6 +507,7 @@ const RegisterPage: React.FC<RegisterPageProps> = ({
                             {successMessage}
                         </div>
                     )}
+
 
                     <FormRow>
                         <FormGroup>
@@ -314,6 +538,7 @@ const RegisterPage: React.FC<RegisterPageProps> = ({
                             )}
                         </FormGroup>
 
+
                         <FormGroup>
                             <LabelOption htmlFor="displayName">Display name</LabelOption>
                             <Input
@@ -326,6 +551,65 @@ const RegisterPage: React.FC<RegisterPageProps> = ({
                             />
                         </FormGroup>
                     </FormRow>
+                    <FormRow>
+                        <FormGroup>
+                            <Label htmlFor="firstName">First name</Label>
+                            <Input
+                                id="firstName"
+                                type="text"
+                                placeholder="Firstname"
+                                value={registerData.firstName}
+                                onChange={(e) => handleInputChange('firstName', e.target.value)}
+                                onBlur={() => setTouched(prev => new Set(prev).add('firstName'))}
+                                required
+                                disabled={isLoading}
+                                style={{
+                                    borderColor: hasError('firstName') ? '#ef4444' : undefined,
+                                    borderWidth: hasError('firstName') ? '2px' : '1px'
+                                }}
+                            />
+                            {hasError('firstName') && (
+                                <div style={{
+                                    color: '#ef4444',
+                                    fontSize: '14px',
+                                    marginTop: '4px',
+                                    fontWeight: '500'
+                                }}>
+                                    {errors.firstName}
+                                </div>
+                            )}
+                        </FormGroup>
+
+
+                        <FormGroup>
+                            <Label htmlFor="lastName">Last name</Label>
+                            <Input
+                                id="lastName"
+                                type="text"
+                                placeholder="Last name"
+                                value={registerData.lastName}
+                                onChange={(e) => handleInputChange('lastName', e.target.value)}
+                                onBlur={() => setTouched(prev => new Set(prev).add('lastName'))}
+                                required
+                                disabled={isLoading}
+                                style={{
+                                    borderColor: hasError('lastName') ? '#ef4444' : undefined,
+                                    borderWidth: hasError('lastName') ? '2px' : '1px'
+                                }}
+                            />
+                            {hasError('lastName') && (
+                                <div style={{
+                                    color: '#ef4444',
+                                    fontSize: '14px',
+                                    marginTop: '4px',
+                                    fontWeight: '500'
+                                }}>
+                                    {errors.lastName}
+                                </div>
+                            )}
+                        </FormGroup>
+                    </FormRow>
+
 
                     <FormGroup>
                         <Label htmlFor="email">Your email</Label>
@@ -354,6 +638,7 @@ const RegisterPage: React.FC<RegisterPageProps> = ({
                             </div>
                         )}
                     </FormGroup>
+
 
                     <FormRow>
                         <FormGroup>
@@ -406,6 +691,7 @@ const RegisterPage: React.FC<RegisterPageProps> = ({
                             )}
                         </FormGroup>
 
+
                         <FormGroup>
                             <Label htmlFor="confirmPassword">Confirm password</Label>
                             <PasswordInputWrapper>
@@ -457,20 +743,82 @@ const RegisterPage: React.FC<RegisterPageProps> = ({
                         </FormGroup>
                     </FormRow>
 
+
+                    <FormGroup>
+                        <LabelOption htmlFor="avatarUrl">Avatar URL</LabelOption>
+                        <Input
+                            id="avatarUrl"
+                            type="url"
+                            placeholder="https://example.com/avatar.jpg (Optional)"
+                            value={registerData.avatarUrl}
+                            onChange={(e) => handleInputChange('avatarUrl', e.target.value)}
+                            onBlur={() => setTouched(prev => new Set(prev).add('avatarUrl'))}
+                            disabled={isLoading}
+                            style={{
+                                borderColor: hasError('avatarUrl') ? '#ef4444' : undefined,
+                                borderWidth: hasError('avatarUrl') ? '2px' : '1px'
+                            }}
+                        />
+                        {hasError('avatarUrl') && (
+                            <div style={{
+                                color: '#ef4444',
+                                fontSize: '14px',
+                                marginTop: '4px',
+                                fontWeight: '500'
+                            }}>
+                                {errors.avatarUrl}
+                            </div>
+                        )}
+                    </FormGroup>
+
+
+                    <FormGroup>
+                        <LabelOption htmlFor="timezone">Time Zone</LabelOption>
+                        <SelectWrapper>
+                            <Select
+                                id="timezone"
+                                value={registerData.timezone}
+                                onChange={(e) => handleInputChange('timezone', e.target.value)}
+                                onBlur={() => setTouched(prev => new Set(prev).add('timezone'))}
+                                disabled={isLoading}
+                                isLoading={isLoading}
+                            >
+                                {timezones.map((tz) => (
+                                    <option key={tz.value} value={tz.value}>
+                                        {tz.label}
+                                    </option>
+                                ))}
+                            </Select>
+                        </SelectWrapper>
+                        {hasError('timezone') && (
+                            <div style={{
+                                color: '#ef4444',
+                                fontSize: '14px',
+                                marginTop: '4px',
+                                fontWeight: '500'
+                            }}>
+                                {errors.timezone}
+                            </div>
+                        )}
+                    </FormGroup>
+
+
                     <RegisterButton
                         onClick={handleRegister}
-                        disabled={isLoading}
+                        disabled={isLoading || !isFormValid()}
                         style={{
-                            opacity: isLoading ? 0.6 : 1,
-                            cursor: isLoading ? 'not-allowed' : 'pointer'
+                            opacity: (isLoading || !isFormValid()) ? 0.6 : 1,
+                            cursor: (isLoading || !isFormValid()) ? 'not-allowed' : 'pointer'
                         }}
                     >
                         {isLoading ? 'Registering...' : 'Register Account'}
                     </RegisterButton>
 
+
                     <Divider>
                         <DividerText>or</DividerText>
                     </Divider>
+
 
                     <SocialButtonsContainer>
                         <SocialButtonsRow>
@@ -502,6 +850,7 @@ const RegisterPage: React.FC<RegisterPageProps> = ({
                                 </GoogleLoginWrapper>
                             </SocialButtonWrapper>
 
+
                             <SocialButtonWrapper>
                                 <GitHubButton
                                     onClick={handleGitHubRegister}
@@ -521,6 +870,7 @@ const RegisterPage: React.FC<RegisterPageProps> = ({
                         </SocialButtonsRow>
                     </SocialButtonsContainer>
 
+
                     <SignInText>
                         Already have an account? <SignInLink as={Link} to="/auth/login">Sign in</SignInLink>
                     </SignInText>
@@ -529,5 +879,6 @@ const RegisterPage: React.FC<RegisterPageProps> = ({
         </RegisterContainer>
     );
 };
+
 
 export default RegisterPage;

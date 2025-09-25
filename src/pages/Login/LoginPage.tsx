@@ -33,6 +33,7 @@ import {
     GitHubButton,
 } from "./LoginPage.styled";
 
+
 interface LoginPageProps {
     codeChallenge?: string;
     codeChallengeMethod?: string;
@@ -40,11 +41,13 @@ interface LoginPageProps {
     loginPkceMutation: UseMutationResult<any, unknown, any, unknown>;
 }
 
+
 interface ValidationErrors {
     usernameOrEmail?: string;
     password?: string;
     general?: string;
 }
+
 
 const LoginPage: React.FC<LoginPageProps> = ({
     codeChallenge,
@@ -57,10 +60,12 @@ const LoginPage: React.FC<LoginPageProps> = ({
         password: "",
     });
 
+
     const [showPassword, setShowPassword] = useState(false);
     const [errors, setErrors] = useState<ValidationErrors>({});
     const [touched, setTouched] = useState<Set<string>>(new Set());
     const [successMessage, setSuccessMessage] = useState<string>("");
+
 
     useEffect(() => {
         if (loginMutation.error) {
@@ -75,6 +80,7 @@ const LoginPage: React.FC<LoginPageProps> = ({
         }
     }, [loginMutation.error, loginMutation.isSuccess]);
 
+
     useEffect(() => {
         if (loginPkceMutation.error) {
             const error = loginPkceMutation.error as any;
@@ -88,47 +94,59 @@ const LoginPage: React.FC<LoginPageProps> = ({
         }
     }, [loginPkceMutation.error, loginPkceMutation.isSuccess]);
 
+
     const validateForm = (): boolean => {
         const newErrors: ValidationErrors = {};
+
 
         if (!loginData.usernameOrEmail.trim()) {
             newErrors.usernameOrEmail = "Username or email is required";
         }
 
+
         if (!loginData.password) {
             newErrors.password = "Password is required";
         }
+
 
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
 
+
     const handleInputChange = (field: string, value: string) => {
         setLoginData({ ...loginData, [field]: value });
 
+
         setTouched(prev => new Set(prev).add(field));
+
 
         if (errors[field as keyof ValidationErrors]) {
             setErrors(prev => ({ ...prev, [field]: undefined }));
         }
 
+
         if (errors.general) {
             setErrors(prev => ({ ...prev, general: undefined }));
         }
+
 
         if (successMessage) {
             setSuccessMessage("");
         }
     };
 
+
     const handleLogin = () => {
         setTouched(new Set(['usernameOrEmail', 'password']));
         setErrors({});
         setSuccessMessage("");
 
+
         if (!validateForm()) {
             return;
         }
+
 
         const code = btoa(`${loginData.usernameOrEmail}:${loginData.password}`);
         if (codeChallenge && codeChallengeMethod) {
@@ -146,6 +164,7 @@ const LoginPage: React.FC<LoginPageProps> = ({
         }
     };
 
+
     const handleGoogleSuccess = async (credentialResponse: any) => {
         console.log('Google login success:', credentialResponse);
         if (!credentialResponse.credential) {
@@ -154,13 +173,16 @@ const LoginPage: React.FC<LoginPageProps> = ({
             return;
         }
 
+
         setErrors({});
         setSuccessMessage("");
+
 
         try {
             if (codeChallenge && codeChallengeMethod) {
                 localStorage.setItem("codeChallenge", codeChallenge);
                 localStorage.setItem("codeChallengeMethod", codeChallengeMethod);
+
 
                 loginPkceMutation.mutate({
                     method: "google",
@@ -180,10 +202,12 @@ const LoginPage: React.FC<LoginPageProps> = ({
         }
     };
 
+
     const handleGoogleError = () => {
         console.error("Google Login Failed");
         setErrors({ general: "Google login failed. Please try again." });
     };
+
 
     const handleGitHubLogin = () => {
         if (codeChallenge && codeChallengeMethod) {
@@ -191,15 +215,19 @@ const LoginPage: React.FC<LoginPageProps> = ({
             localStorage.setItem("codeChallengeMethod", codeChallengeMethod);
         }
 
+
         const githubAuthUrl = `https://github.com/login/oauth/authorize?scope=user:email&client_id=${publicRuntimeConfig.GITHUB_CLIENT_ID}`;
         window.location.href = githubAuthUrl;
     };
+
 
     const hasError = (field: string) => {
         return touched.has(field) && errors[field as keyof ValidationErrors];
     };
 
+
     const isLoading = loginMutation.isPending || loginPkceMutation.isPending;
+
 
     return (
         <LoginContainer backgroundImage={bgImage}>
@@ -211,6 +239,7 @@ const LoginPage: React.FC<LoginPageProps> = ({
                         <br />
                         Sign in to start managing your projects.
                     </WelcomeSubtitle>
+
 
                     {errors.general && (
                         <div style={{
@@ -227,6 +256,7 @@ const LoginPage: React.FC<LoginPageProps> = ({
                         </div>
                     )}
 
+
                     {successMessage && (
                         <div style={{
                             color: '#059669',
@@ -241,6 +271,7 @@ const LoginPage: React.FC<LoginPageProps> = ({
                             {successMessage}
                         </div>
                     )}
+
 
                     <FormGroup>
                         <Label htmlFor="email">Email</Label>
@@ -271,6 +302,7 @@ const LoginPage: React.FC<LoginPageProps> = ({
                             </div>
                         )}
                     </FormGroup>
+
 
                     <FormGroup>
                         <Label htmlFor="password">Password</Label>
@@ -326,6 +358,7 @@ const LoginPage: React.FC<LoginPageProps> = ({
                         <ForgotPasswordLink href="#forgot">Forgot Password?</ForgotPasswordLink>
                     </FormGroup>
 
+
                     <SignInButton
                         onClick={handleLogin}
                         disabled={isLoading}
@@ -338,9 +371,11 @@ const LoginPage: React.FC<LoginPageProps> = ({
                         {isLoading ? 'Signing in...' : 'Sign in'}
                     </SignInButton>
 
+
                     <Divider>
                         <DividerText>or</DividerText>
                     </Divider>
+
 
                     <SocialButtonsContainer>
                         <SocialButtonsRow>
@@ -372,6 +407,7 @@ const LoginPage: React.FC<LoginPageProps> = ({
                                 </GoogleLoginWrapper>
                             </SocialButtonWrapper>
 
+
                             <SocialButtonWrapper>
                                 <GitHubButton
                                     onClick={handleGitHubLogin}
@@ -388,22 +424,25 @@ const LoginPage: React.FC<LoginPageProps> = ({
                                     <span>Sign in with GitHub</span>
                                 </GitHubButton>
 
+
                             </SocialButtonWrapper>
                         </SocialButtonsRow>
                     </SocialButtonsContainer>
+
 
                     <SignUpText>
                         Don't you have an account? <SignUpLink as={Link} to="/auth/register">Sign up</SignUpLink>
                     </SignUpText>
                 </LoginCard>
 
+
                 <ImageSection
                     backgroundImage={testImage}
-                    style={{ minHeight: 'calc(100vh - 40px)' }}
                 />
             </ContentContainer>
         </LoginContainer >
     );
 };
+
 
 export default LoginPage;
