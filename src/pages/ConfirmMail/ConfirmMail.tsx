@@ -1,4 +1,4 @@
-import ConfirmBg from '@/components/ui/ConfirmBackground/ConfirmBg'
+import ConfirmBg from '@/components/ConfirmBackground/ConfirmBg'
 import React from 'react'
 import { BoldText, ButtonActionGr, ConfirmImage, ContentCard, LoginButton, PageWrapper, SubmitButton, Text, TitleCard, TitleGr } from './ConfirmMail.styled';
 

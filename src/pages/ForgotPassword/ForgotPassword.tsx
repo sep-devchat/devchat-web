@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import ConfirmBg from '@/components/ui/ConfirmBackground/ConfirmBg'
+import ConfirmBg from '@/components/ConfirmBackground/ConfirmBg'
 import React, { useState } from 'react'
 import { BackArrow, BackText, ContentCard, EmailInput, PageWrapper, ResendGr, ResendText, SubmitButton, Text, TitleCard, TitleGr } from './ForgotPassword.styled'
 import OTPInput from '@/components/ui/OTPInput/OTPInput'

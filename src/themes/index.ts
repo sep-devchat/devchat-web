@@ -53,6 +53,9 @@ export const theme = {
         adminBackground: '#f8f9fa',
         primary30: '#A6C2F2',
         primary90: '#0D2959',
+        grey10: '#F6F8FC',
+        grey30: '#E2E8F0',
+        grey90: '#1E2A3B',
     },
     transition: {
         primary: 'all 0.25s linear',

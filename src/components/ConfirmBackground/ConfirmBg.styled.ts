@@ -8,10 +8,16 @@ export const PageWrapper = styled.div`
   position: absolute;
 
   @media (prefers-color-scheme: dark) {
-      background: linear-gradient(0deg, var(--primary-100, #0A1F43) 0%, var(--primary-100, #0A1F43) 100%), #FFF;
-              height: 100%;
-        top: 0px;
-        left: 0px;
+    background:
+      linear-gradient(
+        0deg,
+        var(--primary-100, #0a1f43) 0%,
+        var(--primary-100, #0a1f43) 100%
+      ),
+      #fff;
+    height: 100%;
+    top: 0px;
+    left: 0px;
   }
 `;
 
@@ -48,9 +54,9 @@ export const ElipBlue1 = styled.div`
   left: 249px;
 
   @media (prefers-color-scheme: dark) {
-opacity: 0.58;
-background: rgba(0, 94, 255, 0.36);
-filter: blur(150px);
+    opacity: 0.58;
+    background: rgba(0, 94, 255, 0.36);
+    filter: blur(150px);
   }
 `;
 
@@ -86,9 +92,9 @@ export const ElipBlue2 = styled.div`
   bottom: -255px;
   left: 385px;
 
-   @media (prefers-color-scheme: dark) {
-opacity: 0.58;
-background: rgba(0, 94, 255, 0.36);
-filter: blur(150px);
+  @media (prefers-color-scheme: dark) {
+    opacity: 0.58;
+    background: rgba(0, 94, 255, 0.36);
+    filter: blur(150px);
   }
 `;
