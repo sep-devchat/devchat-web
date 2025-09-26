@@ -1,12 +1,17 @@
-import { post } from "./apiCaller";
+import { get, post } from "./apiCaller";
 
 export interface LoginRequest {
 	method: string;
 	code: string;
 }
 
+export interface TokenResponse {
+	accessToken: string;
+	refreshToken: string;
+}
+
 export const login = async (dto: LoginRequest) => {
-	return post("/api/auth/login", dto);
+	return post<TokenResponse>("/api/auth/login", dto);
 };
 
 export interface LoginPkceRequest {
@@ -50,4 +55,8 @@ export interface RegisterPkceRequest {
 
 export const registerPkce = async (dto: RegisterPkceRequest) => {
 	return post("/api/auth/register-pkce", dto);
+};
+
+export const fetchProfile = async () => {
+	return get("/api/auth/profile");
 };

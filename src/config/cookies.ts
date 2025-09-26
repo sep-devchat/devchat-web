@@ -1,5 +1,5 @@
 const cookies = {
-	token: "token",
+	token: "accessToken",
 	payment: "payment",
 };
 
