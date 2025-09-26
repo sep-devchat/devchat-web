@@ -3,6 +3,7 @@ import useIsomorphicLayoutEffect from "./useIsomorphicLayoutEffect";
 import useScrollToTop from "./useScrollToTop";
 import { useAppDispatch, useAppSelector } from "./useStore";
 import useTheme from "./useTheme";
+import useAuth from "./useAuth";
 
 export {
 	useDocumentTitle,
@@ -11,4 +12,5 @@ export {
 	useAppDispatch,
 	useAppSelector,
 	useTheme,
+	useAuth,
 };

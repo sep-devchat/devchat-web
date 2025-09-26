@@ -10,6 +10,7 @@ import { IoNotifications } from "react-icons/io5";
 import ThreadPanel from "@/components/RightPanel/ThreadPanel/ThreadPanel";
 import CodeList from "@/components/RightPanel/CodeList/CodeList";
 import MemberList from "@/components/RightPanel/MemberList/MemberList";
+import AuthLayout from "@/layouts/AuthLayout";
 
 export const ChatChanel: React.FC = () => {
 	const data: SampleData = sampleData();
@@ -38,7 +39,7 @@ export const ChatChanel: React.FC = () => {
 	};
 
 	return (
-		<>
+		<AuthLayout>
 			<MainBg />
 			<PageWrapper>
 				<HeaderBar
@@ -59,6 +60,6 @@ export const ChatChanel: React.FC = () => {
 					{renderPanel()}
 				</ContentWrapper>
 			</PageWrapper>
-		</>
+		</AuthLayout>
 	);
 };

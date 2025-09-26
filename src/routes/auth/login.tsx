@@ -5,6 +5,8 @@ import z from "zod";
 
 import { login, loginPkce } from "@/services/authAPI";
 import LoginPage from "@/pages/Login";
+import { useAuth } from "@/hooks";
+import cookieUtils from "@/services/cookieUtils";
 
 const loginSearchParamsSchema = z.object({
 	codeChallenge: z.string().optional(),
@@ -18,12 +20,14 @@ export const Route = createFileRoute("/auth/login")({
 
 function RouteComponent() {
 	const navigate = useNavigate();
+	const { refetchProfile } = useAuth();
 	const { codeChallenge, codeChallengeMethod } = Route.useSearch();
 
 	const loginMutation = useMutation({
 		mutationFn: login,
-		onSuccess: (data) => {
-			console.log("Login successful:", data);
+		onSuccess: async (res) => {
+			cookieUtils.setToken(res.data.accessToken);
+			await refetchProfile();
 			navigate({
 				to: "/user/channels",
 			});
@@ -33,7 +37,7 @@ function RouteComponent() {
 	const loginPkceMutation = useMutation({
 		mutationFn: loginPkce,
 		onSuccess: (response) => {
-			const responseData = response.data.data;
+			const responseData = response.data;
 			window.location.href = `devchat://?code=${responseData.authCode}`;
 		},
 	});
