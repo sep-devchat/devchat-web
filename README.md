@@ -1,9 +1,11 @@
 # React + Vite template (TanStack Router, TanStack Query, Shadcn)
 
 ## 1. Introduction
+
 This is a template React for projects if you lazy and don't want spend most time for first setup steps. Hope my repository can help you.
 
 ## 2. Library & Framework
+
 <div>
   <img src="https://github.com/devicons/devicon/blob/master/icons/react/react-original.svg" alt="React" height="50" />
   <img src="https://github.com/devicons/devicon/blob/master/icons/vitejs/vitejs-original.svg" alt="Vitejs" height="50" />
@@ -16,7 +18,9 @@ This is a template React for projects if you lazy and don't want spend most time
 </div>
 
 ## 3. How to setup?
+
 ### Requirement!
+
 <ul>
   <li>Install Node.js lastest version</li>
   Check lastest version by cmd/shell:
@@ -26,6 +30,7 @@ This is a template React for projects if you lazy and don't want spend most time
 </ul>
 
 ### Setup time!
+
 - Create and edit `.env` file base on `.env.example`
 - Install deps
 
@@ -48,6 +53,7 @@ pnpm build
 ## 4. Project structure
 
 ### Overview
+
 - `@assets`: contains static files like images, fonts, videos, and other resources used in the project.
 - `@components`: contains reusable React components. These components are typically small, functional units used across multiple parts of the application, such as buttons, modals, or dropdowns.
 - `@config`: holds configuration files such as environment variables, API endpoints, or app-wide constants. This centralizes settings for easier management.
@@ -62,30 +68,37 @@ pnpm build
 - `@themes`: contains theme-related files, such as color palettes, typography settings, or global styles for consistent design across the application.
 - `@utils`: Includes utility functions or helpers used throughout the application, such as formatting functions, data transformation, or common algorithms.
 
-### Guide for pages/components creating & displaying 
+### Guide for pages/components creating & displaying
+
 `@config`
 Create a route direction path for the page that you want to display (Example: `Sample` page):
+
 1. Open `routes.ts` in `@config`
 2. Add direction path for `Sample` page:
+
 ```ts
 const routes = {
-  public: {
-    home: "/",
-    sample: "/sample", 
-  },
+	public: {
+		home: "/",
+		sample: "/sample",
+	},
 };
 
 export default routes;
 ```
+
 ===
 
 `@components`
+
 1. Create a forder inside `components` folder :
+
 ```
 @Sample
 ```
 
 2. Create an JSX element inside `Sample` folder:
+
 ```ts
 const Sample = () => {
   return (
@@ -95,34 +108,40 @@ const Sample = () => {
 
 export default Sample;
 ```
-*Trick: You can type `rafce` and press `Enter` to quick create `React Arrow Function Export Component`, or in orther words, like the code above*
+
+_Trick: You can type `rafce` and press `Enter` to quick create `React Arrow Function Export Component`, or in orther words, like the code above_
 
 3. Export element in `index.ts`
+
 ```ts
-export { default } from './Sample'
+export { default } from "./Sample";
 ```
 
 4. Deep customize CSS for element (Optional - If you want use `styled-component`)
-Create `Sample.styled.ts` in `Sample` folder:
-Remember: If (element === HTML.Element):
+   Create `Sample.styled.ts` in `Sample` folder:
+   Remember: If (element === HTML.Element):
+
 ```ts
-import { styled } from 'styled-components';
+import { styled } from "styled-components";
 
 export const SampleWrapper = styled.div`
-  //Do the same thing when you code in .css file
-`
+	//Do the same thing when you code in .css file
+`;
 ```
+
 else (element === AntDesign.Element || element === MUI.Element || ...):
+
 ```ts
-import { styled } from 'styled-components';
-import { Flex } from 'antd';
+import { styled } from "styled-components";
+import { Flex } from "antd";
 
 export const SampleWrapper = styled(Flex)`
-  //Do the same thing when you code in .css file
-`
+	//Do the same thing when you code in .css file
+`;
 ```
 
 After creating done, import it into JSX.Element (`Sample.tsx`):
+
 ```ts
 import { SampleWrapper } from './Sample.styled';
 
@@ -136,7 +155,9 @@ const Sample = () => {
 
 export default Sample;
 ```
+
 In case, if you have too much styled element (the most way I have used):
+
 ```ts
 import * as Styled from './Sample.styled';
 
@@ -152,13 +173,14 @@ export default Sample;
 ```
 
 5. Totally, your folder `Sample` will be look like this:
-`@component`
+   `@component`
    | Sample
-      | Sample.tsx
-      | Sample.styled.ts
-      | index.ts
+   | Sample.tsx
+   | Sample.styled.ts
+   | index.ts
 
-*Note: you can add and name the file base on other function. For example:*
+_Note: you can add and name the file base on other function. For example:_
+
 - `Sample.data.ts`: contain sample data before calling API.
 - `Sample.fields.ts`: contain fields can reusable in many modals.
 - File name format: `<ElementName>.<type>.<ts/tsx>`
@@ -169,13 +191,14 @@ export default Sample;
 Creating page is the same creating components
 For example, I have a sample page look like this:
 `@pages`
-   | Home
-   | SamplePage
-      | SamplePage.tsx
-      | SamplePage.styled.ts
-      | index.ts
+| Home
+| SamplePage
+| SamplePage.tsx
+| SamplePage.styled.ts
+| index.ts
 
 If you want to use `Sample` component in `SamplePage`, you can import in `SamplePage.tsx`:
+
 ```ts
 import * as Styled from './Sample.styled';
 import { Sample } from '@/components/Sample'; //Import like this
@@ -190,23 +213,25 @@ const SamplePage = () => {
 
 export default SamplePage;
 ```
+
 ===
 
 Now it's time to connect two parts before
 `@routes` (TanStack Router)
+
 1. Open `src/routes/index.ts`
 2. Add a new route using `createRoute` and attach to the root:
 
 ```ts
-import SamplePage from '@/pages/SamplePage'
-import { createRoute } from '@tanstack/react-router'
-import { rootRoute } from '@/routes/root' // if you split files. In this template, rootRoute is in routes/index.ts
+import SamplePage from "@/pages/SamplePage";
+import { createRoute } from "@tanstack/react-router";
+import { rootRoute } from "@/routes/root"; // if you split files. In this template, rootRoute is in routes/index.ts
 
 const sampleRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: config.routes.public.sample,
-  component: SamplePage,
-})
+	getParentRoute: () => rootRoute,
+	path: config.routes.public.sample,
+	component: SamplePage,
+});
 
 // Then add it to the routeTree (see routes/index.ts for pattern)
 ```
@@ -218,6 +243,7 @@ Query data: use `useQuery`/`useMutation` from `@tanstack/react-query`. The provi
 Shadcn UI: components live in `src/components/ui`. Example usage is in `src/pages/Home/Home.tsx`.
 
 Team notes (5 members):
+
 - Routing: add routes only in `src/routes/index.ts`. Keep pages in `src/pages/<Page>/`.
 - Data fetching: create API wrappers in `src/services`, then use React Query in pages/components. Co-locate queries with the component that consumes them.
 - State: prefer React Query for server state, Redux/store for client app state.

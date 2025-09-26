@@ -2,11 +2,11 @@
 import { Outlet } from "@tanstack/react-router";
 
 const HomeLayout = () => {
-    return (
-        <>
-            <Outlet />
-        </>
-    )
-}
+	return (
+		<>
+			<Outlet />
+		</>
+	);
+};
 
 export default HomeLayout;
