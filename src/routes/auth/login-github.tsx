@@ -52,6 +52,8 @@ function RouteComponent() {
         codeChallenge,
         codeChallengeMethod,
       });
+      localStorage.removeItem("codeChallenge");
+      localStorage.removeItem("codeChallengeMethod");
     } else {
       loginMutation.mutate({ method: "github", code });
     }
