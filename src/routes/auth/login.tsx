@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { zodValidator } from "@tanstack/zod-adapter";
 import { useMutation } from "@tanstack/react-query";
 import z from "zod";
@@ -17,10 +17,17 @@ export const Route = createFileRoute("/auth/login")({
 });
 
 function RouteComponent() {
+	const navigate = useNavigate();
 	const { codeChallenge, codeChallengeMethod } = Route.useSearch();
 
 	const loginMutation = useMutation({
 		mutationFn: login,
+		onSuccess: (data) => {
+			console.log("Login successful:", data);
+			navigate({
+				to: "/user/channels",
+			});
+		},
 	});
 
 	const loginPkceMutation = useMutation({

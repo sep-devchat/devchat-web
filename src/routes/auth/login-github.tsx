@@ -1,6 +1,6 @@
 import { login, loginPkce } from "@/services/authAPI";
 import { useMutation } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { zodValidator } from "@tanstack/zod-adapter";
 import { useEffect } from "react";
 import z from "zod";
@@ -16,10 +16,15 @@ export const Route = createFileRoute("/auth/login-github")({
 
 function RouteComponent() {
 	const { code } = Route.useSearch();
+	const navigate = useNavigate();
+
 	const loginMutation = useMutation({
 		mutationFn: login,
 		onSuccess: (data) => {
 			console.log("GitHub login successful:", data);
+			navigate({
+				to: "/user/channels",
+			});
 		},
 		onError: (error) => {
 			console.error("GitHub login failed:", error);
