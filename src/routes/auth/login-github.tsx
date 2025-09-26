@@ -1,4 +1,6 @@
+import { useAuth } from "@/hooks";
 import { login, loginPkce } from "@/services/authAPI";
+import cookieUtils from "@/services/cookieUtils";
 import { useMutation } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { zodValidator } from "@tanstack/zod-adapter";
@@ -17,11 +19,14 @@ export const Route = createFileRoute("/auth/login-github")({
 function RouteComponent() {
 	const { code } = Route.useSearch();
 	const navigate = useNavigate();
+	const { refetchProfile } = useAuth();
 
 	const loginMutation = useMutation({
 		mutationFn: login,
-		onSuccess: (data) => {
+		onSuccess: async (data) => {
 			console.log("GitHub login successful:", data);
+			cookieUtils.setToken(data.data.accessToken);
+			await refetchProfile();
 			navigate({
 				to: "/user/channels",
 			});

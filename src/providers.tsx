@@ -8,6 +8,7 @@ import publicRuntimeConfig from "./config/publicRuntime";
 // Import the generated route tree
 import { routeTree } from "./routeTree.gen.ts";
 import { createRouter, RouterProvider } from "@tanstack/react-router";
+import AuthProvider from "./components/AuthProvider.tsx";
 
 // Create a new router instance
 const router = createRouter({ routeTree });
@@ -28,16 +29,18 @@ export function Providers() {
 	return (
 		<GoogleOAuthProvider clientId={publicRuntimeConfig.GOOGLE_CLIENT_ID}>
 			<QueryClientProvider client={queryClient}>
-				<RouterProvider router={router} />
-				{config.publicRuntime.DEV_ENABLED ? (
-					<ReactQueryDevtools
-						initialIsOpen={false}
-						buttonPosition="bottom-left"
-					/>
-				) : null}
-				{config.publicRuntime.DEV_ENABLED ? (
-					<TanStackRouterDevtools router={router} position="bottom-right" />
-				) : null}
+				<AuthProvider>
+					<RouterProvider router={router} />
+					{config.publicRuntime.DEV_ENABLED ? (
+						<ReactQueryDevtools
+							initialIsOpen={false}
+							buttonPosition="bottom-left"
+						/>
+					) : null}
+					{config.publicRuntime.DEV_ENABLED ? (
+						<TanStackRouterDevtools router={router} position="bottom-right" />
+					) : null}
+				</AuthProvider>
 			</QueryClientProvider>
 		</GoogleOAuthProvider>
 	);
