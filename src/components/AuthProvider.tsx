@@ -4,12 +4,17 @@ import { PropsWithChildren, useEffect, useState } from "react";
 
 export default function AuthProvider({ children }: PropsWithChildren) {
 	const [profile, setProfile] = useState<any>();
-	const [isLoading, setIsLoading] = useState(false);
+	const [isLoading, setIsLoading] = useState(true);
 	const refetchProfile = async () => {
 		setIsLoading(true);
-		const data = await fetchProfile();
+		try {
+			const data = await fetchProfile();
+			setProfile(data.data);
+		} catch (err) {
+			console.log(err);
+			setProfile(undefined);
+		}
 		setIsLoading(false);
-		setProfile(data);
 	};
 
 	useEffect(() => {
