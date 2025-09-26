@@ -1,7 +1,6 @@
 import { createGlobalStyle } from "styled-components";
 // import { theme } from ".";
 
-
 const GlobalStyles = createGlobalStyle`
     :root {
         font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
@@ -82,6 +81,5 @@ const GlobalStyles = createGlobalStyle`
         }
     }
 `;
-
 
 export default GlobalStyles;
