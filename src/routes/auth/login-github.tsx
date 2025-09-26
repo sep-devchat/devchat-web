@@ -39,7 +39,7 @@ function RouteComponent() {
 	const loginPkceMutation = useMutation({
 		mutationFn: loginPkce,
 		onSuccess: (response) => {
-			const responseData = response.data.data;
+			const responseData = response.data;
 			window.location.href = `devchat://?code=${responseData.authCode}`;
 		},
 		onError: (error) => {
