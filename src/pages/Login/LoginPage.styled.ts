@@ -1,7 +1,7 @@
 import styled from "styled-components";
 
 export const LoginContainer = styled.div<{ backgroundImage: string }>`
-	height: 100vh;
+	min-height: 100vh;
 	width: 100%;
 	background-image: url(${(props) => props.backgroundImage});
 	background-size: cover;
@@ -17,7 +17,6 @@ export const ContentContainer = styled.div`
 	display: flex;
 	width: 100%;
 	max-width: 1200px;
-	min-height: 500px;
 	gap: 10px;
 
 	@media (max-width: 768px) {
@@ -38,6 +37,8 @@ export const LoginCard = styled.div`
 	justify-content: center;
 	border-radius: 16px;
 	box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+	max-height: 600px;
+	align-self: center;
 
 	@media (max-width: 768px) {
 		flex: none;
@@ -49,7 +50,6 @@ export const LoginCard = styled.div`
 
 export const ImageSection = styled.div<{ backgroundImage: string }>`
 	flex: 0 0 50%;
-	min-height: 500px;
 	background-image: url(${(props) => props.backgroundImage});
 	background-size: cover;
 	background-position: center;
@@ -58,6 +58,7 @@ export const ImageSection = styled.div<{ backgroundImage: string }>`
 	box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
 	margin: -15px;
 	margin-left: 10px;
+	height: 670px;
 
 	@media (max-width: 768px) {
 		flex: none;
