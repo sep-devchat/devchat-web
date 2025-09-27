@@ -327,3 +327,111 @@ export const GoogleLoginWrapper = styled.div`
 		border-radius: 16px !important;
 	}
 `;
+
+export const Select = styled.select<{
+	hasError?: boolean;
+	isLoading?: boolean;
+}>`
+	width: 100%;
+	padding: 12px 40px 12px 16px;
+	border: ${({ hasError }) => (hasError ? "2px" : "1px")} solid
+		${({ hasError }) => (hasError ? "#ef4444" : "#d1d5db")};
+	border-radius: 8px;
+	font-size: 14px;
+	background-color: ${({ isLoading }) => (isLoading ? "#f3f4f6" : "#fff")};
+	color: ${({ isLoading, value }) => {
+		if (isLoading) return "#666666";
+		if (!value || value === "") return "#666666";
+		return "#1A1A1A";
+	}};
+	cursor: ${({ isLoading }) => (isLoading ? "not-allowed" : "pointer")};
+	outline: none;
+	appearance: none;
+	background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+	background-position: right 12px center;
+	background-repeat: no-repeat;
+	background-size: 16px;
+	transition: all 0.2s ease-in-out;
+
+	&:focus {
+		border-color: ${({ hasError }) => (hasError ? "#ef4444" : "#3b82f6")};
+		box-shadow: 0 0 0 3px
+			${({ hasError }) =>
+				hasError ? "rgba(239, 68, 68, 0.1)" : "rgba(59, 130, 246, 0.1)"};
+	}
+
+	&:hover:not(:disabled) {
+		border-color: ${({ hasError }) => (hasError ? "#ef4444" : "#9ca3af")};
+	}
+
+	&:disabled {
+		opacity: 0.6;
+		cursor: not-allowed;
+		background-color: #f3f4f6;
+	}
+
+	option {
+		color: #1a1a1a;
+		background-color: #fff;
+		padding: 8px 12px;
+
+		&:first-child {
+			color: #9ca3af;
+			font-style: italic;
+		}
+
+		&:hover {
+			background-color: #f3f4f6;
+		}
+
+		&:checked,
+		&:selected {
+			background-color: #3b82f6;
+			color: #fff;
+			font-weight: 500;
+		}
+	}
+
+	&::-webkit-scrollbar {
+		width: 8px;
+	}
+
+	&::-webkit-scrollbar-track {
+		background: #f1f1f1;
+		border-radius: 4px;
+	}
+
+	&::-webkit-scrollbar-thumb {
+		background: #c1c1c1;
+		border-radius: 4px;
+	}
+
+	&::-webkit-scrollbar-thumb:hover {
+		background: #a8a8a8;
+	}
+`;
+
+export const SelectWrapper = styled.div`
+	position: relative;
+	width: 100%;
+
+	&::after {
+		content: "";
+		position: absolute;
+		top: 50%;
+		right: 12px;
+		width: 16px;
+		height: 16px;
+		transform: translateY(-50%);
+		background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+		background-repeat: no-repeat;
+		background-position: center;
+		background-size: contain;
+		pointer-events: none;
+		transition: transform 0.2s ease-in-out;
+	}
+
+	&:focus-within::after {
+		transform: translateY(-50%) rotate(180deg);
+	}
+`;
