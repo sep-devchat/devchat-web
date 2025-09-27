@@ -1,6 +1,6 @@
 const cookies = {
-    token: 'token',
-    payment: 'payment'
+	token: "accessToken",
+	payment: "payment",
 };
 
 export default cookies;

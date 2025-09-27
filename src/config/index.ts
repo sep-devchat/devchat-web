@@ -2,8 +2,8 @@ import cookies from "./cookies";
 import publicRuntime from "./publicRuntime";
 
 const config = {
-    publicRuntime,
-    cookies
+	publicRuntime,
+	cookies,
 };
 
 export default config;
