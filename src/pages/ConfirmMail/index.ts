@@ -1,1 +1,1 @@
-export { ConfirmMail } from './ConfirmMail';
+export { ConfirmMail } from "./ConfirmMail";

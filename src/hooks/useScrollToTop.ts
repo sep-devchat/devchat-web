@@ -3,9 +3,9 @@ import { useEffect } from "react";
 // This hook is a placeholder if teams need custom behavior per-route.
 
 const useScrollToTop = () => {
-    useEffect(() => {
-        // custom scroll logic can be placed here
-    }, []);
+	useEffect(() => {
+		// custom scroll logic can be placed here
+	}, []);
 };
 
 export default useScrollToTop;

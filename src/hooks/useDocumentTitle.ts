@@ -1,9 +1,9 @@
-import useIsomorphicLayoutEffect from "./useIsomorphicLayoutEffect"
+import useIsomorphicLayoutEffect from "./useIsomorphicLayoutEffect";
 
 const useDocumentTitle = (title: string) => {
-    useIsomorphicLayoutEffect(() => {
-        window.document.title = title;
-    }, [title]);
-} 
+	useIsomorphicLayoutEffect(() => {
+		window.document.title = title;
+	}, [title]);
+};
 
 export default useDocumentTitle;
