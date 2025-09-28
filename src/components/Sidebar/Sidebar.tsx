@@ -1,7 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useRef, useEffect, useState } from "react";
-import { Search } from "lucide-react";
+import { MessageCircle, Settings, Plus, X } from "lucide-react";
+
+// Import styled components
 import {
+	SidebarContainer,
 	SettingRows,
 	NavigatorIcon,
 	LogoSection,
@@ -9,31 +12,50 @@ import {
 	IndentedSection,
 	IconContainer,
 	CircleIcon,
+	Sidebar,
 	SidebarContent,
-	SearchContainer,
-	SearchIcon,
-	SearchInput,
+	HeaderContainer,
+	GroupTitle,
+	HeaderButtons,
+	HeaderButton,
 	MenuNav,
 	MenuItem,
 	MenuIcon,
-	SidebarContainer,
-	Sidebar,
+	ModalOverlay,
+	ModalContent,
+	ModalHeader,
+	ModalTitle,
+	CloseButton,
+	FormSection,
+	Label,
+	ChannelTypeCard,
+	ChannelTypeIcon,
+	ChannelTypeContent,
+	ChannelTypeName,
+	ChannelTypeDescription,
+	Input,
+	PrivateSection,
+	PrivateIcon,
+	PrivateContent,
+	PrivateTitle,
+	PrivateDescription,
+	Toggle,
+	ToggleInput,
+	ToggleSlider,
+	ModalFooter,
+	Button,
+	Divider,
 } from "./Sidebar.styled";
 
-import { MessageCircle, Settings } from "lucide-react";
-
+// Import types and data from sampleData.ts
 import {
 	sampleData,
 	SampleData,
 	GroupSummary,
 	ExpandedGroup,
+	Channel,
 } from "../../sampleData";
 
-/**
- * NOTE:
- * - Mình chỉnh types để menu item/section là string (vì channel.name có thể bất kỳ).
- * - Props: activeSection là string, channelSelected nhận string.
- */
 interface SidebarMenuProps {
 	children?: React.ReactNode;
 	activeSection: string;
@@ -47,16 +69,20 @@ export const SidebarMenu: React.FC<SidebarMenuProps> = ({
 	setGrNameSelected,
 }) => {
 	const contentWrapperRef = useRef<HTMLDivElement | null>(null);
-
-	// lấy sample data
 	const data: SampleData = sampleData();
 
-	// state chọn group hiện tại
 	const [selectedGroupId, setSelectedGroupId] = useState<string | null>(
 		data.expanded_group.group_id,
 	);
-	// khi true => hiển thị menu của Logo (không phải channels)
 	const [logoMode, setLogoMode] = useState<boolean>(false);
+	const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
+	const [channelName, setChannelName] = useState<string>("");
+	const [isPrivate, setIsPrivate] = useState<boolean>(false);
+	const [allGroupsData, setAllGroupsData] = useState<{
+		[key: string]: ExpandedGroup;
+	}>({
+		[data.expanded_group.group_id]: data.expanded_group,
+	});
 
 	useEffect(() => {
 		if (contentWrapperRef.current) {
@@ -64,20 +90,19 @@ export const SidebarMenu: React.FC<SidebarMenuProps> = ({
 		}
 	}, [activeSection, selectedGroupId, logoMode]);
 
-	// giả lập lấy expandedGroup từ server / sampleData
 	const getExpandedGroup = (groupId: string | null): ExpandedGroup | null => {
 		if (!groupId) return null;
 
-		// nếu chọn đúng group có trong sampleData.expanded_group => trả về nó
-		if (data.expanded_group && data.expanded_group.group_id === groupId) {
-			return data.expanded_group;
+		// Check if we have this group's data in our state
+		if (allGroupsData[groupId]) {
+			return allGroupsData[groupId];
 		}
 
-		// ngược lại: tạo expanded tạm từ group summary (channels rỗng hoặc placeholder)
+		// If not, create from summary data
 		const summary = data.groups.find((g) => g.group_id === groupId);
 		if (!summary) return null;
 
-		return {
+		const newExpandedGroup: ExpandedGroup = {
 			group_id: summary.group_id,
 			name: summary.name,
 			description: summary.description ?? null,
@@ -86,11 +111,10 @@ export const SidebarMenu: React.FC<SidebarMenuProps> = ({
 			created_at: summary.created_at,
 			updated_at: summary.updated_at ?? null,
 			is_active: summary.is_active,
-			members: [], // không có member chi tiết trong sample
+			members: [],
 			channels: [
-				// bạn có thể đổi nội dung placeholder này nếu cần
 				{
-					channel_id: `${summary.group_id}-ch-1`,
+					channel_id: `${summary.group_id}-ch-general`,
 					name: "general",
 					description: `General channel of ${summary.name}`,
 					permission: "public",
@@ -106,11 +130,18 @@ export const SidebarMenu: React.FC<SidebarMenuProps> = ({
 				allow_guest_invite: false,
 			},
 		};
+
+		// Save to state for future use
+		setAllGroupsData((prev) => ({
+			...prev,
+			[groupId]: newExpandedGroup,
+		}));
+
+		return newExpandedGroup;
 	};
 
 	const expanded = getExpandedGroup(selectedGroupId);
 
-	// menu mặc định khi ở logoMode
 	const logoMenuItems = [
 		{ id: "settings-general", label: "General" },
 		{ id: "settings-appearance", label: "Appearance" },
@@ -119,39 +150,78 @@ export const SidebarMenu: React.FC<SidebarMenuProps> = ({
 		{ id: "settings-privacy", label: "Privacy" },
 	];
 
-	// khi bấm 1 channel -> gọi channelSelected với channel.name (hoặc id tuỳ bạn muốn)
 	const handleMenuClick = (id: string) => {
 		channelSelected(id);
 	};
 
-	// bấm vào avatar 1 group
 	const handleGroupClick = (group: GroupSummary) => {
 		setLogoMode(false);
 		setSelectedGroupId(String(group.group_id));
 		if (setGrNameSelected) {
 			setGrNameSelected(group.name);
 		}
-		// reset active section khi đổi group (tuỳ yêu cầu bạn có thể giữ)
-		channelSelected(""); // reset hoặc truyền channel mặc định
+		channelSelected("");
 	};
 
-	// bấm vào logo header
 	const handleLogoClick = () => {
 		setLogoMode(true);
 		setSelectedGroupId(null);
 		channelSelected("logo-menu");
 	};
 
+	const handleAddChannel = () => {
+		setIsModalOpen(true);
+	};
+
+	const handleCloseModal = () => {
+		setIsModalOpen(false);
+		setChannelName("new-channel");
+		setIsPrivate(false);
+	};
+
+	const handleCreateChannel = () => {
+		if (!channelName.trim() || !selectedGroupId) return;
+
+		const newChannel: Channel = {
+			channel_id: `${selectedGroupId}-ch-${Date.now()}`,
+			name: channelName.trim(),
+			description: `${channelName.trim()} channel`,
+			permission: isPrivate ? "private" : "public",
+			created_by: data.user.user_id,
+			created_at: new Date().toISOString(),
+			updated_at: null,
+			is_active: true,
+		};
+
+		// Update the specific group's channels
+		setAllGroupsData((prev) => {
+			const currentGroup = prev[selectedGroupId];
+			if (currentGroup) {
+				return {
+					...prev,
+					[selectedGroupId]: {
+						...currentGroup,
+						channels: [...currentGroup.channels, newChannel],
+					},
+				};
+			}
+			return prev;
+		});
+
+		handleCloseModal();
+		channelSelected(newChannel.name);
+	};
+
+	const currentGroupName = expanded ? expanded.name : "Settings";
+
 	return (
 		<SidebarContainer>
 			<SettingRows>
 				<NavigatorIcon>
-					{/* LogoSection - khi click hiện logo menu */}
 					<LogoSection onClick={handleLogoClick} style={{ cursor: "pointer" }}>
 						<LogoBox>LOGO</LogoBox>
 					</LogoSection>
 
-					{/* IndentedSection hiển thị avatars các group */}
 					<IndentedSection>
 						<IconContainer>
 							{data.groups.map((g: GroupSummary) => {
@@ -164,10 +234,6 @@ export const SidebarMenu: React.FC<SidebarMenuProps> = ({
 										style={{ cursor: "pointer" }}
 									>
 										{g.avatar ? (
-											// hiển thị avatar nếu có
-											// bạn có thể style img trong styled-component nếu cần
-											//  sử dụng alt để accessibility
-											//  nếu avatar quá lớn thì styled-component CircleIcon nên xử lý overflow
 											<img
 												src={g.avatar}
 												alt={g.name}
@@ -179,7 +245,6 @@ export const SidebarMenu: React.FC<SidebarMenuProps> = ({
 												}}
 											/>
 										) : (
-											// fallback: lấy chữ cái đầu làm avatar
 											<span>{(g.name || "G").slice(0, 1).toUpperCase()}</span>
 										)}
 									</CircleIcon>
@@ -191,16 +256,21 @@ export const SidebarMenu: React.FC<SidebarMenuProps> = ({
 
 				<Sidebar>
 					<SidebarContent ref={contentWrapperRef as any}>
-						<SearchContainer>
-							<SearchIcon>
-								<Search size={16} />
-							</SearchIcon>
-							<SearchInput placeholder="Search" />
-						</SearchContainer>
+						<HeaderContainer>
+							<GroupTitle>{currentGroupName}</GroupTitle>
+							<HeaderButtons>
+								{!logoMode && (
+									<HeaderButton onClick={handleAddChannel}>
+										<Plus />
+									</HeaderButton>
+								)}
+								<HeaderButton>
+									<Settings />
+								</HeaderButton>
+							</HeaderButtons>
+						</HeaderContainer>
 
 						<MenuNav>
-							{/* Nếu đang ở logoMode -> hiển thị menu logo
-                  Ngược lại -> hiển thị channel của expanded group */}
 							{logoMode ? (
 								logoMenuItems.map((item) => (
 									<MenuItem
@@ -209,7 +279,6 @@ export const SidebarMenu: React.FC<SidebarMenuProps> = ({
 										onClick={() => handleMenuClick(item.id)}
 									>
 										<MenuIcon>
-											{/* icon placeholder: bạn có thể đổi */}
 											<Settings size={16} />
 										</MenuIcon>
 										{item.label}
@@ -245,6 +314,80 @@ export const SidebarMenu: React.FC<SidebarMenuProps> = ({
 					</SidebarContent>
 				</Sidebar>
 			</SettingRows>
+
+			{isModalOpen && (
+				<ModalOverlay onClick={handleCloseModal}>
+					<ModalContent onClick={(e) => e.stopPropagation()}>
+						<ModalHeader>
+							<ModalTitle>Create Channel</ModalTitle>
+							<CloseButton onClick={handleCloseModal}>
+								<X size={20} />
+							</CloseButton>
+						</ModalHeader>
+						<Divider />
+						<FormSection>
+							<Label>Channel Type</Label>
+							<ChannelTypeCard>
+								<ChannelTypeIcon>
+									<MessageCircle size={20} />
+								</ChannelTypeIcon>
+								<ChannelTypeContent>
+									<ChannelTypeName>Text</ChannelTypeName>
+									<ChannelTypeDescription>
+										Send messages, images, GIFs, emoji, opinions and pun
+									</ChannelTypeDescription>
+								</ChannelTypeContent>
+							</ChannelTypeCard>
+						</FormSection>
+
+						<FormSection>
+							<Label>Channel Name</Label>
+							<Input
+								type="text"
+								value={channelName}
+								onChange={(e) => setChannelName(e.target.value)}
+								placeholder="new-channel"
+							/>
+						</FormSection>
+
+						<FormSection>
+							<PrivateSection>
+								<PrivateIcon>
+									<Settings size={20} />
+								</PrivateIcon>
+								<PrivateContent>
+									<PrivateTitle>Private Channel</PrivateTitle>
+									<PrivateDescription>
+										Only selected members and roles will be able to view this
+										channel.
+									</PrivateDescription>
+								</PrivateContent>
+								<Toggle>
+									<ToggleInput
+										type="checkbox"
+										checked={isPrivate}
+										onChange={(e) => setIsPrivate(e.target.checked)}
+									/>
+									<ToggleSlider checked={isPrivate} />
+								</Toggle>
+							</PrivateSection>
+						</FormSection>
+						<Divider />
+						<ModalFooter>
+							<Button variant="secondary" onClick={handleCloseModal}>
+								Cancel
+							</Button>
+							<Button
+								variant="primary"
+								onClick={handleCreateChannel}
+								disabled={!channelName.trim()}
+							>
+								Create Channel
+							</Button>
+						</ModalFooter>
+					</ModalContent>
+				</ModalOverlay>
+			)}
 		</SidebarContainer>
 	);
 };
