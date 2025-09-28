@@ -19,7 +19,7 @@ function RouteComponent() {
 		[],
 	);
 	const [input, setInput] = useState("");
-	const [channelId, setChannelId] = useState("");
+	const [channelId, setChannelId] = useState("test");
 	const [threadId, setThreadId] = useState(""); // optional; null when empty
 	const listRef = useRef<HTMLDivElement | null>(null);
 	const inputRef = useRef<HTMLInputElement | null>(null);
@@ -31,9 +31,10 @@ function RouteComponent() {
 		queryFn: () => listMessages(),
 	});
 
-	// Server messages as MessageResponse objects
+	// Server returns messages in DESC order; reverse to ASC for chat display
 	const serverMessages: MessageResponse[] = useMemo(() => {
-		return (data?.data ?? []) as MessageResponse[];
+		const items = (data?.data ?? []) as MessageResponse[];
+		return [...items].reverse();
 	}, [data]);
 
 	const messages: MessageResponse[] = useMemo(() => {
@@ -82,6 +83,7 @@ function RouteComponent() {
 								placeholder="Channel ID (required)"
 								value={channelId}
 								onChange={(e) => setChannelId(e.target.value)}
+								disabled
 							/>
 							<Input
 								placeholder="Thread ID (optional)"
@@ -114,12 +116,22 @@ function RouteComponent() {
 									const initials =
 										(m.sender?.firstName?.[0] || "") +
 										(m.sender?.lastName?.[0] || "");
+									const avatar = m.sender?.avatarUrl;
 									return (
 										<div key={m.id} className="flex items-start gap-2">
-											{/* Avatar fallback (circle with initials); swap to img if you want to use avatarUrl */}
-											<div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center text-xs font-medium select-none">
-												{initials || (name[0] ?? "?")}
-											</div>
+											{avatar ? (
+												<img
+													src={avatar}
+													alt={name}
+													className="h-8 w-8 rounded-full object-cover border"
+													loading="lazy"
+													referrerPolicy="no-referrer"
+												/>
+											) : (
+												<div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center text-xs font-medium select-none">
+													{initials || (name[0] ?? "?")}
+												</div>
+											)}
 											<div>
 												<div className="text-xs text-muted-foreground mb-1">
 													{name}
