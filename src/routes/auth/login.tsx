@@ -5,7 +5,7 @@ import z from "zod";
 
 import { login, loginPkce } from "@/services/authAPI";
 import LoginPage from "@/pages/Login";
-import { useAuth } from "@/hooks";
+import { useAuth, useSocket } from "@/hooks";
 import cookieUtils from "@/services/cookieUtils";
 
 const loginSearchParamsSchema = z.object({
@@ -22,12 +22,14 @@ function RouteComponent() {
 	const navigate = useNavigate();
 	const { refetchProfile } = useAuth();
 	const { codeChallenge, codeChallengeMethod } = Route.useSearch();
+	const { socket } = useSocket();
 
 	const loginMutation = useMutation({
 		mutationFn: login,
 		onSuccess: async (res) => {
 			cookieUtils.setToken(res.data.accessToken);
 			await refetchProfile();
+			socket.connect();
 			navigate({
 				to: "/user/channels",
 			});

@@ -57,6 +57,21 @@ export const registerPkce = async (dto: RegisterPkceRequest) => {
 	return post("/api/auth/register-pkce", dto);
 };
 
+export interface Profile {
+	id: string;
+	username: string;
+	email: string;
+	firstName: string;
+	lastName: string;
+	avatarUrl?: string;
+	isActive: boolean;
+	emailVerified: boolean;
+	createdAt: Date;
+	updatedAt: Date;
+	lastLogin?: Date;
+	timezone?: string;
+}
+
 export const fetchProfile = async () => {
-	return get("/api/auth/profile");
+	return get<Profile>("/api/auth/profile");
 };

@@ -9,6 +9,8 @@ import publicRuntimeConfig from "./config/publicRuntime";
 import { routeTree } from "./routeTree.gen.ts";
 import { createRouter, RouterProvider } from "@tanstack/react-router";
 import AuthProvider from "./components/AuthProvider.tsx";
+import SocketProvider from "./components/SocketProvider.tsx";
+import { io } from "socket.io-client";
 
 // Create a new router instance
 const router = createRouter({ routeTree });
@@ -25,21 +27,28 @@ const queryClient = new QueryClient({
 	},
 });
 
+const socket = io(config.publicRuntime.SOCKET_URL, {
+	autoConnect: false,
+	transports: ["websocket"],
+});
+
 export function Providers() {
 	return (
 		<GoogleOAuthProvider clientId={publicRuntimeConfig.GOOGLE_CLIENT_ID}>
 			<QueryClientProvider client={queryClient}>
 				<AuthProvider>
-					<RouterProvider router={router} />
-					{config.publicRuntime.DEV_ENABLED ? (
-						<ReactQueryDevtools
-							initialIsOpen={false}
-							buttonPosition="bottom-left"
-						/>
-					) : null}
-					{config.publicRuntime.DEV_ENABLED ? (
-						<TanStackRouterDevtools router={router} position="bottom-right" />
-					) : null}
+					<SocketProvider socket={socket}>
+						<RouterProvider router={router} />
+						{config.publicRuntime.DEV_ENABLED ? (
+							<ReactQueryDevtools
+								initialIsOpen={false}
+								buttonPosition="bottom-left"
+							/>
+						) : null}
+						{config.publicRuntime.DEV_ENABLED ? (
+							<TanStackRouterDevtools router={router} position="bottom-right" />
+						) : null}
+					</SocketProvider>
 				</AuthProvider>
 			</QueryClientProvider>
 		</GoogleOAuthProvider>
