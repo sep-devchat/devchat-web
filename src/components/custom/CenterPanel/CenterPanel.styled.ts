@@ -3,6 +3,7 @@ import styled from "styled-components";
 
 export const CenterPanelRoot = styled.div`
 	width: 100%;
+	height: 100%;
 	font-family:
 		Inter,
 		system-ui,
@@ -12,7 +13,15 @@ export const CenterPanelRoot = styled.div`
 		"Helvetica Neue",
 		Arial;
 	color: #1f2937;
-	padding-bottom: 12px;
+	padding-bottom: 16px;
+	display: flex;
+	flex-direction: column;
+`;
+
+export const CPContainer = styled.div`
+	display: flex;
+	flex-direction: column;
+	height: 100%;
 `;
 
 export const CPHeader = styled.div`
@@ -22,6 +31,7 @@ export const CPHeader = styled.div`
 	height: 52px;
 	padding: 14px 12px;
 	background: ${theme.color.grey30};
+	border-bottom: 0.5px solid ${theme.color.grey50};
 `;
 
 export const CPHeaderIcon = styled.div`
@@ -40,6 +50,12 @@ export const CPHeaderLeft = styled.div`
 	gap: 12px;
 `;
 
+export const CPHeaderTitle = styled.h2`
+	margin: 0;
+	font-size: 16px;
+	font-weight: 600;
+`;
+
 export const CPHeaderRight = styled.div`
 	display: flex;
 	align-items: center;
@@ -47,39 +63,58 @@ export const CPHeaderRight = styled.div`
 `;
 
 export const CPChatArea = styled.div`
-	height: calc(100vh - 104px);
+	height: calc(100vh - 120px);
+	// height: 100%;
+	display: flex;
+	flex-direction: column;
 	background: ${theme.color.grey10};
+	padding: 20px;
 `;
 
 export const CPHash = styled.div`
-	width: 44px;
-	height: 44px;
+	width: 68px;
+	height: 68px;
 	border-radius: 999px;
-	background: #eef2ff;
+	background: ${theme.color.grey50};
 	display: flex;
 	align-items: center;
 	justify-content: center;
 	font-weight: 700;
-	color: #4338ca;
+	color: ${theme.color.white};
 `;
 
 export const CPTitle = styled.h2`
 	margin: 0;
-	font-size: 18px;
+	font-size: 32px;
+	font-weight: 600;
 `;
 
 export const CPAvatarChannel = styled.div`
 	display: flex;
+	gap: 16px;
+	align-items: center;
 `;
 
 export const CPChannel = styled.span`
-	color: #4f46e5;
+	color: ${theme.color.primary};
+`;
+
+export const CPDateArea = styled.div`
+	display: flex;
+	gap: 12px;
+	align-items: center;
+`;
+
+export const CPDateDivider = styled.div`
+	width: 100%;
+	height: max-content;
+	border-block-start: 1px solid ${theme.color.grey40};
 `;
 
 export const CPDate = styled.div`
 	color: ${theme.color.grey90};
 	font-size: 13px;
-	width: 100%;
+	width: max-content;
 	text-align: center;
 `;
 
@@ -89,6 +124,7 @@ export const CPMessages = styled.div`
 	gap: 12px;
 	margin-bottom: 16px;
 	overflow-y: auto;
+	height: 100%;
 
 	.cp-msg-row {
 		display: flex;
@@ -109,12 +145,14 @@ export const CPAvatar = styled.img`
 	height: 40px;
 	border-radius: 50%;
 	object-fit: cover;
+	margin-top: 27.5px;
 `;
 
 export const CPMsgCol = styled.div`
 	max-width: 74%;
 	display: flex;
 	flex-direction: column;
+	gap: 8px;
 
 	@media (max-width: 640px) {
 		max-width: 82%;
@@ -128,11 +166,11 @@ export const CPMsgCol = styled.div`
 	}
 
 	.cp-bubble.them {
-		background: #ffffff;
+		background: #eff2f5;
 	}
 
 	.cp-bubble.me {
-		background: #eef2ff;
+		background: ${theme.color.primary20};
 		align-self: flex-end;
 	}
 `;
@@ -282,13 +320,13 @@ export const CPThreadComposer = styled.div`
 
 export const CPComposerRoot = styled.div`
 	display: flex;
-	flex-direction: column;
-	gap: 8px;
+	gap: 12px;
+	align-items: center;
 `;
 
-export const CPInput = styled.textarea`
+export const CPInput = styled.input`
 	width: 100%;
-	min-height: 72px;
+	min-height: 54px;
 	padding: 10px;
 	border-radius: 8px;
 	border: 1px solid #e6e9ef;

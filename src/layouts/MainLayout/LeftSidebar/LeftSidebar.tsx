@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Search, X, Hash, SettingsIcon, UserPlus } from "lucide-react";
 import {
 	IconButton,
@@ -11,6 +12,7 @@ import {
 } from "./LeftSidebar.styled";
 import { useNavigate, useParams, useSearch } from "@tanstack/react-router";
 import { groups } from "../sample-data";
+import AddGroupMemModal from "@/components/AddGroupMemModal/AddGroupMemModal";
 
 const LeftSidebar = () => {
 	const params = useParams({ strict: false }) as { groupId?: string };
@@ -37,9 +39,25 @@ const LeftSidebar = () => {
 							{currentGroup?.name ?? "Group"}
 						</h3>
 						<div className="flex gap-2">
-							<UserPlus
-								width={20}
-								className="ml-3 hover:text-blue-500 cursor-pointer"
+							<AddGroupMemModal
+								groupId={params.groupId}
+								trigger={
+									<IconButton
+										title="Invite members"
+										aria-label="Invite members"
+									>
+										<UserPlus width={20} />
+									</IconButton>
+								}
+								onAddMembers={async (userIds: string[]) => {
+									// TODO: gọi API invite / cập nhật state... ví dụ demo:
+									console.log(
+										"Invite these user ids to group",
+										params.groupId,
+										userIds,
+									);
+									// nếu muốn, navigate hoặc show toast; gọi API rồi refresh group members
+								}}
 							/>
 							<SettingsIcon
 								width={20}
