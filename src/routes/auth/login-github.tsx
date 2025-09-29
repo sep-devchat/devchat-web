@@ -37,7 +37,7 @@ function RouteComponent() {
 			cookieUtils.setToken(data.data.accessToken);
 			await refetchProfile();
 			navigate({
-				to: "/user/channels",
+				to: "/chat",
 			});
 		},
 		onError: (error) => {
