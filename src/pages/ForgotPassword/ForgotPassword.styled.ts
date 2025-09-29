@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { InputWithLabel } from "@/components/ui/InputLabel/InputLabel";
+import { InputWithLabel } from "@/components/custom/InputLabel/InputLabel";
 import { theme } from "@/themes";
 import styled from "styled-components";
 

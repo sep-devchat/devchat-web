@@ -1,4 +1,4 @@
-import ConfirmBg from "@/components/ConfirmBackground/ConfirmBg";
+import ConfirmBg from "@/components/custom/ConfirmBackground/ConfirmBg";
 import React from "react";
 import {
 	BoldText,

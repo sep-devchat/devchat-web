@@ -31,7 +31,7 @@ import {
 	DateText,
 	PrivateText,
 } from "./ThreadPanel.styled";
-import MentionModal from "@/components/MentionModal/MentionModal";
+import MentionModal from "@/components/custom/MentionModal/MentionModal";
 
 interface ChatMessage {
 	id: string;

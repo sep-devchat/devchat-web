@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import ConfirmBg from "@/components/ConfirmBackground/ConfirmBg";
+import ConfirmBg from "@/components/custom/ConfirmBackground/ConfirmBg";
 import React, { useState } from "react";
 import {
 	BackArrow,
@@ -14,7 +14,7 @@ import {
 	TitleCard,
 	TitleGr,
 } from "./ForgotPassword.styled";
-import OTPInput from "@/components/ui/OTPInput/OTPInput";
+import OTPInput from "@/components/custom/OTPInput/OTPInput";
 import { IoCaretBackOutline } from "react-icons/io5";
 
 export const ForgotPassword: React.FC = () => {

@@ -27,7 +27,7 @@ import {
 	SampleData,
 	GroupSummary,
 	ExpandedGroup,
-} from "../../sampleData";
+} from "../../../sampleData";
 
 /**
  * NOTE:

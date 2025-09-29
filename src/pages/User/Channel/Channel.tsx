@@ -1,15 +1,15 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useEffect, useState } from "react";
 import { ContentWrapper, PageWrapper } from "./Channel.styled";
-import { SidebarMenu } from "@/components/Sidebar/Sidebar";
+import { SidebarMenu } from "@/components/custom/Sidebar/Sidebar";
 import { SampleData, sampleData } from "@/sampleData";
-import CenterPanel from "@/components/CenterPanel/CenterPanel";
-import MainBg from "@/components/MainBackground/MainBg";
-import HeaderBar from "@/components/UserHeader/UserHeader";
+import CenterPanel from "@/components/custom/CenterPanel/CenterPanel";
+import MainBg from "@/components/custom/MainBackground/MainBg";
+import HeaderBar from "@/components/custom/UserHeader/UserHeader";
 import { IoNotifications } from "react-icons/io5";
-import ThreadPanel from "@/components/RightPanel/ThreadPanel/ThreadPanel";
-import CodeList from "@/components/RightPanel/CodeList/CodeList";
-import MemberList from "@/components/RightPanel/MemberList/MemberList";
+import ThreadPanel from "@/components/custom/RightPanel/ThreadPanel/ThreadPanel";
+import CodeList from "@/components/custom/RightPanel/CodeList/CodeList";
+import MemberList from "@/components/custom/RightPanel/MemberList/MemberList";
 import AuthLayout from "@/layouts/AuthLayout";
 
 export const ChatChanel: React.FC = () => {

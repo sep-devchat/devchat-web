@@ -23,7 +23,7 @@ import {
 	Title,
 	NotificationButton,
 } from "./SettingsMenu.styled";
-import bgImage from "@/assets/loginBackground.png";
+import bgImage from "@/assets/image/loginBackground.png";
 import { Home, User, MessageCircle, Bell, Settings } from "lucide-react";
 
 type SettingsSection =
