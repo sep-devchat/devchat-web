@@ -99,7 +99,7 @@ const { data, isLoading, error } = useQuery({
 Example:
 
 ```tsx
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/custom/button";
 <Button variant="secondary">Click me</Button>;
 ```
 

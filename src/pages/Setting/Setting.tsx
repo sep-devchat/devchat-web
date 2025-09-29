@@ -17,7 +17,7 @@ import {
 	KeyboardIcon,
 	BellOff,
 } from "lucide-react";
-import { SettingsMenu } from "@/components/ui/SettingsMenu/SettingsMenu";
+import { SettingsMenu } from "@/components/custom/SettingsMenu/SettingsMenu";
 import {
 	Card,
 	CardContent,
@@ -25,12 +25,12 @@ import {
 	CardHeader,
 	CardTitle,
 } from "./Setting.styled";
-import { SettingItemSwitch } from "@/components/ui/SettingsItems/SettingItemSwitch";
-import { SettingItemRadio } from "@/components/ui/SettingsItems/SettingItemRadio";
-import { SettingItemDropdown } from "@/components/ui/SettingsItems/SettingItemDropdown";
-import SettingItemButton from "@/components/ui/SettingsItems/SettingItemButton";
-import SettingAppearance from "@/components/ui/SettingsItems/SettingAppearance";
-import AccountForm from "@/components/ui/SettingsItems/AccountForm";
+import { SettingItemSwitch } from "@/components/custom/SettingsItems/SettingItemSwitch";
+import { SettingItemRadio } from "@/components/custom/SettingsItems/SettingItemRadio";
+import { SettingItemDropdown } from "@/components/custom/SettingsItems/SettingItemDropdown";
+import SettingItemButton from "@/components/custom/SettingsItems/SettingItemButton";
+import SettingAppearance from "@/components/custom/SettingsItems/SettingAppearance";
+import AccountForm from "@/components/custom/SettingsItems/AccountForm";
 
 type SettingsSection =
 	| "general"

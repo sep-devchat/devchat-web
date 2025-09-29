@@ -143,7 +143,7 @@ const { data, isLoading } = useQuery({
 							<span className="icon">🎨</span>
 							<h2>Use Shadcn UI</h2>
 						</div>
-						<pre>{`import { Button } from '@/components/ui/button'
+						<pre>{`import { Button } from '@/components/custom/button'
 <Button variant="secondary">Click me</Button>`}</pre>
 					</div>
 

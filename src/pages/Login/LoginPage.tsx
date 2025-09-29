@@ -3,9 +3,9 @@ import { GoogleLogin } from "@react-oauth/google";
 import { UseMutationResult } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import publicRuntimeConfig from "@/config/publicRuntime";
-import bgImage from "@/assets/loginBackground.png";
-import testImage from "@/assets/test.jpg";
-import githubIcon from "@/assets/github-icon.png";
+import bgImage from "@/assets/image/loginBackground.png";
+import testImage from "@/assets/image/test.jpg";
+import githubIcon from "@/assets/image/github-icon.png";
 import {
 	LoginContainer,
 	ContentContainer,

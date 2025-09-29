@@ -11,6 +11,7 @@ import { createRouter, RouterProvider } from "@tanstack/react-router";
 import AuthProvider from "./components/AuthProvider.tsx";
 import SocketProvider from "./components/SocketProvider.tsx";
 import { io } from "socket.io-client";
+import ThemeInit from "./components/ThemeInit.tsx";
 
 // Create a new router instance
 const router = createRouter({ routeTree });
@@ -38,6 +39,7 @@ export function Providers() {
 			<QueryClientProvider client={queryClient}>
 				<AuthProvider>
 					<SocketProvider socket={socket}>
+						<ThemeInit />
 						<RouterProvider router={router} />
 						{config.publicRuntime.DEV_ENABLED ? (
 							<ReactQueryDevtools
