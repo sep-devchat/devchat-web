@@ -31,7 +31,7 @@ function RouteComponent() {
 			await refetchProfile();
 			socket.connect();
 			navigate({
-				to: "/user/channels",
+				to: "/chat",
 			});
 		},
 	});
