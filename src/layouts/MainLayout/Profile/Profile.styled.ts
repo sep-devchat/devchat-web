@@ -3,12 +3,12 @@ import styled from "styled-components";
 export const ProfileContainer = styled.div`
 	position: fixed;
 	bottom: 20px;
-	left: 20px;
-	width: 300px;
+	left: 18px;
+	width: 16%;
 	height: 52px;
 	background: white;
 	padding: 6px;
-	border-radius: 10px;
+	border-radius: 5px;
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
