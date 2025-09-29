@@ -1,5 +1,5 @@
 import { get } from "./apiCaller";
-import { Profile } from "./authAPI";
+import { Profile } from "./auth/auth.type";
 
 export interface MessageResponse {
 	id: string;

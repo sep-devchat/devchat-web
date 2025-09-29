@@ -1,5 +1,3 @@
-import { get, post } from "./apiCaller";
-
 export interface LoginRequest {
 	method: string;
 	code: string;
@@ -10,20 +8,12 @@ export interface TokenResponse {
 	refreshToken: string;
 }
 
-export const login = async (dto: LoginRequest) => {
-	return post<TokenResponse>("/api/auth/login", dto);
-};
-
 export interface LoginPkceRequest {
 	method: string;
 	code: string;
 	codeChallenge: string;
 	codeChallengeMethod: string;
 }
-
-export const loginPkce = async (dto: LoginPkceRequest) => {
-	return post("/api/auth/login-pkce", dto);
-};
 
 export interface RegisterRequest {
 	method: string;
@@ -35,10 +25,6 @@ export interface RegisterRequest {
 	};
 	code?: string; // For Google/GitHub registration
 }
-
-export const register = async (dto: RegisterRequest) => {
-	return post("/api/auth/register", dto);
-};
 
 export interface RegisterPkceRequest {
 	method: string;
@@ -52,10 +38,6 @@ export interface RegisterPkceRequest {
 	codeChallenge: string;
 	codeChallengeMethod: string;
 }
-
-export const registerPkce = async (dto: RegisterPkceRequest) => {
-	return post("/api/auth/register-pkce", dto);
-};
 
 export interface Profile {
 	id: string;
@@ -71,7 +53,3 @@ export interface Profile {
 	lastLogin?: Date;
 	timezone?: string;
 }
-
-export const fetchProfile = async () => {
-	return get<Profile>("/api/auth/profile");
-};
