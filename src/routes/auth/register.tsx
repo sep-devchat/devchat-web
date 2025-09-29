@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { zodValidator } from "@tanstack/zod-adapter";
 import { useMutation } from "@tanstack/react-query";
 import z from "zod";
-import { register, registerPkce } from "@/services/authAPI";
+import { register, registerPkce } from "@/services/auth/authAPI";
 import RegisterPage from "@/pages/Register";
 
 const registerSearchParamsSchema = z.object({

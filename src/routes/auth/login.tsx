@@ -3,7 +3,7 @@ import { zodValidator } from "@tanstack/zod-adapter";
 import { useMutation } from "@tanstack/react-query";
 import z from "zod";
 
-import { login, loginPkce } from "@/services/authAPI";
+import { login, loginPkce } from "@/services/auth/authAPI";
 import LoginPage from "@/pages/Login";
 import { useAuth, useSocket } from "@/hooks";
 import cookieUtils from "@/services/cookieUtils";

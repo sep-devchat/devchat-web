@@ -1,5 +1,5 @@
 import { useAuth } from "@/hooks";
-import { login, loginPkce } from "@/services/authAPI";
+import { login, loginPkce } from "@/services/auth/authAPI";
 import cookieUtils from "@/services/cookieUtils";
 import { useMutation } from "@tanstack/react-query";
 import { zodValidator } from "@tanstack/zod-adapter";

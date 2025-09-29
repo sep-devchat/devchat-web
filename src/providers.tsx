@@ -41,13 +41,13 @@ export function Providers() {
 					<SocketProvider socket={socket}>
 						<ThemeInit />
 						<RouterProvider router={router} />
-						{config.publicRuntime.DEV_ENABLED ? (
+						{Boolean(config.publicRuntime.DEV_ENABLED) ? (
 							<ReactQueryDevtools
 								initialIsOpen={false}
 								buttonPosition="bottom-left"
 							/>
 						) : null}
-						{config.publicRuntime.DEV_ENABLED ? (
+						{Boolean(config.publicRuntime.DEV_ENABLED) ? (
 							<TanStackRouterDevtools router={router} position="bottom-right" />
 						) : null}
 					</SocketProvider>

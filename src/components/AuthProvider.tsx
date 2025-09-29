@@ -1,5 +1,5 @@
 import { AuthContext } from "@/contexts/auth.context";
-import { fetchProfile } from "@/services/authAPI";
+import { fetchProfile } from "@/services/auth/authAPI";
 import { PropsWithChildren, useEffect, useState } from "react";
 
 export default function AuthProvider({ children }: PropsWithChildren) {
