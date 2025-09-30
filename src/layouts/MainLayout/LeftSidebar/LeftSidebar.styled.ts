@@ -9,6 +9,12 @@ export const LeftSidebarContainer = styled.div`
 	background: rgba(255, 255, 255, 0.3);
 `;
 
+export const ActionButton = styled.div`
+	display: flex;
+	gap: 12px;
+	align-items: center;
+`;
+
 export const SearchInput = styled(Input)`
 	border-radius: 5px;
 	border: 1px solid rgba(25, 82, 179, 0.21);
@@ -20,6 +26,7 @@ export const IconButton = styled(Button)`
 	border: none;
 	font-size: 1.25rem;
 	padding: 0;
+	height: max-content;
 
 	&:hover {
 		color: hsl(var(--ring));

@@ -9,6 +9,7 @@ import {
 	FriendName,
 	RemoveButton,
 	ChannelIcon,
+	ActionButton,
 } from "./LeftSidebar.styled";
 import { useNavigate, useParams, useSearch } from "@tanstack/react-router";
 import { groups } from "../sample-data";
@@ -38,7 +39,7 @@ const LeftSidebar = () => {
 						<h3 className="text-base font-semibold truncate">
 							{currentGroup?.name ?? "Group"}
 						</h3>
-						<div className="flex gap-2">
+						<ActionButton>
 							<AddGroupMemModal
 								groupId={params.groupId}
 								trigger={
@@ -63,7 +64,7 @@ const LeftSidebar = () => {
 								width={20}
 								className="hover:text-blue-500 cursor-pointer"
 							/>
-						</div>
+						</ActionButton>
 					</div>
 				) : (
 					<div className="relative w-full">

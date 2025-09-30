@@ -57,6 +57,8 @@ export const FriendList = styled.div`
 	flex-direction: column;
 	gap: 10px;
 	margin-bottom: 12px;
+	height: 450px;
+	overflow-y: auto;
 `;
 
 export const FriendItem = styled.div`

@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect, useRef } from "react";
 import { useForm } from "react-hook-form";
 
 import { Button } from "@/components/ui/button";
@@ -116,6 +116,52 @@ export default function AddGroupMemModal({
 		);
 	});
 
+	// sessionStorage keys scoped by group id so different groups don't conflict
+	const inviteStorageKey = `devchat_invite_copied_${group.group_id}`;
+	const addedStorageKey = `devchat_added_members_${group.group_id}`;
+
+	// copy state (true if invite was copied in this session) — UI will still show "Copied" only temporarily
+	const [copiedInvite, setCopiedInvite] = useState<boolean>(() => {
+		try {
+			return sessionStorage.getItem(inviteStorageKey) === "1";
+		} catch {
+			return false;
+		}
+	});
+
+	// timeout ref to clear delayed revert
+	const copyTimeoutRef = useRef<number | null>(null);
+
+	// initialize addedIds from sessionStorage
+	useEffect(() => {
+		try {
+			const raw = sessionStorage.getItem(addedStorageKey);
+			if (raw) {
+				const parsed = JSON.parse(raw) as string[];
+				if (Array.isArray(parsed)) setAddedIds(parsed);
+			}
+		} catch (err: any) {
+			console.log(err);
+		}
+		// cleanup any pending timeout when group changes
+		return () => {
+			if (copyTimeoutRef.current) {
+				clearTimeout(copyTimeoutRef.current);
+				copyTimeoutRef.current = null;
+			}
+		};
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [group.group_id]); // re-run when group changes
+
+	// helper to persist addedIds to sessionStorage
+	const persistAddedIds = (ids: string[]) => {
+		try {
+			sessionStorage.setItem(addedStorageKey, JSON.stringify(ids));
+		} catch {
+			/* ignore */
+		}
+	};
+
 	// handle add single user immediately
 	const handleAddSingle = async (userId: string) => {
 		if (addedIds.includes(userId)) return; // already added
@@ -130,15 +176,18 @@ export default function AddGroupMemModal({
 			} else {
 				// demo fallback: just log
 				console.log("Demo add member:", userId, "to group", group.group_id);
-				// simulate network latency in demo (optional)
-				// await new Promise((r) => setTimeout(r, 400));
+				// optional: fake delay
+				// await new Promise((r) => setTimeout(r, 300));
 			}
 
-			// mark as added in UI
-			setAddedIds((prev) => [...prev, userId]);
+			// mark as added in UI and persist to sessionStorage
+			setAddedIds((prev) => {
+				const next = [...prev, userId];
+				persistAddedIds(next);
+				return next;
+			});
 		} catch (err) {
 			console.error(err);
-			alert("Failed to add member. Please try again.");
 		} finally {
 			// unset loading
 			setAddingMap((m) => {
@@ -149,14 +198,31 @@ export default function AddGroupMemModal({
 		}
 	};
 
-	// copy invite link to clipboard
+	// copy invite link to clipboard — show "Copied" for a short time then revert to "Copy"
 	const inviteLink = `https://devchat-hihihehe/${group.group_id}`;
 	const handleCopy = async () => {
 		try {
 			await navigator.clipboard.writeText(inviteLink);
-			alert("Copied invite link!");
-		} catch {
-			alert("Copy failed. Please copy manually.");
+
+			// persist that copy happened in this session (keeps record in sessionStorage)
+			try {
+				sessionStorage.setItem(inviteStorageKey, "1");
+			} catch {
+				/* ignore */
+			}
+
+			// show "Copied" visually for a few seconds, then revert
+			setCopiedInvite(true);
+			// clear prior timer if any
+			if (copyTimeoutRef.current) {
+				clearTimeout(copyTimeoutRef.current);
+			}
+			copyTimeoutRef.current = window.setTimeout(() => {
+				setCopiedInvite(false);
+				copyTimeoutRef.current = null;
+			}, 3000); // 3000 ms = 3s
+		} catch (err) {
+			console.error(err);
 		}
 	};
 
@@ -183,10 +249,8 @@ export default function AddGroupMemModal({
 			}
 
 			reset();
-			alert("Tạo nhóm thành công (demo).");
 		} catch (err) {
 			console.error(err);
-			alert("Đã xảy ra lỗi khi tạo nhóm.");
 		}
 	};
 
@@ -232,6 +296,16 @@ export default function AddGroupMemModal({
 									filtered.map((u) => {
 										const added = addedIds.includes(u.user_id);
 										const adding = Boolean(addingMap[u.user_id]);
+
+										// inline style for 'Added' (green) or normal
+										const addBtnStyle: React.CSSProperties = added
+											? {
+													backgroundColor: "#10B981", // green-500
+													color: "white",
+													border: "none",
+												}
+											: {};
+
 										return (
 											<FriendItem key={u.user_id}>
 												<Left>
@@ -249,10 +323,12 @@ export default function AddGroupMemModal({
 												</Left>
 
 												<div>
+													{/* AddButton is kept but we override style when added */}
 													<AddButton
 														$added={added}
 														onClick={() => handleAddSingle(u.user_id)}
 														disabled={added || adding}
+														style={addBtnStyle}
 													>
 														{adding ? "Adding..." : added ? "Added" : "Add"}
 													</AddButton>
@@ -268,8 +344,21 @@ export default function AddGroupMemModal({
 								<Label>Or share an invite link to your friend!</Label>
 								<InviteBox>
 									<InviteInput readOnly value={inviteLink} />
-									<CopyButton type="button" onClick={handleCopy}>
-										Copy
+									{/* Copy button: change appearance when copied (temporary) */}
+									<CopyButton
+										type="button"
+										onClick={handleCopy}
+										style={
+											copiedInvite
+												? {
+														backgroundColor: "#10B981",
+														color: "white",
+														border: "none",
+													}
+												: {}
+										}
+									>
+										{copiedInvite ? "Copied" : "Copy"}
 									</CopyButton>
 								</InviteBox>
 							</div>
@@ -281,10 +370,6 @@ export default function AddGroupMemModal({
 									Hủy
 								</CancelButton>
 							</DialogClose>
-
-							{/* <SubmitButton type="submit" disabled={isSubmitting}>
-                {isSubmitting ? "Đang tạo..." : "Tạo nhóm"}
-              </SubmitButton> */}
 						</Footer>
 					</Form>
 				</DialogContentWrapper>
