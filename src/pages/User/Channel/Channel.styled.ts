@@ -10,5 +10,6 @@ export const PageWrapper = styled.div`
 
 export const ContentWrapper = styled.div`
 	display: flex;
-	height: 100%;
+	height: calc(100vh - 52px);
+	padding-right: 18px;
 `;

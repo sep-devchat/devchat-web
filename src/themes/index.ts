@@ -51,10 +51,13 @@ export const theme = {
 		borderSchedule: "#EBEBEB",
 		toolbarBg: "#F5F5F5",
 		adminBackground: "#f8f9fa",
+		primary20: "#D2E0F9",
 		primary30: "#A6C2F2",
 		primary90: "#0D2959",
 		grey10: "#F6F8FC",
 		grey30: "#E2E8F0",
+		grey40: "#CBD4E1",
+		grey50: "#94A3B8",
 		grey90: "#1E2A3B",
 	},
 	transition: {
