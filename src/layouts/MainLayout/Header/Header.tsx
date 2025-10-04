@@ -1,8 +1,15 @@
-import { MessageSquarePlus, Users } from "lucide-react";
-import { HeaderContainer } from "./Header.styled";
+import {
+	Bell,
+	MessageSquarePlus,
+	Spool,
+	SquareCode,
+	Users,
+} from "lucide-react";
+import { HeaderContainer, IconBtn, Tooltip } from "./Header.styled";
 import { useParams, useSearch } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useState } from "react";
 
 type ButtonHeaderProps = {
 	id: string;
@@ -12,7 +19,12 @@ type ButtonHeaderProps = {
 	onClick?: () => void;
 };
 
-const Header = () => {
+type Props = {
+	setIconSelected?: (icon: string) => void;
+	iconSelected?: string;
+};
+
+const Header = ({ setIconSelected, iconSelected }: Props) => {
 	const baseTitle = "Friend";
 	const actions: ButtonHeaderProps[] = [
 		{ id: "all", title: "All", isPrimary: false },
@@ -25,9 +37,27 @@ const Header = () => {
 	const isGroupPage = Boolean(params.groupId);
 	const displayedTitle =
 		isGroupPage && search.channel ? `#${search.channel}` : baseTitle;
+	const [hoveredIcon, setHoveredIcon] = useState<string | null>(null);
+	const compact = iconSelected === "spool" || iconSelected === "code";
+
+	const onIconClick = (name: string) => {
+		if (setIconSelected) setIconSelected(name);
+	};
+
+	const onIconKeyDown = (e: React.KeyboardEvent, name: string) => {
+		if (e.key === "Enter" || e.key === " ") {
+			e.preventDefault();
+			onIconClick(name);
+		}
+	};
 
 	return (
-		<HeaderContainer className="rounded-tr-lg">
+		<HeaderContainer
+			className="rounded-tr-lg"
+			style={{
+				borderTopRightRadius: compact ? "10px" : "0",
+			}}
+		>
 			{isGroupPage && search.channel ? (
 				<h2 className="text-lg font-semibold">{displayedTitle}</h2>
 			) : (
@@ -53,10 +83,64 @@ const Header = () => {
 
 			<div className="flex items-center gap-2">
 				{isGroupPage ? (
-					<div className="flex">
-						<Button className="shadow-none">
-							<Users />
-						</Button>
+					<div className="flex gap-2">
+						<IconBtn
+							aria-label="notifications"
+							onMouseEnter={() => setHoveredIcon("notifications")}
+							onMouseLeave={() =>
+								setHoveredIcon((h) => (h === "notifications" ? null : h))
+							}
+							onClick={() => onIconClick("notifications")}
+							onKeyDown={(e) => onIconKeyDown(e, "notifications")}
+						>
+							<Bell size={20} />
+							<Tooltip visible={hoveredIcon === "notifications"}>
+								Notifications
+							</Tooltip>
+						</IconBtn>
+						<IconBtn
+							aria-label="spool"
+							onMouseEnter={() => setHoveredIcon("spool")}
+							onMouseLeave={() =>
+								setHoveredIcon((h) => (h === "spool" ? null : h))
+							}
+							onClick={() => onIconClick("spool")}
+							onKeyDown={(e) => onIconKeyDown(e, "spool")}
+						>
+							<Spool size={20} />
+							<Tooltip visible={hoveredIcon === "spool"}>Spool</Tooltip>
+						</IconBtn>
+
+						{/* SquareCode -> "code" */}
+						<IconBtn
+							aria-label="code"
+							onMouseEnter={() => setHoveredIcon("code")}
+							onMouseLeave={() =>
+								setHoveredIcon((h) => (h === "code" ? null : h))
+							}
+							onClick={() => onIconClick("code")}
+							onKeyDown={(e) => onIconKeyDown(e, "code")}
+						>
+							<SquareCode size={20} />
+							<Tooltip visible={hoveredIcon === "code"}>Code</Tooltip>
+						</IconBtn>
+
+						{/* Users */}
+						<IconBtn
+							aria-label="users"
+							onMouseEnter={() => setHoveredIcon("users")}
+							onMouseLeave={() =>
+								setHoveredIcon((h) => (h === "users" ? null : h))
+							}
+							onClick={() => onIconClick("users")}
+							onKeyDown={(e) => onIconKeyDown(e, "users")}
+						>
+							<Users size={20} />
+							<Tooltip visible={hoveredIcon === "users"}>Members</Tooltip>
+						</IconBtn>
+						{/* <Button className="shadow-none">
+              <Users />
+            </Button> */}
 						<Input className="shadow-none" placeholder="Search" />
 					</div>
 				) : (

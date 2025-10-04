@@ -8,6 +8,7 @@ import {
 } from "./Profile.styled";
 import { Settings } from "lucide-react";
 import { RootState } from "@/store";
+import { Link } from "@tanstack/react-router";
 
 const Profile = () => {
 	const profile = useSelector((state: RootState) => state.user.profile);
@@ -29,9 +30,11 @@ const Profile = () => {
 					{`${profile?.firstName} ${profile?.lastName}` || "Unknown User"}
 				</Name>
 			</ProfileInfo>
-			<SettingsButton aria-label="Open settings">
-				<Settings className="h-4 w-4" />
-			</SettingsButton>
+			<Link to="/settings" aria-label="Open settings">
+				<SettingsButton>
+					<Settings className="h-4 w-4" />
+				</SettingsButton>
+			</Link>
 		</ProfileContainer>
 	);
 };

@@ -1,6 +1,7 @@
-// AddGroupModal.tsx
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState } from "react";
 import { useForm } from "react-hook-form";
+import { createGroup } from "@/services/groupAPI";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -34,25 +35,20 @@ import {
 	SubmitButton,
 } from "./AddGroupModal.styled";
 import { DialogPortal } from "@radix-ui/react-dialog";
+import type { GroupResponse } from "@/services/groupAPI";
 
 type AddGroupFormValues = {
 	name: string;
 	description?: string;
 	privacy: "public" | "private";
-	members?: string; // comma separated emails
 	avatar?: File | null;
 };
 
 type Props = {
-	onCreate?: (payload: {
-		name: string;
-		description?: string;
-		privacy: "public" | "private";
-		members: string[];
-		avatarFile?: File | null;
-	}) => Promise<void> | void;
+	onCreate?: (
+		created: { id: string; name: string } | GroupResponse,
+	) => Promise<void> | void;
 	triggerLabel?: React.ReactNode;
-	// NEW: optional custom trigger node (e.g. your styled CreateGroupButton)
 	trigger?: React.ReactNode;
 };
 
@@ -72,15 +68,23 @@ export default function AddGroupModal({
 			name: "",
 			description: "",
 			privacy: "public",
-			members: "",
 			avatar: null,
 		},
 	});
 
 	const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
 	const [avatarFile, setAvatarFile] = useState<File | null>(null);
+	const [open, setOpen] = useState(false);
 
-	// handle file input change
+	// helper: file -> dataURL (base64)
+	const fileToDataUrl = (file: File): Promise<string> =>
+		new Promise((resolve, reject) => {
+			const reader = new FileReader();
+			reader.onload = () => resolve(reader.result as string);
+			reader.onerror = reject;
+			reader.readAsDataURL(file);
+		});
+
 	const handleAvatarChange = (file?: File | null) => {
 		if (!file) {
 			setAvatarFile(null);
@@ -89,13 +93,12 @@ export default function AddGroupModal({
 			return;
 		}
 
-		// basic validation: type and size (< 5MB)
 		if (!file.type.startsWith("image/")) {
-			alert("Chỉ chấp nhận file ảnh.");
+			alert("Only image files are accepted.");
 			return;
 		}
 		if (file.size > 5 * 1024 * 1024) {
-			alert("Kích thước file tối đa 5MB.");
+			alert("Maximum file size is 5MB.");
 			return;
 		}
 
@@ -103,55 +106,56 @@ export default function AddGroupModal({
 		setValue("avatar", file);
 
 		const reader = new FileReader();
-		reader.onload = () => {
-			setAvatarPreview(reader.result as string);
-		};
+		reader.onload = () => setAvatarPreview(reader.result as string);
 		reader.readAsDataURL(file);
 	};
 
 	const onSubmit = async (data: AddGroupFormValues) => {
-		const members = data.members
-			? data.members
-					.split(",")
-					.map((m) => m.trim())
-					.filter(Boolean)
-			: [];
-
-		const payload = {
-			name: data.name,
-			description: data.description,
-			privacy: data.privacy,
-			members,
-			avatarFile: avatarFile ?? undefined,
-		};
-
 		try {
+			const avatarBase64 = avatarFile ? await fileToDataUrl(avatarFile) : null;
+
+			console.log("Sending createGroup payload:", {
+				name: data.name,
+				description: data.description ?? null,
+				avatarPreview: avatarBase64 ? avatarBase64.slice(0, 100) + "..." : null,
+			});
+
+			const created = await createGroup({
+				name: data.name,
+				description: data.description ?? null,
+				avatar: avatarBase64,
+			});
+
+			console.log("createGroup response raw:", created);
+
+			// flexible unwrap: if API returns { data: {...} } or returns the object directly
+			const createdObj = created && (created.data ?? created);
+
+			if (!createdObj || !createdObj.id) {
+				throw new Error("Invalid response shape from createGroup; missing id.");
+			}
+
 			if (onCreate) {
-				await onCreate(payload);
-			} else {
-				console.log("Create group payload:", payload);
+				await onCreate(createdObj);
 			}
 
 			reset();
 			setAvatarFile(null);
 			setAvatarPreview(null);
-			alert("Tạo nhóm thành công (demo).");
-		} catch (err) {
-			console.error(err);
-			alert("Đã xảy ra lỗi khi tạo nhóm.");
+			setOpen(false);
+		} catch (err: any) {
+			console.error("Create group failed:", err);
+			// show more info to help debug
+			const message =
+				err?.response?.data?.message ||
+				err?.message ||
+				JSON.stringify(err, Object.getOwnPropertyNames(err));
+			alert("An error occurred while creating the group: " + message);
 		}
 	};
 
 	return (
-		<Dialog>
-			{/* nếu có trigger tuỳ chỉnh thì dùng nó, ngược lại dùng button mặc định */}
-			{/* {trigger ? (
-        <DialogTrigger asChild>{trigger}</DialogTrigger>
-      ) : (
-        <DialogTrigger asChild>
-          <Button variant="outline">{triggerLabel}</Button>
-        </DialogTrigger>
-      )} */}
+		<Dialog open={open} onOpenChange={setOpen}>
 			<DialogTrigger asChild>
 				{trigger ? trigger : <Button variant="outline">{triggerLabel}</Button>}
 			</DialogTrigger>
@@ -160,10 +164,10 @@ export default function AddGroupModal({
 				<StyledDialogOverlay />
 				<DialogContentWrapper>
 					<DialogHeader>
-						<DialogTitle>Thêm nhóm mới</DialogTitle>
+						<DialogTitle>Add New Group</DialogTitle>
 						<DialogDescription>
-							Tạo nhóm mới và mời thành viên bằng email. Bạn có thể thêm avatar
-							cho nhóm.
+							Create a new group and invite members by email. You can add an
+							avatar for the group.
 						</DialogDescription>
 					</DialogHeader>
 
@@ -189,7 +193,7 @@ export default function AddGroupModal({
 							</AvatarPreviewBox>
 
 							<AvatarControls>
-								<Label>Avatar nhóm</Label>
+								<Label>Group Avatar</Label>
 								<FileInputWrapper>
 									<Input
 										type="file"
@@ -199,7 +203,7 @@ export default function AddGroupModal({
 											handleAvatarChange(file ?? null);
 										}}
 									/>
-									<Note>Định dạng ảnh: jpg, png. Kích thước tối đa 5MB.</Note>
+									<Note>Image formats: jpg, png. Maximum size 5MB.</Note>
 								</FileInputWrapper>
 
 								{avatarPreview && (
@@ -207,21 +211,21 @@ export default function AddGroupModal({
 										type="button"
 										onClick={() => handleAvatarChange(null)}
 									>
-										Xóa ảnh
+										Remove image
 									</SmallButton>
 								)}
 							</AvatarControls>
 						</AvatarRow>
 
-						{/* Group name */}
+						{/* Name */}
 						<Field>
-							<Label htmlFor="name">Tên nhóm</Label>
+							<Label htmlFor="name">Group name</Label>
 							<StyledInput
 								id="name"
-								placeholder="VD: Frontend Team"
+								placeholder="e.g.: Frontend Team"
 								{...register("name", {
-									required: "Tên nhóm là bắt buộc",
-									maxLength: { value: 100, message: "Tối đa 100 ký tự" },
+									required: "Group name is required",
+									maxLength: { value: 100, message: "Maximum 100 characters" },
 								})}
 							/>
 							{errors.name && <ErrorText>{errors.name.message}</ErrorText>}
@@ -229,51 +233,23 @@ export default function AddGroupModal({
 
 						{/* Description */}
 						<Field>
-							<Label htmlFor="description">Mô tả</Label>
+							<Label htmlFor="description">Description</Label>
 							<StyledTextarea
 								id="description"
-								placeholder="Mô tả ngắn về nhóm..."
+								placeholder="Short description of the group..."
 								{...register("description")}
 							/>
 						</Field>
 
-						{/* Privacy & Members */}
-						{/* <TwoColumn>
-            <Column>
-              <Label htmlFor="privacy">Loại</Label>
-              <Select id="privacy" {...register("privacy")}>
-                <option value="public">Công khai</option>
-                <option value="private">Riêng tư</option>
-              </Select>
-            </Column>
-
-            <Column>
-              <Label htmlFor="members">Thêm thành viên (email)</Label>
-              <StyledInput
-                id="members"
-                placeholder="Nhập email, cách nhau bằng dấu phẩy"
-                {...register("members", {
-                  validate: (v) => {
-                    if (!v) return true;
-                    const arr = v.split(",").map((s) => s.trim()).filter(Boolean);
-                    const bad = arr.find((e) => !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e));
-                    return bad ? "Một hoặc vài email không hợp lệ" : true;
-                  },
-                })}
-              />
-              {errors.members && <ErrorText>{errors.members.message}</ErrorText>}
-            </Column>
-          </TwoColumn> */}
-
 						<Footer>
 							<DialogClose asChild>
 								<CancelButton type="button" variant="ghost">
-									Hủy
+									Cancel
 								</CancelButton>
 							</DialogClose>
 
 							<SubmitButton type="submit" disabled={isSubmitting}>
-								{isSubmitting ? "Đang tạo..." : "Tạo nhóm"}
+								{isSubmitting ? "Creating..." : "Create group"}
 							</SubmitButton>
 						</Footer>
 					</Form>

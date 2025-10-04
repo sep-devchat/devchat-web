@@ -43,8 +43,7 @@ import {
 } from "./CenterPanel.styled";
 
 import { Bell, Hash, Spool, SquareCode, Users } from "lucide-react";
-import { Attachment, Message as DataMessage } from "@/sampleData";
-import ComposerWithAdd from "@/components/ChatTypeModal/ChatTypeModal";
+import { Message as DataMessage } from "@/sampleData";
 
 /**
  * Adapted to Message/Attachment interface coming from sampleData:
@@ -189,23 +188,23 @@ export default function CenterPanel({
 	};
 
 	// send a new top-level message (ComposerWithAdd calls this)
-	function handleSend(payload: { text: string; attachments?: Attachment[] }) {
-		const newMsg: DataMessage = {
-			messageId: `${Date.now()}`,
-			channelId: "ch-1001",
-			threadId: null,
-			senderId: currentUserId,
-			content: payload.text ?? null,
-			messageType:
-				payload.attachments && payload.attachments.length > 0 ? "file" : "text",
-			parentMessageId: null,
-			createdAt: new Date().toISOString(),
-			updatedAt: null,
-			deletedAt: false,
-			attachments: payload.attachments || [],
-		};
-		setMessages((prev) => [...prev, newMsg]);
-	}
+	// function handleSend(payload: { text: string; attachments?: Attachment[] }) {
+	// 	const newMsg: DataMessage = {
+	// 		messageId: `${Date.now()}`,
+	// 		channelId: "ch-1001",
+	// 		threadId: null,
+	// 		senderId: currentUserId,
+	// 		content: payload.text ?? null,
+	// 		messageType:
+	// 			payload.attachments && payload.attachments.length > 0 ? "file" : "text",
+	// 		parentMessageId: null,
+	// 		createdAt: new Date().toISOString(),
+	// 		updatedAt: null,
+	// 		deletedAt: false,
+	// 		attachments: payload.attachments || [],
+	// 	};
+	// 	setMessages((prev) => [...prev, newMsg]);
+	// }
 
 	// send a reply — stored as a Message with threadId = parentId
 	const handleSendReply = async (parentId: string) => {
@@ -553,7 +552,7 @@ export default function CenterPanel({
               </CPSendBtn>
             </CPComposerActions>
           </CPComposerRoot> */}
-					<ComposerWithAdd onSend={handleSend} />
+					{/* <ComposerWithAdd onSend={handleSend} /> */}
 				</CPChatArea>
 			</CPContainer>
 		</CenterPanelRoot>

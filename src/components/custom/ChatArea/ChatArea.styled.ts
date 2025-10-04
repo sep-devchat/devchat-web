@@ -1,3 +1,4 @@
+import { theme } from "@/themes";
 import styled from "styled-components";
 
 export const ChatAreaContainer = styled.div`
@@ -11,16 +12,30 @@ export const ChatAreaContainer = styled.div`
 	overflow: hidden; /* keep rounded corners clean */
 `;
 
-export const MessagesViewport = styled.div`
+type Variant = "normal" | "quillCode" | "image" | "file";
+
+export const MessagesViewport = styled.div<{ variant?: Variant }>`
 	padding: 12px;
 	display: flex;
-	flex-direction: column; /* newest at bottom, scroll upward */
+	flex-direction: column;
 	gap: 8px;
 	flex: 1 1 auto;
-	min-height: 0; /* critical so it doesn't force parent to grow */
+	min-height: 62vh;
 	overflow-y: auto;
 	overscroll-behavior: contain;
 	max-height: var(--chat-viewport-max-height, 82vh);
+
+	/* variant-specific overrides */
+	${(p) =>
+		p.variant === "normal"
+			? `max-height: var(--chat-viewport-max-height, 82vh);`
+			: p.variant === "quillCode"
+				? `max-height: var(--chat-viewport-max-height, 76vh);`
+				: p.variant === "image"
+					? `max-height: var(--chat-viewport-max-height, 72vh);`
+					: p.variant === "file"
+						? `max-height: var(--chat-viewport-max-height, 77vh);`
+						: ""}
 `;
 
 export const MessageRow = styled.div<{ $mine?: boolean }>`
@@ -49,4 +64,113 @@ export const Composer = styled.form`
 	background: rgba(255, 255, 255, 0.7);
 	border-radius: 0 0 10px 10px;
 	flex: 0 0 auto;
+`;
+
+export const Input = styled.input`
+	width: 100%;
+	padding: 8px 12px;
+	border: 1px solid ${theme.color.grey300};
+	border-radius: 6px;
+	background: ${theme.color.white};
+	font-size: 14px;
+	color: #1a1a1a;
+	outline: none;
+
+	&:focus {
+		border-color: ${theme.color.indigo};
+		box-shadow: 0 0 0 3px ${theme.color.indigoLight};
+	}
+
+	&::placeholder {
+		color: ${theme.color.grey400};
+	}
+`;
+
+export const InputContainer = styled.div`
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	background: ${theme.color.white};
+	border: 1px solid ${theme.color.grey300};
+	border-radius: 24px;
+	padding: 8px 16px;
+	width: 100%;
+
+	${Input} {
+		border: none;
+		padding: 0;
+		background: transparent;
+
+		&:focus {
+			box-shadow: none;
+		}
+	}
+`;
+
+export const IconButton = styled.button`
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 4px;
+	background: none;
+	border: none;
+	color: ${theme.color.grey400};
+	cursor: pointer;
+	border-radius: 4px;
+
+	&:hover {
+		color: ${theme.color.grey600};
+		background: ${theme.color.grey100};
+	}
+`;
+
+export const DividerWrapper = styled.div`
+	display: flex;
+	align-items: center;
+	width: 100%;
+	margin-bottom: 24px;
+`;
+
+export const Line = styled.div`
+	flex-grow: 1;
+	border-top: 1px solid #d1d5db;
+`;
+
+export const DateText = styled.span`
+	margin: 0 16px;
+	color: #374151;
+	font-weight: 400;
+	font-size: 12px;
+`;
+
+export const MessageItem = styled.div`
+	max-width: 100%;
+	display: flex;
+	gap: 8px;
+
+	@media (max-width: 640px) {
+		max-width: 82%;
+	}
+`;
+
+export const MessageBubbleStyle = styled.div`
+	&.message-bubble {
+		/* common bubble */
+		border-radius: 12px;
+		padding: 0.5rem 0.75rem;
+		max-width: 70%;
+		word-break: break-word;
+		/* shadow-none already applied by className in JSX, but you can add here if needed */
+	}
+
+	&.message-bubble.me {
+		background: ${theme.color.primary20};
+		align-self: flex-end;
+	}
+
+	&.message-bubble.other {
+		background: #eff2f5;
+		color: inherit;
+		align-self: flex-start;
+	}
 `;

@@ -1,4 +1,4 @@
-// GroupSidebar.tsx
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React from "react";
 import { useNavigate } from "@tanstack/react-router";
 import {
@@ -9,52 +9,82 @@ import {
 	UnreadBadge,
 	CreateGroupButton,
 } from "./GroupSidebar.styled";
-import { groups as initialGroups } from "../sample-data";
 import AddGroupModal from "@/components/AddGroupModal/AddGroupModal";
+import { listGroups, GroupResponse } from "@/services/groupAPI";
 
 const GroupSidebar = () => {
-	// local state để có thể thêm nhóm mới tạm thời
-	const [localGroups, setLocalGroups] = React.useState(initialGroups);
-	const [activeId, setActiveId] = React.useState<string | null>(
-		initialGroups[0]?.id ?? null,
-	);
+	// ban đầu để rỗng — sẽ được cập nhật từ API
+	const [localGroups, setLocalGroups] = React.useState<any[]>([]);
+	const [activeId, setActiveId] = React.useState<string | null>(null);
 	const navigate = useNavigate();
 
-	const handleCreate = async (payload: {
-		name: string;
-		description?: string;
-		privacy: "public" | "private";
-		members: string[];
-		avatarFile?: File | null;
-	}) => {
-		// tạo id tạm
-		const newId = `group-${Date.now()}`;
-		const initials = payload.name
+	// fetch groups từ API khi mount
+	React.useEffect(() => {
+		let mounted = true;
+		const fetch = async () => {
+			try {
+				const res = await listGroups();
+				const payload = (res && (res.data ?? res)) as GroupResponse[];
+				if (!mounted) return;
+
+				// map server GroupResponse -> shape sidebar dùng
+				const mapped = (payload || []).map((g) => {
+					const initials = (g.name || "")
+						.split(" ")
+						.map((s) => s[0] ?? "")
+						.join("")
+						.slice(0, 2)
+						.toUpperCase();
+					return {
+						id: g.id,
+						name: g.name,
+						initials,
+						avatarColor: "#8b5cf6", // giữ mặc định như trước; đổi nếu có logic color khác
+						unread: 0,
+						avatar: g.avatar ?? undefined,
+					};
+				});
+
+				setLocalGroups(mapped);
+				if (mapped.length > 0) {
+					setActiveId(mapped[0].id);
+				} else {
+					setActiveId(null);
+				}
+			} catch (err) {
+				console.error("Failed to load groups:", err);
+				// Giữ localGroups như hiện tại nếu lỗi
+			}
+		};
+
+		fetch();
+		return () => {
+			mounted = false;
+		};
+	}, []);
+
+	// onCreate từ modal sẽ truyền object { id, name } (server trả về)
+	const handleCreatedNavigate = (
+		created: GroupResponse | { id: string; name: string },
+	) => {
+		const initials = created.name
 			.split(" ")
-			.map((s) => s[0])
+			.map((s) => s[0] ?? "")
 			.join("")
 			.slice(0, 2)
 			.toUpperCase();
-
 		const newGroup = {
-			id: newId,
-			name: payload.name,
+			id: created.id,
+			name: created.name,
 			initials,
-			avatarColor: "#8b5cf6", // màu mặc định, bạn có thể derive từ avatarFile
+			avatarColor: "#8b5cf6",
 			unread: 0,
+			avatar: (created as GroupResponse).avatar ?? undefined,
 		};
 
-		// thêm vào danh sách cục bộ
 		setLocalGroups((prev) => [newGroup, ...prev]);
-		setActiveId(newId);
-
-		// điều hướng tới route nhóm mới
-		navigate({
-			to: "/chat/group/$groupId",
-			params: { groupId: newId },
-		});
-
-		// nếu cần làm request API thật sự, bọc ở đây và chờ response, xử lý lỗi...
+		setActiveId(created.id);
+		navigate({ to: "/chat/group/$groupId", params: { groupId: created.id } });
 	};
 
 	return (
@@ -84,7 +114,6 @@ const GroupSidebar = () => {
 				))}
 
 				<GroupItem>
-					{/* dùng AddGroupModal với trigger tuỳ chỉnh là CreateGroupButton */}
 					<AddGroupModal
 						trigger={
 							<CreateGroupButton
@@ -95,7 +124,7 @@ const GroupSidebar = () => {
 								+
 							</CreateGroupButton>
 						}
-						onCreate={handleCreate}
+						onCreate={handleCreatedNavigate}
 					/>
 				</GroupItem>
 			</GroupList>

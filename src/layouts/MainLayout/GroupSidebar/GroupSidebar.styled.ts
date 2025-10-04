@@ -9,6 +9,8 @@ export const GroupSidebarContainer = styled.div`
 	align-items: center;
 	padding: 12px 0;
 	border-radius: 10px;
+	height: 100%;
+	overflow-y: auto;
 `;
 
 export const GroupList = styled.ul`
@@ -20,6 +22,8 @@ export const GroupList = styled.ul`
 	margin: 0;
 	padding: 0;
 	list-style: none;
+	height: 100%;
+	overflow-y: auto;
 `;
 
 export const GroupItem = styled.li`
