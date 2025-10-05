@@ -1,0 +1,143 @@
+import {
+	LineChart,
+	Line,
+	XAxis,
+	YAxis,
+	CartesianGrid,
+	Tooltip,
+	ResponsiveContainer,
+} from "recharts";
+import { useState } from "react";
+
+interface LineConfig {
+	dataKey: string;
+	stroke: string;
+	name: string;
+	strokeWidth?: number;
+}
+
+interface LineChartProps {
+	data: any[];
+	lines: LineConfig[];
+	title?: string;
+	description?: string;
+	xAxisKey?: string;
+	height?: number;
+	showGrid?: boolean;
+	timeButtons?: string[];
+}
+
+const CustomTooltip = ({ active, payload }: any) => {
+	if (active && payload && payload.length) {
+		return (
+			<div className="bg-gray-800 text-white px-3 py-2 rounded-md shadow-lg border border-gray-700">
+				<p className="text-xs font-medium mb-1">{`20 Sep, 2025`}</p>
+				{payload.map((entry: any, index: number) => (
+					<p key={index} className="text-xs">
+						<span style={{ color: entry.color }}>●</span> {entry.value}
+					</p>
+				))}
+			</div>
+		);
+	}
+	return null;
+};
+
+export default function CustomLineChart({
+	data,
+	lines,
+	title,
+	description,
+	xAxisKey = "name",
+	height = 300,
+	showGrid = true,
+	timeButtons = ["1D", "1M", "1Y", "Max"],
+}: LineChartProps) {
+	const [activeButton, setActiveButton] = useState(3);
+
+	return (
+		<div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
+			<div className="flex items-start justify-between mb-6">
+				<div>
+					{title && (
+						<h3 className="text-base font-semibold text-gray-900">{title}</h3>
+					)}
+					{description && (
+						<p className="text-xs text-gray-500 mt-1">{description}</p>
+					)}
+				</div>
+				{timeButtons && (
+					<div className="flex gap-1 bg-gray-100 p-1 rounded-md">
+						{timeButtons.map((btn, idx) => (
+							<button
+								key={btn}
+								onClick={() => setActiveButton(idx)}
+								className={`px-3 py-1 text-xs rounded transition-all ${
+									idx === activeButton
+										? "bg-white text-gray-900 font-medium shadow-sm"
+										: "text-gray-600 hover:text-gray-900"
+								}`}
+							>
+								{btn}
+							</button>
+						))}
+					</div>
+				)}
+			</div>
+
+			<div className="relative">
+				<ResponsiveContainer width="100%" height={height}>
+					<LineChart
+						data={data}
+						margin={{ top: 10, right: 10, left: -20, bottom: 5 }}
+					>
+						{showGrid && (
+							<CartesianGrid
+								strokeDasharray="3 3"
+								stroke="#f0f0f0"
+								vertical={false}
+							/>
+						)}
+						<XAxis
+							dataKey={xAxisKey}
+							tick={{ fill: "#9ca3af", fontSize: 11 }}
+							axisLine={false}
+							tickLine={false}
+							dy={10}
+						/>
+						<YAxis
+							tick={{ fill: "#9ca3af", fontSize: 11 }}
+							axisLine={false}
+							tickLine={false}
+							ticks={[50, 100, 150, 200]}
+						/>
+						<Tooltip content={<CustomTooltip />} />
+						{lines.map((line) => (
+							<Line
+								key={line.dataKey}
+								type="monotone"
+								dataKey={line.dataKey}
+								stroke={line.stroke}
+								strokeWidth={line.strokeWidth || 2}
+								dot={false}
+								activeDot={{ r: 5, strokeWidth: 2, stroke: "#fff" }}
+							/>
+						))}
+					</LineChart>
+				</ResponsiveContainer>
+			</div>
+
+			<div className="flex items-center justify-center gap-6 mt-4 pt-4 border-t border-gray-100">
+				{lines.map((line) => (
+					<div key={line.dataKey} className="flex items-center gap-2">
+						<div
+							className="w-3 h-3 rounded-full"
+							style={{ backgroundColor: line.stroke }}
+						/>
+						<span className="text-m text-gray-600">{line.name}</span>
+					</div>
+				))}
+			</div>
+		</div>
+	);
+}
