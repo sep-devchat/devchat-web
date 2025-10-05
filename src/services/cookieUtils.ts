@@ -36,7 +36,7 @@ class CookieUtils {
 	}
 
 	getToken() {
-		return this.getItem(config.cookies.token);
+		return this.getItem(config.cookies.token, "");
 	}
 
 	setToken(value = "") {
