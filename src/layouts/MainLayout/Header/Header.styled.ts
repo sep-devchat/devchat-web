@@ -51,3 +51,15 @@ export const Tooltip = styled.span<{ visible?: boolean }>`
 		visibility 0.12s ease;
 	z-index: 30;
 `;
+
+export const NavTabTitle = styled.div`
+	display: flex;
+	flex-direction: row;
+	gap: 6px;
+	border: none;
+	margin-right: 16px;
+	font-size: 16px;
+	font-weight: 600;
+	color: #1e2a3b;
+	align-items: center;
+`;

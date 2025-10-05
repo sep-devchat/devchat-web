@@ -1,4 +1,4 @@
-import { useAuth } from "@/hooks";
+import { useAuth, useSocket } from "@/hooks";
 import { login, loginPkce } from "@/services/auth/authAPI";
 import cookieUtils from "@/services/cookieUtils";
 import { useMutation } from "@tanstack/react-query";
@@ -29,6 +29,7 @@ function RouteComponent() {
 	const [countdown, setCountdown] = useState(5);
 	const navigate = useNavigate();
 	const { refetchProfile } = useAuth();
+	const { socket } = useSocket();
 
 	const loginMutation = useMutation({
 		mutationFn: login,
@@ -36,6 +37,7 @@ function RouteComponent() {
 			console.log("GitHub login successful:", data);
 			cookieUtils.setToken(data.data.accessToken);
 			await refetchProfile();
+			socket.connect();
 			navigate({
 				to: "/chat",
 			});
