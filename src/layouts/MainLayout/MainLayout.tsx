@@ -42,7 +42,7 @@ const MainLayout = () => {
 						<MainLayoutContainer className="px-4">
 							<TitleBar title="DevChat" icon={<User />} />
 							<div className="grid grid-cols-12 h-[93vh]">
-								<div className="col-span-2 flex gap-2">
+								<div className="w-full flex col-span-2">
 									<GroupSidebar />
 									<LeftSidebar setSettingSelect={setSettingSelect} />
 								</div>

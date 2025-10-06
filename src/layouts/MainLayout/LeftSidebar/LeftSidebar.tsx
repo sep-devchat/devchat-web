@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import {
 	Search,
 	X,
@@ -38,6 +39,7 @@ import {
 	ModalFooter,
 	ButtonModal,
 	Divider,
+	LeftSidebarContainer,
 } from "./LeftSidebar.styled";
 import { useNavigate, useParams, useSearch } from "@tanstack/react-router";
 import { useState } from "react";
@@ -137,7 +139,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
 	}, []);
 
 	return (
-		<div className="flex flex-col w-full h-screen bg-[rgba(255,255,255,0.30)] rounded-l-lg">
+		<LeftSidebarContainer className="flex flex-col w-full h-screen bg-[rgba(255,255,255,0.30)] rounded-l-lg">
 			<div className="flex items-center justify-center p-2 pr-4 border-b border-white">
 				{isGroupPage ? (
 					<div className="w-full px-1 py-1.5 flex justify-between items-center">
@@ -320,6 +322,6 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
 					</ModalContent>
 				</ModalOverlay>
 			)}
-		</div>
+		</LeftSidebarContainer>
 	);
 };

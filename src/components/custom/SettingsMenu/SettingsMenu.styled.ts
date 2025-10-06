@@ -1,3 +1,4 @@
+import { theme } from "@/themes";
 import styled from "styled-components";
 
 export const SettingsContainer = styled.div<{ backgroundImage: string }>`
@@ -30,9 +31,16 @@ export const NavigatorIcon = styled.div`
 `;
 
 export const LogoSection = styled.div`
-	margin-top: 20px;
 	margin-bottom: 30px;
+	margin-left: 20px;
 	z-index: 2;
+	cursor: pointer;
+	height: max-content;
+	color: ${theme.color.grey500};
+
+	&:hover {
+		color: ${theme.color.primary};
+	}
 `;
 
 export const LogoBox = styled.div`

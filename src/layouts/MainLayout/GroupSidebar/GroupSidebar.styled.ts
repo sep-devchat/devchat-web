@@ -1,35 +1,62 @@
 import styled from "styled-components";
 
 export const GroupSidebarContainer = styled.div`
-	position: relative;
 	width: 65px;
-	background: rgba(255, 255, 255, 0.45);
+	height: 100%;
 	display: flex;
 	flex-direction: column;
 	align-items: center;
-	padding: 12px 0;
-	border-radius: 10px;
-	height: 100%;
-	overflow-y: auto;
+	position: relative;
+`;
+
+export const LogoSection = styled.div`
+	margin-top: 7px;
+	margin-bottom: 7px;
+	z-index: 2;
+`;
+
+export const LogoBox = styled.div`
+	width: 40px;
+	height: 40px;
+	background: #6b7280;
+	border-radius: 50%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 8px;
+	font-weight: bold;
+	color: #fff;
+	text-align: center;
+	line-height: 1;
+	letter-spacing: 0.5px;
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 `;
 
 export const GroupList = styled.ul`
+	width: 100%;
+	background: rgba(255, 255, 255, 0.45);
+	border-radius: 80px 0 0 80px;
 	display: flex;
 	flex-direction: column;
-	gap: 10px;
-	width: 100%;
+	gap: 20px;
 	align-items: center;
-	margin: 0;
-	padding: 0;
-	list-style: none;
-	height: 100%;
-	overflow-y: auto;
+	padding: 40px 0;
+	padding-bottom: 60px;
+	position: relative;
+	height: max-content;
 `;
 
 export const GroupItem = styled.li`
-	width: 100%;
+	// width: 100%;
+	// display: flex;
+	// justify-content: center;
+
 	display: flex;
-	justify-content: center;
+	flex-direction: column;
+	gap: 12px;
+	flex: 1;
+	justify-content: flex-start;
+	// padding-top: 20px;
 `;
 
 export const GroupButton = styled.button<{
