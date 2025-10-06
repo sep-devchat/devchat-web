@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { get } from "./apiCaller";
 import { Profile } from "./auth/auth.type";
 

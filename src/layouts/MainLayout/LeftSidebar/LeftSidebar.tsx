@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import {
 	Search,
 	X,
@@ -38,15 +39,24 @@ import {
 	ModalFooter,
 	ButtonModal,
 	Divider,
+	LeftSidebarContainer,
 } from "./LeftSidebar.styled";
 import { useNavigate, useParams, useSearch } from "@tanstack/react-router";
-import { groups } from "../sample-data";
 import { useState } from "react";
 import MemberItem from "@/components/custom/MemberItem/MemberItem";
+import React from "react";
+import { GroupResponse, listGroups } from "@/services/groupAPI";
 
-const LeftSidebar = () => {
+interface LeftSidebarProps {
+	setSettingSelect: (value: boolean) => void;
+}
+
+export const LeftSidebar: React.FC<LeftSidebarProps> = ({
+	setSettingSelect,
+}) => {
 	const params = useParams({ strict: false }) as { groupId?: string };
 	const search = useSearch({ strict: false }) as { channel?: string };
+	const [localGroups, setLocalGroups] = React.useState<any[]>([]);
 	const navigate = useNavigate();
 	const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
 	const [channelName, setChannelName] = useState<string>("");
@@ -54,7 +64,7 @@ const LeftSidebar = () => {
 
 	const isGroupPage = Boolean(params.groupId);
 	const currentGroup = isGroupPage
-		? groups.find((g) => g.id === params.groupId)
+		? localGroups.find((g) => g.id === params.groupId)
 		: undefined;
 	const [channels, setChannels] = useState(
 		isGroupPage
@@ -88,8 +98,48 @@ const LeftSidebar = () => {
 		handleCloseModal();
 	};
 
+	// fetch groups từ API khi mount
+	React.useEffect(() => {
+		let mounted = true;
+		const fetch = async () => {
+			try {
+				const res = await listGroups();
+				const payload = (res && (res.data ?? res)) as GroupResponse[];
+				if (!mounted) return;
+
+				// map server GroupResponse -> shape sidebar dùng
+				const mapped = (payload || []).map((g) => {
+					const initials = (g.name || "")
+						.split(" ")
+						.map((s) => s[0] ?? "")
+						.join("")
+						.slice(0, 2)
+						.toUpperCase();
+					return {
+						id: g.id,
+						name: g.name,
+						initials,
+						avatarColor: "#8b5cf6", // giữ mặc định như trước; đổi nếu có logic color khác
+						unread: 0,
+						avatar: g.avatar ?? undefined,
+					};
+				});
+
+				setLocalGroups(mapped);
+			} catch (err) {
+				console.error("Failed to load groups:", err);
+				// Giữ localGroups như hiện tại nếu lỗi
+			}
+		};
+
+		fetch();
+		return () => {
+			mounted = false;
+		};
+	}, []);
+
 	return (
-		<div className="flex flex-col w-full h-screen bg-[rgba(255,255,255,0.30)] rounded-l-lg">
+		<LeftSidebarContainer className="flex flex-col w-full h-screen bg-[rgba(255,255,255,0.30)] rounded-l-lg">
 			<div className="flex items-center justify-center p-2 pr-4 border-b border-white">
 				{isGroupPage ? (
 					<div className="w-full px-1 py-1.5 flex justify-between items-center">
@@ -105,6 +155,7 @@ const LeftSidebar = () => {
 							<SettingsIcon
 								width={20}
 								className="hover:text-blue-500 cursor-pointer"
+								onClick={() => setSettingSelect(true)}
 							/>
 						</div>
 					</div>
@@ -271,8 +322,6 @@ const LeftSidebar = () => {
 					</ModalContent>
 				</ModalOverlay>
 			)}
-		</div>
+		</LeftSidebarContainer>
 	);
 };
-
-export default LeftSidebar;

@@ -1,3 +1,6 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+
 import React, {
 	useCallback,
 	useEffect,
@@ -5,12 +8,14 @@ import React, {
 	useRef,
 	useState,
 } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
 	ChatAreaContainer,
+	DateText,
+	DividerWrapper,
+	Line,
+	MessageBubbleStyle,
+	MessageItem,
 	MessagesViewport,
-	Composer,
 } from "./ChatArea.styled";
 import { listMessages, MessageResponse } from "@/services/messageAPI";
 import { useSocket } from "@/hooks";
@@ -19,6 +24,7 @@ import useSocketEvent from "@/hooks/useSocketEvent";
 import { SocketEvents } from "@/utils/constants";
 import { RootState } from "@/store";
 import { useSelector } from "react-redux";
+import ChatInput, { ChatInputPayload, InboxType } from "../ChatInput/ChatInput";
 
 export type ChatMessage = {
 	id: string;
@@ -30,6 +36,41 @@ type ChatAreaProps = {
 	initialMessages?: ChatMessage[];
 	onSend?: (text: string) => void;
 };
+
+function pad(n: number) {
+	return n.toString().padStart(2, "0");
+}
+
+/* isSameDay, formatDateHeader, formatMessageTime unchanged (keep as in your file) */
+function isSameDay(a?: string | Date | null, b?: string | Date | null) {
+	if (!a || !b) return false;
+	const da = a instanceof Date ? a : new Date(a);
+	const db = b instanceof Date ? b : new Date(b);
+	if (isNaN(da.getTime()) || isNaN(db.getTime())) return false;
+	return (
+		da.getFullYear() === db.getFullYear() &&
+		da.getMonth() === db.getMonth() &&
+		da.getDate() === db.getDate()
+	);
+}
+
+function formatDateHeader(input: string | Date): string {
+	const d = input instanceof Date ? input : new Date(input);
+	if (isNaN(d.getTime())) return "";
+
+	const now = new Date();
+	const yesterday = new Date(now);
+	yesterday.setDate(now.getDate() - 1);
+
+	const sameYMD = (a: Date, b: Date) =>
+		a.getFullYear() === b.getFullYear() &&
+		a.getMonth() === b.getMonth() &&
+		a.getDate() === b.getDate();
+
+	if (sameYMD(d, now)) return "Today";
+	if (sameYMD(d, yesterday)) return "Yesterday";
+	return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;
+}
 
 function formatMessageTime(input: string | Date): string {
 	const d = input instanceof Date ? input : new Date(input);
@@ -56,12 +97,17 @@ const ChatArea: React.FC<ChatAreaProps> = () => {
 	const [realtimeMessages, setRealtimeMessages] = useState<MessageResponse[]>(
 		[],
 	);
-	const [input, setInput] = useState("");
 	const channelId = "test";
 	const threadId = ""; // optional; null when empty
 	const listRef = useRef<HTMLDivElement | null>(null);
-	const inputRef = useRef<HTMLInputElement | null>(null);
 	const { socket } = useSocket();
+	const [filesFromModal, setFilesFromModal] = useState<File[] | undefined>(
+		undefined,
+	);
+	// Import InboxType from ChatInput if not already imported
+	// import type { InboxType } from "../ChatInput/ChatInput";
+	const [inboxTypeSelected, setInboxTypeSelected] = useState<InboxType>(null);
+	const viewportVariant = inboxTypeSelected ?? undefined;
 
 	// Fetch messages using TanStack Query
 	const { data, isLoading, isError } = useQuery({
@@ -79,39 +125,140 @@ const ChatArea: React.FC<ChatAreaProps> = () => {
 		return [...serverMessages, ...realtimeMessages];
 	}, [serverMessages, realtimeMessages]);
 
-	const onServerMessage = useCallback((msg: MessageResponse) => {
-		// Append full message with sender profile to realtime list
-		setRealtimeMessages((prev) => [...prev, msg]);
-	}, []);
+	const onServerMessage = useCallback(
+		(msg: MessageResponse & { clientTempId?: string }) => {
+			setRealtimeMessages((prev) => {
+				// 1) nếu server trả clientTempId -> replace optimistic message có id === clientTempId
+				const tempId = (msg as any).clientTempId;
+				if (tempId) {
+					const idx = prev.findIndex((m) => m.id === tempId);
+					if (idx !== -1) {
+						const copy = [...prev];
+						copy[idx] = msg;
+						return copy;
+					}
+				}
+
+				// 2) fallback: nếu có optimistic tương tự (content + sender + thời gian gần nhau) -> replace
+				const foundIndex = prev.findIndex((m) => {
+					if (!m.content || !msg.content) return false;
+					const sameContent = m.content === msg.content;
+					const sameSender = m.sender?.id === msg.sender?.id;
+					const t1 = new Date(m.createdAt).getTime();
+					const t2 = new Date(msg.createdAt).getTime();
+					const close = Math.abs(t1 - t2) < 5000; // 5s window
+					return sameContent && sameSender && close;
+				});
+				if (foundIndex !== -1) {
+					const copy = [...prev];
+					copy[foundIndex] = msg;
+					return copy;
+				}
+
+				// 3) không trùng -> append bình thường
+				return [...prev, msg];
+			});
+		},
+		[],
+	);
 
 	useSocketEvent(SocketEvents.MESSAGE, onServerMessage);
+	const send = useCallback(
+		async (payload?: ChatInputPayload) => {
+			if (!socket) return;
+			if (!payload) return;
 
-	const send = (e?: React.FormEvent) => {
-		e?.preventDefault();
-		const text = input.trim();
-		if (!text || !channelId.trim()) return;
-		// Emit message to server following CreateMessageRequest DTO
-		socket.emit(SocketEvents.MESSAGE, {
-			channelId: channelId.trim(),
-			threadId: threadId.trim() || null,
-			parentMessageId: null,
-			content: text,
-		});
-		setInput("");
-		// Keep focus in the input after sending
-		queueMicrotask(() => inputRef.current?.focus());
-	};
+			const tempId = `temp-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+
+			if (payload.type === "text") {
+				const text = payload.text.trim();
+				if (!text) return;
+
+				const optimistic: MessageResponse = {
+					id: tempId,
+					content: text,
+					createdAt: new Date().toISOString(),
+					sender: {
+						id: profile?.id ?? "me",
+						firstName: profile?.firstName,
+						lastName: profile?.lastName,
+						username: profile?.username,
+						avatarUrl: profile?.avatarUrl,
+					} as any,
+				} as any;
+
+				setRealtimeMessages((prev) => [...prev, optimistic]);
+
+				// gửi kèm clientTempId để server có thể trả lại
+				socket.emit(SocketEvents.MESSAGE, {
+					channelId: channelId.trim(),
+					threadId: threadId?.trim() || null,
+					parentMessageId: null,
+					content: text,
+					clientTempId: tempId,
+				});
+
+				return;
+			}
+
+			if (payload.type === "files") {
+				const files = payload.files;
+				if (!files || files.length === 0) return;
+
+				const attachmentsMeta = files.map((f) => ({
+					name: f.name,
+					size: f.size,
+					type: f.type,
+				}));
+
+				const optimisticFilesMsg: MessageResponse = {
+					id: tempId,
+					content: "", // hoặc tên file
+					createdAt: new Date().toISOString(),
+					sender: {
+						id: profile?.id ?? "me",
+						firstName: profile?.firstName,
+						lastName: profile?.lastName,
+						username: profile?.username,
+						avatarUrl: profile?.avatarUrl,
+					} as any,
+					attachments: attachmentsMeta,
+				} as any;
+
+				setRealtimeMessages((prev) => [...prev, optimisticFilesMsg]);
+
+				// emit metadata + clientTempId; nếu muốn upload bytes qua socket, dùng arrayBuffer + event "file-upload"
+				socket.emit(SocketEvents.MESSAGE, {
+					channelId: channelId.trim(),
+					threadId: threadId?.trim() || null,
+					parentMessageId: null,
+					content: "",
+					attachments: attachmentsMeta,
+					clientTempId: tempId,
+				});
+
+				return;
+			}
+		},
+		[socket, profile],
+	);
 
 	useEffect(() => {
 		// Auto-scroll to the bottom when messages change
 		const el = listRef.current;
 		if (!el) return;
 		el.scrollTop = el.scrollHeight;
-	}, [messages]);
+
+		console.log("inboxTypeSelected", inboxTypeSelected);
+	}, [messages, inboxTypeSelected]);
 
 	return (
 		<ChatAreaContainer>
-			<MessagesViewport ref={listRef}>
+			<MessagesViewport
+				ref={listRef}
+				variant={viewportVariant}
+				className={inboxTypeSelected ? "items-end" : ""}
+			>
 				{isLoading ? (
 					<p className="text-sm text-muted-foreground">Loading messages…</p>
 				) : isError ? (
@@ -121,7 +268,11 @@ const ChatArea: React.FC<ChatAreaProps> = () => {
 						No messages yet. Start the conversation below.
 					</p>
 				) : (
-					messages.map((m) => {
+					messages.map((m, idx) => {
+						const prev = messages[idx - 1];
+						const showDateHeader =
+							!prev || !isSameDay(prev.createdAt, m.createdAt);
+
 						const name =
 							[m.sender?.firstName, m.sender?.lastName]
 								.filter(Boolean)
@@ -131,60 +282,74 @@ const ChatArea: React.FC<ChatAreaProps> = () => {
 						const initials =
 							(m.sender?.firstName?.[0] || "") +
 							(m.sender?.lastName?.[0] || "");
-						const positionClassName =
-							m.sender?.id === profile?.id
-								? "justify-start flex-row-reverse"
-								: "";
+						// const positionClassName =
+						// 	m.sender?.id === profile?.id
+						// 		? "justify-start flex-row-reverse"
+						// 		: "";
 						const isCurrentUser = m.sender?.id === profile?.id;
-						return (
-							<div
-								key={m.id}
-								className={`flex items-start gap-2 ${positionClassName}`}
-							>
-								{m.sender?.avatarUrl ? (
-									<img
-										src={m.sender.avatarUrl}
-										alt={name}
-										className="h-8 w-8 rounded-full"
-									/>
-								) : (
-									<div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center text-xs font-medium select-none">
-										{initials || (name[0] ?? "?")}
-									</div>
-								)}
+						const positionClassName = isCurrentUser
+							? "justify-start flex-row-reverse"
+							: "";
 
-								<div
-									className={`flex flex-col ${m.sender?.id === profile?.id ? "items-end" : ""}`}
+						return (
+							<div key={`${m.id}-${idx}`} className="w-full">
+								{showDateHeader && (
+									<DividerWrapper>
+										<Line />
+										<DateText>{formatDateHeader(m.createdAt)}</DateText>
+										<Line />
+									</DividerWrapper>
+								)}
+								<MessageItem
+									className={`flex items-start gap-2 ${positionClassName}`}
 								>
+									{m.sender?.avatarUrl ? (
+										<img
+											src={m.sender.avatarUrl}
+											alt={name}
+											className="h-8 w-8 rounded-full"
+										/>
+									) : (
+										<div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center text-xs font-medium select-none">
+											{initials || (name[0] ?? "?")}
+										</div>
+									)}
+
 									<div
-										className={`flex gap-4 items-center text-xs text-muted-foreground mb-1 ${isCurrentUser ? "flex-row-reverse" : ""}`}
+										className={`flex flex-col ${isCurrentUser ? "items-end" : ""}`}
 									>
-										<span className="font-bold text-sm">{name}</span>
-										<span>{formatMessageTime(m.createdAt)}</span>
+										<div
+											className={`flex gap-4 items-center text-xs text-muted-foreground mb-1 ${isCurrentUser ? "flex-row-reverse" : ""}`}
+										>
+											<span className="font-bold text-sm">{name}</span>
+											<span>{formatMessageTime(m.createdAt)}</span>
+										</div>
+
+										<MessageBubbleStyle
+											className={`message-bubble w-fit max-w-full rounded-lg px-3 py-2 text-sm shadow-none ${isCurrentUser ? "me" : "other"}`}
+										>
+											{m.content}
+										</MessageBubbleStyle>
 									</div>
-									<div
-										className={`w-fit max-w-full rounded-lg bg-background px-3 py-2 text-sm shadow-none ${isCurrentUser ? "bg-[hsl(var(--primary))] text-white" : "border"}`}
-									>
-										{m.content}
-									</div>
-								</div>
+								</MessageItem>
 							</div>
 						);
 					})
 				)}
 			</MessagesViewport>
 
-			<Composer onSubmit={send}>
-				<Input
-					value={input}
-					onChange={(e) => setInput(e.target.value)}
-					placeholder="Write a message"
-					className="shadow-none"
-				/>
-				<Button type="submit" disabled={!input.trim()}>
-					Send
-				</Button>
-			</Composer>
+			{/* <ChatInput
+        inboxType={null} // hoặc "quillCode" | "image" | "file" tùy nhu cầu
+        placeholder="Write a message"
+        onSend={send}
+      /> */}
+
+			<ChatInput
+				setInboxTypeSelected={setInboxTypeSelected}
+				initialFiles={filesFromModal}
+				onInitialFilesHandled={() => setFilesFromModal(undefined)}
+				onSend={send}
+			/>
 		</ChatAreaContainer>
 	);
 };

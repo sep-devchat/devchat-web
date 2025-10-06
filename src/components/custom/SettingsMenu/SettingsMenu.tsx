@@ -1,30 +1,34 @@
-import React, { useRef, useEffect } from "react";
-import { Palette, Shield, Search } from "lucide-react";
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import bgImage from "@/assets/image/loginBackground.png";
+import { useNavigate } from "@tanstack/react-router";
 import {
+	Bell,
+	CircleX,
+	Palette,
+	Search,
+	Settings,
+	Shield,
+	User,
+} from "lucide-react";
+import React, { useEffect, useRef } from "react";
+import {
+	ContentWrapper,
 	Header,
-	SettingRows,
-	NavigatorIcon,
 	LogoSection,
-	LogoBox,
-	IndentedSection,
-	IconContainer,
-	CircleIcon,
-	Sidebar,
-	SidebarContent,
+	MainContent,
+	MenuIcon,
+	MenuItem,
+	MenuNav,
+	NotificationButton,
 	SearchContainer,
 	SearchIcon,
 	SearchInput,
-	MenuNav,
-	MenuItem,
-	MenuIcon,
-	MainContent,
-	ContentWrapper,
+	SettingRows,
 	SettingsContainer,
+	Sidebar,
+	SidebarContent,
 	Title,
-	NotificationButton,
 } from "./SettingsMenu.styled";
-import bgImage from "@/assets/image/loginBackground.png";
-import { Home, User, MessageCircle, Bell, Settings } from "lucide-react";
 
 type SettingsSection =
 	| "general"
@@ -51,6 +55,7 @@ export const SettingsMenu: React.FC<SettingsMenuProps> = ({
 	onSectionChange,
 }) => {
 	const contentWrapperRef = useRef<HTMLDivElement>(null);
+	const navigate = useNavigate();
 
 	const menuItems: MenuItemType[] = [
 		{ id: "general", label: "General", icon: Settings },
@@ -60,13 +65,13 @@ export const SettingsMenu: React.FC<SettingsMenuProps> = ({
 		{ id: "privacy", label: "Privacy", icon: Shield },
 	];
 
-	const icons = [
-		{ Icon: Home, selected: false },
-		{ Icon: User, selected: false },
-		{ Icon: MessageCircle, selected: false },
-		{ Icon: Bell, selected: false },
-		{ Icon: Settings, selected: true },
-	];
+	// const icons = [
+	// 	{ Icon: Home, selected: false },
+	// 	{ Icon: User, selected: false },
+	// 	{ Icon: MessageCircle, selected: false },
+	// 	{ Icon: Bell, selected: false },
+	// 	{ Icon: Settings, selected: true },
+	// ];
 
 	useEffect(() => {
 		if (contentWrapperRef.current) {
@@ -81,6 +86,10 @@ export const SettingsMenu: React.FC<SettingsMenuProps> = ({
 		}
 	};
 
+	const handleReturn = () => {
+		navigate({ to: "/chat/friend" });
+	};
+
 	return (
 		<SettingsContainer backgroundImage={bgImage}>
 			<Header>
@@ -91,7 +100,7 @@ export const SettingsMenu: React.FC<SettingsMenuProps> = ({
 				</NotificationButton>
 			</Header>
 			<SettingRows>
-				<NavigatorIcon>
+				{/* <NavigatorIcon>
 					<LogoSection>
 						<LogoBox>LOGO</LogoBox>
 					</LogoSection>
@@ -105,7 +114,7 @@ export const SettingsMenu: React.FC<SettingsMenuProps> = ({
 							))}
 						</IconContainer>
 					</IndentedSection>
-				</NavigatorIcon>
+				</NavigatorIcon> */}
 				<Sidebar>
 					<SidebarContent>
 						<SearchContainer>
@@ -138,6 +147,9 @@ export const SettingsMenu: React.FC<SettingsMenuProps> = ({
 				<MainContent>
 					<ContentWrapper ref={contentWrapperRef}>{children}</ContentWrapper>
 				</MainContent>
+				<LogoSection>
+					<CircleX size={35} onClick={handleReturn} />
+				</LogoSection>
 			</SettingRows>
 		</SettingsContainer>
 	);

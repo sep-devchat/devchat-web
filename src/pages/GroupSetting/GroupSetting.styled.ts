@@ -1,3 +1,6 @@
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { theme } from "@/themes";
 import styled from "styled-components";
 
@@ -31,6 +34,7 @@ export const NavigatorIcon = styled.div`
 `;
 
 export const LogoSection = styled.div`
+	// margin-top: 20px;
 	margin-bottom: 30px;
 	margin-left: 20px;
 	z-index: 2;
@@ -41,23 +45,6 @@ export const LogoSection = styled.div`
 	&:hover {
 		color: ${theme.color.primary};
 	}
-`;
-
-export const LogoBox = styled.div`
-	width: 40px;
-	height: 40px;
-	background: #6b7280;
-	border-radius: 50%;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	font-size: 8px;
-	font-weight: bold;
-	color: #fff;
-	text-align: center;
-	line-height: 1;
-	letter-spacing: 0.5px;
-	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 `;
 
 export const IndentedSection = styled.div`
@@ -235,7 +222,7 @@ export const ContentWrapper = styled.div`
 export const Header = styled.div`
 	display: flex;
 	align-items: center;
-	justify-content: space-between;
+	justify-content: center;
 	padding: 5px 18px;
 	flex-shrink: 0;
 `;
@@ -258,4 +245,141 @@ export const NotificationButton = styled.button`
 	&:hover {
 		background: #f3f4f6;
 	}
+`;
+
+// ----------------------------------- Server Profile
+
+export const SectionWrapper = styled.div`
+	width: 100%;
+	height: 100%;
+	padding: 24px;
+`;
+
+export const TitleArea = styled.div`
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+`;
+
+export const TitleSection = styled.h2`
+	font-weight: 700;
+	font-size: 23px;
+	color: ${theme.color.black};
+`;
+
+export const DescripSection = styled.p`
+	font-size: 16px;
+	color: ${theme.color.grey90};
+`;
+
+export const LabelItem = styled.h2`
+	font-weight: 600;
+	font-size: 20px;
+	color: ${theme.color.grey600};
+`;
+
+export const Form = styled.form`
+	display: flex;
+	flex-direction: column;
+	gap: 16px;
+`;
+
+/* Avatar row */
+export const AvatarRow = styled.div`
+	display: flex;
+	gap: 16px;
+	align-items: center;
+`;
+
+export const AvatarPreviewBox = styled.div`
+	width: 96px;
+	height: 96px;
+	border-radius: 50%;
+	background: var(--muted, #f3f4f6);
+	overflow: hidden;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex-shrink: 0;
+`;
+
+export const AvatarImg = styled.img`
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+	display: block;
+`;
+
+export const NoAvatar = styled.div`
+	text-align: center;
+	color: var(--muted-foreground, #6b7280);
+`;
+
+/* Controls next to avatar */
+export const AvatarControls = styled.div`
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	flex: 1;
+`;
+
+/* File input wrapper to keep native input but styled container */
+export const FileInputWrapper = styled.div`
+	input[type="file"] {
+		font-size: 14px;
+	}
+`;
+
+export const Note = styled.div`
+	font-size: 12px;
+	color: var(--muted-foreground, #6b7280);
+`;
+
+/* small link/button */
+export const SmallButton = styled.button`
+	background: transparent;
+	border: none;
+	color: #2563eb;
+	padding: 0;
+	font-size: 13px;
+	cursor: pointer;
+	text-decoration: underline;
+	width: fit-content;
+`;
+
+/* Form fields */
+export const Field = styled.div`
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+`;
+
+/* Use the existing Input/Textarea components but wrap to set width and spacing */
+export const StyledInput = styled(Input)`
+	width: 100%;
+	box-sizing: border-box;
+`;
+
+export const StyledTextarea = styled(Textarea)`
+	width: 100%;
+	min-height: 96px;
+	resize: vertical;
+`;
+
+export const Footer = styled.div`
+	display: flex;
+	gap: 12px;
+	justify-content: flex-start;
+	align-items: center;
+	margin-top: 6px;
+`;
+
+/* Buttons: keep using Button component, but we wrap to set size if needed */
+export const SubmitButton = styled(Button)``;
+
+/* Error text */
+export const ErrorText = styled.div`
+	color: #dc2626;
+	font-size: 13px;
+	margin-top: 4px;
 `;

@@ -3,10 +3,11 @@ import { Input } from "@/components/ui/input";
 import styled from "styled-components";
 
 export const LeftSidebarContainer = styled.div`
-	display: flex;
-	flex-direction: column;
-	border-radius: 10px 0 0 10px;
-	background: rgba(255, 255, 255, 0.3);
+	width: calc(100% - 65px);
+	// display: flex;
+	// flex-direction: column;
+	// border-radius: 10px 0 0 10px;
+	// background: rgba(255, 255, 255, 0.3);
 `;
 
 export const SearchInput = styled(Input)`
