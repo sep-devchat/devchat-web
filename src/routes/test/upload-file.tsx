@@ -4,6 +4,7 @@ import {
 	getUploadSignature,
 	getDeliverySignature,
 	directUploadWithSignature,
+	saveDirectUpload,
 } from "@/services/upload/upload.api";
 import type {
 	UploadSignatureResponse,
@@ -50,6 +51,8 @@ function RouteComponent() {
 	const [stage, setStage] = React.useState<
 		"idle" | "staged" | "uploading" | "uploaded"
 	>("idle");
+	const [persisting, setPersisting] = React.useState(false);
+	const [persisted, setPersisted] = React.useState<null | boolean>(null);
 
 	React.useEffect(() => {
 		if (!file) {
@@ -164,6 +167,11 @@ function RouteComponent() {
 			setPublicId(uploadRes.public_id);
 			setStage("uploaded");
 			if (delivery) setSignedUrl(delivery.url);
+			// Persist metadata
+			setPersisting(true);
+			const ok = await saveDirectUpload(uploadRes);
+			setPersisted(ok);
+			setPersisting(false);
 		} catch (e: any) {
 			console.error("Upload error", e);
 			setError(e?.message || "Unknown error during upload");
@@ -232,6 +240,19 @@ function RouteComponent() {
 							<strong>Confirm Upload & Sign</strong> to perform the signed
 							upload and generate a real delivery URL.
 						</CardDescription>
+						{persisting && (
+							<p className="text-[10px] text-gray-500">Persisting metadata…</p>
+						)}
+						{persisted === true && !persisting && (
+							<p className="text-[10px] text-emerald-600">
+								Metadata saved to server ✔
+							</p>
+						)}
+						{persisted === false && !persisting && (
+							<p className="text-[10px] text-amber-600">
+								Metadata not saved (offline/server issue).
+							</p>
+						)}
 					</CardHeader>
 					<CardContent className="space-y-5">
 						<div>

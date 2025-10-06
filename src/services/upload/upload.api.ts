@@ -1,4 +1,3 @@
-import { post } from "@/services/apiCaller";
 import {
 	UploadSignatureParams,
 	UploadSignatureResponse,
@@ -8,6 +7,7 @@ import {
 	DirectUploadResult,
 	ProgressCallback,
 } from "./upload.type";
+import { post } from "@/services/apiCaller";
 
 function unwrap<T>(resp: any): T {
 	const payload = resp?.data ?? resp;
@@ -128,4 +128,41 @@ export async function directUploadWithSignature(
 	}
 
 	return { upload, delivery };
+}
+
+// Save a direct Cloudinary upload response to backend DB
+export async function saveDirectUpload(
+	result: UploadResult,
+	opts?: { messageId?: string },
+) {
+	// Derive folder from public_id if possible (exclude last segment)
+	let asset_folder: string | undefined = (result as any).asset_folder;
+	if (!asset_folder) {
+		const parts = result.public_id.split("/");
+		if (parts.length > 1) asset_folder = parts.slice(0, -1).join("/");
+	}
+	const payload: any = {
+		public_id: result.public_id,
+		display_name:
+			(result as any).display_name ||
+			result.original_filename ||
+			result.public_id.split("/").pop(),
+		original_filename:
+			result.original_filename ||
+			(result as any).display_name ||
+			result.public_id.split("/").pop(),
+		secure_url: result.secure_url,
+		resource_type: result.resource_type,
+		bytes: result.bytes,
+		format: result.format,
+		asset_folder,
+	};
+	if (opts?.messageId) payload.messageId = opts.messageId;
+	try {
+		await post("/api/upload/persist-cloudinary", payload);
+		return true;
+	} catch (e) {
+		// Swallow error; caller can decide whether to surface
+		return false;
+	}
 }
