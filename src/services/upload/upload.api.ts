@@ -159,7 +159,7 @@ export async function saveDirectUpload(
 	};
 	if (opts?.messageId) payload.messageId = opts.messageId;
 	try {
-		await post("/api/upload/persist-cloudinary", payload);
+		await post("/api/upload/save-data", payload);
 		return true;
 	} catch (e) {
 		// Swallow error; caller can decide whether to surface
