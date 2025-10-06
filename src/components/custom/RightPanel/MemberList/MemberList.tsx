@@ -1,30 +1,16 @@
+import MemberItem from "../../MemberItem/MemberItem";
 import {
 	CPHeader,
 	CPHeaderLeft,
 	CPTitle,
-	MemberAvatar,
-	MemberAvatarContainer,
 	MemberContent,
 	MemberCount,
-	MemberItem,
-	MemberName,
 	MemberSection,
 	MembersList,
-	OfflineIndicator,
-	OnlineIndicator,
 	PageWrapper,
 	SectionHeader,
 	SectionTitle,
-	Tooltip,
-	TooltipAvatar,
-	TooltipCard,
-	TooltipContainer,
-	TooltipHeader,
-	TooltipInput,
-	TooltipName,
-	TooltipUsername,
 } from "./MemberList.styled";
-import { useState } from "react";
 
 const mockMembers = {
 	status: [
@@ -59,13 +45,7 @@ const mockMembers = {
 	],
 };
 
-export interface TooltipProps {
-	show: boolean;
-}
-
 export default function MemberList() {
-	const [hoveredMember, setHoveredMember] = useState(null);
-
 	const onlineMembers = mockMembers.status.filter(
 		(member) => member.isOnline === true,
 	);
@@ -73,12 +53,12 @@ export default function MemberList() {
 		(member) => member.isOnline === false,
 	);
 
-	const handleMouseEnter = (memberId: any) => {
-		setHoveredMember(memberId);
+	const handleMessageSend = (memberId: number | string, message: string) => {
+		console.log(`Send message to member ${memberId}:`, message);
 	};
 
-	const handleMouseLeave = () => {
-		setHoveredMember(null);
+	const handleButtonClick = (memberId: number | string) => {
+		console.log(`Button clicked for member ${memberId}`);
 	};
 
 	return (
@@ -96,46 +76,14 @@ export default function MemberList() {
 					</SectionHeader>
 					<MembersList>
 						{onlineMembers.map((member) => (
-							<TooltipContainer
-								onMouseEnter={() => handleMouseEnter(member.id)}
-								onMouseLeave={handleMouseLeave}
-							>
-								<MemberItem>
-									<MemberAvatarContainer>
-										<MemberAvatar src={member.avatar} alt={member.name} />
-										<OnlineIndicator />
-									</MemberAvatarContainer>
-									<MemberName>{member.name}</MemberName>
-								</MemberItem>
-
-								<Tooltip show={hoveredMember === member.id}>
-									<TooltipCard>
-										<TooltipHeader>
-											<TooltipAvatar src={member.avatar} alt={member.name} />
-											<div>
-												<TooltipName>{member.name}</TooltipName>
-												<TooltipUsername>
-													@{member.name.toLowerCase().replace(/\s+/g, "")}
-												</TooltipUsername>
-											</div>
-										</TooltipHeader>
-
-										<TooltipInput
-											type="text"
-											placeholder={`Message @${member.name.split(" ")[0]}`}
-											onKeyDown={(e) => {
-												if (e.key === "Enter") {
-													console.log(
-														`Send message to ${member.name}:`,
-														(e.target as HTMLInputElement).value,
-													);
-													(e.target as HTMLInputElement).value = "";
-												}
-											}}
-										/>
-									</TooltipCard>
-								</Tooltip>
-							</TooltipContainer>
+							<MemberItem
+								key={member.id}
+								member={member}
+								showTooltip={true}
+								buttonType="more"
+								onButtonClick={handleButtonClick}
+								onMessageSend={handleMessageSend}
+							/>
 						))}
 					</MembersList>
 				</MemberSection>
@@ -146,46 +94,14 @@ export default function MemberList() {
 					</SectionHeader>
 					<MembersList>
 						{offlineMembers.map((member) => (
-							<TooltipContainer
-								onMouseEnter={() => handleMouseEnter(member.id)}
-								onMouseLeave={handleMouseLeave}
-							>
-								<MemberItem>
-									<MemberAvatarContainer>
-										<MemberAvatar src={member.avatar} alt={member.name} />
-										<OfflineIndicator />
-									</MemberAvatarContainer>
-									<MemberName>{member.name}</MemberName>
-								</MemberItem>
-
-								<Tooltip show={hoveredMember === member.id}>
-									<TooltipCard>
-										<TooltipHeader>
-											<TooltipAvatar src={member.avatar} alt={member.name} />
-											<div>
-												<TooltipName>{member.name}</TooltipName>
-												<TooltipUsername>
-													@{member.name.toLowerCase().replace(/\s+/g, "")}
-												</TooltipUsername>
-											</div>
-										</TooltipHeader>
-
-										<TooltipInput
-											type="text"
-											placeholder={`Message @${member.name.split(" ")[0]}`}
-											onKeyDown={(e) => {
-												if (e.key === "Enter") {
-													console.log(
-														`Send message to ${member.name}:`,
-														(e.target as HTMLInputElement).value,
-													);
-													(e.target as HTMLInputElement).value = "";
-												}
-											}}
-										/>
-									</TooltipCard>
-								</Tooltip>
-							</TooltipContainer>
+							<MemberItem
+								key={member.id}
+								member={member}
+								showTooltip={true}
+								buttonType="close"
+								onButtonClick={handleButtonClick}
+								onMessageSend={handleMessageSend}
+							/>
 						))}
 					</MembersList>
 				</MemberSection>

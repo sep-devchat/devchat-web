@@ -1,9 +1,14 @@
+import Friend from "@/pages/Friend";
 import { createFileRoute } from "@tanstack/react-router";
+import { z } from "zod";
 
-export const Route = createFileRoute("/chat/friend")({
-	component: RouteComponent,
+const friendSearchSchema = z.object({
+	tab: z.enum(["all", "pending", "add-friend"]).optional().default("all"),
 });
 
-function RouteComponent() {
-	return <div>Hello "/chat/friend"!</div>;
-}
+export type FriendSearch = z.infer<typeof friendSearchSchema>;
+
+export const Route = createFileRoute("/chat/friend")({
+	component: Friend,
+	validateSearch: friendSearchSchema,
+});
