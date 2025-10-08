@@ -1,7 +1,15 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import MainBg from "@/components/custom/MainBackground/MainBg";
 import { Outlet } from "@tanstack/react-router";
-import { CenterPanel, MainLayoutContainer } from "./MainLayout.styled";
+import {
+	CenterPanel,
+	MainLayoutContainer,
+	ContentWrapper,
+	LeftSection,
+	RightSection,
+	OutletContainer,
+	BottomSpacer,
+} from "./MainLayout.styled";
 import TitleBar from "./TitleBar/TitleBar";
 import { User } from "lucide-react";
 import GroupSidebar from "./GroupSidebar";
@@ -36,35 +44,36 @@ const MainLayout = () => {
 		<>
 			<AuthLayout>
 				<MainBg />
-				{/* nếu settingSelect = false: hiển thị layout chính, ngược lại hiển thị GroupSetting */}
 				{!settingSelect ? (
-					<>
-						<MainLayoutContainer className="px-4">
-							<TitleBar title="DevChat" icon={<User />} />
-							<div className="grid grid-cols-12 h-[93vh]">
-								<div className="w-full flex col-span-2">
-									<GroupSidebar />
-									<LeftSidebar setSettingSelect={setSettingSelect} />
-								</div>
+					<MainLayoutContainer>
+						<TitleBar title="DevChat" icon={<User />} />
 
-								<div className="col-span-10 flex">
-									<CenterPanel>
-										<Header
-											setIconSelected={setIconSelected}
-											iconSelected={iconSelected}
-										/>
+						<ContentWrapper>
+							<LeftSection>
+								<GroupSidebar />
+								<LeftSidebar setSettingSelect={setSettingSelect} />
+							</LeftSection>
 
-										<div className="bg-white w-full h-full rounded-br-lg">
-											<Outlet />
-										</div>
-									</CenterPanel>
+							<RightSection>
+								<CenterPanel>
+									<Header
+										setIconSelected={setIconSelected}
+										iconSelected={iconSelected}
+									/>
 
-									{renderPanel()}
-								</div>
-							</div>
-							<Profile />
-						</MainLayoutContainer>
-					</>
+									<OutletContainer>
+										<Outlet />
+									</OutletContainer>
+								</CenterPanel>
+
+								{renderPanel()}
+							</RightSection>
+						</ContentWrapper>
+
+						<Profile />
+
+						<BottomSpacer />
+					</MainLayoutContainer>
 				) : (
 					<GroupSetting setSettingSelect={setSettingSelect} />
 				)}
