@@ -20,7 +20,7 @@ const Profile = () => {
 						<img
 							src={profile.avatarUrl}
 							alt={profile.firstName}
-							className="rounded-full"
+							style={{ borderRadius: "50%" }}
 						/>
 					) : (
 						"UK"
