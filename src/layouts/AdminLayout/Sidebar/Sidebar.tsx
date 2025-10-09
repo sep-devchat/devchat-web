@@ -77,7 +77,7 @@ const Sidebar: React.FC = () => {
 
 	const bottomItems: MenuItem[] = [
 		{ id: "setting", icon: Settings, label: "Setting", path: "/admin/setting" },
-		{ id: "logout", icon: LogOut, label: "Log Out", path: "/logout" },
+		{ id: "logout", icon: LogOut, label: "Log Out", path: "/auth/login" },
 	];
 
 	const isActive = (path: string) => location.pathname === path;

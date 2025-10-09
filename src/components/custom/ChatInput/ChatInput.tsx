@@ -21,7 +21,7 @@ import {
 	RemoveBtn,
 	TextInput,
 } from "./ChatInput.styled";
-import ChatTypeDropdown from "@/components/ChatTypeModal/ChatTypeModal";
+import ChatTypeDropdown from "@/components/custom/ChatTypeModal/ChatTypeModal";
 import { Plus, Send, Smile } from "lucide-react";
 
 export type InboxType = null | "normal" | "quillCode" | "image" | "file";

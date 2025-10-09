@@ -11,7 +11,7 @@ import {
 	LogoSection,
 	LogoBox,
 } from "./GroupSidebar.styled";
-import AddGroupModal from "@/components/AddGroupModal/AddGroupModal";
+import AddGroupModal from "@/components/custom/AddGroupModal/AddGroupModal";
 import { listGroups, GroupResponse } from "@/services/groupAPI";
 
 const GroupSidebar: React.FC = () => {

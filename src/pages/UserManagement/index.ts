@@ -1,1 +1,1 @@
-export { default } from "./UserManagement";
+export { UserManagement } from "./UserManagement";
