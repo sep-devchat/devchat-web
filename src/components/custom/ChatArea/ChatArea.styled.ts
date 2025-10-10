@@ -15,10 +15,10 @@ export const ChatAreaContainer = styled.div`
 type Variant = "normal" | "quillCode" | "image" | "file";
 
 export const MessagesViewport = styled.div<{ variant?: Variant }>`
-	padding: 12px;
+	padding: 0.75rem;
 	display: flex;
 	flex-direction: column;
-	gap: 8px;
+	gap: 0.5rem;
 	flex: 1 1 auto;
 	min-height: 62vh;
 	overflow-y: auto;
@@ -36,6 +36,31 @@ export const MessagesViewport = styled.div<{ variant?: Variant }>`
 					: p.variant === "file"
 						? `max-height: var(--chat-viewport-max-height, 77vh);`
 						: ""}
+
+	/* Responsive adjustments */
+	@media (min-width: 1024px) {
+		padding: 1rem;
+		gap: 0.625rem;
+	}
+
+	@media (min-width: 1440px) {
+		padding: 1.25rem;
+		gap: 0.75rem;
+	}
+
+	/* Cho màn hình rất lớn có thể tăng max-height */
+	@media (min-height: 1080px) {
+		max-height: var(--chat-viewport-max-height, 85vh);
+
+		${(p) =>
+			p.variant === "quillCode"
+				? `max-height: var(--chat-viewport-max-height, 79vh);`
+				: p.variant === "image"
+					? `max-height: var(--chat-viewport-max-height, 75vh);`
+					: p.variant === "file"
+						? `max-height: var(--chat-viewport-max-height, 80vh);`
+						: ""}
+	}
 `;
 
 export const MessageRow = styled.div<{ $mine?: boolean }>`
