@@ -14,9 +14,19 @@ import {
 import AddGroupModal from "@/components/custom/AddGroupModal/AddGroupModal";
 import { listGroups, GroupResponse } from "@/services/groupAPI";
 
+type SidebarGroup = {
+	id: string;
+	name: string;
+	initials: string;
+	avatarColor: string;
+	unread: number;
+	avatar?: string;
+	isActive?: boolean;
+};
+
 const GroupSidebar: React.FC = () => {
 	// ban đầu để rỗng — sẽ được cập nhật từ API
-	const [localGroups, setLocalGroups] = useState<any[]>([]);
+	const [localGroups, setLocalGroups] = useState<SidebarGroup[]>([]);
 	const [activeId, setActiveId] = useState<string | null>(null);
 	const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
 	const navigate = useNavigate();
@@ -54,13 +64,17 @@ const GroupSidebar: React.FC = () => {
 						avatarColor: "#8b5cf6", // giữ mặc định như trước; đổi nếu có logic color khác
 						unread: 0,
 						avatar: g.avatar ?? undefined,
-					};
+						isActive: g.isActive ?? true, // nếu server có isActive thì dùng, nếu không mặc định true
+					} as SidebarGroup;
 				});
 
-				setLocalGroups(mapped);
-				if (mapped.length > 0) {
-					setActiveId(mapped[0].id);
-					setSelectedGroupId(mapped[0].id);
+				// CHỈ LƯU NHỮNG GROUP isActive === true
+				const onlyActive = mapped.filter((mg) => mg.isActive === true);
+
+				setLocalGroups(onlyActive);
+				if (onlyActive.length > 0) {
+					setActiveId(onlyActive[0].id);
+					setSelectedGroupId(onlyActive[0].id);
 					setLogoMode(false);
 				} else {
 					setActiveId(null);
@@ -80,7 +94,7 @@ const GroupSidebar: React.FC = () => {
 
 	// onCreate từ modal sẽ truyền object { id, name } (server trả về)
 	const handleCreatedNavigate = (
-		created: GroupResponse | { id: string; name: string },
+		created: GroupResponse | { id: string; name: string; avatar?: string },
 	) => {
 		const initials = created.name
 			.split(" ")
@@ -88,15 +102,17 @@ const GroupSidebar: React.FC = () => {
 			.join("")
 			.slice(0, 2)
 			.toUpperCase();
-		const newGroup = {
+		const newGroup: SidebarGroup = {
 			id: created.id,
 			name: created.name,
 			initials,
 			avatarColor: "#8b5cf6",
 			unread: 0,
-			avatar: (created as GroupResponse).avatar ?? undefined,
+			avatar: created.avatar ?? undefined,
+			isActive: true, // mới tạo mặc định active
 		};
 
+		// chỉ thêm nếu isActive true (ở đây luôn true)
 		setLocalGroups((prev) => [newGroup, ...prev]);
 		setActiveId(created.id);
 		setSelectedGroupId(created.id);
@@ -120,30 +136,57 @@ const GroupSidebar: React.FC = () => {
 
 			{/* gán ref để control scroll */}
 			<GroupList ref={contentWrapperRef}>
-				{localGroups.map((g) => (
-					<GroupItem key={g.id}>
-						<GroupButton
-							type="button"
-							title={g.name}
-							aria-selected={activeId === g.id}
-							$color={g.avatarColor}
-							onClick={() => {
-								setActiveId(g.id);
-								setSelectedGroupId(g.id);
-								setLogoMode(false);
-								navigate({
-									to: "/chat/group/$groupId",
-									params: { groupId: g.id },
-								});
-							}}
-						>
-							{g.initials}
-							{g.unread ? (
-								<UnreadBadge>{g.unread > 99 ? "99+" : g.unread}</UnreadBadge>
-							) : null}
-						</GroupButton>
-					</GroupItem>
-				))}
+				{/* CHỈ RENDER NHỮNG GROUP isActive === true */}
+				{localGroups
+					.filter((g) => g.isActive === true)
+					.map((g) => (
+						<GroupItem key={g.id}>
+							<GroupButton
+								type="button"
+								title={g.name}
+								aria-selected={activeId === g.id}
+								$color={g.avatarColor}
+								onClick={() => {
+									setActiveId(g.id);
+									setSelectedGroupId(g.id);
+									setLogoMode(false);
+									navigate({
+										to: "/chat/group/$groupId",
+										params: { groupId: g.id },
+									});
+								}}
+								aria-label={`Open group ${g.name}`}
+							>
+								{/* Nếu có avatar URL thì hiển thị <img>, ngược lại hiển thị initials */}
+								{g.avatar ? (
+									<img
+										src={g.avatar}
+										alt={`${g.name} avatar`}
+										// style nhỏ để đảm bảo nó khớp với nút (tùy style GroupButton của bạn)
+										style={{
+											width: "2.25rem",
+											height: "2.25rem",
+											borderRadius: "9999px",
+											objectFit: "cover",
+											display: "block",
+										}}
+										// Khi load lỗi thì ẩn <img> để fallback về initials
+										onError={(e) => {
+											const img = e.currentTarget as HTMLImageElement;
+											img.onerror = null;
+											img.style.display = "none";
+										}}
+									/>
+								) : (
+									<span>{g.initials}</span>
+								)}
+
+								{g.unread ? (
+									<UnreadBadge>{g.unread > 99 ? "99+" : g.unread}</UnreadBadge>
+								) : null}
+							</GroupButton>
+						</GroupItem>
+					))}
 
 				<GroupItem>
 					<AddGroupModal

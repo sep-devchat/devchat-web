@@ -64,7 +64,7 @@ export default function ChatTypeDropdown({
 						<span>{trigger}</span>
 					</DropdownMenuTrigger>
 
-					<DropdownMenuContent side="bottom" align="start">
+					<DropdownMenuContent side="bottom" align="start" className="bg-white">
 						<DropdownMenuGroup>
 							<DropdownMenuItem
 								onSelect={(event) => {
