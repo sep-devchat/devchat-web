@@ -1,4 +1,4 @@
-import styled from "styled-components";
+import styled, { keyframes } from "styled-components";
 
 export const RegisterContainer = styled.div<{ backgroundImage: string }>`
 	min-height: 100vh;
@@ -132,7 +132,7 @@ export const Input = styled.input`
 
 	&:focus {
 		outline: none;
-		border-color: #3b82f6;
+		border-color: #133e87;
 		box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 	}
 
@@ -354,7 +354,7 @@ export const Select = styled.select<{
 	transition: all 0.2s ease-in-out;
 
 	&:focus {
-		border-color: ${({ hasError }) => (hasError ? "#ef4444" : "#3b82f6")};
+		border-color: ${({ hasError }) => (hasError ? "#ef4444" : "#133e87")};
 		box-shadow: 0 0 0 3px
 			${({ hasError }) =>
 				hasError ? "rgba(239, 68, 68, 0.1)" : "rgba(59, 130, 246, 0.1)"};
@@ -386,7 +386,7 @@ export const Select = styled.select<{
 
 		&:checked,
 		&:selected {
-			background-color: #3b82f6;
+			background-color: #133e87;
 			color: #fff;
 			font-weight: 500;
 		}
@@ -434,4 +434,180 @@ export const SelectWrapper = styled.div`
 	&:focus-within::after {
 		transform: translateY(-50%) rotate(180deg);
 	}
+`;
+
+const spin = keyframes`
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+`;
+
+export const AvatarUploadContainer = styled.div`
+	display: flex;
+	flex-direction: column;
+	gap: 16px;
+`;
+
+export const AvatarUploadBox = styled.div`
+	display: flex;
+	align-items: center;
+	gap: 20px;
+	padding: 20px;
+	background-color: #fff;
+	border-radius: 12px;
+	border: 2px dashed #d1d5db;
+`;
+
+export const AvatarPreviewWrapper = styled.div`
+	position: relative;
+	width: 96px;
+	height: 96px;
+	flex-shrink: 0;
+`;
+
+export const AvatarImage = styled.img`
+	width: 100%;
+	height: 100%;
+	border-radius: 50%;
+	object-fit: cover;
+	border: 3px solid #133e87;
+	box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+`;
+
+export const RemoveAvatarButton = styled.button`
+	position: absolute;
+	top: -3px;
+	right: -4px;
+	width: 28px;
+	height: 28px;
+	border-radius: 50%;
+	background-color: #ef4444;
+	border: 2px solid white;
+	color: white;
+	cursor: pointer;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 16px;
+	font-weight: bold;
+	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+	transition: all 0.2s;
+
+	&:hover:not(:disabled) {
+		background-color: #dc2626;
+		transform: scale(1.1);
+	}
+
+	&:disabled {
+		opacity: 0.6;
+		cursor: not-allowed;
+	}
+`;
+
+export const LoadingOverlay = styled.div`
+	position: absolute;
+	inset: 0;
+	border-radius: 50%;
+	background-color: rgba(0, 0, 0, 0.5);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+`;
+
+export const LoadingSpinner = styled.svg`
+	animation: ${spin} 1s linear infinite;
+`;
+
+export const DefaultAvatarCircle = styled.div`
+	width: 100%;
+	height: 100%;
+	border-radius: 50%;
+	background-color: #e5e7eb;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	border: 3px solid #d1d5db;
+`;
+
+export const AvatarUploadInfo = styled.div`
+	flex: 1;
+`;
+
+export const UploadTitle = styled.div`
+	font-size: 14px;
+	font-weight: 600;
+	color: #1f2937;
+	margin-bottom: 4px;
+`;
+
+export const UploadSubtitle = styled.div`
+	font-size: 13px;
+	color: #6b7280;
+	margin-bottom: 12px;
+`;
+
+export const UploadButton = styled.label<{ disabled?: boolean }>`
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	padding: 10px 20px;
+	font-size: 14px;
+	font-weight: 600;
+	color: white;
+	background-color: #133e87;
+	border: none;
+	border-radius: 8px;
+	cursor: ${(props) => (props.disabled ? "not-allowed" : "pointer")};
+	opacity: ${(props) => (props.disabled ? 0.6 : 1)};
+	transition: all 0.2s;
+	box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
+
+	&:hover:not([disabled]) {
+		background-color: #1952b3;
+		transform: translateY(-1px);
+		box-shadow: 0 4px 6px rgba(59, 130, 246, 0.4);
+	}
+
+	&:active:not([disabled]) {
+		transform: translateY(0);
+	}
+`;
+
+export const ProgressContainer = styled.div``;
+
+export const ProgressTitle = styled.div`
+	font-size: 14px;
+	font-weight: 600;
+	color: #1f2937;
+	margin-bottom: 8px;
+`;
+
+export const ProgressBar = styled.div`
+	width: 100%;
+	height: 10px;
+	background-color: #e5e7eb;
+	border-radius: 999px;
+	overflow: hidden;
+	margin-bottom: 6px;
+`;
+
+export const ProgressFill = styled.div<{ progress: number }>`
+	width: ${(props) => props.progress}%;
+	height: 100%;
+	background-color: #133e87;
+	transition: width 0.3s ease;
+	border-radius: 999px;
+`;
+
+export const ProgressText = styled.div`
+	font-size: 12px;
+	color: #6b7280;
+	font-weight: 500;
+`;
+
+export const HiddenFileInput = styled.input`
+	display: none;
 `;
