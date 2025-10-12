@@ -36,6 +36,11 @@ import {
 } from "./AddGroupModal.styled";
 import { DialogPortal } from "@radix-ui/react-dialog";
 import type { GroupResponse } from "@/services/groupAPI";
+import {
+	directUploadWithSignature,
+	getUploadSignature,
+} from "@/services/upload/upload.api";
+import { UploadResult } from "@/services/upload/upload.type";
 
 type AddGroupFormValues = {
 	name: string;
@@ -75,15 +80,12 @@ export default function AddGroupModal({
 	const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
 	const [avatarFile, setAvatarFile] = useState<File | null>(null);
 	const [open, setOpen] = useState(false);
-
-	// helper: file -> dataURL (base64)
-	const fileToDataUrl = (file: File): Promise<string> =>
-		new Promise((resolve, reject) => {
-			const reader = new FileReader();
-			reader.onload = () => resolve(reader.result as string);
-			reader.onerror = reject;
-			reader.readAsDataURL(file);
-		});
+	const [avatarUploadProgress, setAvatarUploadProgress] = useState<
+		number | null
+	>(null);
+	const [avatarUploadError, setAvatarUploadError] = useState<string | null>(
+		null,
+	);
 
 	const handleAvatarChange = (file?: File | null) => {
 		if (!file) {
@@ -112,23 +114,61 @@ export default function AddGroupModal({
 
 	const onSubmit = async (data: AddGroupFormValues) => {
 		try {
-			const avatarBase64 = avatarFile ? await fileToDataUrl(avatarFile) : null;
+			setAvatarUploadError(null);
+			// nếu có avatarFile -> upload trước
+			let avatarUrl: string | null = null;
 
-			console.log("Sending createGroup payload:", {
+			if (avatarFile) {
+				// khởi tạo progress
+				setAvatarUploadProgress(0);
+
+				// Prepare a suggested publicId (tuỳ bạn)
+				const suggestedPublicId = `${data.name?.replace(/\s+/g, "_") || "group"}_${Date.now()}`;
+
+				// 1) Lấy signature từ backend
+				const sig = await getUploadSignature({
+					folder: "groups/avatars",
+					publicId: suggestedPublicId,
+				});
+
+				// 2) Upload trực tiếp, cập nhật progress
+				const { upload: uploadRes, delivery } =
+					(await directUploadWithSignature({
+						file: avatarFile,
+						signature: sig,
+						onProgress: ({ progress }) => {
+							// progress expected 0..100
+							setAvatarUploadProgress(Math.round(progress));
+						},
+						// generateDelivery: true, // nếu bạn muốn luôn nhận delivery.url
+						generateDelivery: false, // ta chỉ cần secure_url từ uploadRes
+					})) as { upload: UploadResult; delivery?: { url: string } };
+
+				// đảm bảo uploadRes tồn tại
+				if (!uploadRes)
+					throw new Error("Upload failed: no upload result returned");
+
+				// chọn URL: ưu tiên secure_url (đã có sẵn từ upload),
+				// nếu bạn cần signed delivery URL (transform) thì dùng `delivery?.url`.
+				avatarUrl = uploadRes.secure_url ?? delivery?.url ?? null;
+
+				// tùy chọn: lưu metadata vào backend
+				// await saveDirectUpload(uploadRes);
+
+				// hoàn tất progress
+				setAvatarUploadProgress(100);
+			}
+
+			// Build payload cho createGroup
+			const payload = {
 				name: data.name,
 				description: data.description ?? null,
-				avatarPreview: avatarBase64 ? avatarBase64.slice(0, 100) + "..." : null,
-			});
+				avatar: avatarUrl, // nếu null => createGroup sẽ nhận null
+			};
 
-			const created = await createGroup({
-				name: data.name,
-				description: data.description ?? null,
-				avatar: avatarBase64,
-			});
+			// 3) Gọi API tạo group (sử dụng avatarUrl đã có)
+			const created = await createGroup(payload);
 
-			console.log("createGroup response raw:", created);
-
-			// flexible unwrap: if API returns { data: {...} } or returns the object directly
 			const createdObj = created && (created.data ?? created);
 
 			if (!createdObj || !createdObj.id) {
@@ -139,17 +179,25 @@ export default function AddGroupModal({
 				await onCreate(createdObj);
 			}
 
+			window.dispatchEvent(
+				new CustomEvent("app:groupCreated", {
+					detail: createdObj,
+				}),
+			);
+
+			// Reset form / UI
 			reset();
 			setAvatarFile(null);
 			setAvatarPreview(null);
 			setOpen(false);
+			setAvatarUploadProgress(null);
 		} catch (err: any) {
 			console.error("Create group failed:", err);
-			// show more info to help debug
 			const message =
 				err?.response?.data?.message ||
 				err?.message ||
 				JSON.stringify(err, Object.getOwnPropertyNames(err));
+			setAvatarUploadError(message);
 			alert("An error occurred while creating the group: " + message);
 		}
 	};
@@ -213,6 +261,26 @@ export default function AddGroupModal({
 									>
 										Remove image
 									</SmallButton>
+								)}
+
+								{avatarUploadProgress !== null && (
+									<div className="w-full mt-2">
+										<div className="text-[12px] mb-1">
+											Uploading avatar: {avatarUploadProgress}%
+										</div>
+										<div className="w-full bg-gray-200 rounded h-2 overflow-hidden">
+											<div
+												className="h-full transition-all"
+												style={{ width: `${avatarUploadProgress}%` }}
+											/>
+										</div>
+									</div>
+								)}
+
+								{avatarUploadError && (
+									<ErrorText style={{ marginTop: 8 }}>
+										{avatarUploadError}
+									</ErrorText>
 								)}
 							</AvatarControls>
 						</AvatarRow>

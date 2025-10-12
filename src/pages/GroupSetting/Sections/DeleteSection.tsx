@@ -15,7 +15,6 @@ import { Label } from "@/components/ui/label";
 import { Trash } from "lucide-react";
 import { detailGroup, deleteGroup } from "@/services/groupAPI";
 import { useParams } from "@tanstack/react-router";
-import { useNavigate } from "@tanstack/react-router";
 
 type AlertType = "success" | "warning" | "error";
 const fireAlert = (type: AlertType, message: string, duration = 4000) => {
@@ -25,10 +24,15 @@ const fireAlert = (type: AlertType, message: string, duration = 4000) => {
 	);
 };
 
-export default function DeleteSection() {
+interface GroupSettingProps {
+	setSettingSelect: (value: boolean) => void;
+}
+
+export const DeleteSection: React.FC<GroupSettingProps> = ({
+	setSettingSelect,
+}) => {
 	const params = useParams({ strict: false }) as { groupId?: string };
 	const groupId = params.groupId;
-	const navigate = useNavigate();
 	const [open, setOpen] = useState(false);
 	const [loading, setLoading] = useState(false);
 	const [groupName, setGroupName] = useState<string>("");
@@ -70,8 +74,7 @@ export default function DeleteSection() {
 			await deleteGroup(groupId);
 			fireAlert("success", "Delete successful");
 			setOpen(false);
-			// optionally: navigate away or signal parent to close settings
-			// e.g. window.dispatchEvent(new CustomEvent('app:group-deleted', { detail: { id: groupId } }))
+			setSettingSelect(false);
 		} catch (err: any) {
 			console.error("Delete failed:", err);
 			const message =
@@ -79,7 +82,7 @@ export default function DeleteSection() {
 			fireAlert("error", `Delete failed: ${String(message)}`);
 		} finally {
 			setLoading(false);
-			navigate({ to: "/chat" });
+			setSettingSelect(false);
 		}
 	};
 
@@ -155,4 +158,4 @@ export default function DeleteSection() {
 			</DialogContent>
 		</Dialog>
 	);
-}
+};

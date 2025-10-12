@@ -14,13 +14,14 @@ export interface GroupResponse {
 
 export interface GroupPostRequest {
 	id?: string;
-	name: string;
-	description: string | null;
-	avatar: string | null;
+	name?: string;
+	description?: string | null;
+	avatar?: string | null;
+	isActive?: boolean;
 }
 
 export const listGroups = () => {
-	return get<GroupResponse[]>("/api/group?page=1&limit=10");
+	return get("/api/group");
 };
 
 export const detailGroup = (id: string) => {

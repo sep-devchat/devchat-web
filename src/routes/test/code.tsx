@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Button } from "@/components/ui/button";
 import { createFileRoute } from "@tanstack/react-router";
 import Editor from "@monaco-editor/react";

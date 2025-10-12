@@ -258,7 +258,8 @@ export const SectionWrapper = styled.div`
 export const TitleArea = styled.div`
 	display: flex;
 	flex-direction: column;
-	gap: 12px;
+	gap: 6px;
+	margin-bottom: 40px;
 `;
 
 export const TitleSection = styled.h2`
@@ -281,7 +282,7 @@ export const LabelItem = styled.h2`
 export const Form = styled.form`
 	display: flex;
 	flex-direction: column;
-	gap: 16px;
+	gap: 20px;
 `;
 
 /* Avatar row */

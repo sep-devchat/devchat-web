@@ -28,7 +28,7 @@ import {
 } from "./GroupSetting.styled";
 import bgImage from "@/assets/image/loginBackground.png";
 import ProfileSection from "./Sections/ProfileSection";
-import DeleteSection from "./Sections/DeleteSection";
+import { DeleteSection } from "./Sections/DeleteSection";
 import InviteSection from "./Sections/InviteSection";
 import ActivitySection from "./Sections/ActivitySection";
 import MemberSection from "./Sections/MemberSection";
@@ -78,7 +78,7 @@ export const GroupSetting: React.FC<GroupSettingProps> = ({
 			case "activity":
 				return <ActivitySection />;
 			case "delete":
-				return <DeleteSection />;
+				return <DeleteSection setSettingSelect={setSettingSelect} />;
 			default:
 				return null;
 		}

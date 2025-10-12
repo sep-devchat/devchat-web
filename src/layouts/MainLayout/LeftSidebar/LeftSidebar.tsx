@@ -99,15 +99,97 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
 	};
 
 	// fetch groups từ API khi mount
+	// React.useEffect(() => {
+	// 	let mounted = true;
+	// 	const fetch = async () => {
+	// 		try {
+	// 			const res = await listGroups();
+	// 			const payload = (res && (res.data ?? res)) as GroupResponse[];
+	// 			if (!mounted) return;
+
+	// 			// map server GroupResponse -> shape sidebar dùng
+	// 			const mapped = (payload || []).map((g) => {
+	// 				const initials = (g.name || "")
+	// 					.split(" ")
+	// 					.map((s) => s[0] ?? "")
+	// 					.join("")
+	// 					.slice(0, 2)
+	// 					.toUpperCase();
+	// 				return {
+	// 					id: g.id,
+	// 					name: g.name,
+	// 					initials,
+	// 					avatarColor: "#8b5cf6", // giữ mặc định như trước; đổi nếu có logic color khác
+	// 					unread: 0,
+	// 					avatar: g.avatar ?? undefined,
+	// 				};
+	// 			});
+
+	// 			setLocalGroups(mapped);
+	// 		} catch (err) {
+	// 			console.error("Failed to load groups:", err);
+	// 			// Giữ localGroups như hiện tại nếu lỗi
+	// 		}
+	// 	};
+
+	// 	fetch();
+	// 	return () => {
+	// 		mounted = false;
+	// 	};
+	// }, []);
+
+	// 1) Lắng nghe event 'app:groupCreated' để cập nhật ngay localGroups
 	React.useEffect(() => {
+		const handler = (ev: Event) => {
+			try {
+				const created = (ev as CustomEvent).detail as
+					| GroupResponse
+					| { id: string; name: string; avatar?: string };
+				if (!created || !created.id) return;
+
+				// Thêm nếu chưa tồn tại
+				setLocalGroups((prev) => {
+					if (prev.some((p) => p.id === created.id)) return prev;
+					const initials = (created.name || "")
+						.split(" ")
+						.map((s) => s[0] ?? "")
+						.join("")
+						.slice(0, 2)
+						.toUpperCase();
+					const newGroup = {
+						id: created.id,
+						name: created.name,
+						initials,
+						avatarColor: created.avatar ?? "#8b5cf6",
+						unread: 0,
+						avatar: created.avatar ?? undefined,
+					};
+					return [newGroup, ...prev];
+				});
+			} catch (err) {
+				console.error("groupCreated handler error:", err);
+			}
+		};
+
+		window.addEventListener("app:groupCreated", handler as EventListener);
+		return () =>
+			window.removeEventListener("app:groupCreated", handler as EventListener);
+	}, []); // chỉ mount một lần
+
+	React.useEffect(() => {
+		// Nếu đang ở group page nhưng localGroups chưa có group tương ứng, re-fetch groups
+		if (!params.groupId) return;
+
+		const exists = localGroups.some((g) => g.id === params.groupId);
+		if (exists) return;
+
 		let mounted = true;
-		const fetch = async () => {
+		(async () => {
 			try {
 				const res = await listGroups();
 				const payload = (res && (res.data ?? res)) as GroupResponse[];
 				if (!mounted) return;
 
-				// map server GroupResponse -> shape sidebar dùng
 				const mapped = (payload || []).map((g) => {
 					const initials = (g.name || "")
 						.split(" ")
@@ -119,7 +201,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
 						id: g.id,
 						name: g.name,
 						initials,
-						avatarColor: "#8b5cf6", // giữ mặc định như trước; đổi nếu có logic color khác
+						avatarColor: "#8b5cf6",
 						unread: 0,
 						avatar: g.avatar ?? undefined,
 					};
@@ -127,16 +209,14 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
 
 				setLocalGroups(mapped);
 			} catch (err) {
-				console.error("Failed to load groups:", err);
-				// Giữ localGroups như hiện tại nếu lỗi
+				console.error("Failed to re-fetch groups for missing groupId:", err);
 			}
-		};
+		})();
 
-		fetch();
 		return () => {
 			mounted = false;
 		};
-	}, []);
+	}, [params.groupId]); // chạy khi params.groupId thay đổi
 
 	return (
 		<LeftSidebarContainer className="flex flex-col w-full bg-[rgba(255,255,255,0.30)] rounded-l-lg">

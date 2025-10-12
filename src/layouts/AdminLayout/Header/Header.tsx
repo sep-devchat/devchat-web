@@ -88,6 +88,18 @@ const Header: React.FC = () => {
 			return {
 				title: "User Management",
 				path: "/admin/user-management",
+				tabs: [
+					{
+						id: "user",
+						label: "User",
+						path: "/admin/user-management?tab=user",
+					},
+					{
+						id: "group",
+						label: "Group",
+						path: "/admin/user-management?tab=group",
+					},
+				],
 			};
 		}
 
