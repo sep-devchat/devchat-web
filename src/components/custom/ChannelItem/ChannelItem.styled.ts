@@ -9,6 +9,7 @@ export const ChannelItemContainer = styled.div`
 	cursor: pointer;
 	position: relative;
 	gap: 8px;
+	min-height: 40px;
 	transition: background-color 0.2s ease;
 	&:hover {
 		background: ${theme.color.grey30 || "#F3F4F6"};

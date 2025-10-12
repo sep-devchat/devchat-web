@@ -16,7 +16,8 @@ import {
 import { useNavigate, useParams, useSearch } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { ChannelResponse, detailChannel } from "@/services/channelAPI";
 
 type ButtonHeaderProps = {
 	id: string;
@@ -37,7 +38,28 @@ const Header = ({ setIconSelected, iconSelected }: Props) => {
 		channel?: string;
 		tab?: string;
 	};
+	const [channelData, setChannelData] = useState<ChannelResponse | null>(null);
+	const [loading, setLoading] = useState(false);
 	const params = useParams({ strict: false }) as { groupId?: string };
+	const groupId = params.groupId;
+
+	useEffect(() => {
+		const fetchChannelData = async () => {
+			if (search.channel && groupId) {
+				setLoading(true);
+				try {
+					const response = await detailChannel(groupId, search.channel);
+					setChannelData(response.data);
+				} catch (error) {
+					console.error("Error fetching channel:", error);
+				} finally {
+					setLoading(false);
+				}
+			}
+		};
+
+		fetchChannelData();
+	}, [search.channel, groupId]);
 
 	const baseTitle = "Friend";
 	const actions: ButtonHeaderProps[] = [
@@ -55,7 +77,7 @@ const Header = ({ setIconSelected, iconSelected }: Props) => {
 
 	const isGroupPage = Boolean(params.groupId);
 	const displayedTitle =
-		isGroupPage && search.channel ? `#${search.channel}` : baseTitle;
+		isGroupPage && channelData?.name ? `#${channelData.name}` : baseTitle;
 	const [hoveredIcon, setHoveredIcon] = useState<string | null>(null);
 	const compact = iconSelected === "spool" || iconSelected === "code";
 
@@ -78,7 +100,14 @@ const Header = ({ setIconSelected, iconSelected }: Props) => {
 			}}
 		>
 			{isGroupPage && search.channel ? (
-				<h2 className="text-lg font-semibold">{displayedTitle}</h2>
+				loading ? (
+					<div className="flex items-center gap-2">
+						<div className="animate-spin h-4 w-4 border-2 border-gray-300 border-t-blue-500 rounded-full" />
+						<div className="h-5 w-32 bg-gray-200 animate-pulse rounded" />
+					</div>
+				) : (
+					<h2 className="text-lg font-semibold">{displayedTitle}</h2>
+				)
 			) : (
 				<div className="flex items-center gap-2">
 					<NavTabTitle>
@@ -114,12 +143,14 @@ const Header = ({ setIconSelected, iconSelected }: Props) => {
 							}
 							onClick={() => onIconClick("notifications")}
 							onKeyDown={(e) => onIconKeyDown(e, "notifications")}
+							disabled={loading} // Disable khi loading
 						>
 							<Bell size={20} />
 							<Tooltip visible={hoveredIcon === "notifications"}>
 								Notifications
 							</Tooltip>
 						</IconBtn>
+						{/* Các IconBtn khác cũng thêm disabled={loading} */}
 						<IconBtn
 							aria-label="spool"
 							onMouseEnter={() => setHoveredIcon("spool")}
@@ -128,12 +159,12 @@ const Header = ({ setIconSelected, iconSelected }: Props) => {
 							}
 							onClick={() => onIconClick("spool")}
 							onKeyDown={(e) => onIconKeyDown(e, "spool")}
+							disabled={loading}
 						>
 							<Spool size={20} />
 							<Tooltip visible={hoveredIcon === "spool"}>Spool</Tooltip>
 						</IconBtn>
 
-						{/* SquareCode -> "code" */}
 						<IconBtn
 							aria-label="code"
 							onMouseEnter={() => setHoveredIcon("code")}
@@ -142,12 +173,12 @@ const Header = ({ setIconSelected, iconSelected }: Props) => {
 							}
 							onClick={() => onIconClick("code")}
 							onKeyDown={(e) => onIconKeyDown(e, "code")}
+							disabled={loading}
 						>
 							<SquareCode size={20} />
 							<Tooltip visible={hoveredIcon === "code"}>Code</Tooltip>
 						</IconBtn>
 
-						{/* Users */}
 						<IconBtn
 							aria-label="users"
 							onMouseEnter={() => setHoveredIcon("users")}
@@ -156,14 +187,17 @@ const Header = ({ setIconSelected, iconSelected }: Props) => {
 							}
 							onClick={() => onIconClick("users")}
 							onKeyDown={(e) => onIconKeyDown(e, "users")}
+							disabled={loading}
 						>
 							<Users size={20} />
 							<Tooltip visible={hoveredIcon === "users"}>Members</Tooltip>
 						</IconBtn>
-						{/* <Button className="shadow-none">
-              <Users />
-            </Button> */}
-						<Input className="shadow-none" placeholder="Search" />
+
+						<Input
+							className="shadow-none"
+							placeholder="Search"
+							disabled={loading}
+						/>
 					</div>
 				) : (
 					<Button className="shadow-none">
