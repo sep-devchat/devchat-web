@@ -91,8 +91,8 @@ export default function GroupTab() {
 	const [loading, setLoading] = useState(false);
 	const [page, setPage] = useState(1); // 1-based page in state
 	const [limit, setLimit] = useState(10);
-	const [totalItems, setTotalItems] = useState(0); // total item count
-	const [totalPages, setTotalPages] = useState(1); // total pages (derived)
+	const [totalRow, setTotalRow] = useState(0); // total item count
+	const [total, setTotal] = useState(0);
 
 	const [confirmState, setConfirmState] = useState<{
 		open: boolean;
@@ -112,7 +112,7 @@ export default function GroupTab() {
 			const groups = Array.isArray(res) ? res : (res?.data ?? []);
 			const mapped: GroupRow[] = groups.map((g: any) => ({
 				id: g.id,
-				avatar: g.avatar ?? "/images/default-avatar.png",
+				avatar: g.avatar ?? undefined,
 				groupCode: (g.id && String(g.id).slice(0, 8)) || "G-0000",
 				groupName: g.name ?? `Group-${String(g.id).slice(0, 8)}`,
 				memQuanity: 0,
@@ -123,20 +123,6 @@ export default function GroupTab() {
 			}));
 
 			setAllGroups(mapped);
-
-			// compute totals correctly
-			const items = mapped.length;
-			const pages = Math.max(1, Math.ceil(items / limit));
-			setTotalItems(items);
-			setTotalPages(pages);
-
-			// ensure current page is valid (clamp)
-			const validPage = Math.min(Math.max(1, page), pages);
-			if (validPage !== page) setPage(validPage);
-
-			// set displayed slice
-			const start = (validPage - 1) * limit;
-			setRowData(mapped.slice(start, start + limit));
 		} catch (err) {
 			console.error("Failed to load groups", err);
 			toast.error("Failed to load groups");
@@ -145,32 +131,34 @@ export default function GroupTab() {
 		}
 	};
 
-	// mount: load once
 	useEffect(() => {
 		fetchAllGroups();
-		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []);
 
-	// recalc slice when allGroups / page / limit change
 	useEffect(() => {
+		const safeLimit = Math.max(1, limit || 1);
 		const items = allGroups.length;
-		const pages = Math.max(1, Math.ceil(items / limit));
-		setTotalItems(items);
-		setTotalPages(pages);
+		const pages = Math.max(1, Math.ceil(items / safeLimit));
+		setTotal(pages);
+		setTotalRow(items);
+		// setTotalPages(pages);
 
-		// clamp page if out of range
-		if (page > pages) {
-			setPage(pages);
-			return; // will re-run effect with clamped page
+		// clamp page based on freshly computed pages
+		const clampedPage = Math.min(Math.max(1, page || 1), pages);
+		if (clampedPage !== page) {
+			// nếu page thay đổi, đặt page mới (React sẽ re-render và tiếp tục dùng clampedPage phía dưới)
+			setPage(clampedPage);
 		}
 
-		const start = (page - 1) * limit;
-		setRowData(allGroups.slice(start, start + limit));
+		// use clampedPage để slice (nếu setPage chạy async, vẫn dùng clampedPage mà ta vừa tính)
+		const start = (clampedPage - 1) * safeLimit;
+		setRowData(allGroups.slice(start, start + safeLimit));
 	}, [allGroups, page, limit]);
 
 	const handleLimitItem = (size: number) => {
 		setLimit(size);
 		setPage(1); // reset to first page
+		fetchAllGroups();
 	};
 
 	// Called by CTable when an editable cell is saved (rowIndex is index within current page slice)
@@ -316,19 +304,62 @@ export default function GroupTab() {
 	const handleBanClick = (id: string | number) => openConfirm("ban", id);
 	const handleUnbanClick = (id: string | number) => openConfirm("unban", id);
 
+	// helper to compute initials
+	const computeInitials = (name?: string | null) => {
+		if (!name) return "--";
+		const pieces = name.trim().split(/\s+/).filter(Boolean);
+		if (pieces.length === 0) return "--";
+		const initials = pieces
+			.map((p) => p[0] ?? "")
+			.join("")
+			.slice(0, 2)
+			.toUpperCase();
+		return initials;
+	};
+
+	const AvatarItem: React.FC<{ src?: string | null; name?: string }> = ({
+		src,
+		name,
+	}) => {
+		const [failed, setFailed] = useState(false);
+		const initials = computeInitials(name ?? "");
+		// if we have a valid src and it hasn't failed yet, try to render image
+		if (src && !failed) {
+			return (
+				<img
+					src={src}
+					alt={name ?? "avatar"}
+					className="w-8 h-8 rounded-full object-cover inline-block"
+					onError={() => setFailed(true)}
+				/>
+			);
+		}
+
+		// fallback: colored circle with initials
+		return (
+			<span
+				className="inline-flex items-center justify-center w-8 h-8 rounded-full font-semibold text-white"
+				style={{ backgroundColor: "#8b5cf6" }}
+				aria-hidden
+				title={name ?? initials}
+			>
+				{initials}
+			</span>
+		);
+	};
+
 	const columnDefs: ColDef[] = [
 		{
 			field: "avatar",
 			headerName: "Avatar",
 			editable: false,
 			align: "center",
-			valueFormatter: (value: any, row?: GroupRow) => (
-				<img
-					src={value || "/images/default-avatar.png"}
-					alt={row?.groupName ?? "avatar"}
-					className="w-8 h-8 rounded-full object-cover inline-block"
-				/>
-			),
+			valueFormatter: (value: any, row?: GroupRow) => {
+				const src = value ?? null;
+				return (
+					<AvatarItem src={src} name={row?.groupName ?? row?.groupCode ?? ""} />
+				);
+			},
 		},
 		{
 			field: "groupCode",
@@ -423,6 +454,10 @@ export default function GroupTab() {
 		},
 	];
 
+	const getRowById = (id: string | number): GroupRow | null => {
+		return allGroups.find((r) => r.id === id) ?? null;
+	};
+
 	const activeRow = activeRowId ? getRowById(activeRowId) : null;
 
 	return (
@@ -435,18 +470,146 @@ export default function GroupTab() {
 				onEdit={handleEdit}
 				rowKey={"id"}
 				loading={loading}
+				//       pagination
+				//       serverSide={false}
+				//       page={page}
+				//       onPageChange={(p) => {
+				//   const safeLimit = Math.max(1, limit || 1);
+				//   const pages = Math.max(1, Math.ceil(allGroups.length / safeLimit));
+				//   const clamped = Math.min(Math.max(1, p), pages);
+				//   setPage(clamped);
+				// }}
+				//       totalRows={totalItems} // total item count
+				//       initialPageSize={limit}
+				//       onPageSizeChange={(s) => handleLimitItem(s)}
+				//       showPaginationControls={false}
+
 				pagination
-				serverSide={false}
+				serverSide
 				page={page}
 				onPageChange={(p) => {
-					// clamp with totalPages (useful if external table gives invalid value)
-					const clamped = Math.min(Math.max(1, p), totalPages);
-					setPage(clamped);
+					setPage(p);
+					fetchAllGroups();
 				}}
-				totalRows={totalItems} // total item count
+				totalRows={totalRow}
+				totalPages={total}
 				initialPageSize={limit}
 				onPageSizeChange={(s) => handleLimitItem(s)}
 			/>
+
+			{/* {totalItems > 0 && (
+  <div className="mt-4 flex items-center justify-between gap-4">
+    <div className="text-sm">
+      Showing{" "}
+      <span className="font-medium">{(page - 1) * limit + 1}</span>
+      {" - "}
+      <span className="font-medium">
+        {Math.min(totalItems, (page - 1) * limit + rowData.length)}
+      </span>
+      {" of "}
+      <span className="font-medium">{totalItems}</span>
+    </div>
+
+    <div className="flex items-center gap-2">
+      <div className="inline-flex items-center gap-1">
+        <button
+          onClick={() => setPage(1)}
+          disabled={page === 1}
+          className="px-2 py-1 rounded border text-sm disabled:opacity-50"
+          title="First page"
+        >
+          «
+        </button>
+        <button
+          onClick={() => setPage(Math.max(1, page - 1))}
+          disabled={page === 1}
+          className="px-2 py-1 rounded border text-sm disabled:opacity-50"
+          title="Previous page"
+        >
+          ‹
+        </button>
+      </div>
+
+      <div className="inline-flex items-center gap-1">
+        {(() => {
+          const pagesList: number[] = [];
+          const safeLimit = Math.max(1, limit || 1);
+          const pagesCount = Math.max(1, Math.ceil(totalItems / safeLimit));
+          const maxButtons = 7;
+          const centerIdx = page - 1; // zero-based
+          if (pagesCount <= maxButtons) {
+            for (let i = 0; i < pagesCount; i++) pagesList.push(i);
+          } else {
+            let start = Math.max(0, centerIdx - Math.floor(maxButtons / 2));
+            let end = start + maxButtons - 1;
+            if (end > pagesCount - 1) {
+              end = pagesCount - 1;
+              start = end - (maxButtons - 1);
+            }
+            for (let i = start; i <= end; i++) pagesList.push(i);
+          }
+          return pagesList.map((pIdx) => {
+            const pNum = pIdx + 1;
+            const isCurrent = pNum === page;
+            return (
+              <button
+                key={pIdx}
+                onClick={() => setPage(pNum)}
+                className={`px-3 py-1 text-sm rounded ${isCurrent ? "focusing" : "border"}`}
+                aria-current={isCurrent ? "page" : undefined}
+                title={`Go to page ${pNum}`}
+              >
+                {pNum}
+              </button>
+            );
+          });
+        })()}
+      </div>
+
+      <div className="inline-flex items-center gap-1">
+        <button
+          onClick={() => {
+            const safeLimit = Math.max(1, limit || 1);
+            const pagesCount = Math.max(1, Math.ceil(totalItems / safeLimit));
+            setPage(Math.min(pagesCount, page + 1));
+          }}
+          disabled={(page * limit) >= totalItems}
+          className="px-2 py-1 rounded border text-sm disabled:opacity-50"
+          title="Next page"
+        >
+          ›
+        </button>
+        <button
+          onClick={() => {
+            const safeLimit = Math.max(1, limit || 1);
+            const pagesCount = Math.max(1, Math.ceil(totalItems / safeLimit));
+            setPage(pagesCount);
+          }}
+          disabled={(page * limit) >= totalItems}
+          className="px-2 py-1 rounded border text-sm disabled:opacity-50"
+          title="Last page"
+        >
+          »
+        </button>
+      </div>
+
+      <div className="ml-3">
+        <select
+          value={limit}
+          onChange={(e) => handleLimitItem(Number(e.target.value) || 10)}
+          className="border rounded px-2 py-1 text-sm"
+          aria-label="Rows per page"
+        >
+          {[5, 10, 20, 50].map((opt) => (
+            <option key={opt} value={opt}>
+              {opt} / page
+            </option>
+          ))}
+        </select>
+      </div>
+    </div>
+  </div>
+)} */}
 
 			<ReportDetailModal
 				open={reportModalVisible}
@@ -508,8 +671,4 @@ export default function GroupTab() {
 			</Dialog>
 		</ContentArea>
 	);
-
-	function getRowById(id: string | number): GroupRow | null {
-		return allGroups.find((r) => r.id === id) ?? null;
-	}
 }

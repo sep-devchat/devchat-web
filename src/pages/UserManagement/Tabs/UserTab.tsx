@@ -88,6 +88,7 @@ export default function UserTab() {
 	const [page, setPage] = useState(1); // 1-based
 	const [limit, setLimit] = useState(10);
 	const [total, setTotal] = useState(0);
+	const [totalRow, setTotalRow] = useState(0);
 
 	const [confirmState, setConfirmState] = useState<{
 		open: boolean;
@@ -110,7 +111,8 @@ export default function UserTab() {
 						: u.username;
 				return {
 					id: u.id,
-					avatar: u.avatarUrl ?? "/images/default-avatar.png",
+					// keep avatar undefined when not provided so we can render initials
+					avatar: u.avatarUrl ?? null,
 					userCode: u.username ?? String(u.id).slice(0, 8),
 					userName,
 					memQuanity: 0,
@@ -122,8 +124,8 @@ export default function UserTab() {
 				};
 			});
 			setRowData(mapped);
-			// note: adjust these fields based on your API shape
 			setTotal(res?.pagination?.totalPage ?? res?.pagination?.total ?? 0);
+			setTotalRow(res?.pagination?.totalRecord ?? 0);
 		} catch (err) {
 			console.error("Failed to load users", err);
 			toast.error("Failed to load users");
@@ -139,6 +141,7 @@ export default function UserTab() {
 
 	const handleLimitItem = (size: number) => {
 		setLimit(size);
+		setPage(1); // navigate to first page when pageSize changes
 		fetchData(1, size);
 	};
 
@@ -225,8 +228,6 @@ export default function UserTab() {
 
 	const getRowById = (id: string | number) =>
 		rowData.find((r) => r.id === id) ?? null;
-	// const getReportById = (row: Row | null, reportId: string | number | null) =>
-	//   row?.reports?.find((rep) => rep.id === reportId) ?? null;
 
 	const openConfirm = (mode: "ban" | "unban", id: string | number) => {
 		setConfirmState({ open: true, mode, targetId: id });
@@ -276,6 +277,50 @@ export default function UserTab() {
 	const handleBanClick = (id: string | number) => openConfirm("ban", id);
 	const handleUnbanClick = (id: string | number) => openConfirm("unban", id);
 
+	// helper to compute initials
+	const computeInitials = (name?: string | null) => {
+		if (!name) return "--";
+		const pieces = name.trim().split(/\s+/).filter(Boolean);
+		if (pieces.length === 0) return "--";
+		const initials = pieces
+			.map((p) => p[0] ?? "")
+			.join("")
+			.slice(0, 2)
+			.toUpperCase();
+		return initials;
+	};
+
+	const AvatarItem: React.FC<{ src?: string | null; name?: string }> = ({
+		src,
+		name,
+	}) => {
+		const [failed, setFailed] = useState(false);
+		const initials = computeInitials(name ?? "");
+		// if we have a valid src and it hasn't failed yet, try to render image
+		if (src && !failed) {
+			return (
+				<img
+					src={src}
+					alt={name ?? "avatar"}
+					className="w-8 h-8 rounded-full object-cover inline-block"
+					onError={() => setFailed(true)}
+				/>
+			);
+		}
+
+		// fallback: colored circle with initials
+		return (
+			<span
+				className="inline-flex items-center justify-center w-8 h-8 rounded-full font-semibold text-white"
+				style={{ backgroundColor: "#8b5cf6" }}
+				aria-hidden
+				title={name ?? initials}
+			>
+				{initials}
+			</span>
+		);
+	};
+
 	const columnDefs: ColDef[] = [
 		{
 			field: "avatar",
@@ -283,13 +328,9 @@ export default function UserTab() {
 			editable: false,
 			align: "center",
 			valueFormatter: (value: any, row?: Row) => {
-				const src = value || "/images/default-avatar.png";
+				const src = value ?? null;
 				return (
-					<img
-						src={src}
-						alt={row?.userName ?? "avatar"}
-						className="w-8 h-8 rounded-full object-cover inline-block"
-					/>
+					<AvatarItem src={src} name={row?.userName ?? row?.userCode ?? ""} />
 				);
 			},
 		},
@@ -364,7 +405,6 @@ export default function UserTab() {
 								if (!row) return;
 								handleBanClick(row.id);
 							}}
-							// className={`inline-flex items-center gap-2 px-3 py-1 text-sm rounded-md focus:outline-none bg-red-100 text-red-600`}
 							className="ban"
 							title="Ban user (delete)"
 						>
@@ -380,7 +420,6 @@ export default function UserTab() {
 								if (!row) return;
 								handleUnbanClick(row.id);
 							}}
-							// className={`inline-flex items-center gap-2 px-3 py-1 text-sm rounded-md focus:outline-none bg-green-100 text-green-700`}
 							className="unban"
 							title="Unban (reactivate) user"
 						>
@@ -394,7 +433,6 @@ export default function UserTab() {
 	];
 
 	const activeRow = activeRowId ? getRowById(activeRowId) : null;
-	// const activeReport = getReportById(activeRow, activeReportId);
 
 	return (
 		<ContentArea>
@@ -412,8 +450,9 @@ export default function UserTab() {
 				onPageChange={(p) => {
 					setPage(p);
 					fetchData(p, limit);
-				}} // <-- updated
-				totalRows={total}
+				}}
+				totalRows={totalRow}
+				totalPages={total}
 				initialPageSize={limit}
 				onPageSizeChange={(s) => handleLimitItem(s)}
 			/>

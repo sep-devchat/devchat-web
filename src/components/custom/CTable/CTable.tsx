@@ -10,7 +10,7 @@ import {
 	TableHead as TH,
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
-import { PageButton } from "./CTable.styled";
+import { PageButton, TableArea, TableWrapper } from "./CTable.styled";
 
 export type Align = "left" | "center" | "right";
 
@@ -26,28 +26,29 @@ export interface ColDef {
 export interface DataTableProps {
 	columns: ColDef[];
 	data: any[];
-	// called when user finishes editing a cell
-	// IMPORTANT: rowIndex is index in the original `data` array
 	onEdit?: (rowIndex: number, field: string, newValue: any) => void;
-	// key field used for React keys (optional)
 	rowKey?: string; // default: 'id' if available, otherwise index
 	caption?: string;
-
-	// Pagination options (optional)
 	pagination?: boolean; // default true
 	pageSizeOptions?: number[]; // default [5,10,20,50]
 	initialPageSize?: number; // default first of pageSizeOptions
-	// optional: hide page size selector
 	showPageSizeSelector?: boolean;
 
-	// NEW: loading state
 	loading?: boolean;
 
-	// Server-side / parent-controlled pagination
-	// `page` is 1-based page number. Default = 1
+	showPaginationControls?: boolean; // default true
+
+	// server-side control
 	page?: number; // 1-based page from parent
 	onPageChange?: (page: number) => void; // called with 1-based page when user navigates
-	totalRows?: number; // total rows on server (required for server-side pagination)
+
+	// Prefer these if parent has them:
+	totalRows?: number; // totalRecord from API (optional)
+	totalPages?: number; // totalPage from API (optional)
+
+	// NEW: pass full API response (optional). If provided we'll try to read pagination.totalPage
+	serverResponse?: any;
+
 	serverSide?: boolean; // if true, `data` is expected to be the current page's rows
 	onPageSizeChange?: (size: number) => void; // notify parent when page size changes
 }
@@ -67,8 +68,11 @@ export default function CTable({
 	page = 1,
 	onPageChange,
 	totalRows,
+	totalPages: propTotalPages,
+	serverResponse,
 	serverSide = false,
 	onPageSizeChange,
+	showPaginationControls = true,
 }: DataTableProps) {
 	const [editing, setEditing] = useState<{
 		rowIndex: number;
@@ -101,17 +105,63 @@ export default function CTable({
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [page]);
 
-	// if data length changes and we are client-side, ensure currentPage still valid
-	useEffect(() => {
-		if (!pagination || serverSide) return;
-		const total = data.length;
-		// const totalPages = Math.max(1, Math.ceil(total / pageSize));
-		const totalPages = total;
-
-		if (currentPage >= totalPages) {
-			setCurrentPage(totalPages - 1);
+	// Helper: try to read totalPage from serverResponse safely
+	const readTotalPageFromResponse = (resp: any): number | undefined => {
+		if (!resp) return undefined;
+		const p = resp.pagination ?? resp.meta ?? resp.paging ?? resp; // try a few shapes
+		if (!p) return undefined;
+		// try common keys
+		const candidates = [
+			p.totalPage,
+			p.totalPages,
+			p.total_page,
+			p.total_pages,
+			resp.pagination?.totalPage,
+			resp.pagination?.totalPages,
+		];
+		for (const c of candidates) {
+			if (typeof c === "number" && !Number.isNaN(c)) return Number(c);
+			if (typeof c === "string" && c.trim() !== "" && !Number.isNaN(Number(c)))
+				return Number(c);
 		}
-	}, [data.length, pageSize, pagination, currentPage, serverSide]);
+		return undefined;
+	};
+
+	// Determine total pages to render with precedence:
+	// 1) serverResponse.pagination.totalPage (if parent passed full response to serverResponse)
+	// 2) propTotalPages (explicit prop)
+	// 3) derive from totalRows (totalRecord) if available
+	// 4) derive from data.length (client-side fallback)
+	const totalPagesFromResp = readTotalPageFromResponse(serverResponse);
+	const totalPagesCount =
+		typeof totalPagesFromResp === "number"
+			? Math.max(1, Math.floor(totalPagesFromResp))
+			: typeof propTotalPages === "number"
+				? Math.max(1, Math.floor(propTotalPages))
+				: typeof totalRows === "number"
+					? Math.max(1, Math.ceil(totalRows / pageSize))
+					: Math.max(
+							1,
+							Math.ceil(
+								(serverSide
+									? (serverResponse?.data?.length ?? data.length)
+									: data.length) / pageSize,
+							),
+						);
+
+	// Ensure currentPage valid when totalPagesCount changes
+	useEffect(() => {
+		if (!pagination) return;
+		if (currentPage >= totalPagesCount) {
+			const newIdx = Math.max(0, totalPagesCount - 1);
+			if (onPageChange) {
+				onPageChange(newIdx + 1); // notify parent
+			} else {
+				setCurrentPage(newIdx);
+			}
+		}
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [totalPagesCount]);
 
 	const startEdit = (rowIndex: number, field: string, initialValue: any) => {
 		if (loading) return; // disable editing while loading
@@ -140,17 +190,14 @@ export default function CTable({
 		}
 	};
 
-	// totalRowsLocal: use parent-provided totalRows when available (server-side), otherwise derive from data
-	const totalRowsLocal =
-		typeof totalRows === "number" ? totalRows : data.length;
-	const totalPages = totalRowsLocal;
-	const clampPage = (p: number) => Math.max(0, Math.min(p, totalPages - 1));
-
 	// pagedData: if serverSide, assume `data` is already the page content; otherwise slice locally
 	const pagedData =
 		serverSide || !pagination
 			? data
 			: data.slice(currentPage * pageSize, currentPage * pageSize + pageSize);
+
+	const clampPage = (p: number) =>
+		Math.max(0, Math.min(p, totalPagesCount - 1));
 
 	const notifyPageChange = (newIdxZeroBased: number) => {
 		const newPage = newIdxZeroBased + 1; // convert to 1-based for parent
@@ -164,41 +211,74 @@ export default function CTable({
 	const goFirst = () => notifyPageChange(0);
 	const goPrev = () => notifyPageChange(clampPage(currentPage - 1));
 	const goNext = () => notifyPageChange(clampPage(currentPage + 1));
-	const goLast = () => notifyPageChange(clampPage(totalPages - 1));
+	const goLast = () => notifyPageChange(clampPage(totalPagesCount - 1));
 	const gotoPage = (p: number) => notifyPageChange(clampPage(p));
 
-	// Render page numbers (simple strategy: show up to 7 page buttons centered)
+	// Render page numbers with ellipsis similar to screenshot
 	const renderPageNumbers = () => {
-		const pages: number[] = [];
-		const maxButtons = 7;
-		const center = currentPage;
-		if (totalPages <= maxButtons) {
-			for (let i = 0; i < totalPages; i++) pages.push(i);
-		} else {
-			let start = Math.max(0, center - Math.floor(maxButtons / 2));
-			let end = start + maxButtons - 1;
-			if (end > totalPages - 1) {
-				end = totalPages - 1;
-				start = end - (maxButtons - 1);
-			}
-			for (let i = start; i <= end; i++) pages.push(i);
+		if (totalPagesCount <= 7) {
+			return (
+				<div className="inline-flex items-center gap-1">
+					{Array.from({ length: totalPagesCount }).map((_, i) => (
+						<PageButton
+							key={i}
+							onClick={() => gotoPage(i)}
+							className={`${i === currentPage ? "focusing" : "non-focus"}`}
+							aria-current={i === currentPage ? "page" : undefined}
+							title={`Go to page ${i + 1}`}
+						>
+							{i + 1}
+						</PageButton>
+					))}
+				</div>
+			);
 		}
 
-		return (
-			<div className="inline-flex items-center gap-1">
-				{pages.map((p) => (
-					<PageButton
-						key={p}
-						onClick={() => gotoPage(p)}
-						className={`${p === currentPage ? "focusing" : "non-focus"}`}
-						aria-current={p === currentPage ? "page" : undefined}
-						title={`Go to page ${p + 1}`}
-					>
-						{p + 1}
-					</PageButton>
-				))}
-			</div>
-		);
+		const buttons: React.ReactNode[] = [];
+
+		const pushPage = (i: number) =>
+			buttons.push(
+				<PageButton
+					key={i}
+					onClick={() => gotoPage(i)}
+					className={`${i === currentPage ? "focusing" : "non-focus"}`}
+					aria-current={i === currentPage ? "page" : undefined}
+					title={`Go to page ${i + 1}`}
+				>
+					{i + 1}
+				</PageButton>,
+			);
+
+		// Always show first
+		pushPage(0);
+
+		const leftBound = Math.max(1, currentPage - 1);
+		const rightBound = Math.min(totalPagesCount - 2, currentPage + 1);
+
+		if (leftBound > 1) {
+			buttons.push(
+				<span key="e-left" className="px-2 select-none">
+					...
+				</span>,
+			);
+		}
+
+		for (let i = leftBound; i <= rightBound; i++) {
+			pushPage(i);
+		}
+
+		if (rightBound < totalPagesCount - 2) {
+			buttons.push(
+				<span key="e-right" className="px-2 select-none">
+					...
+				</span>,
+			);
+		}
+
+		// Always show last
+		pushPage(totalPagesCount - 1);
+
+		return <div className="inline-flex items-center gap-1">{buttons}</div>;
 	};
 
 	// Skeleton rows count during loading
@@ -216,215 +296,222 @@ export default function CTable({
 	};
 
 	return (
-		<div className="w-full h-full">
-			<Table className="w-full border-collapse overflow-y-auto">
-				{caption ? <TableCaption>{caption}</TableCaption> : null}
-				<TableHeader>
-					<TableRow className="bg-[#f1f4f9]">
-						{columns.map((col) => (
-							<TH
-								key={col.field}
-								className={`${getAlignClass(col.align)} font-medium text-sm`}
-							>
-								{col.headerName}
-							</TH>
-						))}
-					</TableRow>
-				</TableHeader>
-
-				<TableBody>
-					{/* Loading skeleton */}
-					{loading ? (
-						<>
-							<TableRow>
-								<TableCell colSpan={columns.length} className="py-6">
-									<div className="flex items-center justify-center gap-4">
-										<div
-											className="w-8 h-8 border-4 border-t-transparent rounded-full animate-spin"
-											aria-hidden
-										/>
-										<span className="text-sm text-gray-600">Loading...</span>
-									</div>
-								</TableCell>
-							</TableRow>
-
-							{/* skeleton rows */}
-							{Array.from({ length: skeletonCount }).map((_, i) => (
-								<TableRow key={`skeleton-${i}`} className="bg-white">
-									{columns.map((col) => (
-										<TableCell
-											key={`s-${i}-${col.field}`}
-											className={`${getAlignClass(col.align)} align-top`}
-										>
-											<div className="h-4 rounded bg-gray-200 animate-pulse max-w-[120px]" />
-										</TableCell>
-									))}
-								</TableRow>
+		<TableArea>
+			<TableWrapper>
+				<Table className="w-full h-full border-collapse overflow-y-auto">
+					{caption ? <TableCaption>{caption}</TableCaption> : null}
+					<TableHeader className="sticky top-0 z-10 bg-[#f1f4f9]">
+						<TableRow>
+							{columns.map((col) => (
+								<TH
+									key={col.field}
+									className={`${getAlignClass(col.align)} font-medium text-sm`}
+								>
+									{col.headerName}
+								</TH>
 							))}
-						</>
-					) : (
-						// Normal rows (not loading)
-						<>
-							{pagedData.length === 0 ? (
+						</TableRow>
+					</TableHeader>
+
+					<TableBody>
+						{/* Loading skeleton */}
+						{loading ? (
+							<>
 								<TableRow>
-									<TableCell
-										colSpan={columns.length}
-										className="py-6 text-center text-sm text-gray-500"
-									>
-										Không có dữ liệu.
+									<TableCell colSpan={columns.length} className="py-6">
+										<div className="flex items-center justify-center gap-4">
+											<div
+												className="w-8 h-8 border-4 border-t-transparent rounded-full animate-spin"
+												aria-hidden
+											/>
+											<span className="text-sm text-gray-600">Loading...</span>
+										</div>
 									</TableCell>
 								</TableRow>
-							) : (
-								pagedData.map((row, localIndex) => {
-									// dataIndex: index in the full dataset when client-side; otherwise compute approx for keys
-									const dataIndex = serverSide
-										? currentPage * pageSize + localIndex
-										: pagination
-											? currentPage * pageSize + localIndex
-											: localIndex;
-									const isEven = (dataIndex + 1) % 2 === 0; // human-even rows => background #F1F4F9
-									return (
-										<TableRow
-											key={rowKey ? (row[rowKey] ?? dataIndex) : dataIndex}
-											className={`${isEven ? "bg-[#F1F4F9]" : "bg-white"} hover:bg-[#e5e7eb]`}
+
+								{/* skeleton rows */}
+								{Array.from({ length: skeletonCount }).map((_, i) => (
+									<TableRow key={`skeleton-${i}`} className="bg-white">
+										{columns.map((col) => (
+											<TableCell
+												key={`s-${i}-${col.field}`}
+												className={`${getAlignClass(col.align)} align-top`}
+											>
+												<div className="h-4 rounded bg-gray-200 animate-pulse max-w-[120px]" />
+											</TableCell>
+										))}
+									</TableRow>
+								))}
+							</>
+						) : (
+							// Normal rows (not loading)
+							<>
+								{pagedData.length === 0 ? (
+									<TableRow>
+										<TableCell
+											colSpan={columns.length}
+											className="py-6 text-center text-sm text-gray-500"
 										>
-											{columns.map((col) => {
-												const cellKey = `${dataIndex}_${col.field}`;
-												const rawValue = row?.[col.field];
-												const displayValue = col.valueFormatter
-													? col.valueFormatter(rawValue, row)
-													: (rawValue ?? "");
+											Không có dữ liệu.
+										</TableCell>
+									</TableRow>
+								) : (
+									pagedData.map((row, localIndex) => {
+										// dataIndex: index in the full dataset when client-side; otherwise compute approx for keys
+										const dataIndex = serverSide
+											? currentPage * pageSize + localIndex
+											: pagination
+												? currentPage * pageSize + localIndex
+												: localIndex;
+										const isEven = (dataIndex + 1) % 2 === 0; // human-even rows => background #F1F4F9
+										return (
+											<TableRow
+												key={rowKey ? (row[rowKey] ?? dataIndex) : dataIndex}
+												className={`${isEven ? "bg-[#F1F4F9]" : "bg-white"} hover:bg-[#e5e7eb]`}
+											>
+												{columns.map((col) => {
+													const cellKey = `${dataIndex}_${col.field}`;
+													const rawValue = row?.[col.field];
+													const displayValue = col.valueFormatter
+														? col.valueFormatter(rawValue, row)
+														: (rawValue ?? "");
 
-												const isEditing =
-													editing?.rowIndex === dataIndex &&
-													editing?.field === col.field;
+													const isEditing =
+														editing?.rowIndex === dataIndex &&
+														editing?.field === col.field;
 
-												return (
-													<TableCell
-														key={cellKey}
-														className={`${getAlignClass(col.align)} align-top whitespace-nowrap max-w-[240px] overflow-hidden text-ellipsis`}
-														onDoubleClick={() => {
-															if (col.editable)
-																startEdit(dataIndex, col.field, rawValue);
-														}}
-													>
-														{isEditing ? (
-															<Input
-																ref={inputRef}
-																value={draftValue ?? ""}
-																onChange={(e) => setDraftValue(e.target.value)}
-																onBlur={() => saveEdit(dataIndex, col.field)}
-																onKeyDown={(e) => {
-																	if (e.key === "Enter")
-																		saveEdit(dataIndex, col.field);
-																	if (e.key === "Escape") cancelEdit();
-																}}
-																className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
-															/>
-														) : (
-															<div
-																className={`py-2 ${col.editable ? "cursor-pointer" : ""}`}
-															>
-																{displayValue}
-															</div>
-														)}
-													</TableCell>
-												);
-											})}
-										</TableRow>
-									);
-								})
-							)}
-						</>
-					)}
-				</TableBody>
-			</Table>
-
-			{/* Pagination controls */}
-			{pagination && !loading && totalRowsLocal > 0 && (
-				<div className="mt-3 flex items-center justify-between gap-4">
-					<div className="flex items-center gap-3 text-sm">
-						<div>
-							Showing{" "}
-							<span className="font-medium">
-								{totalRowsLocal === 0 ? 0 : currentPage * pageSize + 1}
-							</span>
-							{" - "}
-							<span className="font-medium">
-								{Math.min(
-									totalRowsLocal,
-									currentPage * pageSize + pagedData.length,
+													return (
+														<TableCell
+															key={cellKey}
+															className={`${getAlignClass(col.align)} align-top whitespace-nowrap max-w-[240px] overflow-hidden text-ellipsis`}
+															onDoubleClick={() => {
+																if (col.editable)
+																	startEdit(dataIndex, col.field, rawValue);
+															}}
+														>
+															{isEditing ? (
+																<Input
+																	ref={inputRef}
+																	value={draftValue ?? ""}
+																	onChange={(e) =>
+																		setDraftValue(e.target.value)
+																	}
+																	onBlur={() => saveEdit(dataIndex, col.field)}
+																	onKeyDown={(e) => {
+																		if (e.key === "Enter")
+																			saveEdit(dataIndex, col.field);
+																		if (e.key === "Escape") cancelEdit();
+																	}}
+																	className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
+																/>
+															) : (
+																<div
+																	className={`py-2 ${col.editable ? "cursor-pointer" : ""}`}
+																>
+																	{displayValue}
+																</div>
+															)}
+														</TableCell>
+													);
+												})}
+											</TableRow>
+										);
+									})
 								)}
-							</span>
-							{" of "}
-							<span className="font-medium">{totalRowsLocal}</span>
-						</div>
-					</div>
-
-					<div className="flex items-center gap-2">
-						<div className="inline-flex items-center gap-1">
-							<button
-								onClick={goFirst}
-								disabled={currentPage === 0}
-								className="px-2 py-1 rounded border text-sm disabled:opacity-50"
-								title="First page"
-							>
-								«
-							</button>
-							<button
-								onClick={goPrev}
-								disabled={currentPage === 0}
-								className="px-2 py-1 rounded border text-sm disabled:opacity-50"
-								title="Previous page"
-							>
-								‹
-							</button>
-						</div>
-
-						{renderPageNumbers()}
-
-						<div className="inline-flex items-center gap-1">
-							<button
-								onClick={goNext}
-								disabled={currentPage >= totalPages - 1}
-								className="px-2 py-1 rounded border text-sm disabled:opacity-50"
-								title="Next page"
-							>
-								›
-							</button>
-							<button
-								onClick={goLast}
-								disabled={currentPage >= totalPages - 1}
-								className="px-2 py-1 rounded border text-sm disabled:opacity-50"
-								title="Last page"
-							>
-								»
-							</button>
-						</div>
-
-						{showPageSizeSelector && (
-							<div className="ml-3">
-								<select
-									value={pageSize}
-									onChange={(e) =>
-										handlePageSizeChange(
-											Number(e.target.value) || defaultPageSize,
-										)
-									}
-									className="border rounded px-2 py-1 text-sm"
-									aria-label="Rows per page"
-								>
-									{pageSizeOptions.map((opt) => (
-										<option key={opt} value={opt}>
-											{opt} / page
-										</option>
-									))}
-								</select>
-							</div>
+							</>
 						)}
+					</TableBody>
+				</Table>
+			</TableWrapper>
+			{/* Pagination controls */}
+			{showPaginationControls &&
+				pagination &&
+				!loading &&
+				totalPagesCount > 0 && (
+					<div className="mt-3 flex items-center justify-between gap-4  shrink-0">
+						{/* left side intentionally removed as requested */}
+						<div className="flex items-center gap-3 text-sm">
+							<div>
+								Showing{" "}
+								<span className="font-medium">
+									{totalRows === 0 ? 0 : currentPage * pageSize + 1}
+								</span>
+								{" - "}
+								<span className="font-medium">
+									{Math.min(
+										totalRows ?? 0,
+										currentPage * pageSize + pagedData.length,
+									)}
+								</span>
+								{" of "}
+								<span className="font-medium">{totalRows}</span>
+							</div>
+						</div>
+
+						<div className="flex items-center gap-2">
+							<div className="inline-flex items-center gap-1">
+								<button
+									onClick={goFirst}
+									disabled={currentPage === 0}
+									className="px-2 py-1 rounded border text-sm disabled:opacity-50"
+									title="First page"
+								>
+									«
+								</button>
+								<button
+									onClick={goPrev}
+									disabled={currentPage === 0}
+									className="px-2 py-1 rounded border text-sm disabled:opacity-50"
+									title="Previous page"
+								>
+									‹
+								</button>
+							</div>
+
+							{renderPageNumbers()}
+
+							<div className="inline-flex items-center gap-1">
+								<button
+									onClick={goNext}
+									disabled={currentPage >= totalPagesCount - 1}
+									className="px-2 py-1 rounded border text-sm disabled:opacity-50"
+									title="Next page"
+								>
+									›
+								</button>
+								<button
+									onClick={goLast}
+									disabled={currentPage >= totalPagesCount - 1}
+									className="px-2 py-1 rounded border text-sm disabled:opacity-50"
+									title="Last page"
+								>
+									»
+								</button>
+							</div>
+
+							{showPageSizeSelector && (
+								<div className="ml-3">
+									<select
+										value={pageSize}
+										onChange={(e) =>
+											handlePageSizeChange(
+												Number(e.target.value) || defaultPageSize,
+											)
+										}
+										className="border rounded px-2 py-1 text-sm"
+										aria-label="Rows per page"
+									>
+										{pageSizeOptions.map((opt) => (
+											<option key={opt} value={opt}>
+												{opt} / page
+											</option>
+										))}
+									</select>
+								</div>
+							)}
+						</div>
 					</div>
-				</div>
-			)}
-		</div>
+				)}
+		</TableArea>
 	);
 }
