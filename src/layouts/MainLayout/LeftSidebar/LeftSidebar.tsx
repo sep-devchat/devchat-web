@@ -2,19 +2,19 @@
 import {
 	Search,
 	X,
-	Hash,
+	// Hash,
 	SettingsIcon,
 	Plus,
 	MessageCircle,
 	Settings,
 } from "lucide-react";
 import {
-	IconButton,
+	// IconButton,
 	SearchInput,
 	FriendList,
-	FriendItem,
-	FriendName,
-	ChannelIcon,
+	// FriendItem,
+	// FriendName,
+	// ChannelIcon,
 	ModalOverlay,
 	ModalContent,
 	ModalHeader,
@@ -46,6 +46,13 @@ import { useState } from "react";
 import MemberItem from "@/components/custom/MemberItem/MemberItem";
 import React from "react";
 import { GroupResponse, listGroups } from "@/services/groupAPI";
+import {
+	ChannelResponse,
+	listChannels,
+	createChannel,
+	ChannelPostRequest,
+} from "@/services/channelAPI";
+import { ChannelItem } from "@/components/custom/ChannelItem/ChannelItem";
 
 interface LeftSidebarProps {
 	setSettingSelect: (value: boolean) => void;
@@ -60,21 +67,37 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
 	const navigate = useNavigate();
 	const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
 	const [channelName, setChannelName] = useState<string>("");
+	const [channelDescription, setChannelDescription] = useState<string>("");
 	const [isPrivate, setIsPrivate] = useState<boolean>(false);
+	const [isCreating, setIsCreating] = useState<boolean>(false);
 
 	const isGroupPage = Boolean(params.groupId);
 	const currentGroup = isGroupPage
 		? localGroups.find((g) => g.id === params.groupId)
 		: undefined;
-	const [channels, setChannels] = useState(
-		isGroupPage
-			? [
-					{ id: "general", name: "general" },
-					{ id: "random", name: "random" },
-					{ id: "announcements", name: "announcements" },
-				]
-			: [],
-	);
+	const [channels, setChannels] = useState<ChannelResponse[]>([]);
+
+	React.useEffect(() => {
+		if (!params.groupId) {
+			setChannels([]);
+			return;
+		}
+
+		fetchChannelsList();
+	}, [params.groupId]);
+
+	const fetchChannelsList = async () => {
+		if (!params.groupId) return;
+
+		try {
+			const res = await listChannels(params.groupId);
+			const channelData = res?.data?.data || res?.data || [];
+			setChannels(channelData);
+		} catch (err) {
+			console.error("Failed to fetch channels:", err);
+			setChannels([]);
+		}
+	};
 
 	const handleAddChannel = () => {
 		setIsModalOpen(true);
@@ -83,62 +106,37 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
 	const handleCloseModal = () => {
 		setIsModalOpen(false);
 		setChannelName("");
+		setChannelDescription("");
 		setIsPrivate(false);
 	};
 
-	const handleCreateChannel = () => {
-		if (!channelName.trim()) return;
+	const handleCreateChannel = async () => {
+		if (!channelName.trim() || !params.groupId) return;
 
-		const newChannel = {
-			id: channelName.toLowerCase().replace(/\s+/g, "-"),
-			name: channelName.trim(),
-		};
+		setIsCreating(true);
+		try {
+			const payload: ChannelPostRequest = {
+				name: channelName.trim(),
+				description: channelDescription.trim() || null,
+				isPrivate: isPrivate,
+			};
 
-		setChannels([...channels, newChannel]);
-		handleCloseModal();
+			const res = await createChannel(params.groupId, payload);
+
+			console.log("Create channel response:", res);
+
+			if (res && (res.message === "Created successfully" || res.data)) {
+				await fetchChannelsList();
+				handleCloseModal();
+			}
+		} catch (err) {
+			console.error("Failed to create channel:", err);
+			alert("Failed to create channel. Please try again.");
+		} finally {
+			setIsCreating(false);
+		}
 	};
 
-	// fetch groups từ API khi mount
-	// React.useEffect(() => {
-	// 	let mounted = true;
-	// 	const fetch = async () => {
-	// 		try {
-	// 			const res = await listGroups();
-	// 			const payload = (res && (res.data ?? res)) as GroupResponse[];
-	// 			if (!mounted) return;
-
-	// 			// map server GroupResponse -> shape sidebar dùng
-	// 			const mapped = (payload || []).map((g) => {
-	// 				const initials = (g.name || "")
-	// 					.split(" ")
-	// 					.map((s) => s[0] ?? "")
-	// 					.join("")
-	// 					.slice(0, 2)
-	// 					.toUpperCase();
-	// 				return {
-	// 					id: g.id,
-	// 					name: g.name,
-	// 					initials,
-	// 					avatarColor: "#8b5cf6", // giữ mặc định như trước; đổi nếu có logic color khác
-	// 					unread: 0,
-	// 					avatar: g.avatar ?? undefined,
-	// 				};
-	// 			});
-
-	// 			setLocalGroups(mapped);
-	// 		} catch (err) {
-	// 			console.error("Failed to load groups:", err);
-	// 			// Giữ localGroups như hiện tại nếu lỗi
-	// 		}
-	// 	};
-
-	// 	fetch();
-	// 	return () => {
-	// 		mounted = false;
-	// 	};
-	// }, []);
-
-	// 1) Lắng nghe event 'app:groupCreated' để cập nhật ngay localGroups
 	React.useEffect(() => {
 		const handler = (ev: Event) => {
 			try {
@@ -147,7 +145,6 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
 					| { id: string; name: string; avatar?: string };
 				if (!created || !created.id) return;
 
-				// Thêm nếu chưa tồn tại
 				setLocalGroups((prev) => {
 					if (prev.some((p) => p.id === created.id)) return prev;
 					const initials = (created.name || "")
@@ -174,10 +171,9 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
 		window.addEventListener("app:groupCreated", handler as EventListener);
 		return () =>
 			window.removeEventListener("app:groupCreated", handler as EventListener);
-	}, []); // chỉ mount một lần
+	}, []);
 
 	React.useEffect(() => {
-		// Nếu đang ở group page nhưng localGroups chưa có group tương ứng, re-fetch groups
 		if (!params.groupId) return;
 
 		const exists = localGroups.some((g) => g.id === params.groupId);
@@ -216,7 +212,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
 		return () => {
 			mounted = false;
 		};
-	}, [params.groupId]); // chạy khi params.groupId thay đổi
+	}, [params.groupId]);
 
 	return (
 		<LeftSidebarContainer className="flex flex-col w-full bg-[rgba(255,255,255,0.30)] rounded-l-lg">
@@ -253,9 +249,6 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
 			{isGroupPage ? (
 				<div className="flex p-2 justify-between items-center">
 					<h3 className="text-lg font-semibold">Channels</h3>
-					<IconButton onClick={handleAddChannel} title="Create channel">
-						+
-					</IconButton>
 				</div>
 			) : (
 				<div className="flex p-2 justify-between items-center">
@@ -269,29 +262,30 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
 			{isGroupPage ? (
 				<FriendList>
 					{channels.map((c) => (
-						<FriendItem
+						<ChannelItem
 							key={c.id}
+							channel={c}
+							groupId={params.groupId!}
+							isActive={search.channel === c.id}
 							onClick={() =>
-								params.groupId &&
 								navigate({
 									to: "/chat/group/$groupId",
-									params: { groupId: params.groupId },
+									params: { groupId: params.groupId! },
 									search: (s: any) => ({ ...s, channel: c.id }),
 								})
 							}
-						>
-							<ChannelIcon>
-								<Hash className="h-4 w-4" />
-							</ChannelIcon>
-							<FriendName
-								title={c.name}
-								className={
-									search.channel === c.id ? "font-semibold" : undefined
+							onChannelUpdated={fetchChannelsList}
+							onChannelDeleted={() => {
+								fetchChannelsList();
+								if (search.channel === c.id) {
+									navigate({
+										to: "/chat/group/$groupId",
+										params: { groupId: params.groupId! },
+										search: {},
+									});
 								}
-							>
-								{c.name}
-							</FriendName>
-						</FriendItem>
+							}}
+						/>
 					))}
 				</FriendList>
 			) : (
@@ -365,6 +359,16 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
 						</FormSection>
 
 						<FormSection>
+							<Label>Channel Description (Optional)</Label>
+							<InputModal
+								type="text"
+								value={channelDescription}
+								onChange={(e) => setChannelDescription(e.target.value)}
+								placeholder="What is this channel about?"
+							/>
+						</FormSection>
+
+						<FormSection>
 							<PrivateSection>
 								<PrivateIcon>
 									<Settings size={20} />
@@ -394,9 +398,9 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
 							<ButtonModal
 								variant="primary"
 								onClick={handleCreateChannel}
-								disabled={!channelName.trim()}
+								disabled={!channelName.trim() || isCreating}
 							>
-								Create Channel
+								{isCreating ? "Creating..." : "Create Channel"}
 							</ButtonModal>
 						</ModalFooter>
 					</ModalContent>
