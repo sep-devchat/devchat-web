@@ -7,9 +7,6 @@ import CenterPanel from "@/components/custom/CenterPanel/CenterPanel";
 import MainBg from "@/components/custom/MainBackground/MainBg";
 import HeaderBar from "@/components/custom/UserHeader/UserHeader";
 import { IoNotifications } from "react-icons/io5";
-import ThreadPanel from "@/components/custom/RightPanel/ThreadPanel/ThreadPanel";
-import CodeList from "@/components/custom/RightPanel/CodeList/CodeList";
-import MemberList from "@/components/custom/RightPanel/MemberList/MemberList";
 import AuthLayout from "@/layouts/AuthLayout";
 
 export const ChatChanel: React.FC = () => {
@@ -24,19 +21,6 @@ export const ChatChanel: React.FC = () => {
 		setActiveSection(data.groups[0]?.name || "");
 		setChannelSelected(data.expanded_group.channels[0]?.name || "");
 	}, [data.expanded_group, data.groups]);
-
-	const renderPanel = () => {
-		switch (iconSelected) {
-			case "spool":
-				return <ThreadPanel />;
-			case "code":
-				return <CodeList />;
-			case "users":
-				return <MemberList />;
-			default:
-				return <MemberList />;
-		}
-	};
 
 	return (
 		<AuthLayout>
@@ -57,7 +41,6 @@ export const ChatChanel: React.FC = () => {
 						setIconSelected={setIconSelected}
 						iconSelected={iconSelected}
 					/>
-					{renderPanel()}
 				</ContentWrapper>
 			</PageWrapper>
 		</AuthLayout>

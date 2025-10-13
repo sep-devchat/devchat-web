@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from "react";
+import React, { useState, useRef, useCallback, useEffect } from "react";
 import { X, Hash, Plus, Smile, Send, Lock, Folder } from "lucide-react";
 import {
 	PageWrapper,
@@ -32,6 +32,7 @@ import {
 	PrivateText,
 } from "./ThreadPanel.styled";
 import MentionModal from "@/components/custom/MentionModal/MentionModal";
+import { createThread, detailThread } from "@/services/threadAPI";
 
 interface ChatMessage {
 	id: string;
@@ -43,12 +44,15 @@ interface ChatMessage {
 }
 
 interface ThreadPanelProps {
+	groupId: string;
+	channelId: string;
+	threadId?: string;
 	onClose?: () => void;
+	onThreadCreated?: () => void;
 }
 
 const MentionText: React.FC<{ content: string }> = ({ content }) => {
 	const mentionRegex = /(@[\w_]+|@everyone|@here)/g;
-
 	const parts = content.split(mentionRegex);
 
 	return (
@@ -159,12 +163,20 @@ const useMention = (inputRef: React.RefObject<HTMLInputElement>) => {
 	};
 };
 
-const ThreadPanel: React.FC<ThreadPanelProps> = ({ onClose }) => {
+const ThreadPanel: React.FC<ThreadPanelProps> = ({
+	groupId,
+	channelId,
+	threadId,
+	onClose,
+	onThreadCreated,
+}) => {
 	const [threadName, setThreadName] = useState<string>("New Thread");
 	const [isPrivate, setIsPrivate] = useState<boolean>(false);
 	const [message, setMessage] = useState<string>("");
 	const [showCreated, setShowCreated] = useState<boolean>(false);
 	const [messages, setMessages] = useState<ChatMessage[]>([]);
+	const [isCreating, setIsCreating] = useState<boolean>(false);
+	const [isLoading, setIsLoading] = useState<boolean>(false);
 
 	const messageInputRef = useRef<HTMLInputElement>(null);
 	const {
@@ -174,6 +186,55 @@ const ThreadPanel: React.FC<ThreadPanelProps> = ({ onClose }) => {
 		handleMentionSelect,
 		closeMentionModal,
 	} = useMention(messageInputRef);
+
+	// Load existing thread if threadId is provided
+	useEffect(() => {
+		if (threadId && groupId && channelId) {
+			loadThreadDetails();
+		}
+	}, [threadId, groupId, channelId]);
+
+	const loadThreadDetails = async () => {
+		if (!threadId || !groupId || !channelId) return;
+
+		setIsLoading(true);
+		try {
+			const response = await detailThread(groupId, channelId, threadId);
+			const threadData = response?.data || response;
+
+			if (threadData) {
+				setThreadName(threadData.name);
+				setShowCreated(true);
+
+				// Create initial message from thread description
+				if (threadData.description) {
+					const initialMessage: ChatMessage = {
+						id: threadData.id,
+						author: "Thread Creator",
+						content: threadData.description,
+						time: new Date(threadData.createdAt).toLocaleTimeString([], {
+							hour: "2-digit",
+							minute: "2-digit",
+						}),
+						avatarUrl:
+							"https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face",
+						date: new Date(threadData.createdAt).toLocaleDateString("en-US", {
+							month: "long",
+							day: "numeric",
+							year: "numeric",
+						}),
+					};
+					setMessages([initialMessage]);
+				}
+			}
+		} catch (error) {
+			console.error("Failed to load thread details:", error);
+			alert("Failed to load thread. Please try again.");
+			if (onClose) onClose();
+		} finally {
+			setIsLoading(false);
+		}
+	};
 
 	const getCurrentDate = (): string => {
 		const now = new Date();
@@ -190,25 +251,50 @@ const ThreadPanel: React.FC<ThreadPanelProps> = ({ onClose }) => {
 		}
 	};
 
-	const handleCreateThread = (): void => {
-		if (threadName.trim() && message.trim()) {
-			const firstMessage: ChatMessage = {
-				id: Date.now().toString(),
-				author: "You",
-				content: message.trim(),
-				time: new Date().toLocaleTimeString([], {
-					hour: "2-digit",
-					minute: "2-digit",
-				}),
-				avatarUrl:
-					"https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face",
-				date: getCurrentDate(),
-			};
+	const handleCreateThread = async (): Promise<void> => {
+		if (threadName.trim() && message.trim() && !isCreating) {
+			setIsCreating(true);
+			try {
+				const response = await createThread(groupId, channelId, {
+					name: threadName.trim(),
+					description: message.trim(),
+				});
 
-			setMessages((prevMessages) => [...prevMessages, firstMessage]);
-			setMessage("");
-			setShowCreated(true);
-			closeMentionModal();
+				console.log("Thread created successfully:", response);
+
+				const firstMessage: ChatMessage = {
+					id: Date.now().toString(),
+					author: "You",
+					content: message.trim(),
+					time: new Date().toLocaleTimeString([], {
+						hour: "2-digit",
+						minute: "2-digit",
+					}),
+					avatarUrl:
+						"https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face",
+					date: getCurrentDate(),
+				};
+
+				setMessages((prevMessages) => [...prevMessages, firstMessage]);
+				setMessage("");
+				setShowCreated(true);
+				closeMentionModal();
+
+				if (onThreadCreated) {
+					onThreadCreated();
+				}
+			} catch (error: any) {
+				console.error("Error creating thread:", error);
+
+				const errorMessage =
+					error?.response?.data?.message ||
+					error?.message ||
+					"Failed to create thread. Please try again.";
+
+				alert(errorMessage);
+			} finally {
+				setIsCreating(false);
+			}
 		}
 	};
 
@@ -272,6 +358,32 @@ const ThreadPanel: React.FC<ThreadPanelProps> = ({ onClose }) => {
 		return grouped;
 	};
 
+	// Show loading state
+	if (isLoading) {
+		return (
+			<PageWrapper>
+				<CPHeader>
+					<CPHeaderLeft>
+						<CPHeaderIcon>
+							<Folder size={18} />
+						</CPHeaderIcon>
+						<CPTitle>Thread</CPTitle>
+					</CPHeaderLeft>
+					<IconButton onClick={handleClose}>
+						<X size={20} />
+					</IconButton>
+				</CPHeader>
+				<MessagesArea>
+					<div
+						style={{ textAlign: "center", padding: "40px", color: "#6b7280" }}
+					>
+						Loading thread...
+					</div>
+				</MessagesArea>
+			</PageWrapper>
+		);
+	}
+
 	if (showCreated) {
 		const groupedMessages = groupMessagesByDate(messages);
 
@@ -284,7 +396,7 @@ const ThreadPanel: React.FC<ThreadPanelProps> = ({ onClose }) => {
 						</CPHeaderIcon>
 						<CPTitle>Thread</CPTitle>
 					</CPHeaderLeft>
-					<IconButton>
+					<IconButton onClick={handleClose}>
 						<X size={20} />
 					</IconButton>
 				</CPHeader>
@@ -446,11 +558,12 @@ const ThreadPanel: React.FC<ThreadPanelProps> = ({ onClose }) => {
 						value={message}
 						onChange={handleMessageChange}
 						onKeyPress={handleKeyPress}
+						disabled={isCreating}
 					/>
 					<IconButton>
 						<Smile size={20} />
 					</IconButton>
-					<IconButton onClick={handleCreateThread}>
+					<IconButton onClick={handleCreateThread} disabled={isCreating}>
 						<Send size={20} />
 					</IconButton>
 				</InputContainer>

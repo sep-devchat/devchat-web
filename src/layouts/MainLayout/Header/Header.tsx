@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useState, useEffect } from "react";
 import { ChannelResponse, detailChannel } from "@/services/channelAPI";
+import ThreadList from "@/components/custom/ThreadList/ThreadList";
 
 type ButtonHeaderProps = {
 	id: string;
@@ -30,9 +31,16 @@ type ButtonHeaderProps = {
 type Props = {
 	setIconSelected?: (icon: string) => void;
 	iconSelected?: string;
+	onCreateThread?: () => void;
+	onThreadSelect?: (threadId: string) => void;
 };
 
-const Header = ({ setIconSelected, iconSelected }: Props) => {
+const Header = ({
+	setIconSelected,
+	iconSelected,
+	onCreateThread,
+	onThreadSelect,
+}: Props) => {
 	const navigate = useNavigate();
 	const search = useSearch({ strict: false }) as {
 		channel?: string;
@@ -40,8 +48,10 @@ const Header = ({ setIconSelected, iconSelected }: Props) => {
 	};
 	const [channelData, setChannelData] = useState<ChannelResponse | null>(null);
 	const [loading, setLoading] = useState(false);
+	const [showThreadDropdown, setShowThreadDropdown] = useState(false);
 	const params = useParams({ strict: false }) as { groupId?: string };
 	const groupId = params.groupId;
+	const channelId = search.channel;
 
 	useEffect(() => {
 		const fetchChannelData = async () => {
@@ -81,8 +91,38 @@ const Header = ({ setIconSelected, iconSelected }: Props) => {
 	const [hoveredIcon, setHoveredIcon] = useState<string | null>(null);
 	const compact = iconSelected === "spool" || iconSelected === "code";
 
+	const handleThreadIconClick = () => {
+		if (groupId && channelId) {
+			setShowThreadDropdown(!showThreadDropdown);
+			if (setIconSelected && !showThreadDropdown) {
+				setIconSelected("");
+			}
+		} else {
+			alert("Please select a channel first");
+		}
+	};
+
+	const handleCreateThreadFromDropdown = () => {
+		setShowThreadDropdown(false);
+		if (onCreateThread) {
+			onCreateThread();
+		}
+	};
+
+	const handleThreadSelectFromDropdown = (threadId: string) => {
+		setShowThreadDropdown(false);
+		if (onThreadSelect) {
+			onThreadSelect(threadId);
+		}
+	};
+
 	const onIconClick = (name: string) => {
-		if (setIconSelected) setIconSelected(name);
+		if (name === "spool") {
+			handleThreadIconClick();
+		} else {
+			setShowThreadDropdown(false);
+			if (setIconSelected) setIconSelected(name);
+		}
 	};
 
 	const onIconKeyDown = (e: React.KeyboardEvent, name: string) => {
@@ -132,7 +172,7 @@ const Header = ({ setIconSelected, iconSelected }: Props) => {
 				</div>
 			)}
 
-			<div className="flex items-center gap-2">
+			<div className="flex items-center gap-2" style={{ position: "relative" }}>
 				{isGroupPage ? (
 					<div className="flex gap-2">
 						<IconBtn
@@ -143,14 +183,14 @@ const Header = ({ setIconSelected, iconSelected }: Props) => {
 							}
 							onClick={() => onIconClick("notifications")}
 							onKeyDown={(e) => onIconKeyDown(e, "notifications")}
-							disabled={loading} // Disable khi loading
+							disabled={loading}
 						>
 							<Bell size={20} />
 							<Tooltip visible={hoveredIcon === "notifications"}>
 								Notifications
 							</Tooltip>
 						</IconBtn>
-						{/* Các IconBtn khác cũng thêm disabled={loading} */}
+
 						<IconBtn
 							aria-label="spool"
 							onMouseEnter={() => setHoveredIcon("spool")}
@@ -160,9 +200,13 @@ const Header = ({ setIconSelected, iconSelected }: Props) => {
 							onClick={() => onIconClick("spool")}
 							onKeyDown={(e) => onIconKeyDown(e, "spool")}
 							disabled={loading}
+							style={{
+								background: showThreadDropdown ? "#eff6ff" : undefined,
+								color: showThreadDropdown ? "#6366f1" : undefined,
+							}}
 						>
 							<Spool size={20} />
-							<Tooltip visible={hoveredIcon === "spool"}>Spool</Tooltip>
+							<Tooltip visible={hoveredIcon === "spool"}>Threads</Tooltip>
 						</IconBtn>
 
 						<IconBtn
@@ -198,6 +242,16 @@ const Header = ({ setIconSelected, iconSelected }: Props) => {
 							placeholder="Search"
 							disabled={loading}
 						/>
+
+						{showThreadDropdown && groupId && channelId && (
+							<ThreadList
+								groupId={groupId}
+								channelId={channelId}
+								onClose={() => setShowThreadDropdown(false)}
+								onCreateThread={handleCreateThreadFromDropdown}
+								onThreadSelect={handleThreadSelectFromDropdown}
+							/>
+						)}
 					</div>
 				) : (
 					<Button className="shadow-none">
