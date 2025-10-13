@@ -17,7 +17,7 @@ export const loginPkce = async (dto: LoginPkceRequest) => {
 };
 
 export const register = async (dto: RegisterRequest) => {
-	return post("/api/auth/register", dto);
+	return post("/api/user", dto);
 };
 
 export const registerPkce = async (dto: RegisterPkceRequest) => {

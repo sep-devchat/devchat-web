@@ -16,14 +16,13 @@ export interface LoginPkceRequest {
 }
 
 export interface RegisterRequest {
-	method: string;
-	data?: {
-		username: string;
-		email: string;
-		password: string;
-		displayName?: string;
-	};
-	code?: string; // For Google/GitHub registration
+	username: string;
+	email: string;
+	password: string;
+	firstName: string;
+	lastName: string;
+	avatarUrl?: string;
+	timezone?: string;
 }
 
 export interface RegisterPkceRequest {

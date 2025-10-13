@@ -398,38 +398,31 @@ const RegisterPage: React.FC<RegisterPageProps> = ({
 		try {
 			let avatarUrl = "";
 			if (avatarFile) {
-				avatarUrl = await uploadAvatar();
+				try {
+					avatarUrl = await uploadAvatar();
+				} catch (uploadError) {
+					console.error("Avatar upload failed:", uploadError);
+					setErrors({
+						general:
+							"Failed to upload avatar. Please try again or register without avatar.",
+					});
+					setIsUploading(false);
+					return;
+				}
 			}
 
-			const registrationInfo = {
+			const registrationData: any = {
 				username: registerData.username,
 				firstName: registerData.firstName,
 				lastName: registerData.lastName,
 				email: registerData.email,
 				password: registerData.password,
-				avatarUrl: avatarUrl || "",
-				timezone: registerData.timezone || "",
+				timezone: registerData.timezone || "Asia/Ho_Chi_Minh",
 			};
 
-			let mutationPromise;
-
-			if (codeChallenge && codeChallengeMethod) {
-				mutationPromise = registerPkceMutation.mutateAsync({
-					method: "basic",
-					data: registrationInfo,
-					codeChallenge: codeChallenge,
-					codeChallengeMethod: codeChallengeMethod,
-				});
-			} else {
-				mutationPromise = registerMutation.mutateAsync({
-					method: "basic",
-					data: registrationInfo,
-				});
+			if (avatarUrl) {
+				registrationData.avatarUrl = avatarUrl;
 			}
-
-			const result = await mutationPromise;
-
-			console.log("Registration successful:", result);
 
 			setSuccessMessage(
 				"Registration successful! Please check your email for verification.",
@@ -457,6 +450,15 @@ const RegisterPage: React.FC<RegisterPageProps> = ({
 			}, 2000);
 		} catch (error: any) {
 			console.error("Registration failed:", error);
+
+			if (error?.message === "Network Error" || error?.code === "ERR_NETWORK") {
+				setErrors({
+					general:
+						"Network error. Please check your internet connection and try again.",
+				});
+				window.scrollTo({ top: 0, behavior: "smooth" });
+				return;
+			}
 
 			if (error?.response?.data?.message) {
 				const serverMessage = error.response.data.message;
