@@ -30,6 +30,10 @@ const languageSelectItems = [
 		label: "JavaScript",
 		value: ProgrammingLanguageEnum.JAVASCRIPT,
 	},
+	{
+		label: "Python",
+		value: ProgrammingLanguageEnum.PYTHON,
+	},
 ];
 
 export const Route = createFileRoute("/test/code")({
