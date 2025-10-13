@@ -1,4 +1,5 @@
 import React, { useState, useRef, useCallback, useEffect } from "react";
+import { useSelector } from "react-redux";
 import { X, Hash, Plus, Smile, Send, Lock, Folder } from "lucide-react";
 import {
 	PageWrapper,
@@ -33,6 +34,8 @@ import {
 } from "./ThreadPanel.styled";
 import MentionModal from "@/components/custom/MentionModal/MentionModal";
 import { createThread, detailThread } from "@/services/threadAPI";
+import { RootState } from "@/store";
+import { detailUser } from "@/services/userAPI";
 
 interface ChatMessage {
 	id: string;
@@ -48,7 +51,7 @@ interface ThreadPanelProps {
 	channelId: string;
 	threadId?: string;
 	onClose?: () => void;
-	onThreadCreated?: () => void;
+	onThreadCreated?: (threadId: string) => void;
 }
 
 const MentionText: React.FC<{ content: string }> = ({ content }) => {
@@ -177,6 +180,13 @@ const ThreadPanel: React.FC<ThreadPanelProps> = ({
 	const [messages, setMessages] = useState<ChatMessage[]>([]);
 	const [isCreating, setIsCreating] = useState<boolean>(false);
 	const [isLoading, setIsLoading] = useState<boolean>(false);
+	const [threadCreatorInfo, setThreadCreatorInfo] = useState<{
+		name: string;
+		avatarUrl?: string;
+	} | null>(null);
+
+	console.log("Thread created by:", threadCreatorInfo?.name);
+	const profile = useSelector((state: RootState) => state.user.profile);
 
 	const messageInputRef = useRef<HTMLInputElement>(null);
 	const {
@@ -187,12 +197,26 @@ const ThreadPanel: React.FC<ThreadPanelProps> = ({
 		closeMentionModal,
 	} = useMention(messageInputRef);
 
-	// Load existing thread if threadId is provided
 	useEffect(() => {
-		if (threadId && groupId && channelId) {
+		if (!threadId) {
+			setThreadName("New Thread");
+			setIsPrivate(false);
+			setMessage("");
+			setShowCreated(false);
+			setMessages([]);
+			setThreadCreatorInfo(null);
+		} else if (groupId && channelId) {
 			loadThreadDetails();
 		}
 	}, [threadId, groupId, channelId]);
+
+	const getDisplayName = (user?: any) => {
+		if (!user) return "Unknown User";
+		if (user.firstName && user.lastName) {
+			return `${user.firstName} ${user.lastName}`;
+		}
+		return user.username || "Unknown User";
+	};
 
 	const loadThreadDetails = async () => {
 		if (!threadId || !groupId || !channelId) return;
@@ -200,24 +224,51 @@ const ThreadPanel: React.FC<ThreadPanelProps> = ({
 		setIsLoading(true);
 		try {
 			const response = await detailThread(groupId, channelId, threadId);
-			const threadData = response?.data || response;
+			const threadData: any = response?.data || response;
 
 			if (threadData) {
 				setThreadName(threadData.name);
 				setShowCreated(true);
 
-				// Create initial message from thread description
+				let creatorName = "Unknown User";
+				let creatorAvatar =
+					"https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face";
+				if (threadData.createdBy) {
+					if (typeof threadData.createdBy === "object") {
+						creatorName = getDisplayName(threadData.createdBy);
+						creatorAvatar = threadData.createdBy.avatarUrl || creatorAvatar;
+					} else if (typeof threadData.createdBy === "string") {
+						try {
+							const userRes = await detailUser(threadData.createdBy);
+							const userData = userRes?.data || userRes;
+							if (userData) {
+								creatorName = getDisplayName(userData);
+								creatorAvatar = userData.avatarUrl || creatorAvatar;
+							}
+						} catch (err) {
+							console.error(
+								`Failed to fetch creator info for ${threadData.createdBy}`,
+								err,
+							);
+						}
+					}
+				}
+
+				setThreadCreatorInfo({
+					name: creatorName,
+					avatarUrl: creatorAvatar,
+				});
+
 				if (threadData.description) {
 					const initialMessage: ChatMessage = {
 						id: threadData.id,
-						author: "Thread Creator",
+						author: creatorName,
 						content: threadData.description,
 						time: new Date(threadData.createdAt).toLocaleTimeString([], {
 							hour: "2-digit",
 							minute: "2-digit",
 						}),
-						avatarUrl:
-							"https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face",
+						avatarUrl: creatorAvatar,
 						date: new Date(threadData.createdAt).toLocaleDateString("en-US", {
 							month: "long",
 							day: "numeric",
@@ -262,16 +313,20 @@ const ThreadPanel: React.FC<ThreadPanelProps> = ({
 
 				console.log("Thread created successfully:", response);
 
+				const currentUserName = getDisplayName(profile);
+				const currentUserAvatar =
+					profile?.avatarUrl ||
+					"https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face";
+
 				const firstMessage: ChatMessage = {
 					id: Date.now().toString(),
-					author: "You",
+					author: currentUserName,
 					content: message.trim(),
 					time: new Date().toLocaleTimeString([], {
 						hour: "2-digit",
 						minute: "2-digit",
 					}),
-					avatarUrl:
-						"https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face",
+					avatarUrl: currentUserAvatar,
 					date: getCurrentDate(),
 				};
 
@@ -280,17 +335,20 @@ const ThreadPanel: React.FC<ThreadPanelProps> = ({
 				setShowCreated(true);
 				closeMentionModal();
 
+				setThreadCreatorInfo({
+					name: currentUserName,
+					avatarUrl: currentUserAvatar,
+				});
+
 				if (onThreadCreated) {
-					onThreadCreated();
+					onThreadCreated(response?.data?.id || "");
 				}
 			} catch (error: any) {
 				console.error("Error creating thread:", error);
-
 				const errorMessage =
 					error?.response?.data?.message ||
 					error?.message ||
 					"Failed to create thread. Please try again.";
-
 				alert(errorMessage);
 			} finally {
 				setIsCreating(false);
@@ -300,16 +358,20 @@ const ThreadPanel: React.FC<ThreadPanelProps> = ({
 
 	const handleSendMessage = (): void => {
 		if (message.trim()) {
+			const currentUserName = getDisplayName(profile);
+			const currentUserAvatar =
+				profile?.avatarUrl ||
+				"https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face";
+
 			const newMessage: ChatMessage = {
 				id: Date.now().toString(),
-				author: "You",
+				author: currentUserName,
 				content: message.trim(),
 				time: new Date().toLocaleTimeString([], {
 					hour: "2-digit",
 					minute: "2-digit",
 				}),
-				avatarUrl:
-					"https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face",
+				avatarUrl: currentUserAvatar,
 				date: getCurrentDate(),
 			};
 
@@ -358,7 +420,6 @@ const ThreadPanel: React.FC<ThreadPanelProps> = ({
 		return grouped;
 	};
 
-	// Show loading state
 	if (isLoading) {
 		return (
 			<PageWrapper>

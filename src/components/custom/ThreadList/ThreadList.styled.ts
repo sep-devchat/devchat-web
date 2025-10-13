@@ -254,6 +254,58 @@ export const ThreadDescription = styled.div`
 	overflow: hidden;
 `;
 
+export const EmptyState = styled.div`
+	padding: 40px 20px;
+	text-align: center;
+	color: #9ca3af;
+`;
+
+export const EmptyIcon = styled.div`
+	font-size: 48px;
+	margin-bottom: 16px;
+	opacity: 0.5;
+`;
+
+export const EmptyText = styled.p`
+	font-size: 14px;
+	color: #6b7280;
+	margin: 0;
+`;
+
+export const EditButton = styled.button`
+	background: none;
+	border: none;
+	padding: 4px;
+	color: #6b7280;
+	cursor: pointer;
+	transition: all 0.2s;
+	border-radius: 4px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	opacity: 0;
+	transition: all 0.2s;
+	flex-shrink: 0;
+
+	${ThreadItem}:hover & {
+		opacity: 1;
+	}
+
+	&:hover {
+		color: #2563eb;
+		background: #dbeafe;
+	}
+
+	&:active {
+		color: #1d4ed8;
+		background: #bfdbfe;
+	}
+
+	&:focus {
+		outline: none;
+	}
+`;
+
 export const DeleteButton = styled.button`
 	background: none;
 	border: none;
@@ -279,22 +331,4 @@ export const DeleteButton = styled.button`
 	&:focus {
 		outline: none;
 	}
-`;
-
-export const EmptyState = styled.div`
-	padding: 40px 20px;
-	text-align: center;
-	color: #9ca3af;
-`;
-
-export const EmptyIcon = styled.div`
-	font-size: 48px;
-	margin-bottom: 16px;
-	opacity: 0.5;
-`;
-
-export const EmptyText = styled.p`
-	font-size: 14px;
-	color: #6b7280;
-	margin: 0;
 `;

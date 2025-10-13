@@ -28,23 +28,22 @@ const MainLayout = () => {
 	const [settingSelect, setSettingSelect] = useState<boolean>(false);
 	const [showThreadPanel, setShowThreadPanel] = useState<boolean>(false);
 	const [selectedThreadId, setSelectedThreadId] = useState<string>("");
-
 	const params = useParams({ strict: false }) as { groupId?: string };
 	const search = useSearch({ strict: false }) as { channel?: string };
-
 	const groupId = params.groupId;
 	const channelId = search.channel;
 
 	console.log("MainLayout - Current IDs:", { groupId, channelId });
 
 	const handleCreateThread = () => {
-		setShowThreadPanel(true);
 		setSelectedThreadId("");
+		setShowThreadPanel(true);
 		setIconSelected("");
 	};
 
-	const handleThreadCreated = () => {
-		setShowThreadPanel(false);
+	const handleThreadCreated = (threadId: string) => {
+		setSelectedThreadId(threadId);
+		setShowThreadPanel(true);
 		window.dispatchEvent(new CustomEvent("app:threadCreated"));
 	};
 
@@ -63,15 +62,15 @@ const MainLayout = () => {
 		if (showThreadPanel && groupId && channelId) {
 			return (
 				<ThreadPanel
+					key={selectedThreadId || "new-thread"}
 					groupId={groupId}
 					channelId={channelId}
-					threadId={selectedThreadId}
+					threadId={selectedThreadId || undefined}
 					onClose={handleCloseThreadPanel}
 					onThreadCreated={handleThreadCreated}
 				/>
 			);
 		}
-
 		switch (iconSelected) {
 			case "code":
 				return <CodeList />;

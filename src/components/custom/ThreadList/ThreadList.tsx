@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useSelector } from "react-redux";
-import { X, Search, Layers, Trash2 } from "lucide-react";
+import { X, Search, Layers, Trash2, Edit } from "lucide-react";
 import {
 	DropdownOverlay,
 	ThreadDropdown,
@@ -28,6 +27,7 @@ import {
 	TimeStamp,
 	ThreadDescription,
 	DeleteButton,
+	EditButton,
 	EmptyState,
 	EmptyIcon,
 	EmptyText,
@@ -35,9 +35,13 @@ import {
 import {
 	listThreads,
 	deleteThread,
+	updateThread,
 	ThreadResponse,
+	ThreadPutRequest,
 } from "@/services/threadAPI";
-import { RootState } from "@/store";
+import { detailUser, UserResponse } from "@/services/userAPI";
+import ConfirmModal from "@/components/custom/ConfirmModal/ConfirmModal";
+import ThreadEditModal from "@/components/custom/ThreadEditModal/ThreadEditModal";
 
 interface ThreadListProps {
 	groupId: string;
@@ -55,11 +59,21 @@ const ThreadList: React.FC<ThreadListProps> = ({
 	onThreadSelect,
 }) => {
 	const [threads, setThreads] = useState<ThreadResponse[]>([]);
+	const [threadCreators, setThreadCreators] = useState<
+		Map<string, UserResponse>
+	>(new Map());
 	const [searchTerm, setSearchTerm] = useState<string>("");
 	const [isLoading, setIsLoading] = useState<boolean>(false);
 	const [selectedThreadId, setSelectedThreadId] = useState<string>("");
-
-	const profile = useSelector((state: RootState) => state.user.profile);
+	const [showDeleteModal, setShowDeleteModal] = useState<boolean>(false);
+	const [threadToDelete, setThreadToDelete] = useState<string>("");
+	const [isDeleting, setIsDeleting] = useState<boolean>(false);
+	const [showEditModal, setShowEditModal] = useState<boolean>(false);
+	const [threadToEdit, setThreadToEdit] = useState<{
+		id: string;
+		name: string;
+		description: string;
+	} | null>(null);
 
 	useEffect(() => {
 		if (groupId && channelId) {
@@ -91,6 +105,24 @@ const ThreadList: React.FC<ThreadListProps> = ({
 			const response = await listThreads(groupId, channelId);
 			const threadData = response?.data?.data || response?.data || [];
 			setThreads(threadData);
+
+			const creatorsMap = new Map<string, UserResponse>();
+			const fetchPromises = threadData.map(async (thread: ThreadResponse) => {
+				if (thread.createdBy && typeof thread.createdBy === "string") {
+					try {
+						const userResponse = await detailUser(thread.createdBy);
+						const userData = userResponse?.data || userResponse;
+						if (userData) {
+							creatorsMap.set(thread.createdBy, userData);
+						}
+					} catch (error) {
+						console.error(`Failed to fetch user ${thread.createdBy}:`, error);
+					}
+				}
+			});
+
+			await Promise.all(fetchPromises);
+			setThreadCreators(creatorsMap);
 		} catch (error) {
 			console.error("Failed to fetch threads:", error);
 			setThreads([]);
@@ -99,23 +131,80 @@ const ThreadList: React.FC<ThreadListProps> = ({
 		}
 	};
 
-	const handleDeleteThread = async (e: React.MouseEvent, threadId: string) => {
+	const handleDeleteClick = (e: React.MouseEvent, threadId: string) => {
 		e.stopPropagation();
+		setThreadToDelete(threadId);
+		setShowDeleteModal(true);
+	};
 
-		if (!window.confirm("Are you sure you want to delete this thread?")) {
-			return;
-		}
+	const handleConfirmDelete = async () => {
+		if (!threadToDelete) return;
 
+		setIsDeleting(true);
 		try {
-			await deleteThread(groupId, channelId, threadId);
-			setThreads((prev) => prev.filter((t) => t.id !== threadId));
+			await deleteThread(groupId, channelId, threadToDelete);
+			setThreads((prev) => prev.filter((t) => t.id !== threadToDelete));
 
-			if (selectedThreadId === threadId) {
+			if (selectedThreadId === threadToDelete) {
 				setSelectedThreadId("");
 			}
+
+			setShowDeleteModal(false);
+			setThreadToDelete("");
 		} catch (error) {
 			console.error("Failed to delete thread:", error);
 			alert("Failed to delete thread. Please try again.");
+		} finally {
+			setIsDeleting(false);
+		}
+	};
+
+	const handleCancelDelete = () => {
+		setShowDeleteModal(false);
+		setThreadToDelete("");
+	};
+
+	const handleEditClick = (e: React.MouseEvent, thread: ThreadResponse) => {
+		e.stopPropagation();
+		setThreadToEdit({
+			id: thread.id,
+			name: thread.name,
+			description: thread.description,
+		});
+		setShowEditModal(true);
+	};
+
+	const handleEditThread = async (data: {
+		name: string;
+		description: string;
+	}) => {
+		if (!threadToEdit) return;
+
+		try {
+			const updateData: ThreadPutRequest = {
+				name: data.name,
+				description: data.description,
+			};
+
+			await updateThread(groupId, channelId, threadToEdit.id, updateData);
+
+			setThreads((prev) =>
+				prev.map((t) =>
+					t.id === threadToEdit.id
+						? {
+								...t,
+								name: data.name,
+								description: data.description,
+							}
+						: t,
+				),
+			);
+
+			setShowEditModal(false);
+			setThreadToEdit(null);
+		} catch (error) {
+			console.error("Failed to update thread:", error);
+			throw error;
 		}
 	};
 
@@ -142,12 +231,37 @@ const ThreadList: React.FC<ThreadListProps> = ({
 		return `${months}mo ago`;
 	};
 
-	const getDisplayName = () => {
-		if (!profile) return "Unknown User";
-		if (profile.firstName && profile.lastName) {
-			return `${profile.firstName} ${profile.lastName}`;
+	const getThreadCreatorName = (thread: ThreadResponse): string => {
+		if (!thread.createdBy) return "Unknown User";
+
+		if (typeof thread.createdBy === "string") {
+			const creator = threadCreators.get(thread.createdBy);
+			if (creator) {
+				if (creator.firstName && creator.lastName) {
+					return `${creator.firstName} ${creator.lastName}`;
+				}
+				return creator.username || "Unknown User";
+			}
+			return "Unknown User";
 		}
-		return profile.username || "Unknown User";
+
+		const creator: any = thread.createdBy;
+		if (creator.firstName && creator.lastName) {
+			return `${creator.firstName} ${creator.lastName}`;
+		}
+		return creator.username || "Unknown User";
+	};
+
+	const getThreadCreatorAvatar = (thread: ThreadResponse): string | null => {
+		if (!thread.createdBy) return null;
+
+		if (typeof thread.createdBy === "string") {
+			const creator = threadCreators.get(thread.createdBy);
+			return creator?.avatarUrl || null;
+		}
+
+		const creator: any = thread.createdBy;
+		return creator?.avatarUrl || null;
 	};
 
 	const filteredThreads = threads.filter((thread) =>
@@ -206,55 +320,102 @@ const ThreadList: React.FC<ThreadListProps> = ({
 						</EmptyState>
 					) : (
 						<ThreadsList>
-							{joinedThreads.map((thread) => (
-								<ThreadItem
-									key={thread.id}
-									isActive={selectedThreadId === thread.id}
-									onClick={() => handleThreadClick(thread.id)}
-								>
-									<ThreadItemHeader>
-										<ThreadInfo>
-											<ThreadName>{thread.name}</ThreadName>
-											<ThreadMeta>
-												<AuthorInfo>
-													<AuthorIcon>
-														{profile?.avatarUrl ? (
-															<img
-																src={profile.avatarUrl}
-																alt={getDisplayName()}
-																style={{
-																	width: "100%",
-																	height: "100%",
-																	borderRadius: "50%",
-																	objectFit: "cover",
-																}}
-															/>
-														) : (
-															<AuthorIconInner />
-														)}
-													</AuthorIcon>
-													<AuthorName>{getDisplayName()}</AuthorName>
-												</AuthorInfo>
-												<span>•</span>
-												<TimeStamp>{formatTimeAgo(thread.createdAt)}</TimeStamp>
-											</ThreadMeta>
-										</ThreadInfo>
-										<DeleteButton
-											onClick={(e) => handleDeleteThread(e, thread.id)}
-											title="Delete thread"
-										>
-											<Trash2 size={16} />
-										</DeleteButton>
-									</ThreadItemHeader>
-									{thread.description && (
-										<ThreadDescription>{thread.description}</ThreadDescription>
-									)}
-								</ThreadItem>
-							))}
+							{joinedThreads.map((thread) => {
+								const creatorAvatar = getThreadCreatorAvatar(thread);
+								const creatorName = getThreadCreatorName(thread);
+
+								return (
+									<ThreadItem
+										key={thread.id}
+										isActive={selectedThreadId === thread.id}
+										onClick={() => handleThreadClick(thread.id)}
+									>
+										<ThreadItemHeader>
+											<ThreadInfo>
+												<ThreadName>{thread.name}</ThreadName>
+												<ThreadMeta>
+													<AuthorInfo>
+														<AuthorIcon>
+															{creatorAvatar ? (
+																<img
+																	src={creatorAvatar}
+																	alt={creatorName}
+																	style={{
+																		width: "100%",
+																		height: "100%",
+																		borderRadius: "50%",
+																		objectFit: "cover",
+																	}}
+																/>
+															) : (
+																<AuthorIconInner />
+															)}
+														</AuthorIcon>
+														<AuthorName>{creatorName}</AuthorName>
+													</AuthorInfo>
+													<span>•</span>
+													<TimeStamp>
+														{formatTimeAgo(thread.createdAt)}
+													</TimeStamp>
+												</ThreadMeta>
+											</ThreadInfo>
+											<div
+												style={{
+													display: "flex",
+													gap: "8px",
+												}}
+											>
+												<EditButton
+													onClick={(e) => handleEditClick(e, thread)}
+													title="Edit thread"
+												>
+													<Edit size={16} />
+												</EditButton>
+												<DeleteButton
+													onClick={(e) => handleDeleteClick(e, thread.id)}
+													title="Delete thread"
+												>
+													<Trash2 size={16} />
+												</DeleteButton>
+											</div>
+										</ThreadItemHeader>
+										{thread.description && (
+											<ThreadDescription>
+												{thread.description}
+											</ThreadDescription>
+										)}
+									</ThreadItem>
+								);
+							})}
 						</ThreadsList>
 					)}
 				</ThreadsSection>
 			</ThreadDropdown>
+
+			<ThreadEditModal
+				isOpen={showEditModal}
+				threadId={threadToEdit?.id || ""}
+				groupId={groupId}
+				channelId={channelId}
+				initialName={threadToEdit?.name || ""}
+				initialDescription={threadToEdit?.description || ""}
+				onClose={() => {
+					setShowEditModal(false);
+					setThreadToEdit(null);
+				}}
+				onSubmit={handleEditThread}
+			/>
+
+			<ConfirmModal
+				isOpen={showDeleteModal}
+				title="Delete Thread"
+				message="Are you sure you want to delete this thread? This action cannot be undone."
+				confirmText="Delete"
+				cancelText="Cancel"
+				onConfirm={handleConfirmDelete}
+				onCancel={handleCancelDelete}
+				isLoading={isDeleting}
+			/>
 		</>
 	);
 };
