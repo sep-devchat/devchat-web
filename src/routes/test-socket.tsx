@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useParams, useSearch } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -24,11 +24,24 @@ function RouteComponent() {
 	const listRef = useRef<HTMLDivElement | null>(null);
 	const inputRef = useRef<HTMLInputElement | null>(null);
 	const { socket } = useSocket();
+	const params = useParams({ strict: false }) as {
+		groupId?: string;
+		id?: string;
+	};
+	const search = useSearch({ strict: false }) as { channel?: string };
+	const groupId = params.groupId ?? undefined;
+	const channelIdParam = search.channel ?? undefined;
+	const threadIdParam = params.id ?? undefined; // if present => show thread
 
 	// Fetch messages using TanStack Query
 	const { data, isLoading, isError } = useQuery({
 		queryKey: ["messages"],
-		queryFn: () => listMessages(),
+		queryFn: () =>
+			listMessages(
+				groupId || "test-group",
+				channelIdParam || "test",
+				threadIdParam,
+			),
 	});
 
 	// Server returns messages in DESC order; reverse to ASC for chat display

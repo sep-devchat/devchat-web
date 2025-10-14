@@ -8,8 +8,8 @@ import {
 	DropdownMenuGroup,
 } from "@/components/ui/dropdown-menu"; // shadcn dropdown
 import { Input } from "../../../ui/input";
-import { InboxType } from "../../ChatInput/ChatInput";
 import { Image, Link, Pencil } from "lucide-react";
+import { InboxType } from "../../ChatInputComponent/ChatTypeModal/InboxType";
 
 type Props = {
 	trigger?: React.ReactNode;
