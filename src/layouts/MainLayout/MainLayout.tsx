@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import MainBg from "@/components/custom/MainBackground/MainBg";
-import { Outlet } from "@tanstack/react-router";
+import { Outlet, useParams, useSearch } from "@tanstack/react-router";
 import {
 	CenterPanel,
 	MainLayoutContainer,
@@ -26,15 +26,58 @@ import { LeftSidebar } from "./LeftSidebar/LeftSidebar";
 const MainLayout = () => {
 	const [iconSelected, setIconSelected] = useState<string>("");
 	const [settingSelect, setSettingSelect] = useState<boolean>(false);
+	const [showThreadPanel, setShowThreadPanel] = useState<boolean>(false);
+	const [selectedThreadId, setSelectedThreadId] = useState<string>("");
+	const params = useParams({ strict: false }) as { groupId?: string };
+	const search = useSearch({ strict: false }) as { channel?: string };
+	const groupId = params.groupId;
+	const channelId = search.channel;
 
-	const renderPanel = () => {
+	console.log("MainLayout - Current IDs:", { groupId, channelId });
+
+	const handleCreateThread = () => {
+		setSelectedThreadId("");
+		setShowThreadPanel(true);
+		setIconSelected("");
+	};
+
+	const handleThreadCreated = (threadId: string) => {
+		setSelectedThreadId(threadId);
+		setShowThreadPanel(true);
+		window.dispatchEvent(new CustomEvent("app:threadCreated"));
+	};
+
+	const handleThreadSelect = (threadId: string) => {
+		setSelectedThreadId(threadId);
+		setShowThreadPanel(true);
+		setIconSelected("");
+	};
+
+	const handleCloseThreadPanel = () => {
+		setShowThreadPanel(false);
+		setSelectedThreadId("");
+	};
+
+	const renderRightPanel = () => {
+		if (showThreadPanel && groupId && channelId) {
+			return (
+				<ThreadPanel
+					key={selectedThreadId || "new-thread"}
+					groupId={groupId}
+					channelId={channelId}
+					threadId={selectedThreadId || undefined}
+					onClose={handleCloseThreadPanel}
+					onThreadCreated={handleThreadCreated}
+				/>
+			);
+		}
 		switch (iconSelected) {
-			case "spool":
-				return <ThreadPanel />;
 			case "code":
 				return <CodeList />;
 			case "users":
 				return <MemberList />;
+			case "notifications":
+				return null;
 			default:
 				return <MemberList />;
 		}
@@ -47,31 +90,27 @@ const MainLayout = () => {
 				{!settingSelect ? (
 					<MainLayoutContainer>
 						<TitleBar title="DevChat" icon={<User />} />
-
 						<ContentWrapper>
 							<LeftSection>
 								<GroupSidebar />
 								<LeftSidebar setSettingSelect={setSettingSelect} />
 							</LeftSection>
-
 							<RightSection>
 								<CenterPanel>
 									<Header
 										setIconSelected={setIconSelected}
 										iconSelected={iconSelected}
+										onCreateThread={handleCreateThread}
+										onThreadSelect={handleThreadSelect}
 									/>
-
 									<OutletContainer>
 										<Outlet />
 									</OutletContainer>
 								</CenterPanel>
-
-								{renderPanel()}
+								{renderRightPanel()}
 							</RightSection>
 						</ContentWrapper>
-
 						<Profile />
-
 						<BottomSpacer />
 					</MainLayoutContainer>
 				) : (
