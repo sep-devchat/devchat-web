@@ -329,6 +329,17 @@ export default function ChatInput({
 						// setHtml(el.innerHTML);
 					}}
 					onKeyDown={(e) => {
+						// Send on Enter, newline on Shift+Enter
+						const isComposing = (e as any).nativeEvent?.isComposing;
+						if (!isComposing && e.key === "Enter") {
+							if (!e.shiftKey) {
+								e.preventDefault();
+								// trigger submit
+								void handleSubmit();
+								return;
+							}
+							// allow Shift+Enter to insert a line break
+						}
 						if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "b") {
 							e.preventDefault();
 							execFormat("bold");
