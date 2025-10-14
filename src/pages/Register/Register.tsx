@@ -32,9 +32,30 @@ import {
 	SocialButtonWrapper,
 	GoogleLoginWrapper,
 	IconWrapper,
-	Select,
-	SelectWrapper,
+	AvatarUploadContainer,
+	AvatarUploadBox,
+	AvatarPreviewWrapper,
+	AvatarImage,
+	RemoveAvatarButton,
+	LoadingOverlay,
+	LoadingSpinner,
+	DefaultAvatarCircle,
+	AvatarUploadInfo,
+	ProgressTitle,
+	ProgressBar,
+	ProgressContainer,
+	ProgressFill,
+	ProgressText,
+	HiddenFileInput,
+	UploadTitle,
+	UploadSubtitle,
+	UploadButton,
 } from "./Register.styled";
+import {
+	getUploadSignature,
+	directUploadWithSignature,
+	saveDirectUpload,
+} from "@/services/upload/upload.api";
 
 interface RegisterPageProps {
 	codeChallenge?: string;
@@ -50,31 +71,10 @@ interface ValidationErrors {
 	email?: string;
 	password?: string;
 	confirmPassword?: string;
-	avatarUrl?: string;
+	avatar?: string;
 	timezone?: string;
 	general?: string;
 }
-
-const timezones = [
-	{ value: "", label: "Select timezone" },
-	{ value: "UTC", label: "(UTC+00:00) UTC" },
-	{ value: "Asia/Ho_Chi_Minh", label: "(UTC+07:00) Ho Chi Minh City" },
-	{ value: "Asia/Bangkok", label: "(UTC+07:00) Bangkok" },
-	{ value: "Asia/Singapore", label: "(UTC+08:00) Singapore" },
-	{ value: "Asia/Shanghai", label: "(UTC+08:00) Shanghai" },
-	{ value: "Asia/Tokyo", label: "(UTC+09:00) Tokyo" },
-	{ value: "Asia/Seoul", label: "(UTC+09:00) Seoul" },
-	{ value: "Australia/Sydney", label: "(UTC+10:00) Sydney" },
-	{ value: "Europe/London", label: "(UTC+00:00) London" },
-	{ value: "Europe/Paris", label: "(UTC+01:00) Paris" },
-	{ value: "Europe/Berlin", label: "(UTC+01:00) Berlin" },
-	{ value: "Europe/Moscow", label: "(UTC+03:00) Moscow" },
-	{ value: "America/New_York", label: "(UTC-05:00) New York" },
-	{ value: "America/Chicago", label: "(UTC-06:00) Chicago" },
-	{ value: "America/Denver", label: "(UTC-07:00) Denver" },
-	{ value: "America/Los_Angeles", label: "(UTC-08:00) Los Angeles" },
-	{ value: "America/Sao_Paulo", label: "(UTC-03:00) São Paulo" },
-];
 
 const RegisterPage: React.FC<RegisterPageProps> = ({
 	codeChallenge,
@@ -86,7 +86,6 @@ const RegisterPage: React.FC<RegisterPageProps> = ({
 		username: "",
 		firstName: "",
 		lastName: "",
-		displayName: "",
 		email: "",
 		password: "",
 		confirmPassword: "",
@@ -99,16 +98,10 @@ const RegisterPage: React.FC<RegisterPageProps> = ({
 	const [errors, setErrors] = useState<ValidationErrors>({});
 	const [touched, setTouched] = useState<Set<string>>(new Set());
 	const [successMessage, setSuccessMessage] = useState("");
-
-	const isValidUrl = (url: string): boolean => {
-		if (!url) return true;
-		try {
-			const urlPattern = /^(https?|ftp):\/\/[^\s/$.?#].[^\s]*$/i;
-			return urlPattern.test(url) && new URL(url) !== null;
-		} catch {
-			return false;
-		}
-	};
+	const [avatarFile, setAvatarFile] = useState<File | null>(null);
+	const [avatarPreview, setAvatarPreview] = useState<string>("");
+	const [uploadProgress, setUploadProgress] = useState<number>(0);
+	const [isUploading, setIsUploading] = useState(false);
 
 	const validateField = (field: string, value: string): string | undefined => {
 		switch (field) {
@@ -161,7 +154,6 @@ const RegisterPage: React.FC<RegisterPageProps> = ({
 				if (value.length > 128) {
 					return "Password must not exceed 128 characters";
 				}
-				// Check if confirm password matches when password is valid
 				if (
 					registerData.confirmPassword &&
 					value !== registerData.confirmPassword
@@ -176,12 +168,6 @@ const RegisterPage: React.FC<RegisterPageProps> = ({
 				}
 				if (registerData.password !== value) {
 					return "Passwords do not match";
-				}
-				break;
-
-			case "avatarUrl":
-				if (value && !isValidUrl(value)) {
-					return "Please enter a valid URL (e.g., https://example.com/image.jpg)";
 				}
 				break;
 
@@ -206,7 +192,6 @@ const RegisterPage: React.FC<RegisterPageProps> = ({
 			"email",
 			"password",
 			"confirmPassword",
-			"avatarUrl",
 			"timezone",
 		];
 
@@ -287,6 +272,95 @@ const RegisterPage: React.FC<RegisterPageProps> = ({
 		}
 	};
 
+	const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+		const file = e.target.files?.[0];
+		if (!file) return;
+
+		const allowedTypes = [
+			"image/jpeg",
+			"image/jpg",
+			"image/png",
+			"image/gif",
+			"image/webp",
+		];
+		if (!allowedTypes.includes(file.type)) {
+			setErrors((prev) => ({
+				...prev,
+				avatar: "Please upload a valid image file (JPEG, PNG, GIF, or WebP)",
+			}));
+			return;
+		}
+
+		if (file.size > 5 * 1024 * 1024) {
+			setErrors((prev) => ({
+				...prev,
+				avatar: "File size must not exceed 5MB",
+			}));
+			return;
+		}
+
+		setAvatarFile(file);
+		setErrors((prev) => {
+			const newErrors = { ...prev };
+			delete newErrors.avatar;
+			return newErrors;
+		});
+
+		const reader = new FileReader();
+		reader.onloadend = () => {
+			setAvatarPreview(reader.result as string);
+		};
+		reader.readAsDataURL(file);
+	};
+
+	const handleRemoveAvatar = () => {
+		setAvatarFile(null);
+		setAvatarPreview("");
+		setUploadProgress(0);
+		setRegisterData((prev) => ({ ...prev, avatarUrl: "" }));
+	};
+
+	const uploadAvatar = async (): Promise<string> => {
+		if (!avatarFile) return "";
+
+		try {
+			setIsUploading(true);
+			setUploadProgress(0);
+
+			const signature = await getUploadSignature({
+				folder: "avatars",
+			});
+
+			const result = await directUploadWithSignature({
+				file: avatarFile,
+				signature,
+				onProgress: (data) => {
+					setUploadProgress(data.progress);
+				},
+				generateDelivery: {
+					publicId: "",
+					transformations: [
+						{
+							width: 200,
+							height: 200,
+							crop: "fill",
+							gravity: "face",
+						},
+					],
+				},
+			});
+
+			await saveDirectUpload(result.upload);
+
+			setIsUploading(false);
+			return result.delivery?.url || result.upload.secure_url;
+		} catch (error) {
+			console.error("Avatar upload failed:", error);
+			setIsUploading(false);
+			throw new Error("Failed to upload avatar");
+		}
+	};
+
 	const isFormValid = (): boolean => {
 		const hasErrors = Object.keys(errors).length > 0;
 		const requiredFields = [
@@ -312,7 +386,6 @@ const RegisterPage: React.FC<RegisterPageProps> = ({
 			"email",
 			"password",
 			"confirmPassword",
-			"avatarUrl",
 			"timezone",
 		];
 		setTouched(new Set(allFields));
@@ -322,37 +395,34 @@ const RegisterPage: React.FC<RegisterPageProps> = ({
 			return;
 		}
 
-		const registrationInfo = {
-			username: registerData.username,
-			displayName: registerData.displayName || registerData.username,
-			firstName: registerData.firstName,
-			lastName: registerData.lastName,
-			email: registerData.email,
-			password: registerData.password,
-			avatarUrl: registerData.avatarUrl || "",
-			timezone: registerData.timezone || "",
-		};
-
 		try {
-			let mutationPromise;
-
-			if (codeChallenge && codeChallengeMethod) {
-				mutationPromise = registerPkceMutation.mutateAsync({
-					method: "basic",
-					data: registrationInfo,
-					codeChallenge: codeChallenge,
-					codeChallengeMethod: codeChallengeMethod,
-				});
-			} else {
-				mutationPromise = registerMutation.mutateAsync({
-					method: "basic",
-					data: registrationInfo,
-				});
+			let avatarUrl = "";
+			if (avatarFile) {
+				try {
+					avatarUrl = await uploadAvatar();
+				} catch (uploadError) {
+					console.error("Avatar upload failed:", uploadError);
+					setErrors({
+						general:
+							"Failed to upload avatar. Please try again or register without avatar.",
+					});
+					setIsUploading(false);
+					return;
+				}
 			}
 
-			const result = await mutationPromise;
+			const registrationData: any = {
+				username: registerData.username,
+				firstName: registerData.firstName,
+				lastName: registerData.lastName,
+				email: registerData.email,
+				password: registerData.password,
+				timezone: registerData.timezone || "Asia/Ho_Chi_Minh",
+			};
 
-			console.log("Registration successful:", result);
+			if (avatarUrl) {
+				registrationData.avatarUrl = avatarUrl;
+			}
 
 			setSuccessMessage(
 				"Registration successful! Please check your email for verification.",
@@ -362,7 +432,6 @@ const RegisterPage: React.FC<RegisterPageProps> = ({
 				username: "",
 				firstName: "",
 				lastName: "",
-				displayName: "",
 				email: "",
 				password: "",
 				confirmPassword: "",
@@ -370,14 +439,26 @@ const RegisterPage: React.FC<RegisterPageProps> = ({
 				timezone: "",
 			});
 
+			setAvatarFile(null);
+			setAvatarPreview("");
+			setUploadProgress(0);
 			setTouched(new Set());
 			setErrors({});
 
 			setTimeout(() => {
-				// navigate('/auth/login') or window.location.href = '/auth/login'
+				// navigate('/auth/login')
 			}, 2000);
 		} catch (error: any) {
 			console.error("Registration failed:", error);
+
+			if (error?.message === "Network Error" || error?.code === "ERR_NETWORK") {
+				setErrors({
+					general:
+						"Network error. Please check your internet connection and try again.",
+				});
+				window.scrollTo({ top: 0, behavior: "smooth" });
+				return;
+			}
 
 			if (error?.response?.data?.message) {
 				const serverMessage = error.response.data.message;
@@ -401,8 +482,9 @@ const RegisterPage: React.FC<RegisterPageProps> = ({
 			window.scrollTo({ top: 0, behavior: "smooth" });
 		}
 	};
+
 	const isLoading =
-		registerMutation.isPending || registerPkceMutation.isPending;
+		registerMutation.isPending || registerPkceMutation.isPending || isUploading;
 
 	const handleGoogleSuccess = async (credentialResponse: any) => {
 		console.log("Google registration success:", credentialResponse);
@@ -419,9 +501,6 @@ const RegisterPage: React.FC<RegisterPageProps> = ({
 
 		try {
 			if (codeChallenge && codeChallengeMethod) {
-				localStorage.setItem("codeChallenge", codeChallenge);
-				localStorage.setItem("codeChallengeMethod", codeChallengeMethod);
-
 				registerPkceMutation.mutate({
 					method: "google",
 					code: credentialResponse.credential,
@@ -531,21 +610,8 @@ const RegisterPage: React.FC<RegisterPageProps> = ({
 								</div>
 							)}
 						</FormGroup>
-
-						<FormGroup>
-							<LabelOption htmlFor="displayName">Display name</LabelOption>
-							<Input
-								id="displayName"
-								type="text"
-								placeholder="Display name (Optional)"
-								value={registerData.displayName}
-								onChange={(e) =>
-									handleInputChange("displayName", e.target.value)
-								}
-								disabled={isLoading}
-							/>
-						</FormGroup>
 					</FormRow>
+
 					<FormRow>
 						<FormGroup>
 							<Label htmlFor="firstName">First name</Label>
@@ -790,146 +856,146 @@ const RegisterPage: React.FC<RegisterPageProps> = ({
 								</div>
 							)}
 						</FormGroup>
-						<FormGroup>
-							<Label htmlFor="confirmPassword">Confirm password</Label>
-							<PasswordInputWrapper>
-								<Input
-									id="confirmPassword"
-									type={showConfirmPassword ? "text" : "password"}
-									placeholder="Confirm password"
-									value={registerData.confirmPassword}
-									onChange={(e) =>
-										handleInputChange("confirmPassword", e.target.value)
-									}
-									onBlur={() =>
-										setTouched((prev) => new Set(prev).add("confirmPassword"))
-									}
-									autoComplete="new-password"
-									required
-									disabled={isLoading}
-									style={{
-										borderColor: hasError("confirmPassword")
-											? "#ef4444"
-											: undefined,
-										borderWidth: hasError("confirmPassword") ? "2px" : "1px",
-									}}
-								/>
-								{registerData.confirmPassword && !isLoading && (
-									<EyeIcon
-										type="button"
-										onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-										aria-label={
-											showConfirmPassword
-												? "Hide confirm password"
-												: "Show confirm password"
-										}
-									>
-										{showConfirmPassword ? (
+					</FormRow>
+
+					<FormGroup>
+						<LabelOption htmlFor="avatar">
+							Profile Picture (Optional)
+						</LabelOption>
+						<AvatarUploadContainer>
+							<AvatarUploadBox>
+								<AvatarPreviewWrapper>
+									{avatarPreview ? (
+										<>
+											<AvatarImage src={avatarPreview} alt="Avatar preview" />
+											{!isUploading && (
+												<RemoveAvatarButton
+													type="button"
+													onClick={handleRemoveAvatar}
+													disabled={isLoading}
+													title="Remove avatar"
+												>
+													×
+												</RemoveAvatarButton>
+											)}
+											{isUploading && (
+												<LoadingOverlay>
+													<LoadingSpinner
+														width="32"
+														height="32"
+														viewBox="0 0 24 24"
+														fill="none"
+														stroke="white"
+														strokeWidth="2"
+													>
+														<circle
+															cx="12"
+															cy="12"
+															r="10"
+															strokeOpacity="0.25"
+														/>
+														<path
+															d="M12 2a10 10 0 0 1 10 10"
+															strokeLinecap="round"
+														/>
+													</LoadingSpinner>
+												</LoadingOverlay>
+											)}
+										</>
+									) : (
+										<DefaultAvatarCircle>
 											<svg
-												width="20"
-												height="20"
+												width="48"
+												height="48"
 												viewBox="0 0 24 24"
 												fill="none"
-												stroke="currentColor"
+												stroke="#9ca3af"
 												strokeWidth="2"
 											>
-												<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
-												<line x1="1" y1="1" x2="23" y2="23" />
+												<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+												<circle cx="12" cy="7" r="4" />
 											</svg>
-										) : (
-											<svg
-												width="20"
-												height="20"
-												viewBox="0 0 24 24"
-												fill="none"
-												stroke="currentColor"
-												strokeWidth="2"
-											>
-												<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-												<circle cx="12" cy="12" r="3" />
-											</svg>
-										)}
-									</EyeIcon>
-								)}
-							</PasswordInputWrapper>
-							{hasError("confirmPassword") && (
+										</DefaultAvatarCircle>
+									)}
+								</AvatarPreviewWrapper>
+
+								<AvatarUploadInfo>
+									{isUploading ? (
+										<ProgressContainer>
+											<ProgressTitle>Uploading your photo...</ProgressTitle>
+											<ProgressBar>
+												<ProgressFill progress={uploadProgress} />
+											</ProgressBar>
+											<ProgressText>{uploadProgress}% completed</ProgressText>
+										</ProgressContainer>
+									) : (
+										<>
+											<UploadTitle>
+												{avatarFile
+													? avatarFile.name
+													: "Upload a profile picture"}
+											</UploadTitle>
+											<UploadSubtitle>
+												JPG, PNG, GIF or WebP. Max 5MB.
+											</UploadSubtitle>
+											<UploadButton htmlFor="avatar" disabled={isLoading}>
+												<svg
+													width="18"
+													height="18"
+													viewBox="0 0 24 24"
+													fill="none"
+													stroke="currentColor"
+													strokeWidth="2"
+												>
+													<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+													<polyline points="17 8 12 3 7 8" />
+													<line x1="12" y1="3" x2="12" y2="15" />
+												</svg>
+												{avatarFile ? "Change Photo" : "Choose Photo"}
+											</UploadButton>
+										</>
+									)}
+								</AvatarUploadInfo>
+							</AvatarUploadBox>
+
+							<HiddenFileInput
+								id="avatar"
+								type="file"
+								accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
+								onChange={handleAvatarChange}
+								disabled={isLoading}
+							/>
+
+							{errors.avatar && (
 								<div
 									style={{
 										color: "#ef4444",
 										fontSize: "14px",
-										marginTop: "4px",
+										marginTop: "8px",
 										fontWeight: "500",
+										display: "flex",
+										alignItems: "center",
+										gap: "6px",
 									}}
 								>
-									{errors.confirmPassword}
+									<svg
+										width="16"
+										height="16"
+										viewBox="0 0 24 24"
+										fill="currentColor"
+									>
+										<circle cx="12" cy="12" r="10" opacity="0.2" />
+										<path
+											d="M12 8v4m0 4h.01"
+											strokeWidth="2"
+											stroke="currentColor"
+											fill="none"
+										/>
+									</svg>
+									{errors.avatar}
 								</div>
 							)}
-						</FormGroup>
-					</FormRow>
-
-					<FormGroup>
-						<LabelOption htmlFor="avatarUrl">Avatar URL</LabelOption>
-						<Input
-							id="avatarUrl"
-							type="url"
-							placeholder="https://example.com/avatar.jpg (Optional)"
-							value={registerData.avatarUrl}
-							onChange={(e) => handleInputChange("avatarUrl", e.target.value)}
-							onBlur={() =>
-								setTouched((prev) => new Set(prev).add("avatarUrl"))
-							}
-							disabled={isLoading}
-							style={{
-								borderColor: hasError("avatarUrl") ? "#ef4444" : undefined,
-								borderWidth: hasError("avatarUrl") ? "2px" : "1px",
-							}}
-						/>
-						{hasError("avatarUrl") && (
-							<div
-								style={{
-									color: "#ef4444",
-									fontSize: "14px",
-									marginTop: "4px",
-									fontWeight: "500",
-								}}
-							>
-								{errors.avatarUrl}
-							</div>
-						)}
-					</FormGroup>
-
-					<FormGroup>
-						<LabelOption htmlFor="timezone">Time Zone</LabelOption>
-						<SelectWrapper>
-							<Select
-								id="timezone"
-								value={registerData.timezone}
-								onChange={(e) => handleInputChange("timezone", e.target.value)}
-								onBlur={() =>
-									setTouched((prev) => new Set(prev).add("timezone"))
-								}
-								disabled={isLoading}
-								isLoading={isLoading}
-							>
-								{timezones.map((tz) => (
-									<option key={tz.value} value={tz.value}>
-										{tz.label}
-									</option>
-								))}
-							</Select>
-						</SelectWrapper>
-						{hasError("timezone") && (
-							<div
-								style={{
-									color: "#ef4444",
-									fontSize: "14px",
-									marginTop: "4px",
-									fontWeight: "500",
-								}}
-							>
-								{errors.timezone}
-							</div>
-						)}
+						</AvatarUploadContainer>
 					</FormGroup>
 
 					<RegisterButton
