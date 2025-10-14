@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { get } from "./apiCaller";
+import { get, remove } from "./apiCaller";
 import { Profile } from "./auth/auth.type";
 
 export interface MessageResponse {
@@ -15,6 +15,18 @@ export interface MessageResponse {
 	sender: Profile;
 }
 
-export const listMessages = () => {
-	return get<MessageResponse[]>("/api/message");
+export const listMessages = (
+	channelId: string,
+	groupId: string,
+	threadId?: string,
+) => {
+	let url = `/api/group/${groupId}/channel/${channelId}/message`;
+	if (threadId) {
+		url += `?threadId=${threadId}`;
+	}
+	return get(url);
+};
+
+export const deleteMessage = (id: string) => {
+	return remove(`/api/message/${id}`);
 };

@@ -7,9 +7,9 @@ import {
 	DropdownMenuItem,
 	DropdownMenuGroup,
 } from "@/components/ui/dropdown-menu"; // shadcn dropdown
-import { Input } from "../../ui/input";
-import { InboxType } from "../ChatInput/ChatInput";
-import { Image, Link, Pencil } from "lucide-react";
+import { Input } from "../../../ui/input";
+import { Image, Link } from "lucide-react";
+import { InboxType } from "./InboxType";
 
 type Props = {
 	trigger?: React.ReactNode;
@@ -24,9 +24,9 @@ export default function ChatTypeDropdown({
 	const imgRef = useRef<HTMLInputElement | null>(null);
 	const fileRef = useRef<HTMLInputElement | null>(null);
 
-	function handleChooseCode() {
-		onChoose("quillCode");
-	}
+	// function handleChooseCode() {
+	// 	onChoose("quillCode");
+	// }
 
 	function handleImageClick() {
 		// đóng menu trước, sau đó mở file picker
@@ -66,7 +66,7 @@ export default function ChatTypeDropdown({
 
 					<DropdownMenuContent side="bottom" align="start" className="bg-white">
 						<DropdownMenuGroup>
-							<DropdownMenuItem
+							{/* <DropdownMenuItem
 								onSelect={(event) => {
 									event.preventDefault();
 									setOpen(false);
@@ -75,7 +75,7 @@ export default function ChatTypeDropdown({
 							>
 								<Pencil />
 								Hiển thị tùy chọn Định dạng
-							</DropdownMenuItem>
+							</DropdownMenuItem> */}
 
 							<DropdownMenuItem
 								onSelect={(event) => {

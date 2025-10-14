@@ -2,7 +2,9 @@ import ChatArea from "@/components/custom/ChatArea";
 // import { useParams } from "@tanstack/react-router";
 
 const ChatGroup = () => {
-	// const { groupId } = useParams({ from: '/chat/group/$groupId' });
+	// const params = useParams({ strict: false }) as { groupId?: string };
+	// 	const groupId = params.groupId;
+
 	return (
 		<>
 			<ChatArea />

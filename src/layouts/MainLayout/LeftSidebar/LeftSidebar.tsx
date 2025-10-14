@@ -93,6 +93,30 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
 			const res = await listChannels(params.groupId);
 			const channelData = res?.data?.data || res?.data || [];
 			setChannels(channelData);
+			if (!channelData || channelData.length === 0) {
+				// group không có channel -> remove channel param nếu còn
+				if (search.channel) {
+					navigate({
+						to: "/chat/group/$groupId",
+						params: { groupId: params.groupId! },
+						search: {},
+					});
+				}
+				return;
+			}
+
+			const currentChannelExists =
+				!!search.channel &&
+				channelData.some((ch: any) => ch.id === search.channel);
+
+			if (!currentChannelExists) {
+				const firstId = channelData[0].id;
+				navigate({
+					to: "/chat/group/$groupId",
+					params: { groupId: params.groupId! },
+					search: (s: any) => ({ ...s, channel: firstId }),
+				});
+			}
 		} catch (err) {
 			console.error("Failed to fetch channels:", err);
 			setChannels([]);

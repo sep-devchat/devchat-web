@@ -3,6 +3,7 @@ import styled from "styled-components";
 
 export const Composer = styled.form`
 	display: flex;
+	flex-direction: column;
 	gap: 8px;
 	padding: 10px;
 	border-top: 1px solid rgba(0, 0, 0, 0.06);
