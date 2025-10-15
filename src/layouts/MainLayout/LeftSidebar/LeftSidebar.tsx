@@ -2,19 +2,14 @@
 import {
 	Search,
 	X,
-	// Hash,
 	SettingsIcon,
 	Plus,
 	MessageCircle,
 	Settings,
 } from "lucide-react";
 import {
-	// IconButton,
 	SearchInput,
 	FriendList,
-	// FriendItem,
-	// FriendName,
-	// ChannelIcon,
 	ModalOverlay,
 	ModalContent,
 	ModalHeader,
@@ -58,6 +53,31 @@ interface LeftSidebarProps {
 	setSettingSelect: (value: boolean) => void;
 }
 
+const CHANNEL_HISTORY_KEY = "group_channel_history";
+
+const getLastChannelForGroup = (groupId: string): string | null => {
+	try {
+		const history = localStorage.getItem(CHANNEL_HISTORY_KEY);
+		if (!history) return null;
+		const parsed = JSON.parse(history);
+		return parsed[groupId] || null;
+	} catch (err) {
+		console.error("Failed to get channel history:", err);
+		return null;
+	}
+};
+
+const saveLastChannelForGroup = (groupId: string, channelId: string): void => {
+	try {
+		const history = localStorage.getItem(CHANNEL_HISTORY_KEY);
+		const parsed = history ? JSON.parse(history) : {};
+		parsed[groupId] = channelId;
+		localStorage.setItem(CHANNEL_HISTORY_KEY, JSON.stringify(parsed));
+	} catch (err) {
+		console.error("Failed to save channel history:", err);
+	}
+};
+
 export const LeftSidebar: React.FC<LeftSidebarProps> = ({
 	setSettingSelect,
 }) => {
@@ -78,9 +98,25 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
 	const [channels, setChannels] = useState<ChannelResponse[]>([]);
 
 	React.useEffect(() => {
+		if (params.groupId && search.channel) {
+			saveLastChannelForGroup(params.groupId, search.channel);
+		}
+	}, [params.groupId, search.channel]);
+
+	const isFirstFetch = React.useRef(true);
+	const prevGroupId = React.useRef<string | undefined>(undefined);
+
+	React.useEffect(() => {
 		if (!params.groupId) {
 			setChannels([]);
+			isFirstFetch.current = true;
+			prevGroupId.current = undefined;
 			return;
+		}
+
+		if (prevGroupId.current !== params.groupId) {
+			isFirstFetch.current = true;
+			prevGroupId.current = params.groupId;
 		}
 
 		fetchChannelsList();
@@ -93,15 +129,9 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
 			const res = await listChannels(params.groupId);
 			const channelData = res?.data?.data || res?.data || [];
 			setChannels(channelData);
+
 			if (!channelData || channelData.length === 0) {
-				// group không có channel -> remove channel param nếu còn
-				if (search.channel) {
-					navigate({
-						to: "/chat/group/$groupId",
-						params: { groupId: params.groupId! },
-						search: {},
-					});
-				}
+				isFirstFetch.current = false;
 				return;
 			}
 
@@ -109,17 +139,30 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
 				!!search.channel &&
 				channelData.some((ch: any) => ch.id === search.channel);
 
-			if (!currentChannelExists) {
-				const firstId = channelData[0].id;
-				navigate({
-					to: "/chat/group/$groupId",
-					params: { groupId: params.groupId! },
-					search: (s: any) => ({ ...s, channel: firstId }),
-				});
+			if (currentChannelExists) {
+				isFirstFetch.current = false;
+				return;
 			}
+
+			const lastChannelId = getLastChannelForGroup(params.groupId);
+			const lastChannelExists =
+				lastChannelId && channelData.some((ch: any) => ch.id === lastChannelId);
+
+			const targetChannelId = lastChannelExists
+				? lastChannelId
+				: channelData[0].id;
+
+			navigate({
+				to: "/chat/group/$groupId",
+				params: { groupId: params.groupId! },
+				search: (s: any) => ({ ...s, channel: targetChannelId }),
+			});
+
+			isFirstFetch.current = false;
 		} catch (err) {
 			console.error("Failed to fetch channels:", err);
 			setChannels([]);
+			isFirstFetch.current = false;
 		}
 	};
 
