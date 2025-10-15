@@ -69,6 +69,7 @@ export const SearchContainer = styled.div`
 	padding: 12px 16px;
 	margin-bottom: 16px;
 	gap: 12px;
+	height: 55px;
 `;
 
 export const SearchInput = styled.input`
@@ -303,5 +304,172 @@ export const ModalButton = styled.button`
 	transition: background-color 0.2s ease;
 	&:hover {
 		background: #16a34a;
+	}
+`;
+
+// TEST
+export const FriendsGrid = styled.div`
+	display: grid;
+	grid-template-columns: repeat(1, minmax(0, 1fr));
+	gap: 16px;
+
+	@media (min-width: 640px) {
+		grid-template-columns: repeat(1, minmax(0, 1fr));
+	}
+
+	@media (min-width: 1024px) {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+
+	@media (min-width: 1280px) {
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+	}
+`;
+
+export const FriendCard = styled.div`
+	background-color: white;
+	border-radius: 8px;
+	box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+	border: 1px solid #e5e7eb;
+	transition: box-shadow 0.2s ease;
+
+	&:hover {
+		box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+	}
+`;
+
+export const CardContent = styled.div`
+	padding: 16px;
+`;
+
+export const CardHeader = styled.div`
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	align-items: center;
+`;
+
+export const MenuButton = styled.button`
+	padding: 4px;
+	border: none;
+	background-color: transparent;
+	cursor: pointer;
+	border-radius: 9999px;
+	transition: background-color 0.2s ease;
+	justify-content: center;
+
+	&:hover {
+		background-color: #f3f4f6;
+	}
+	&:focus {
+		outline: none;
+	}
+`;
+
+export const MenuDropdown = styled.div`
+	position: absolute;
+	right: 0;
+	margin-top: 8px;
+	width: 224px;
+	background-color: white;
+	box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+	border: 1px solid #e5e7eb;
+	padding: 8px 0;
+	z-index: 10;
+`;
+
+export const MenuItem = styled.button`
+	width: 100%;
+	display: flex;
+	align-items: center;
+	padding: 8px 16px;
+	border: none;
+	background-color: transparent;
+	text-align: left;
+	cursor: pointer;
+	transition: background-color 0.2s ease;
+	color: #374151;
+	font-size: 0.875rem;
+
+	&:hover {
+		background-color: #f3f4f6;
+		border-radius: 0;
+	}
+
+	&:focus {
+		outline: none;
+	}
+
+	svg {
+		margin-right: 12px;
+		color: #374151;
+	}
+`;
+
+export const MenuItemText = styled.span`
+	color: #374151;
+`;
+
+export const FriendInfo = styled.div`
+	display: flex;
+	flex-direction: column;
+`;
+
+export const FriendName = styled.h3`
+	font-weight: 600;
+	color: #111827;
+	font-size: 1.125rem;
+`;
+
+export const NoResults = styled.div`
+	text-align: center;
+	padding: 48px 0;
+`;
+
+export const NoResultsText = styled.p`
+	color: #6b7280;
+	font-size: 1.125rem;
+`;
+
+export const Overlay = styled.div`
+	position: fixed;
+	inset: 0;
+	z-index: 0;
+`;
+
+export const MenuContainer = styled.div`
+	position: relative;
+	display: inline-block;
+`;
+
+export const PaginationContainer = styled.div`
+	display: flex;
+	justify-content: flex-end;
+	margin-top: 20px;
+	gap: 6px;
+`;
+
+export const PageButton = styled.button<{ $active?: boolean }>`
+	padding: 6px 12px;
+	border-radius: 8px;
+	border: none;
+	cursor: pointer;
+	background-color: ${({ $active }) => ($active ? "#133E87" : "#E5E7EB")};
+	color: ${({ $active }) => ($active ? "#fff" : "#1F2937")};
+	font-weight: 500;
+	transition: background-color 0.2s ease;
+
+	&:hover {
+		background-color: ${({ $active }) => ($active ? "#1D4ED8" : "#D1D5DB")};
+	}
+
+	&:disabled {
+		background-color: #f3f4f6;
+		color: #9ca3af;
+		cursor: not-allowed;
+	}
+
+	&:focus {
+		outline: none;
 	}
 `;

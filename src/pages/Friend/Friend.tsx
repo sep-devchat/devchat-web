@@ -1,9 +1,6 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
 	Container,
-	// Header,
-	// NavTabs,
-	// NavTab,
 	Content,
 	Title,
 	Subtitle,
@@ -20,16 +17,27 @@ import {
 	SectionHeader,
 	ActionButton,
 	ActionButtons,
-	// UnfriendButton,
 	Modal,
 	ModalContent,
 	ModalTitle,
 	SendImg,
 	ModalMessage,
 	ModalButton,
-	// NavTabTitle,
+	FriendsGrid,
+	FriendCard,
+	CardContent,
+	CardHeader,
+	MenuContainer,
+	MenuButton,
+	MenuDropdown,
+	MenuItem,
+	FriendInfo,
+	FriendName,
+	NoResults,
+	PaginationContainer,
+	PageButton,
 } from "./Friend.styed";
-import { Search } from "lucide-react";
+import { MoreHorizontal, Search, Star, UserMinus } from "lucide-react";
 import sendImage from "../../assets/image/sendImage.png";
 import { useSearch } from "@tanstack/react-router";
 
@@ -60,14 +68,23 @@ interface Friend {
 const Friend: React.FC = () => {
 	const search = useSearch({ from: "/chat/friend" });
 	const activeTab = search.tab || "add-friend";
-	const [searchQuery, setSearchQuery] = useState("");
+
+	const [searchAdd, setSearchAdd] = useState("");
+	const [searchAll, setSearchAll] = useState("");
+	const [searchPending, setSearchPending] = useState("");
+
 	const [searchResults, setSearchResults] = useState<User[]>([]);
 	const [selectedUser, setSelectedUser] = useState<User | null>(null);
 	const [showModal, setShowModal] = useState(false);
+	const [activeMenu, setActiveMenu] = useState<string | null>(null);
+
+	const [currentPage, setCurrentPage] = useState(1);
+	const friendsPerPage = 18;
+
 	const [allFriends, setAllFriends] = useState<Friend[]>([
 		{
 			id: "1",
-			name: "Nhu Nguyen",
+			name: "Nhu Phien",
 			handle: "@nhunguyen1",
 			avatar:
 				"https://images.unsplash.com/photo-1494790108755-2616b332c-c3?w=100&h=100&fit=crop&crop=face",
@@ -83,19 +100,171 @@ const Friend: React.FC = () => {
 		},
 		{
 			id: "3",
-			name: "Nhu Nguyen",
-			handle: "@nhunguyen3",
+			name: "Nhu Phien",
+			handle: "@nhunguyen1",
 			avatar:
-				"https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&h=100&fit=crop&crop=face",
-			mutualFriends: 8,
+				"https://images.unsplash.com/photo-1494790108755-2616b332c-c3?w=100&h=100&fit=crop&crop=face",
+			mutualFriends: 5,
+		},
+		{
+			id: "3",
+			name: "Nhu Phien",
+			handle: "@nhunguyen1",
+			avatar:
+				"https://images.unsplash.com/photo-1494790108755-2616b332c-c3?w=100&h=100&fit=crop&crop=face",
+			mutualFriends: 5,
 		},
 		{
 			id: "4",
 			name: "Nhu Nguyen",
-			handle: "@nhunguyen4",
+			handle: "@nhunguyen2",
 			avatar:
-				"https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face",
-			mutualFriends: 2,
+				"https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face",
+			mutualFriends: 3,
+		},
+		{
+			id: "5",
+			name: "Nhu Phien",
+			handle: "@nhunguyen1",
+			avatar:
+				"https://images.unsplash.com/photo-1494790108755-2616b332c-c3?w=100&h=100&fit=crop&crop=face",
+			mutualFriends: 5,
+		},
+		{
+			id: "6",
+			name: "Nhu Nguyen",
+			handle: "@nhunguyen2",
+			avatar:
+				"https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face",
+			mutualFriends: 3,
+		},
+		{
+			id: "7",
+			name: "Nhu Phien",
+			handle: "@nhunguyen1",
+			avatar:
+				"https://images.unsplash.com/photo-1494790108755-2616b332c-c3?w=100&h=100&fit=crop&crop=face",
+			mutualFriends: 5,
+		},
+		{
+			id: "8",
+			name: "Nhu Nguyen",
+			handle: "@nhunguyen2",
+			avatar:
+				"https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face",
+			mutualFriends: 3,
+		},
+		{
+			id: "9",
+			name: "Nhu Phien",
+			handle: "@nhunguyen1",
+			avatar:
+				"https://images.unsplash.com/photo-1494790108755-2616b332c-c3?w=100&h=100&fit=crop&crop=face",
+			mutualFriends: 5,
+		},
+		{
+			id: "10",
+			name: "Nhu Nguyen",
+			handle: "@nhunguyen2",
+			avatar:
+				"https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face",
+			mutualFriends: 3,
+		},
+		{
+			id: "11",
+			name: "Nhu Phien",
+			handle: "@nhunguyen1",
+			avatar:
+				"https://images.unsplash.com/photo-1494790108755-2616b332c-c3?w=100&h=100&fit=crop&crop=face",
+			mutualFriends: 5,
+		},
+		{
+			id: "12",
+			name: "Nhu Nguyen",
+			handle: "@nhunguyen2",
+			avatar:
+				"https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face",
+			mutualFriends: 3,
+		},
+		{
+			id: "13",
+			name: "Nhu Phien",
+			handle: "@nhunguyen1",
+			avatar:
+				"https://images.unsplash.com/photo-1494790108755-2616b332c-c3?w=100&h=100&fit=crop&crop=face",
+			mutualFriends: 5,
+		},
+		{
+			id: "14",
+			name: "Nhu Nguyen",
+			handle: "@nhunguyen2",
+			avatar:
+				"https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face",
+			mutualFriends: 3,
+		},
+		{
+			id: "15",
+			name: "Nhu Phien",
+			handle: "@nhunguyen1",
+			avatar:
+				"https://images.unsplash.com/photo-1494790108755-2616b332c-c3?w=100&h=100&fit=crop&crop=face",
+			mutualFriends: 5,
+		},
+		{
+			id: "16",
+			name: "Nhu Nguyen",
+			handle: "@nhunguyen2",
+			avatar:
+				"https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face",
+			mutualFriends: 3,
+		},
+		{
+			id: "17",
+			name: "Nhu Phien",
+			handle: "@nhunguyen1",
+			avatar:
+				"https://images.unsplash.com/photo-1494790108755-2616b332c-c3?w=100&h=100&fit=crop&crop=face",
+			mutualFriends: 5,
+		},
+		{
+			id: "18",
+			name: "Nhu Nguyen",
+			handle: "@nhunguyen2",
+			avatar:
+				"https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face",
+			mutualFriends: 3,
+		},
+		{
+			id: "19",
+			name: "Nhu Phien",
+			handle: "@nhunguyen1",
+			avatar:
+				"https://images.unsplash.com/photo-1494790108755-2616b332c-c3?w=100&h=100&fit=crop&crop=face",
+			mutualFriends: 5,
+		},
+		{
+			id: "20",
+			name: "Nhu Nguyen",
+			handle: "@nhunguyen2",
+			avatar:
+				"https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face",
+			mutualFriends: 3,
+		},
+		{
+			id: "21",
+			name: "Nhu Phien",
+			handle: "@nhunguyen1",
+			avatar:
+				"https://images.unsplash.com/photo-1494790108755-2616b332c-c3?w=100&h=100&fit=crop&crop=face",
+			mutualFriends: 5,
+		},
+		{
+			id: "22",
+			name: "Nhu Nguyen",
+			handle: "@nhunguyen2",
+			avatar:
+				"https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face",
+			mutualFriends: 3,
 		},
 	]);
 
@@ -111,25 +280,9 @@ const Friend: React.FC = () => {
 		{
 			id: "2",
 			name: "Nhu Nguyen",
-			handle: "@nhunguyen_req2",
-			avatar:
-				"https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop&crop=face",
-			type: "received",
-		},
-		{
-			id: "3",
-			name: "Nhu Nguyen",
 			handle: "@nhunguyen_sent1",
 			avatar:
 				"https://images.unsplash.com/photo-1506794778202-cad84cf45f-ad?w=100&h=100&fit=crop&crop=face",
-			type: "sent",
-		},
-		{
-			id: "4",
-			name: "Nhu Nguyen",
-			handle: "@nhunguyen_sent2",
-			avatar:
-				"https://images.unsplash.com/photo-1507591064344-4c6ce005b128?w=100&h=100&fit=crop&crop=face",
 			type: "sent",
 		},
 	]);
@@ -151,50 +304,10 @@ const Friend: React.FC = () => {
 				"https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face",
 			mutualFriends: 5,
 		},
-		{
-			id: "3",
-			name: "Nhu Nguyen",
-			handle: "@nhunguyen3",
-			avatar:
-				"https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&h=100&fit=crop&crop=face",
-			mutualFriends: 3,
-		},
-		{
-			id: "4",
-			name: "Nhu Nguyen",
-			handle: "@nhunguyen4",
-			avatar:
-				"https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face",
-			mutualFriends: 1,
-		},
-		{
-			id: "5",
-			name: "Nhu Nguyen",
-			handle: "@nhunguyen5",
-			avatar:
-				"https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop&crop=face",
-			mutualFriends: 7,
-		},
-		{
-			id: "6",
-			name: "Nhu Nguyen",
-			handle: "@nhunguyen6",
-			avatar:
-				"https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop&crop=face",
-			mutualFriends: 4,
-		},
-		{
-			id: "7",
-			name: "Nhu Nguyen",
-			handle: "@nhunguyen7",
-			avatar:
-				"https://images.unsplash.com/photo-1506794778202-cad84cf45f-ad?w=100&h=100&fit=crop&crop=face",
-			mutualFriends: 6,
-		},
 	];
 
-	const handleSearch = (query: string) => {
-		setSearchQuery(query);
+	const handleSearchAdd = (query: string) => {
+		setSearchAdd(query);
 		if (query.trim()) {
 			const filtered = mockUsers.filter(
 				(user) =>
@@ -209,14 +322,14 @@ const Friend: React.FC = () => {
 
 	const handleSelectUser = (user: User) => {
 		setSelectedUser(user);
-		setSearchQuery(user.name);
+		setSearchAdd(user.name);
 		setSearchResults([]);
 	};
 
 	const handleSendRequest = () => {
 		if (selectedUser) {
 			setShowModal(true);
-			setSearchQuery("");
+			setSearchAdd("");
 			setSearchResults([]);
 			setSelectedUser(null);
 		}
@@ -238,7 +351,6 @@ const Friend: React.FC = () => {
 				mutualFriends: Math.floor(Math.random() * 10) + 1,
 			};
 			setAllFriends((prev) => [...prev, newFriend]);
-
 			setPendingRequests((prev) => prev.filter((req) => req.id !== requestId));
 		}
 	};
@@ -251,9 +363,23 @@ const Friend: React.FC = () => {
 		setPendingRequests((prev) => prev.filter((req) => req.id !== requestId));
 	};
 
-	// const handleUnfriend = (friendId: string) => {
-	//     setAllFriends(prev => prev.filter(friend => friend.id !== friendId));
-	// };
+	const handleMenuToggle = (friendId: string, e: React.MouseEvent) => {
+		e.stopPropagation();
+		setActiveMenu(activeMenu === friendId ? null : friendId);
+	};
+
+	const handleMenuAction = (action: string, friendName: string) => {
+		console.log(`${action} - ${friendName}`);
+		setActiveMenu(null);
+	};
+
+	useEffect(() => {
+		const handleClickOutside = () => {
+			if (activeMenu) setActiveMenu(null);
+		};
+		document.addEventListener("click", handleClickOutside);
+		return () => document.removeEventListener("click", handleClickOutside);
+	}, [activeMenu]);
 
 	const renderAddFriendContent = () => (
 		<>
@@ -266,13 +392,13 @@ const Friend: React.FC = () => {
 				<Search size={20} color="#1A1A1A" />
 				<SearchInput
 					type="text"
-					placeholder="You can find and add friends with their email/username"
-					value={searchQuery}
-					onChange={(e) => handleSearch(e.target.value)}
+					placeholder="Search by name or username"
+					value={searchAdd}
+					onChange={(e) => handleSearchAdd(e.target.value)}
 				/>
 				<SendButton
 					onClick={handleSendRequest}
-					disabled={!selectedUser || !searchQuery.trim()}
+					disabled={!selectedUser || !searchAdd.trim()}
 				>
 					Send request
 				</SendButton>
@@ -299,90 +425,159 @@ const Friend: React.FC = () => {
 		</>
 	);
 
-	const renderAllContent = () => (
-		<>
-			<Title>All Friend - {allFriends.length}</Title>
-			<Subtitle>Here are view list Friends here.</Subtitle>
+	const renderAllContent = () => {
+		const filteredFriends = allFriends.filter(
+			(friend) =>
+				friend.name.toLowerCase().includes(searchAll.toLowerCase()) ||
+				friend.handle.toLowerCase().includes(searchAll.toLowerCase()),
+		);
 
-			<SearchContainer>
-				<Search size={20} color="#1A1A1A" />
-				<SearchInput
-					type="text"
-					placeholder="You can find and add friends with their email/username"
-					value={searchQuery}
-					onChange={(e) => handleSearch(e.target.value)}
-				/>
-				<SendButton
-					onClick={handleSendRequest}
-					disabled={!selectedUser || !searchQuery.trim()}
+		const indexOfLastFriend = currentPage * friendsPerPage;
+		const indexOfFirstFriend = indexOfLastFriend - friendsPerPage;
+		const currentFriends = filteredFriends.slice(
+			indexOfFirstFriend,
+			indexOfLastFriend,
+		);
+
+		const totalPages = Math.ceil(filteredFriends.length / friendsPerPage);
+
+		const handlePageChange = (page: number) => {
+			setCurrentPage(page);
+		};
+
+		return (
+			<>
+				<Title>All Friend - {allFriends.length}</Title>
+				<Subtitle>Here are your friends.</Subtitle>
+
+				<SearchContainer>
+					<Search size={20} color="#1A1A1A" />
+					<SearchInput
+						type="text"
+						placeholder="Search your friends..."
+						value={searchAll}
+						onChange={(e) => {
+							setSearchAll(e.target.value);
+							setCurrentPage(1);
+						}}
+					/>
+				</SearchContainer>
+
+				<FriendsGrid
+					className="hide-scrollbar"
+					style={{ scrollbarWidth: "none" }}
 				>
-					Send request
-				</SendButton>
-			</SearchContainer>
+					{currentFriends.map((friend) => (
+						<FriendCard key={friend.id}>
+							<CardContent>
+								<CardHeader>
+									<div
+										style={{
+											display: "flex",
+											gap: "8px",
+											alignItems: "center",
+										}}
+									>
+										<Avatar src={friend.avatar} alt={friend.name} />
+										<FriendInfo>
+											<FriendName>{friend.name}</FriendName>
+											<MutualFriends>
+												{friend.mutualFriends} bạn chung
+											</MutualFriends>
+										</FriendInfo>
+									</div>
 
-			{allFriends.length > 0 && (
-				<ResultsList>
-					{allFriends
-						.filter(
-							(friend) =>
-								!searchQuery ||
-								friend.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-								friend.handle.toLowerCase().includes(searchQuery.toLowerCase()),
-						)
-						.map((friend) => (
-							<ResultItem key={friend.id}>
-								<Avatar src={friend.avatar} alt={friend.name} />
-								<UserInfo>
-									<UserName>{friend.name}</UserName>
-									<UserHandle>{friend.handle}</UserHandle>
-								</UserInfo>
-								<MutualFriends>
-									{friend.mutualFriends} mutual friends
-								</MutualFriends>
-							</ResultItem>
+									<MenuContainer>
+										<MenuButton onClick={(e) => handleMenuToggle(friend.id, e)}>
+											<MoreHorizontal size={20} color="#6B7280" />
+										</MenuButton>
+
+										{activeMenu === friend.id && (
+											<MenuDropdown>
+												<MenuItem
+													onClick={() =>
+														handleMenuAction("Yêu thích", friend.name)
+													}
+												>
+													<Star size={18} style={{ marginRight: "12px" }} />
+													<span>Yêu thích</span>
+												</MenuItem>
+												<MenuItem
+													onClick={() =>
+														handleMenuAction("Hủy kết bạn", friend.name)
+													}
+												>
+													<UserMinus
+														size={18}
+														style={{ marginRight: "12px" }}
+													/>
+													<span>Hủy kết bạn</span>
+												</MenuItem>
+											</MenuDropdown>
+										)}
+									</MenuContainer>
+								</CardHeader>
+							</CardContent>
+						</FriendCard>
+					))}
+				</FriendsGrid>
+
+				{filteredFriends.length > friendsPerPage && (
+					<PaginationContainer>
+						{Array.from({ length: totalPages }, (_, index) => (
+							<PageButton
+								key={index + 1}
+								onClick={() => handlePageChange(index + 1)}
+								$active={currentPage === index + 1}
+							>
+								{index + 1}
+							</PageButton>
 						))}
-				</ResultsList>
-			)}
-		</>
-	);
+					</PaginationContainer>
+				)}
 
-	const renderPendingContent = () => (
-		<>
-			<Title>Pending Page</Title>
-			<Subtitle>View your sent requests and incoming friend requests</Subtitle>
+				{filteredFriends.length === 0 && (
+					<NoResults>Không tìm thấy bạn bè nào</NoResults>
+				)}
+			</>
+		);
+	};
 
-			<SearchContainer>
-				<Search size={20} color="#1A1A1A" />
-				<SearchInput
-					type="text"
-					placeholder="You can find and add friends with their email/username"
-					value={searchQuery}
-					onChange={(e) => handleSearch(e.target.value)}
-				/>
-				<SendButton
-					onClick={handleSendRequest}
-					disabled={!selectedUser || !searchQuery.trim()}
-				>
-					Send request
-				</SendButton>
-			</SearchContainer>
+	const renderPendingContent = () => {
+		const received = pendingRequests.filter((req) => req.type === "received");
+		const sent = pendingRequests.filter((req) => req.type === "sent");
 
-			{pendingRequests.filter((req) => req.type === "received").length > 0 && (
-				<>
-					<SectionHeader>
-						Received -{" "}
-						{pendingRequests.filter((req) => req.type === "received").length}
-					</SectionHeader>
-					<ResultsList style={{ marginBottom: "24px" }}>
-						{pendingRequests
-							.filter((req) => req.type === "received")
-							.filter(
-								(req) =>
-									!searchQuery ||
-									req.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-									req.handle.toLowerCase().includes(searchQuery.toLowerCase()),
-							)
-							.map((request) => (
+		const filteredReceived = received.filter(
+			(req) =>
+				req.name.toLowerCase().includes(searchPending.toLowerCase()) ||
+				req.handle.toLowerCase().includes(searchPending.toLowerCase()),
+		);
+		const filteredSent = sent.filter(
+			(req) =>
+				req.name.toLowerCase().includes(searchPending.toLowerCase()) ||
+				req.handle.toLowerCase().includes(searchPending.toLowerCase()),
+		);
+
+		return (
+			<>
+				<Title>Pending Page</Title>
+				<Subtitle>View your sent and incoming requests</Subtitle>
+
+				<SearchContainer>
+					<Search size={20} color="#1A1A1A" />
+					<SearchInput
+						type="text"
+						placeholder="Search pending requests..."
+						value={searchPending}
+						onChange={(e) => setSearchPending(e.target.value)}
+					/>
+				</SearchContainer>
+
+				{filteredReceived.length > 0 && (
+					<>
+						<SectionHeader>Received - {filteredReceived.length}</SectionHeader>
+						<ResultsList style={{ marginBottom: "24px" }}>
+							{filteredReceived.map((request) => (
 								<ResultItem key={request.id}>
 									<Avatar src={request.avatar} alt={request.name} />
 									<UserInfo>
@@ -405,25 +600,15 @@ const Friend: React.FC = () => {
 									</ActionButtons>
 								</ResultItem>
 							))}
-					</ResultsList>
-				</>
-			)}
+						</ResultsList>
+					</>
+				)}
 
-			{pendingRequests.filter((req) => req.type === "sent").length > 0 && (
-				<>
-					<SectionHeader>
-						Sent - {pendingRequests.filter((req) => req.type === "sent").length}
-					</SectionHeader>
-					<ResultsList>
-						{pendingRequests
-							.filter((req) => req.type === "sent")
-							.filter(
-								(req) =>
-									!searchQuery ||
-									req.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-									req.handle.toLowerCase().includes(searchQuery.toLowerCase()),
-							)
-							.map((request) => (
+				{filteredSent.length > 0 && (
+					<>
+						<SectionHeader>Sent - {filteredSent.length}</SectionHeader>
+						<ResultsList>
+							{filteredSent.map((request) => (
 								<ResultItem key={request.id}>
 									<Avatar src={request.avatar} alt={request.name} />
 									<UserInfo>
@@ -438,11 +623,12 @@ const Friend: React.FC = () => {
 									</ActionButton>
 								</ResultItem>
 							))}
-					</ResultsList>
-				</>
-			)}
-		</>
-	);
+						</ResultsList>
+					</>
+				)}
+			</>
+		);
+	};
 
 	const renderContent = () => {
 		switch (activeTab) {
