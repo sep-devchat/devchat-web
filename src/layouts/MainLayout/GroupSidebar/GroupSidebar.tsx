@@ -13,6 +13,7 @@ import {
 } from "./GroupSidebar.styled";
 import AddGroupModal from "@/components/custom/AddGroupModal/AddGroupModal";
 import { listGroups, GroupResponse } from "@/services/groupAPI";
+import { listChannels } from "@/services/channelAPI";
 
 type SidebarGroup = {
 	id: string;
@@ -24,8 +25,21 @@ type SidebarGroup = {
 	isActive?: boolean;
 };
 
+const CHANNEL_HISTORY_KEY = "group_channel_history";
+
+const getLastChannelForGroup = (groupId: string): string | null => {
+	try {
+		const history = localStorage.getItem(CHANNEL_HISTORY_KEY);
+		if (!history) return null;
+		const parsed = JSON.parse(history);
+		return parsed[groupId] || null;
+	} catch (err) {
+		console.error("Failed to get channel history:", err);
+		return null;
+	}
+};
+
 const GroupSidebar: React.FC = () => {
-	// ban đầu để rỗng — sẽ được cập nhật từ API
 	const [localGroups, setLocalGroups] = useState<SidebarGroup[]>([]);
 	const [activeId, setActiveId] = useState<string | null>(null);
 	const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
@@ -33,14 +47,12 @@ const GroupSidebar: React.FC = () => {
 	const contentWrapperRef = useRef<HTMLUListElement | null>(null);
 	const [logoMode, setLogoMode] = useState<boolean>(false);
 
-	// scroll về đầu khi selectedGroupId hoặc logoMode thay đổi
 	useEffect(() => {
 		if (contentWrapperRef.current) {
 			contentWrapperRef.current.scrollTop = 0;
 		}
 	}, [selectedGroupId, logoMode]);
 
-	// fetch groups từ API khi mount
 	useEffect(() => {
 		let mounted = true;
 		const fetch = async () => {
@@ -49,7 +61,6 @@ const GroupSidebar: React.FC = () => {
 				const payload = (res && (res.data ?? res)) as GroupResponse[];
 				if (!mounted) return;
 
-				// map server GroupResponse -> shape sidebar dùng
 				const mapped = (payload || []).map((g) => {
 					const initials = (g.name || "")
 						.split(" ")
@@ -61,14 +72,13 @@ const GroupSidebar: React.FC = () => {
 						id: g.id,
 						name: g.name,
 						initials,
-						avatarColor: "#8b5cf6", // giữ mặc định như trước; đổi nếu có logic color khác
+						avatarColor: "#8b5cf6",
 						unread: 0,
 						avatar: g.avatar ?? undefined,
-						isActive: g.isActive ?? true, // nếu server có isActive thì dùng, nếu không mặc định true
+						isActive: g.isActive ?? true,
 					} as SidebarGroup;
 				});
 
-				// CHỈ LƯU NHỮNG GROUP isActive === true
 				const onlyActive = mapped.filter((mg) => mg.isActive === true);
 
 				setLocalGroups(onlyActive);
@@ -82,7 +92,6 @@ const GroupSidebar: React.FC = () => {
 				}
 			} catch (err) {
 				console.error("Failed to load groups:", err);
-				// Giữ localGroups như hiện tại nếu lỗi
 			}
 		};
 
@@ -92,8 +101,7 @@ const GroupSidebar: React.FC = () => {
 		};
 	}, []);
 
-	// onCreate từ modal sẽ truyền object { id, name } (server trả về)
-	const handleCreatedNavigate = (
+	const onCreate = (
 		created: GroupResponse | { id: string; name: string; avatar?: string },
 	) => {
 		const initials = created.name
@@ -109,15 +117,54 @@ const GroupSidebar: React.FC = () => {
 			avatarColor: "#8b5cf6",
 			unread: 0,
 			avatar: created.avatar ?? undefined,
-			isActive: true, // mới tạo mặc định active
+			isActive: true,
 		};
 
-		// chỉ thêm nếu isActive true (ở đây luôn true)
 		setLocalGroups((prev) => [newGroup, ...prev]);
 		setActiveId(created.id);
 		setSelectedGroupId(created.id);
 		setLogoMode(false);
+
 		navigate({ to: "/chat/group/$groupId", params: { groupId: created.id } });
+	};
+
+	const handleGroupClick = async (groupId: string) => {
+		setActiveId(groupId);
+		setSelectedGroupId(groupId);
+		setLogoMode(false);
+
+		try {
+			const res = await listChannels(groupId);
+			const channelData = res?.data?.data || res?.data || [];
+
+			if (!channelData || channelData.length === 0) {
+				navigate({
+					to: "/chat/group/$groupId",
+					params: { groupId },
+				});
+				return;
+			}
+
+			const lastChannelId = getLastChannelForGroup(groupId);
+			const lastChannelExists =
+				lastChannelId && channelData.some((ch: any) => ch.id === lastChannelId);
+
+			const targetChannelId = lastChannelExists
+				? lastChannelId
+				: channelData[0].id;
+
+			navigate({
+				to: "/chat/group/$groupId",
+				params: { groupId },
+				search: { channel: targetChannelId },
+			});
+		} catch (err) {
+			console.error("Failed to fetch channels for group:", err);
+			navigate({
+				to: "/chat/group/$groupId",
+				params: { groupId },
+			});
+		}
 	};
 
 	const handleLogoClick = () => {
@@ -125,7 +172,6 @@ const GroupSidebar: React.FC = () => {
 		setSelectedGroupId(null);
 		setActiveId(null);
 		navigate({ to: "/chat/friend" });
-		// channelSelected("logo-menu");
 	};
 
 	return (
@@ -134,9 +180,7 @@ const GroupSidebar: React.FC = () => {
 				<LogoBox>LOGO</LogoBox>
 			</LogoSection>
 
-			{/* gán ref để control scroll */}
 			<GroupList ref={contentWrapperRef}>
-				{/* CHỈ RENDER NHỮNG GROUP isActive === true */}
 				{localGroups
 					.filter((g) => g.isActive === true)
 					.map((g) => (
@@ -146,23 +190,13 @@ const GroupSidebar: React.FC = () => {
 								title={g.name}
 								aria-selected={activeId === g.id}
 								$color={g.avatarColor}
-								onClick={() => {
-									setActiveId(g.id);
-									setSelectedGroupId(g.id);
-									setLogoMode(false);
-									navigate({
-										to: "/chat/group/$groupId",
-										params: { groupId: g.id },
-									});
-								}}
+								onClick={() => handleGroupClick(g.id)}
 								aria-label={`Open group ${g.name}`}
 							>
-								{/* Nếu có avatar URL thì hiển thị <img>, ngược lại hiển thị initials */}
 								{g.avatar ? (
 									<img
 										src={g.avatar}
 										alt={`${g.name} avatar`}
-										// style nhỏ để đảm bảo nó khớp với nút (tùy style GroupButton của bạn)
 										style={{
 											width: "2.25rem",
 											height: "2.25rem",
@@ -170,7 +204,6 @@ const GroupSidebar: React.FC = () => {
 											objectFit: "cover",
 											display: "block",
 										}}
-										// Khi load lỗi thì ẩn <img> để fallback về initials
 										onError={(e) => {
 											const img = e.currentTarget as HTMLImageElement;
 											img.onerror = null;
@@ -199,7 +232,7 @@ const GroupSidebar: React.FC = () => {
 								+
 							</CreateGroupButton>
 						}
-						onCreate={handleCreatedNavigate}
+						onCreate={onCreate}
 					/>
 				</GroupItem>
 			</GroupList>
