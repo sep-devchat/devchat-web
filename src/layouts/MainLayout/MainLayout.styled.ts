@@ -51,7 +51,6 @@ export const CenterPanel = styled.div`
 
 export const OutletContainer = styled.div`
 	flex: 1;
-	min-height: 0;
 	overflow: hidden;
 	border-radius: 0 0 0.625rem 0;
 	background: white;

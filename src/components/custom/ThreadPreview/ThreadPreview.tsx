@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { useNavigate } from "@tanstack/react-router";
 import React from "react";
-import { useNavigate } from "react-router-dom";
 
 type MessageResponseMinimal = {
 	id: string;
@@ -55,8 +55,10 @@ export const ThreadPreview: React.FC<{
 	const threadTitle = threadMeta?.name || `Thread ${threadId.slice(0, 8)}`;
 
 	const onOpenThread = () => {
-		const path = `/chat/group/${groupId}/${threadId}${channelIdParam ? `?channel=${channelIdParam}` : ""}`;
-		navigate(path);
+		navigate({
+			to: `/chat/group/${groupId}/${threadId}`,
+			search: channelIdParam ? { channel: channelIdParam } : undefined,
+		});
 	};
 
 	return (
