@@ -10,9 +10,12 @@ import {
 	CreateGroupButton,
 	LogoSection,
 	LogoBox,
+	Triangle,
+	GroupListOnly,
 } from "./GroupSidebar.styled";
 import AddGroupModal from "@/components/custom/AddGroupModal/AddGroupModal";
 import { listGroups, GroupResponse } from "@/services/groupAPI";
+import { theme } from "@/themes";
 import { listChannels } from "@/services/channelAPI";
 
 type SidebarGroup = {
@@ -72,7 +75,7 @@ const GroupSidebar: React.FC = () => {
 						id: g.id,
 						name: g.name,
 						initials,
-						avatarColor: "#8b5cf6",
+						avatarColor: `${theme.color.primary}`, // giữ mặc định như trước; đổi nếu có logic color khác
 						unread: 0,
 						avatar: g.avatar ?? undefined,
 						isActive: g.isActive ?? true,
@@ -181,46 +184,77 @@ const GroupSidebar: React.FC = () => {
 			</LogoSection>
 
 			<GroupList ref={contentWrapperRef}>
-				{localGroups
-					.filter((g) => g.isActive === true)
-					.map((g) => (
-						<GroupItem key={g.id}>
-							<GroupButton
-								type="button"
-								title={g.name}
-								aria-selected={activeId === g.id}
-								$color={g.avatarColor}
-								onClick={() => handleGroupClick(g.id)}
-								aria-label={`Open group ${g.name}`}
-							>
-								{g.avatar ? (
-									<img
-										src={g.avatar}
-										alt={`${g.name} avatar`}
-										style={{
-											width: "2.25rem",
-											height: "2.25rem",
-											borderRadius: "9999px",
-											objectFit: "cover",
-											display: "block",
-										}}
-										onError={(e) => {
-											const img = e.currentTarget as HTMLImageElement;
-											img.onerror = null;
-											img.style.display = "none";
-										}}
-									/>
-								) : (
-									<span>{g.initials}</span>
-								)}
+				<GroupListOnly>
+					{localGroups
+						.filter((g) => g.isActive === true)
+						.map((g) => (
+							<GroupItem key={g.id}>
+								<GroupButton
+									type="button"
+									title={g.name}
+									aria-selected={activeId === g.id}
+									$color={g.avatarColor}
+									onClick={() => handleGroupClick(g.id)}
+									aria-label={`Open group ${g.name}`}
+								>
+									<Triangle
+										className="left-triangle"
+										viewBox="0 0 200 420"
+										role="presentation"
+										aria-hidden="true"
+									>
+										<defs>
+											<linearGradient id="triGradient" x1="0" x2="1">
+												<stop offset="0" stopColor="#D4D491" />
+												<stop offset="1" stopColor="#4D85E6" />
+											</linearGradient>
+										</defs>
 
-								{g.unread ? (
-									<UnreadBadge>{g.unread > 99 ? "99+" : g.unread}</UnreadBadge>
-								) : null}
-							</GroupButton>
-						</GroupItem>
-					))}
+										{/* Path với bo góc (A = arc) — bạn có thể chỉnh rx/ry để thay đổi bán kính */}
+										<path
+											d="
+											M 40 30
+											A 20 20 0 0 0 20 50
+											V 370
+											A 20 20 0 0 0 40 390
+											H 100
+											L 170 210
+											L 100 30
+											Z
+										"
+											fill="url(#triGradient)"
+										/>
+									</Triangle>
+									{g.avatar ? (
+										<img
+											src={g.avatar}
+											alt={`${g.name} avatar`}
+											style={{
+												width: "40px",
+												height: "40px",
+												borderRadius: "9999px",
+												objectFit: "cover",
+												display: "block",
+											}}
+											onError={(e) => {
+												const img = e.currentTarget as HTMLImageElement;
+												img.onerror = null;
+												img.style.display = "none";
+											}}
+										/>
+									) : (
+										<span>{g.initials}</span>
+									)}
 
+									{g.unread ? (
+										<UnreadBadge>
+											{g.unread > 99 ? "99+" : g.unread}
+										</UnreadBadge>
+									) : null}
+								</GroupButton>
+							</GroupItem>
+						))}
+				</GroupListOnly>
 				<GroupItem>
 					<AddGroupModal
 						trigger={

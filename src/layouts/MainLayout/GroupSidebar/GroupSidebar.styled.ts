@@ -2,7 +2,7 @@ import styled from "styled-components";
 
 export const GroupSidebarContainer = styled.div`
 	width: 65px;
-	height: 100%;
+	height: 93%;
 	display: flex;
 	flex-direction: column;
 	align-items: center;
@@ -11,7 +11,7 @@ export const GroupSidebarContainer = styled.div`
 
 export const LogoSection = styled.div`
 	margin-top: 7px;
-	margin-bottom: 7px;
+	margin-bottom: 5px;
 	z-index: 2;
 `;
 
@@ -34,29 +34,57 @@ export const LogoBox = styled.div`
 
 export const GroupList = styled.ul`
 	width: 100%;
+	border-radius: 54px 0 0 54px;
 	background: rgba(255, 255, 255, 0.45);
-	border-radius: 80px 0 0 80px;
 	display: flex;
 	flex-direction: column;
 	gap: 20px;
 	align-items: center;
-	padding: 40px 0;
-	padding-bottom: 60px;
 	position: relative;
 	height: max-content;
+	overflow-y: auto;
+	scrollbar-width: none;
+	overflow-x: visible;
+	padding-bottom: 40px;
+`;
+
+export const GroupListOnly = styled.div`
+	width: 100%;
+	display: flex;
+	flex-direction: column;
+	gap: 20px;
+	align-items: center;
+	overflow-y: auto;
+	scrollbar-width: none;
+	overflow-x: visible;
+	height: 100%;
+	border-top-radius: 60px;
+	padding-top: 40px;
 `;
 
 export const GroupItem = styled.li`
-	// width: 100%;
-	// display: flex;
-	// justify-content: center;
-
 	display: flex;
 	flex-direction: column;
 	gap: 12px;
 	flex: 1;
 	justify-content: flex-start;
-	// padding-top: 20px;
+`;
+
+export const Triangle = styled.svg`
+	position: absolute;
+	left: -15px;
+	top: 50%;
+	width: 12px;
+	height: 39px;
+	transform: translateY(-50%) scale(0.92);
+	pointer-events: none;
+	z-index: 3;
+	opacity: 0;
+	transition:
+		opacity 140ms ease,
+		transform 140ms ease;
+	filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.12));
+	display: block;
 `;
 
 export const GroupButton = styled.button<{
@@ -70,12 +98,13 @@ export const GroupButton = styled.button<{
 	display: grid;
 	place-items: center;
 	border: 1px solid rgba(0, 0, 0, 0.06);
-	background-color: ${({ $color }) => $color ?? "hsl(var(--muted, 0 0% 96%))"};
+	background-color: ${({ $color }) => $color ?? "none"};
 	color: #fff;
 	font-weight: 600;
 	letter-spacing: 0.4px;
 	box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
 	cursor: pointer;
+	border: none;
 	transition:
 		transform 120ms ease,
 		box-shadow 160ms ease,
@@ -84,16 +113,58 @@ export const GroupButton = styled.button<{
 		background-color 160ms ease,
 		color 160ms ease;
 
+	/* tam giác bên trái (ẩn mặc định) */
+	&.left-triangle {
+		content: "";
+		position: absolute;
+		left: -12px; /* di chuyển tam giác ra ngoài trái */
+		top: 50%;
+		width: 12px;
+		height: 39px;
+		pointer-events: none;
+		z-index: 3;
+		clip-path: polygon(100% 50%, 0 0, 0 100%);
+		opacity: 0;
+		transform-origin: center;
+		transition:
+			opacity 140ms ease,
+			transform 140ms ease;
+		background: linear-gradient(
+			90deg,
+			var(--second-40, #d4d491) 0%,
+			var(--primary-50, #4d85e6) 100%
+		);
+		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+	}
+
 	&:hover {
 		transform: translateY(-1px);
 		box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12);
 		border-color: rgba(0, 0, 0, 0.12);
-		border-radius: 12px; /* morph circle -> rounded square */
 	}
 
+	/* show tam giác khi hover OR focus-visible OR đang được chọn */
+	&:hover .left-triangle,
+	&:focus-visible .left-triangle,
+	&[aria-selected="true"] .left-triangle {
+		opacity: 1;
+		transform: translateY(-50%) scale(1);
+	}
+
+	/* outline khi được chọn — giữ như trước, nhưng nâng z-index để tam giác không bị che */
 	&[aria-selected="true"] {
-		outline: 2px solid rgba(59, 130, 246, 0.6);
+		// outline: 2px solid rgba(59, 130, 246, 0.6);
 		outline-offset: 2px;
+		z-index: 2;
+	}
+
+	/* nâng z-index khi focus để tam giác hiển thị bên trên các phần tử xung quanh */
+	&:focus-visible {
+		z-index: 4;
+	}
+
+	&:focus {
+		outline: none;
 	}
 `;
 
