@@ -34,9 +34,8 @@ export const LogoBox = styled.div`
 
 export const GroupList = styled.ul`
 	width: 100%;
-	border-radius: 60px 0 0 60px;
+	border-radius: 54px 0 0 54px;
 	background: rgba(255, 255, 255, 0.45);
-
 	display: flex;
 	flex-direction: column;
 	gap: 20px;
@@ -45,7 +44,6 @@ export const GroupList = styled.ul`
 	height: max-content;
 	overflow-y: auto;
 	scrollbar-width: none;
-	// outline: 5px solid rgba(255, 255, 255, 0.45);
 	overflow-x: visible;
 	padding-bottom: 40px;
 `;
@@ -60,8 +58,8 @@ export const GroupListOnly = styled.div`
 	scrollbar-width: none;
 	overflow-x: visible;
 	height: 100%;
-	border-radius: 60px 0 0 60px;
-	padding: 40px 0 20px;
+	border-top-radius: 60px;
+	padding-top: 40px;
 `;
 
 export const GroupItem = styled.li`
@@ -100,12 +98,13 @@ export const GroupButton = styled.button<{
 	display: grid;
 	place-items: center;
 	border: 1px solid rgba(0, 0, 0, 0.06);
-	background-color: ${({ $color }) => $color ?? "hsl(var(--muted, 0 0% 96%))"};
+	background-color: ${({ $color }) => $color ?? "none"};
 	color: #fff;
 	font-weight: 600;
 	letter-spacing: 0.4px;
 	box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
 	cursor: pointer;
+	border: none;
 	transition:
 		transform 120ms ease,
 		box-shadow 160ms ease,
