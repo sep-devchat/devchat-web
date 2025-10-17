@@ -6,6 +6,7 @@
 	"scripts": {
 		"dev": "vite",
 		"build": "tsr generate & tsc -b && vite build",
+		"build:electron": "tsr generate & tsc -b && vite --config vite-electron.config.ts build",
 		"lint": "eslint .",
 		"preview": "vite preview",
 		"prepare": "husky",
