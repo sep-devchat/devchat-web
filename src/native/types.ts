@@ -50,3 +50,8 @@ export type NativeAPIHandler = (
 export type CodeExecutionResult = {
 	output: string;
 };
+
+export interface DeepLinkPayload {
+	url: string;
+	code: string;
+}

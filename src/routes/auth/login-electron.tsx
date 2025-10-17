@@ -7,16 +7,59 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
-import { createFileRoute } from "@tanstack/react-router";
+import { useAuth, useSocket } from "@/hooks";
+import { DeepLinkPayload } from "@/native/types";
+import { pkceIssueToken } from "@/services/auth/authAPI";
+import cookieUtils from "@/services/cookieUtils";
+import { useMutation } from "@tanstack/react-query";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { ExternalLinkIcon, LogInIcon } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/auth/login-electron")({
 	component: RouteComponent,
 });
 
 function RouteComponent() {
-	const [isOpening, setIsOpening] = useState(false);
+	const navigate = useNavigate();
+	const { refetchProfile } = useAuth();
+	const [codeVerifier, setCodeVerifier] = useState<string>("");
+	const [isOpening, setIsOpening] = useState<boolean>(false);
+	const { socket } = useSocket();
+
+	const loginPkceMutation = useMutation({
+		mutationFn: pkceIssueToken,
+		onSuccess: async (response) => {
+			cookieUtils.setToken(response.data.accessToken);
+			await refetchProfile();
+			socket.connect();
+			toast.success("Login successfully!");
+			navigate({ to: "/chat" });
+		},
+		onError: (error) => {
+			toast.error(`Login failed: ${error.message}`);
+		},
+	});
+
+	useEffect(() => {
+		const dispose = window.nativeAPI.nativeAPICallback(
+			"deep-link",
+			(_e, payload: DeepLinkPayload) => {
+				console.log("Received deep link payload:", payload);
+
+				loginPkceMutation.mutate({
+					authCode: payload.code,
+					codeChallengeMethod: "plain",
+					codeVerifier: codeVerifier,
+				});
+			},
+		);
+
+		return () => {
+			dispose();
+		};
+	}, [codeVerifier, loginPkceMutation]);
 
 	return (
 		<div className="min-h-screen w-screen flex items-center justify-center bg-gradient-to-br from-background to-muted/40 p-4">
@@ -47,9 +90,9 @@ function RouteComponent() {
 						onClick={async () => {
 							try {
 								setIsOpening(true);
-								// const codeVerifier =
-								// 	await window.nativeAPI.openBrowserForLogin();
-								// setCodeVerifier(codeVerifier);
+								const codeVerifier =
+									await window.nativeAPI.openBrowserForLogin();
+								setCodeVerifier(codeVerifier);
 							} finally {
 								setIsOpening(false);
 							}

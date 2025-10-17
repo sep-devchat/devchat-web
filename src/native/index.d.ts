@@ -7,7 +7,7 @@ import {
 interface nativeAPI {
 	nativeAPICallback(
 		channel: string,
-		cb: (event: Electron.IpcRendererEvent, ...args: unknown[]) => void,
+		cb: (event: Electron.IpcRendererEvent, ...args: any[]) => void,
 	): () => void;
 	makeHttpRequest<T = unknown>(
 		params: MakeHttpRequestParams,

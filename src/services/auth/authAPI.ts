@@ -2,6 +2,7 @@ import { get, post } from "../apiCaller";
 import {
 	LoginPkceRequest,
 	LoginRequest,
+	PkceIssueTokenRequest,
 	Profile,
 	RegisterPkceRequest,
 	RegisterRequest,
@@ -27,3 +28,7 @@ export const registerPkce = async (dto: RegisterPkceRequest) => {
 export const fetchProfile = async () => {
 	return get<Profile>("/api/auth/profile");
 };
+
+export async function pkceIssueToken(dto: PkceIssueTokenRequest) {
+	return await post<TokenResponse>("/api/auth/pkce-issue-token", dto);
+}
