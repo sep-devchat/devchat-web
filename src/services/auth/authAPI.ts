@@ -27,3 +27,7 @@ export const registerPkce = async (dto: RegisterPkceRequest) => {
 export const fetchProfile = async () => {
 	return get<Profile>("/api/auth/profile");
 };
+
+export const verifyEmail = async (code: string) => {
+	return get<{ message?: string }>(`/api/auth/verify-email`, { token: code });
+};

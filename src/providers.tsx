@@ -7,19 +7,14 @@ import publicRuntimeConfig from "./config/publicRuntime";
 
 // Import the generated route tree
 import { routeTree } from "./routeTree.gen.ts";
-import {
-	createMemoryHistory,
-	createRouter,
-	RouterProvider,
-} from "@tanstack/react-router";
+import { createRouter, RouterProvider } from "@tanstack/react-router";
 import AuthProvider from "./components/AuthProvider.tsx";
 import SocketProvider from "./components/SocketProvider.tsx";
 import { io } from "socket.io-client";
 import ThemeInit from "./components/ThemeInit.tsx";
 
-// Create a new router instance
-const history = createMemoryHistory({ initialEntries: ["/"] });
-const router = createRouter({ routeTree, history });
+// Create a new router instance (use browser history for proper deep-linking)
+const router = createRouter({ routeTree });
 
 // Central place to mount app-wide providers (Query, Router, etc.)
 // Team note: add more providers here (auth, analytics) to keep main.tsx clean.
