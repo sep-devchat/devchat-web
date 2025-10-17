@@ -18,7 +18,7 @@ import { io } from "socket.io-client";
 import ThemeInit from "./components/ThemeInit.tsx";
 
 // Create a new router instance
-const history = createMemoryHistory({ initialEntries: ["/"] });
+const history = createMemoryHistory();
 const router = createRouter({ routeTree, history });
 
 // Central place to mount app-wide providers (Query, Router, etc.)

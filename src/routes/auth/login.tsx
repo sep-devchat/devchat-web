@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { zodValidator } from "@tanstack/zod-adapter";
 import { useMutation } from "@tanstack/react-query";
 import z from "zod";
@@ -7,6 +7,7 @@ import { login, loginPkce } from "@/services/auth/authAPI";
 import LoginPage from "@/pages/Login";
 import { useAuth, useSocket } from "@/hooks";
 import cookieUtils from "@/services/cookieUtils";
+import publicRuntimeConfig from "@/config/publicRuntime";
 
 const loginSearchParamsSchema = z.object({
 	codeChallenge: z.string().optional(),
@@ -16,6 +17,11 @@ const loginSearchParamsSchema = z.object({
 export const Route = createFileRoute("/auth/login")({
 	component: RouteComponent,
 	validateSearch: zodValidator(loginSearchParamsSchema),
+	beforeLoad: () => {
+		if (publicRuntimeConfig.ELECTRON) {
+			throw redirect({ to: "/auth/login-electron" });
+		}
+	},
 });
 
 function RouteComponent() {
