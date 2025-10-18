@@ -32,3 +32,7 @@ export const fetchProfile = async () => {
 export async function pkceIssueToken(dto: PkceIssueTokenRequest) {
 	return await post<TokenResponse>("/api/auth/pkce-issue-token", dto);
 }
+
+export const verifyEmail = async (code: string) => {
+	return get<{ message?: string }>(`/api/auth/verify-email`, { token: code });
+};

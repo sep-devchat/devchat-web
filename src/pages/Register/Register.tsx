@@ -424,8 +424,24 @@ const RegisterPage: React.FC<RegisterPageProps> = ({
 				registrationData.avatarUrl = avatarUrl;
 			}
 
+			let mutationPromise;
+
+			if (codeChallenge && codeChallengeMethod) {
+				mutationPromise = registerPkceMutation.mutateAsync({
+					method: "basic",
+					data: registrationData,
+					codeChallenge: codeChallenge,
+					codeChallengeMethod: codeChallengeMethod,
+				});
+			} else {
+				mutationPromise = registerMutation.mutateAsync({ ...registrationData });
+			}
+
+			const result = await mutationPromise;
+
 			setSuccessMessage(
-				"Registration successful! Please check your email for verification.",
+				result.data?.message ||
+					"Registration successful! Please check your email for verification.",
 			);
 
 			setRegisterData({
@@ -485,6 +501,7 @@ const RegisterPage: React.FC<RegisterPageProps> = ({
 
 	const isLoading =
 		registerMutation.isPending || registerPkceMutation.isPending || isUploading;
+	console.log("RegisterPage render, isLoading:", isLoading);
 
 	const handleGoogleSuccess = async (credentialResponse: any) => {
 		console.log("Google registration success:", credentialResponse);

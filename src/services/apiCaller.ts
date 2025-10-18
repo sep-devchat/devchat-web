@@ -20,7 +20,11 @@ export const request = async <T = any>(
 	const response = await axios<ApiResponseDto<T>>({
 		url: config.publicRuntime.API_URL + endpoint,
 		method: method,
-		headers: Object.assign({}, headers, { Authorization: `Bearer ${token}` }),
+		headers: Object.assign(
+			{},
+			headers,
+			token ? { Authorization: `Bearer ${token}` } : {},
+		),
 		params: Object.assign(params),
 		data: body,
 	});
