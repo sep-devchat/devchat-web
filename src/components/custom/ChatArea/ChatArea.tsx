@@ -15,11 +15,7 @@ import {
 	MessageItem,
 	MessagesViewport,
 } from "./ChatArea.styled";
-import {
-	deleteMessage,
-	listMessages,
-	MessageResponse,
-} from "@/services/messageAPI";
+import { MessageResponse } from "@/services/messageAPI";
 import { useSocket } from "@/hooks";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import useSocketEvent from "@/hooks/useSocketEvent";
@@ -31,65 +27,27 @@ import { detailThread } from "@/services/threadAPI";
 import MessageActions from "../MessageActions/MessageActions";
 import { useParams, useSearch } from "@tanstack/react-router";
 import { ImageWithModal } from "../ImageWithModal/ImageWithModal";
+import ThreadPreview from "./ThreadPreview";
+import ThreadHeader from "./ThreadHeader";
+import {
+	formatDateHeader,
+	formatMessageTime,
+	isSameDay,
+	createMarkdownRenderer,
+} from "./ChatArea.helpers";
+import {
+	Dialog,
+	DialogClose,
+	DialogContent,
+	DialogDescription,
+	DialogFooter,
+	DialogHeader,
+	DialogTitle,
+} from "@/components/ui/dialog";
 import {
 	ChatInputPayload,
 	InboxType,
 } from "../ChatInputComponent/ChatTypeModal/InboxType";
-// import ThreadPreview, { ThreadHeader as ThreadHeaderImported } from "../ThreadPreview/ThreadPreview";
-
-function pad(n: number) {
-	return n.toString().padStart(2, "0");
-}
-
-function isSameDay(a?: string | Date | null, b?: string | Date | null) {
-	if (!a || !b) return false;
-	const da = a instanceof Date ? a : new Date(a);
-	const db = b instanceof Date ? b : new Date(b);
-	if (isNaN(da.getTime()) || isNaN(db.getTime())) return false;
-	return (
-		da.getFullYear() === db.getFullYear() &&
-		da.getMonth() === db.getMonth() &&
-		da.getDate() === db.getDate()
-	);
-}
-
-function formatDateHeader(input: string | Date): string {
-	const d = input instanceof Date ? input : new Date(input);
-	if (isNaN(d.getTime())) return "";
-
-	const now = new Date();
-	const yesterday = new Date(now);
-	yesterday.setDate(now.getDate() - 1);
-
-	const sameYMD = (a: Date, b: Date) =>
-		a.getFullYear() === b.getFullYear() &&
-		a.getMonth() === b.getMonth() &&
-		a.getDate() === b.getDate();
-
-	if (sameYMD(d, now)) return "Today";
-	if (sameYMD(d, yesterday)) return "Yesterday";
-	return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;
-}
-
-function formatMessageTime(input: string | Date): string {
-	const d = input instanceof Date ? input : new Date(input);
-	if (isNaN(d.getTime())) return "";
-
-	const now = new Date();
-	const padLocal = (n: number) => n.toString().padStart(2, "0");
-	const sameYMD = (a: Date, b: Date) =>
-		a.getFullYear() === b.getFullYear() &&
-		a.getMonth() === b.getMonth() &&
-		a.getDate() === b.getDate();
-
-	const yesterday = new Date(now);
-	yesterday.setDate(now.getDate() - 1);
-
-	const hhmm = `${padLocal(d.getHours())}:${padLocal(d.getMinutes())}`;
-	if (sameYMD(d, now)) return `Today ${hhmm}`;
-	if (sameYMD(d, yesterday)) return `Yesterday ${hhmm}`;
-	return `${padLocal(d.getDate())}/${padLocal(d.getMonth() + 1)} ${hhmm}`;
-}
 
 type Thread = {
 	id: string;
@@ -115,7 +73,6 @@ const ChatArea: React.FC = () => {
 	const [realtimeMessages, setRealtimeMessages] = useState<MessageResponse[]>(
 		[],
 	);
-	const IMAGE_MARKDOWN_RE = /!\[([^\]]*)\]\((https?:\/\/[^\s)]+)\)/g;
 
 	const listRef = useRef<HTMLDivElement | null>(null);
 	const { socket } = useSocket();
@@ -125,6 +82,8 @@ const ChatArea: React.FC = () => {
 	const [inboxTypeSelected, setInboxTypeSelected] = useState<InboxType>(null);
 	const viewportVariant = inboxTypeSelected ?? undefined;
 	const [emitQueue, setEmitQueue] = useState<any[]>([]);
+	// track the last room we attempted to join to avoid redundant joins
+	const lastJoinKeyRef = useRef<string | null>(null);
 	const [hoveredMessageId, setHoveredMessageId] = useState<string | null>(null);
 	const [editingMessage, setEditingMessage] = useState<MessageResponse | null>(
 		null,
@@ -135,229 +94,361 @@ const ChatArea: React.FC = () => {
 	const [reactionPickerFor, setReactionPickerFor] = useState<string | null>(
 		null,
 	);
-	let __md_key = 0;
+	// Delete confirmation dialog state
+	const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+	const [messagePendingDelete, setMessagePendingDelete] =
+		useState<MessageResponse | null>(null);
+	const [deleteSubmitting, setDeleteSubmitting] = useState(false);
+	const { parseContentToElements, isOnlySingleImageMarkdown } =
+		createMarkdownRenderer();
 
-	// Query detailThread only when user navigates to a specific thread (existing logic)
+	// Query thread detail only when user navigates to a specific thread
 	const {
 		data: threadDataResp,
 		isLoading: threadLoading,
 		isError: threadError,
-	} = useQuery({
+	} = useQuery<Thread | null>({
 		queryKey: ["thread", groupId, channelIdParam, threadIdParam],
+		queryFn: async () => {
+			if (!groupId || !channelIdParam || !threadIdParam) return null;
+			const resp = await detailThread(groupId, channelIdParam, threadIdParam);
+			const data =
+				(resp as any)?.data !== undefined ? (resp as any).data : (resp as any);
+			return (data ?? null) as Thread | null;
+		},
 		enabled: !!(groupId && channelIdParam && threadIdParam),
-		queryFn: () => detailThread(groupId!, channelIdParam!, threadIdParam!),
 	});
 
-	const thread: Thread | null = useMemo(() => {
-		return (threadDataResp?.data ?? null) as Thread | null;
-	}, [threadDataResp]);
+	const thread: Thread | null = threadDataResp ?? null;
 
-	// messages query (list all messages for the channel/group)
+	// Subscribe to messages for this room using the query cache as source of truth.
+	// We keep optimistics in realtimeMessages and merge them for rendering.
 	const {
-		data: messagesResp,
+		data: messagesData,
 		isLoading: messagesLoading,
 		isError: messagesError,
-	} = useQuery({
+	} = useQuery<any[]>({
 		queryKey: ["messages", groupId, channelIdParam],
-		enabled: !!groupId, // enable when group exists; you can tune to channel if needed
-		queryFn: () =>
-			listMessages(channelIdParam ?? "", groupId ?? "", threadIdParam ?? ""),
+		queryFn: async () => {
+			if (!groupId || !channelIdParam) return [] as any[];
+			const cached = queryClient.getQueryData<any>([
+				"messages",
+				groupId,
+				channelIdParam,
+			]);
+			if (
+				cached &&
+				typeof cached === "object" &&
+				Array.isArray((cached as any).data)
+			) {
+				return (cached as any).data;
+			}
+			if (Array.isArray(cached)) return cached as any[];
+			return [] as any[];
+		},
+		enabled: !!(groupId && channelIdParam),
 	});
 
-	// Filter + order server messages (same logic but now only filter by channel/group as before)
-	const serverMessages: MessageResponse[] = useMemo(() => {
-		const items = (messagesResp?.data ?? []) as MessageResponse[];
-		const filtered = items.filter((it) => {
-			if (it.deletedAt != null) return false;
-
-			// channel filter: if user is viewing a channel, only messages with that channel (or thread messages for that channel)
-			if (channelIdParam && it.channelId && it.channelId !== channelIdParam)
-				return false;
-
-			// If viewing a specific thread (threadIdParam), keep only messages in that thread (existing behavior)
-			if (threadIdParam) {
-				return (it.threadId ?? null) === threadIdParam;
-			}
-
-			return true;
-		});
-
-		// Ensure chronological order (oldest -> newest)
-		const sorted = filtered.slice().sort((a, b) => {
-			const ta = new Date(a.createdAt).getTime();
-			const tb = new Date(b.createdAt).getTime();
-			return ta - tb;
-		});
-
-		return sorted;
-	}, [messagesResp, channelIdParam, threadIdParam]);
-
-	// Combined messages (server + realtime optimistic)
-	const messages: MessageResponse[] = useMemo(() => {
-		// We want chronological order: merge serverMessages and realtimeMessages by createdAt
-		const merged = [...serverMessages, ...realtimeMessages];
-		const sorted = merged.slice().sort((a, b) => {
-			const ta = new Date(a.createdAt).getTime();
-			const tb = new Date(b.createdAt).getTime();
-			return ta - tb;
-		});
-		return sorted;
-	}, [serverMessages, realtimeMessages]);
-
-	// When user switches channel/thread => clear optimistic realtime messages
-	useEffect(() => {
-		setRealtimeMessages([]);
-	}, [channelIdParam, threadIdParam]);
-
-	// Helper: compute latestMessage per threadId from current messages
-	const latestMessagePerThread = useMemo(() => {
-		const map = new Map<string, MessageResponse>();
-		for (const m of messages) {
-			if (!m.threadId) continue;
-			const cur = map.get(m.threadId);
-			if (!cur) {
-				map.set(m.threadId, m);
-				continue;
-			}
-			if (new Date(m.createdAt).getTime() > new Date(cur.createdAt).getTime()) {
-				map.set(m.threadId, m);
-			}
-		}
-		return map; // Map<threadId, MessageResponse>
-	}, [messages]);
-
-	// Maintain a cache of threadDetails for threadIds seen in current message list
-	const [threadDetailsMap, setThreadDetailsMap] = useState<Record<string, any>>(
-		{},
-	);
-
-	useEffect(() => {
-		if (!groupId || !channelIdParam) {
-			setThreadDetailsMap({});
-			return;
-		}
-
-		const threadIds = Array.from(
-			new Set(messages.map((m) => m.threadId).filter(Boolean as any)),
-		) as string[];
-
-		if (threadIds.length === 0) {
-			setThreadDetailsMap({});
-			return;
-		}
-
-		let mounted = true;
-
-		(async () => {
-			try {
-				// fetch all thread summaries in parallel (object syntax to avoid overload ambiguity)
-				const promises = threadIds.map((tid) =>
-					queryClient
-						.fetchQuery({
-							queryKey: ["thread-summary", groupId, channelIdParam, tid],
-							queryFn: async () => {
-								const resp = await detailThread(groupId!, channelIdParam!, tid);
-								return resp?.data ?? resp ?? null;
-							},
-							staleTime: 1000 * 60 * 5,
-						})
-						.then((data) => ({ tid, data }))
-						.catch((err) => {
-							console.error(
-								"[ChatArea] fetch thread-summary failed for",
-								tid,
-								err,
-							);
-							return { tid, data: null };
-						}),
-				);
-
-				const results = await Promise.all(promises);
-
-				if (!mounted) return;
-
-				setThreadDetailsMap((prev) => {
-					const next = { ...prev };
-					for (const r of results) {
-						if (r?.data) next[r.tid] = r.data;
-					}
-					return next;
-				});
-			} catch (err) {
-				console.error(
-					"[ChatArea] unexpected error fetching thread summaries",
-					err,
-				);
-			}
-		})();
-
-		return () => {
-			mounted = false;
-		};
-	}, [
-		Array.from(latestMessagePerThread.keys()).join("|"),
-		groupId,
-		channelIdParam,
-	]);
-
-	// Socket incoming message handler (keeps same filtering but ensures thread handling)
+	// Handle server echo for MESSAGE to replace optimistics and update cache
 	const onServerMessage = useCallback(
-		(msg: MessageResponse & { clientTempId?: string }) => {
-			// filter by channel/thread like before
-			if (msg.channelId) {
-				if (!channelIdParam) return;
-				if (msg.channelId !== channelIdParam) return;
-			} else {
-				if (channelIdParam) return;
-			}
+		(payload: any) => {
+			if (!payload) return;
+			// filter only current room
+			if (groupId && payload.groupId && payload.groupId !== groupId) return;
+			if (
+				channelIdParam &&
+				payload.channelId &&
+				payload.channelId !== channelIdParam
+			)
+				return;
 
-			if (threadIdParam) {
-				if ((msg.threadId ?? null) !== threadIdParam) return;
-			} else {
-				if (msg.threadId) {
-					// If msg belongs to some thread but user not viewing that thread detail,
-					// we still accept it (so thread preview updates in the timeline),
-					// but if you want to ignore thread messages when not viewing a channel, adjust here.
-					// Here we accept thread messages (they will be displayed as thread previews).
-				}
-			}
+			const serverMsg: any = {
+				...payload,
+				id:
+					payload.id ??
+					payload._id ??
+					payload.messageId ??
+					payload.clientTempId ??
+					`srv-${Date.now()}`,
+				createdAt: payload.createdAt ?? new Date().toISOString(),
+			};
 
+			// Remove matching optimistic and add server message to realtime list
 			setRealtimeMessages((prev) => {
-				const tempId = (msg as any).clientTempId;
-				if (tempId) {
-					const idx = prev.findIndex((m) => m.id === tempId);
-					if (idx !== -1) {
-						const copy = [...prev];
-						copy[idx] = msg;
-						return copy;
+				const withoutOptimistics = prev.filter((m) => {
+					if (payload.clientTempId && m.id === payload.clientTempId) {
+						return false;
 					}
-				}
-
-				// dedupe based on id/content+sender+time
-				if (prev.some((m) => m.id === msg.id)) return prev;
-
-				const foundIndex = prev.findIndex((m) => {
-					if (!m.content || !msg.content) return false;
-					const sameContent = m.content === msg.content;
-					const sameSender = m.sender?.id === msg.sender?.id;
-					const t1 = new Date(m.createdAt).getTime();
-					const t2 = new Date(msg.createdAt).getTime();
-					const close = Math.abs(t1 - t2) < 5000;
-					return sameContent && sameSender && close;
+					// Fallback match for text/files when no clientTempId is present
+					if (!payload.clientTempId && m.id?.startsWith?.("temp-")) {
+						const sameSender =
+							m.sender?.id === payload.senderId ||
+							m.sender?.id === payload.sender?.id;
+						const sameChannel = m.channelId === payload.channelId;
+						const sameThread =
+							(m.threadId ?? null) === (payload.threadId ?? null);
+						const sameContent = (m.content || "") === (payload.content || "");
+						const sameAttachments = Array.isArray((m as any).attachments)
+							? Array.isArray(payload.attachments) &&
+								(m as any).attachments.length === payload.attachments.length
+							: !(m as any).attachments && !payload.attachments;
+						if (
+							sameSender &&
+							sameChannel &&
+							sameThread &&
+							(sameContent || sameAttachments)
+						) {
+							return false;
+						}
+					}
+					return true;
 				});
-				if (foundIndex !== -1) {
-					const copy = [...prev];
-					copy[foundIndex] = msg;
-					return copy;
-				}
-
-				return [...prev, msg];
+				return [...withoutOptimistics, serverMsg];
 			});
+
+			// Update query cache with the server message
+			if (!groupId || !channelIdParam) return;
+			queryClient.setQueryData(
+				["messages", groupId, channelIdParam],
+				(old: any) => {
+					const toArray = (o: any) =>
+						Array.isArray(o?.data) ? o.data : Array.isArray(o) ? o : [];
+					const arr = toArray(old);
+					const id = serverMsg.id;
+					const next = [...arr.filter((x: any) => x?.id !== id), serverMsg];
+					next.sort(
+						(a: any, b: any) =>
+							new Date(a.createdAt as any).getTime() -
+							new Date(b.createdAt as any).getTime(),
+					);
+					if (Array.isArray(old)) return next;
+					return { ...old, data: next };
+				},
+			);
 		},
-		[channelIdParam, threadIdParam],
+		[groupId, channelIdParam, queryClient],
 	);
 
 	useSocketEvent(SocketEvents.MESSAGE, onServerMessage);
+
+	// Handle server echo for EDIT_MESSAGE to update content
+	const onServerEditMessage = useCallback(
+		(payload: any) => {
+			const editedId: string | undefined = payload?.messageId ?? payload?.id;
+			const newContent: string | undefined = payload?.content;
+			if (!editedId) return;
+
+			setRealtimeMessages((prev) =>
+				prev.map((m) =>
+					m?.id === editedId
+						? {
+								...m,
+								...payload,
+								id: editedId,
+								content: newContent ?? m.content,
+							}
+						: m,
+				),
+			);
+
+			if (!groupId || !channelIdParam) return;
+			queryClient.setQueryData(
+				["messages", groupId, channelIdParam],
+				(old: any) => {
+					if (!old) return old;
+					const apply = (arr: any[]) =>
+						arr.map((m) =>
+							m?.id === editedId
+								? {
+										...m,
+										...payload,
+										id: editedId,
+										content: newContent ?? m.content,
+									}
+								: m,
+						);
+					if (Array.isArray(old)) return apply(old);
+					const dataArr = Array.isArray(old.data) ? old.data : [];
+					return { ...old, data: apply(dataArr) };
+				},
+			);
+		},
+		[groupId, channelIdParam, queryClient],
+	);
+
+	useSocketEvent(SocketEvents.EDIT_MESSAGE, onServerEditMessage);
+
+	const messagesFromCache: MessageResponse[] = useMemo(() => {
+		return Array.isArray(messagesData) ? (messagesData as any) : [];
+	}, [messagesData]);
+
+	const messages: MessageResponse[] = useMemo(() => {
+		const byId = new Map<string, MessageResponse>();
+		for (const m of messagesFromCache) {
+			if (!m || !m.id) continue;
+			byId.set(m.id, m as any);
+		}
+		for (const m of realtimeMessages) {
+			if (!m || !m.id) continue;
+			byId.set(m.id, m as any);
+		}
+		const list = Array.from(byId.values());
+		list.sort(
+			(a: any, b: any) =>
+				new Date(a.createdAt as any).getTime() -
+				new Date(b.createdAt as any).getTime(),
+		);
+		return list;
+	}, [messagesFromCache, realtimeMessages]);
+
+	const latestMessagePerThread = useMemo(() => {
+		const map = new Map<string, MessageResponse>();
+		for (const m of messages) {
+			const tId = (m as any)?.threadId as string | null;
+			if (!tId) continue;
+			const prev = map.get(tId);
+			if (
+				!prev ||
+				new Date(m.createdAt as any).getTime() >
+					new Date(prev.createdAt as any).getTime()
+			) {
+				map.set(tId, m);
+			}
+		}
+		return map;
+	}, [messages]);
+
+	const threadDetailsMap = useMemo(() => {
+		// Optionally populate with thread metadata if available elsewhere
+		return {} as Record<string, any>;
+	}, [groupId, channelIdParam]);
+
+	// Join socket room whenever group/channel changes (or first mount)
+	useEffect(() => {
+		if (!groupId || !channelIdParam) return;
+
+		const joinKey = `${groupId}:${channelIdParam}`;
+		// If we're already in this room and socket is connected, skip
+		if (lastJoinKeyRef.current === joinKey && socket?.connected) return;
+		lastJoinKeyRef.current = joinKey;
+
+		const payload = { groupId, channelId: channelIdParam };
+
+		try {
+			if (!socket || !socket.connected) throw new Error("socket-not-ready");
+			socket.emit(SocketEvents.JOIN_ROOM, payload);
+			console.debug("[ChatArea] emitted JOIN_ROOM", payload);
+			// Fallback: request messages immediately as well (in case JOINED_ROOM isn't fired)
+			const req = { groupId, channelId: channelIdParam };
+			socket.emit(SocketEvents.FETCH_MESSAGES, req, (resp: any) => {
+				try {
+					if (resp && (resp.error || resp.code)) {
+						console.error(
+							"[ChatArea] FETCH_MESSAGES ack error (fallback)",
+							resp,
+						);
+						return;
+					}
+					const itemsRaw = Array.isArray(resp)
+						? resp
+						: Array.isArray(resp?.data)
+							? resp.data
+							: Array.isArray(resp?.messages)
+								? resp.messages
+								: [];
+					const items = itemsRaw
+						.slice()
+						.sort(
+							(a: any, b: any) =>
+								new Date(a.createdAt).getTime() -
+								new Date(b.createdAt).getTime(),
+						);
+					queryClient.setQueryData(
+						["messages", groupId, channelIdParam],
+						items,
+					);
+					console.debug(
+						"[ChatArea] FETCH_MESSAGES fallback -> set messages",
+						items.length,
+					);
+				} catch (e) {
+					console.error("[ChatArea] error handling FETCH_MESSAGES fallback", e);
+				}
+			});
+		} catch (err) {
+			console.debug("[ChatArea] queue JOIN_ROOM due to", err);
+			setEmitQueue((q) => [
+				...q,
+				{ event: SocketEvents.JOIN_ROOM, payload },
+				{
+					event: SocketEvents.FETCH_MESSAGES,
+					payload: { groupId, channelId: channelIdParam },
+				},
+			]);
+		}
+	}, [groupId, channelIdParam, socket]);
+
+	// Reset optimistics when switching room
+	useEffect(() => {
+		setRealtimeMessages([]);
+	}, [groupId, channelIdParam]);
+
+	// After JOINED_ROOM, ask server for messages via FETCH_MESSAGES (ack)
+	const onJoinedRoom = useCallback(
+		(_evtPayload?: any) => {
+			if (!groupId || !channelIdParam) return;
+			const req = { groupId, channelId: channelIdParam };
+			try {
+				if (!socket) throw new Error("socket-not-ready");
+				socket.emit(SocketEvents.FETCH_MESSAGES, req, (resp: any) => {
+					try {
+						if (resp && (resp.error || resp.code)) {
+							console.error("[ChatArea] FETCH_MESSAGES ack error", resp);
+							return;
+						}
+
+						const itemsRaw = Array.isArray(resp)
+							? resp
+							: Array.isArray(resp?.data)
+								? resp.data
+								: Array.isArray(resp?.messages)
+									? resp.messages
+									: [];
+
+						// sort chronologically (oldest -> newest), matching existing logic
+						const items = itemsRaw.slice().sort((a: any, b: any) => {
+							const ta = new Date(a.createdAt).getTime();
+							const tb = new Date(b.createdAt).getTime();
+							return ta - tb;
+						});
+
+						queryClient.setQueryData(
+							["messages", groupId, channelIdParam],
+							items,
+						);
+						console.debug(
+							"[ChatArea] FETCH_MESSAGES ack -> set messages in cache",
+							items.length,
+						);
+					} catch (innerErr) {
+						console.error(
+							"[ChatArea] error handling FETCH_MESSAGES ack",
+							innerErr,
+						);
+					}
+				});
+			} catch (err) {
+				console.debug("[ChatArea] queue FETCH_MESSAGES due to", err);
+				setEmitQueue((q) => [
+					...q,
+					{ event: SocketEvents.FETCH_MESSAGES, payload: req },
+				]);
+			}
+		},
+		[socket, groupId, channelIdParam, queryClient],
+	);
+
+	useSocketEvent(SocketEvents.JOINED_ROOM, onJoinedRoom);
 
 	// Queue flush & connect handling (unchanged)
 	useEffect(() => {
@@ -384,19 +475,37 @@ const ChatArea: React.FC = () => {
 		}
 
 		const onConnect = () => {
-			if (!emitQueue.length) return;
-			const queued = [...emitQueue];
-			setEmitQueue([]);
-			queued.forEach((item) => {
+			// Flush queued emits
+			if (emitQueue.length) {
+				const queued = [...emitQueue];
+				setEmitQueue([]);
+				queued.forEach((item) => {
+					try {
+						socket.emit(item.event, item.payload, (ack: any) => {
+							console.debug("[ChatArea] flush ack", item.event, ack);
+						});
+					} catch (err) {
+						console.error("[ChatArea] emit flush error", err);
+						setEmitQueue((q) => [...q, item]);
+					}
+				});
+			}
+
+			// Re-join the current room on reconnect
+			if (groupId && channelIdParam) {
+				const payload = { groupId, channelId: channelIdParam };
 				try {
-					socket.emit(item.event, item.payload, (ack: any) => {
-						console.debug("[ChatArea] flush ack", item.event, ack);
-					});
+					socket.emit(SocketEvents.JOIN_ROOM, payload);
+					console.debug("[ChatArea] re-joined room after connect", payload);
+					lastJoinKeyRef.current = `${groupId}:${channelIdParam}`;
 				} catch (err) {
-					console.error("[ChatArea] emit flush error", err);
-					setEmitQueue((q) => [...q, item]);
+					console.debug("[ChatArea] queue re-join due to", err);
+					setEmitQueue((q) => [
+						...q,
+						{ event: SocketEvents.JOIN_ROOM, payload },
+					]);
 				}
-			});
+			}
 		};
 
 		socket.on?.("connect", onConnect);
@@ -404,7 +513,7 @@ const ChatArea: React.FC = () => {
 		return () => {
 			socket.off?.("connect", onConnect);
 		};
-	}, [socket, emitQueue]);
+	}, [socket, emitQueue, groupId, channelIdParam]);
 
 	const send = useCallback(
 		async (payload?: ChatInputPayload) => {
@@ -478,16 +587,13 @@ const ChatArea: React.FC = () => {
 
 				// edit flow
 				if (editingMessage) {
-					const ev = "message:update";
+					const ev = SocketEvents.EDIT_MESSAGE;
+					// Per DTO, server expects messageId and content
 					const p = {
-						...baseEmit,
 						messageId: editingMessage.id,
 						content: text,
-						clientTempId: tempId,
-						senderId: senderPayload.id,
-						sender: senderPayload,
 					};
-					console.debug("[ChatArea] update payload", p);
+					console.debug("[ChatArea] edit payload", p);
 					safeEmit(ev, p);
 					setEditingMessage(null);
 					return;
@@ -681,43 +787,57 @@ const ChatArea: React.FC = () => {
 		[socket, groupId, channelIdParam],
 	);
 
-	const handleDelete = useCallback(
-		async (m: MessageResponse) => {
-			const ok = window.confirm("Are you sure to delete this message?");
-			if (!ok) return;
+	const handleDelete = useCallback(async (m: MessageResponse) => {
+		setMessagePendingDelete(m);
+		setDeleteDialogOpen(true);
+	}, []);
 
-			try {
-				socket?.emit("message:delete", {
-					groupId: groupId ?? null,
-					channelId: channelIdParam ?? null,
-					messageId: m.id,
-				});
+	const confirmDelete = useCallback(() => {
+		if (!messagePendingDelete) return;
+		setDeleteSubmitting(true);
+		try {
+			// Emit DELETE_MESSAGE with the messageId as payload
+			socket?.emit(SocketEvents.DELETE_MESSAGE, messagePendingDelete.id);
+		} catch (err) {
+			console.error("Delete message emit failed", err);
+		} finally {
+			setDeleteSubmitting(false);
+			setDeleteDialogOpen(false);
+			setMessagePendingDelete(null);
+		}
+	}, [socket, messagePendingDelete]);
 
-				await deleteMessage(m.id);
+	// Apply server confirmation for DELETE_MESSAGE to remove from state and cache
+	const onServerDeleteMessage = useCallback(
+		(payload: any) => {
+			const deletedId: string | undefined =
+				payload?.messageId ??
+				payload?.id ??
+				(typeof payload === "string" ? payload : undefined);
+			if (!deletedId) return;
 
-				setRealtimeMessages((prev) => prev.filter((x) => x.id !== m.id));
+			// Remove from optimistic realtime list
+			setRealtimeMessages((prev) => prev.filter((m) => m.id !== deletedId));
 
-				queryClient.setQueryData(
-					["messages", groupId, channelIdParam],
-					(old: any) => {
-						if (!old) return old;
-						const oldData = Array.isArray(old.data) ? old.data : old;
-						const filtered = oldData.filter(
-							(msg: MessageResponse) => msg.id !== m.id,
-						);
-						if (old.data) {
-							return { ...old, data: filtered };
-						}
-						return filtered;
-					},
-				);
-			} catch (err: any) {
-				console.error("Delete message failed", err);
-				window.alert("Delete failed: " + (err?.message ?? "Unknown error"));
-			}
+			// Remove from query cache
+			if (!groupId || !channelIdParam) return;
+			queryClient.setQueryData(
+				["messages", groupId, channelIdParam],
+				(old: any) => {
+					if (!old) return old;
+					const toArray = (o: any) =>
+						Array.isArray(o?.data) ? o.data : Array.isArray(o) ? o : [];
+					const arr = toArray(old);
+					const filtered = arr.filter((msg: any) => msg?.id !== deletedId);
+					if (Array.isArray(old)) return filtered;
+					return { ...old, data: filtered };
+				},
+			);
 		},
-		[socket, groupId, channelIdParam, queryClient],
+		[groupId, channelIdParam, queryClient],
 	);
+
+	useSocketEvent(SocketEvents.DELETE_MESSAGE, onServerDeleteMessage);
 
 	const handleReact = useCallback(
 		(messageId: string, reaction: string) => {
@@ -732,290 +852,12 @@ const ChatArea: React.FC = () => {
 		[socket, groupId, channelIdParam],
 	);
 
-	// Thread preview UI
-	const ThreadPreview: React.FC<{
-		threadId: string;
-		threadMeta: any;
-		latestMessage: MessageResponse;
-	}> = ({ threadId, threadMeta, latestMessage }) => {
-		const creatorName = threadMeta?.createdBy ?? "Unknown";
-		const threadTitle = threadMeta?.name || `Thread ${threadId.slice(0, 8)}`;
-
-		const shortPreview = (text?: string) => {
-			if (!text) return "[Attachment]";
-			// nếu là markdown ảnh, chỉ trả về "[Image]"
-			if (/!\[.*?\]\(https?:\/\/[^\s)]+\)/.test(text.trim())) return "[Image]";
-			// cắt xuống 120 ký tự và bỏ newline
-			const singleLine = text.replace(/\s+/g, " ").trim();
-			return singleLine.length > 120
-				? singleLine.slice(0, 117) + "…"
-				: singleLine;
-		};
-
-		const onOpenThread = () => {
-			// navigate({
-			//   to: "/chat/group/$groupId/$id",
-			//   params: { groupId: groupId!, id: threadId },
-			//   search: (s: any) => ({ ...s, channel: channelIdParam }),
-			// });
-			console.log("Navigate to thread", { groupId, channelIdParam, threadId });
-		};
-
-		//  const avatarLetter =
-		// threadMeta?.createdBy?.firstName?.[0] ??
-		// threadMeta?.createdBy?.username?.[0] ??
-		// latestMessage.sender?.firstName?.[0] ??
-		// "T";
-
-		return (
-			<div className="mb-3">
-				{/* header line */}
-				<div
-					className="mb-2 text-xs text-muted-foreground flex items-center gap-2"
-					style={{ color: "rgba(17,24,39,0.6)" }}
-				>
-					<span
-						className="font-medium text-sm"
-						style={{ color: "rgba(17,24,39,0.85)" }}
-					>
-						{creatorName}
-					</span>
-					<span>started a thread:</span>
-					<button
-						onClick={onOpenThread}
-						className="text-sm font-semibold text-sky-600 hover:underline"
-						aria-label={`Open thread ${threadTitle}`}
-						style={{ background: "transparent", border: "none", padding: 0 }}
-					>
-						{threadTitle}
-					</button>
-					<span className="ml-auto text-xs text-muted-foreground">
-						{formatMessageTime(latestMessage.createdAt)}
-					</span>
-				</div>
-
-				{/* thread card */}
-				<div
-					role="button"
-					onClick={onOpenThread}
-					className="rounded-lg border border-slate-200 bg-[#F1F4F9] p-3 cursor-pointer hover:shadow-sm transition-shadow"
-					style={{ boxShadow: "inset 0 0 0 1px rgba(59,130,246,0.03)" }}
-				>
-					<div className="flex items-start justify-between gap-3">
-						<div className="flex items-start gap-3">
-							{/* <div className="h-8 w-8 rounded-full bg-slate-100 flex items-center justify-center text-xs font-medium select-none text-slate-700">
-              {avatarLetter}
-            </div> */}
-
-							<div className="min-w-0">
-								<div className="flex items-center gap-2">
-									<div className="text-sm font-semibold text-slate-800 truncate">
-										{threadTitle}
-									</div>
-								</div>
-
-								<div className="mt-1 text-sm text-slate-600 flex items-start gap-2 min-w-0">
-									{/* small sender avatar or dot */}
-									<div className="flex-shrink-0 h-5 w-5 rounded-full bg-slate-100 flex items-center justify-center text-[11px] text-slate-700">
-										{latestMessage.sender?.firstName?.[0] ??
-											latestMessage.sender?.username?.[0] ??
-											"U"}
-									</div>
-
-									<div className="min-w-0">
-										<div className="text-[13px] text-slate-700">
-											<span className="font-medium mr-1">
-												{`${latestMessage.sender?.firstName || latestMessage.sender?.username || "Unknown"}:`}
-											</span>
-											<span className="text-slate-600">
-												{shortPreview(latestMessage.content)}
-											</span>
-										</div>
-									</div>
-								</div>
-							</div>
-						</div>
-					</div>
-				</div>
-			</div>
-		);
-	};
-
-	// Thread header UI for when user navigates into a specific thread (existing)
-	const ThreadHeader = () => {
-		if (!thread) return null;
-		return (
-			<div className="mb-3 rounded-lg border bg-muted/50 p-3">
-				<div className="flex items-center justify-between">
-					<div>
-						<div className="text-sm font-semibold">
-							Thread: {thread.name || thread.id}
-						</div>
-						{thread.description && (
-							<div className="text-xs text-muted-foreground mt-1">
-								{thread.description}
-							</div>
-						)}
-					</div>
-					<div className="text-xs text-muted-foreground">
-						{thread.createdAt ? formatMessageTime(thread.createdAt) : ""}
-					</div>
-				</div>
-			</div>
-		);
-	};
-
-	function renderInlineMarkdown(input: string): React.ReactNode[] {
-		// Patterns to support (order doesn't matter; we pick leftmost match)
-		const patterns: { re: RegExp; tag: "strong" | "em" | "u" | "s" }[] = [
-			{ re: /\*\*(.+?)\*\*/, tag: "strong" }, // **bold**
-			{ re: /\*(.+?)\*/, tag: "em" }, // *italic*
-			{ re: /\+\+(.+?)\+\+/, tag: "u" }, // ++underline++
-			{ re: /~~(.+?)~~/, tag: "s" }, // ~~strikethrough~~
-		];
-
-		// trim nothing special; keep whitespace as-is
-		const text = input;
-
-		// find earliest match among patterns
-		let earliest: { m: RegExpExecArray; tag: string } | null = null;
-		for (const p of patterns) {
-			// create fresh regex so exec starts at 0
-			const re = new RegExp(p.re.source, "m");
-			const m = re.exec(text);
-			if (
-				m &&
-				(earliest === null || (m.index ?? 0) < (earliest.m.index ?? Infinity))
-			) {
-				earliest = { m, tag: p.tag };
-			}
-		}
-
-		if (!earliest) {
-			// no inline markdown token found: return single text node (React will escape)
-			if (text === "")
-				return [
-					<React.Fragment key={`md-${__md_key++}`}>{text}</React.Fragment>,
-				];
-			return [text];
-		}
-
-		const { m, tag } = earliest;
-		const idx = m.index ?? 0;
-		const full = m[0];
-		const inner = m[1] ?? "";
-
-		const before = text.slice(0, idx);
-		const after = text.slice(idx + full.length);
-
-		const result: React.ReactNode[] = [];
-
-		if (before.length > 0) {
-			result.push(...renderInlineMarkdown(before));
-		}
-
-		// render matched token with recursive parsing inside it (to support nesting)
-		const key = `md-${__md_key++}`;
-		const children = renderInlineMarkdown(inner);
-
-		switch (tag) {
-			case "strong":
-				result.push(<strong key={key}>{children}</strong>);
-				break;
-			case "em":
-				result.push(<em key={key}>{children}</em>);
-				break;
-			case "u":
-				result.push(<u key={key}>{children}</u>);
-				break;
-			case "s":
-				result.push(<s key={key}>{children}</s>);
-				break;
-			default:
-				result.push(children);
-		}
-
-		if (after.length > 0) {
-			result.push(...renderInlineMarkdown(after));
-		}
-
-		return result;
-	}
-
-	function parseContentToElements(content: string) {
-		const elements: React.ReactNode[] = [];
-		let lastIndex = 0;
-		let match: RegExpExecArray | null;
-		let idx = 0;
-
-		// iterate các match ảnh markdown
-		while ((match = IMAGE_MARKDOWN_RE.exec(content)) !== null) {
-			const matchStart = match.index;
-			const matchEnd = IMAGE_MARKDOWN_RE.lastIndex;
-			const alt = match[1] || "";
-			const url = match[2];
-
-			// phần text trước ảnh (nếu có) — sẽ parse inline markdown ở đây
-			if (matchStart > lastIndex) {
-				const textPart = content.slice(lastIndex, matchStart);
-				// chia thành các React nodes bằng renderInlineMarkdown
-				const nodes = renderInlineMarkdown(textPart);
-				for (const n of nodes) {
-					// ensure unique key
-					elements.push(<span key={`text-${idx++}`}>{n}</span>);
-				}
-			}
-
-			// kiểm tra URL an toàn (chỉ http(s))
-			if (/^https?:\/\//i.test(url)) {
-				elements.push(
-					<ImageWithModal
-						key={`img-${idx++}`}
-						src={url}
-						alt={alt || "image"}
-						maxWidthPx={320}
-						maxHeightPx={420}
-						clickable={true}
-						className="my-1"
-					/>,
-				);
-			} else {
-				elements.push(<span key={`textbad-${idx++}`}>{match[0]}</span>);
-			}
-
-			lastIndex = matchEnd;
-		}
-
-		// phần text cuối cùng (nếu có) — parse inline markdown
-		if (lastIndex < content.length) {
-			const tail = content.slice(lastIndex);
-			const nodes = renderInlineMarkdown(tail);
-			for (const n of nodes) {
-				elements.push(<span key={`text-last-${idx++}`}>{n}</span>);
-			}
-		}
-
-		// nếu không có match nào (vẫn cần parse markdown cho toàn bộ content)
-		if (elements.length === 0) {
-			const nodes = renderInlineMarkdown(content);
-			return nodes.length ? nodes : [content];
-		}
-
-		return elements;
-	}
-
-	// helper: phát hiện message chỉ chứa một markdown image (để hiển thị ảnh lớn/khác)
-	const isOnlySingleImageMarkdown = (content: string) => {
-		const trimmed = content.trim();
-		// chuỗi chỉ gồm một lần match và không có ký tự khác
-		const m = trimmed.match(/^!\[([^\]]*)\]\((https?:\/\/[^\s)]+)\)$/);
-		return !!m;
-	};
+	// Local ThreadPreview/ThreadHeader and markdown helpers were moved to separate files
 
 	return (
 		<ChatAreaContainer>
 			{/* If thread present, show its header */}
-			{threadIdParam && <ThreadHeader />}
+			{threadIdParam && <ThreadHeader thread={thread} />}
 
 			<MessagesViewport
 				ref={listRef}
@@ -1198,6 +1040,42 @@ const ChatArea: React.FC = () => {
 					})
 				)}
 			</MessagesViewport>
+
+			{/* Delete confirmation dialog */}
+			<Dialog
+				open={deleteDialogOpen}
+				onOpenChange={(open) => {
+					setDeleteDialogOpen(open);
+					if (!open) setMessagePendingDelete(null);
+				}}
+			>
+				<DialogContent>
+					<DialogHeader>
+						<DialogTitle>Delete message?</DialogTitle>
+						<DialogDescription>
+							This action cannot be undone. The message will be permanently
+							removed for everyone in this conversation.
+						</DialogDescription>
+					</DialogHeader>
+					<div className="rounded-md bg-slate-50 border p-3 text-sm text-slate-700 max-h-40 overflow-auto">
+						{messagePendingDelete?.content
+							? messagePendingDelete.content
+							: "(No text content)"}
+					</div>
+					<DialogFooter>
+						<DialogClose className="inline-flex items-center justify-center h-9 rounded-md border px-4 text-sm font-medium bg-white hover:bg-slate-50">
+							Cancel
+						</DialogClose>
+						<button
+							onClick={confirmDelete}
+							disabled={deleteSubmitting}
+							className="inline-flex items-center justify-center h-9 rounded-md px-4 text-sm font-medium bg-red-600 text-white hover:bg-red-700 disabled:opacity-60"
+						>
+							{deleteSubmitting ? "Deleting…" : "Delete"}
+						</button>
+					</DialogFooter>
+				</DialogContent>
+			</Dialog>
 
 			<ChatInput
 				setInboxTypeSelected={setInboxTypeSelected}
