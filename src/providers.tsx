@@ -10,6 +10,7 @@ import { routeTree } from "./routeTree.gen.ts";
 import {
 	createMemoryHistory,
 	createRouter,
+	RouterHistory,
 	RouterProvider,
 } from "@tanstack/react-router";
 import AuthProvider from "./components/AuthProvider.tsx";
@@ -18,7 +19,11 @@ import { io } from "socket.io-client";
 import ThemeInit from "./components/ThemeInit.tsx";
 
 // Create a new router instance
-const history = createMemoryHistory();
+let history: RouterHistory | undefined;
+if (publicRuntimeConfig.ELECTRON) {
+	history = createMemoryHistory();
+}
+
 const router = createRouter({ routeTree, history });
 
 // Central place to mount app-wide providers (Query, Router, etc.)
