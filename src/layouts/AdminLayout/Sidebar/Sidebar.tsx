@@ -71,7 +71,7 @@ const Sidebar: React.FC = () => {
 			id: "permissions",
 			icon: Lock,
 			label: "Permissions",
-			path: "/admin/permissions",
+			path: "/admin/permission",
 		},
 	];
 
