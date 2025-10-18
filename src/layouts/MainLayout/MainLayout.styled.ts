@@ -1,5 +1,6 @@
 import styled from "styled-components";
 import bgImage from "@/assets/image/loginBackground.png";
+import { ResizablePanelGroup, ResizablePanel } from "@/components/ui/resizable";
 
 export const MainLayoutContainer = styled.div`
 	height: 100vh;
@@ -16,7 +17,7 @@ export const MainLayoutContainer = styled.div`
 	padding-right: 0;
 `;
 
-export const ContentWrapper = styled.div`
+export const ContentWrapper = styled(ResizablePanelGroup)`
 	flex: 1;
 	min-height: 0;
 	display: grid;
@@ -25,14 +26,14 @@ export const ContentWrapper = styled.div`
 	overflow: hidden;
 `;
 
-export const LeftSection = styled.div`
+export const LeftSection = styled(ResizablePanel)`
 	grid-column: span 2;
 	display: flex;
 	min-width: 0;
 	overflow: hidden;
 `;
 
-export const RightSection = styled.div`
+export const RightSection = styled(ResizablePanel)`
 	grid-column: span 10;
 	display: flex;
 	min-height: 0;
@@ -52,7 +53,6 @@ export const CenterPanel = styled.div`
 export const OutletContainer = styled.div`
 	flex: 1;
 	overflow: hidden;
-	border-radius: 0 0 0.625rem 0;
 	background: white;
 `;
 

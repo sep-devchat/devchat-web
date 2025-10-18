@@ -3,13 +3,13 @@ import styled from "styled-components";
 
 export const PageWrapper = styled.div`
 	height: 100%;
-	width: 500px;
+	width: 250px;
 	position: relative;
 	display: flex;
 	flex-direction: column;
 	margin-right: 18px;
 	background: ${theme.color.grey30};
-	border-radius: 10px;
+	border-radius: 0px 10px 10px 0px;
 `;
 
 export const CPHeader = styled.div`
