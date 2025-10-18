@@ -22,6 +22,7 @@ import MemberList from "@/components/custom/RightPanel/MemberList/MemberList";
 import Header from "./Header";
 import { GroupSetting } from "@/pages/GroupSetting";
 import { LeftSidebar } from "./LeftSidebar/LeftSidebar";
+import { ResizableHandle } from "@/components/ui/resizable";
 
 const MainLayout = () => {
 	const [iconSelected, setIconSelected] = useState<string>("");
@@ -90,12 +91,18 @@ const MainLayout = () => {
 				{!settingSelect ? (
 					<MainLayoutContainer>
 						<TitleBar title="DevChat" icon={<User />} />
-						<ContentWrapper>
-							<LeftSection>
+						<ContentWrapper direction="horizontal">
+							<LeftSection
+								defaultSize={20}
+								collapsible
+								minSize={15}
+								maxSize={25}
+							>
 								<GroupSidebar />
 								<LeftSidebar setSettingSelect={setSettingSelect} />
 							</LeftSection>
-							<RightSection>
+							<ResizableHandle />
+							<RightSection defaultSize={100}>
 								<CenterPanel>
 									<Header
 										setIconSelected={setIconSelected}
