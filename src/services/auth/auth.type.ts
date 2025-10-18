@@ -52,3 +52,9 @@ export interface Profile {
 	lastLogin?: Date;
 	timezone?: string;
 }
+
+export interface PkceIssueTokenRequest {
+	codeVerifier: string;
+	codeChallengeMethod: string;
+	authCode: string;
+}

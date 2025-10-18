@@ -1,4 +1,5 @@
 import config from "@/config";
+import publicRuntimeConfig from "@/config/publicRuntime";
 import { jwtDecode } from "jwt-decode";
 import Cookies from "universal-cookie";
 
@@ -36,10 +37,17 @@ class CookieUtils {
 	}
 
 	getToken() {
+		if (publicRuntimeConfig.ELECTRON) {
+			return window.localStorage.getItem("accessToken") || "";
+		}
 		return this.getItem(config.cookies.token, "");
 	}
 
 	setToken(value = "") {
+		if (publicRuntimeConfig.ELECTRON) {
+			window.localStorage.setItem("accessToken", value);
+			return;
+		}
 		this.setItem(config.cookies.token, value);
 	}
 
