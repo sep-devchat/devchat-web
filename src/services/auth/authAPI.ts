@@ -36,3 +36,7 @@ export async function pkceIssueToken(dto: PkceIssueTokenRequest) {
 export const verifyEmail = async (code: string) => {
 	return get<{ message?: string }>(`/api/auth/verify-email`, { token: code });
 };
+
+export const logout = async () => {
+	return get("/api/auth/logout");
+};
