@@ -5,8 +5,9 @@ import {
 	Avatar,
 	Name,
 	SettingsButton,
+	ActionButton,
 } from "./Profile.styled";
-import { Settings } from "lucide-react";
+import { ListTodo, Settings } from "lucide-react";
 import { RootState } from "@/store";
 import { Link } from "@tanstack/react-router";
 
@@ -30,11 +31,21 @@ const Profile = () => {
 					{`${profile?.firstName} ${profile?.lastName}` || "Unknown User"}
 				</Name>
 			</ProfileInfo>
-			<Link to="/settings" aria-label="Open settings">
-				<SettingsButton>
-					<Settings className="h-4 w-4" />
+			<ActionButton>
+				<SettingsButton
+					onClick={() =>
+						window.dispatchEvent(new CustomEvent("app:openTodoWindow"))
+					}
+				>
+					<ListTodo className="h-4 w-4" />
 				</SettingsButton>
-			</Link>
+
+				<Link to="/settings" aria-label="Open settings">
+					<SettingsButton>
+						<Settings className="h-4 w-4" />
+					</SettingsButton>
+				</Link>
+			</ActionButton>
 		</ProfileContainer>
 	);
 };
