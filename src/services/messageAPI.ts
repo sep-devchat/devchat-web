@@ -1,10 +1,12 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { get, remove } from "./apiCaller";
 import { Profile } from "./auth/auth.type";
+import { ChannelResponse } from "./channelAPI";
 
 export interface MessageResponse {
 	id: string;
 	channelId: string;
+	channel?: ChannelResponse;
 	threadId: string | null;
 	senderId: string;
 	parentMessageId: string | null;

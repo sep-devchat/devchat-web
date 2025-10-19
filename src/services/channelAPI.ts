@@ -1,11 +1,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { get, post, put, remove } from "./apiCaller";
+import { GroupResponse } from "./groupAPI";
 
 export interface ChannelResponse {
 	id: string;
 	name: string;
 	description: string | null;
 	groupId: string;
+	group?: GroupResponse;
 	createdAt: Date;
 	createdBy: string;
 	isPrivate?: boolean;

@@ -25,6 +25,7 @@ interface nativeAPI {
 		language: string,
 		content: string,
 	): Promise<CodeExecutionResult>;
+	showMessageNotification(title: string, body: string): Promise<void>;
 }
 
 declare global {
