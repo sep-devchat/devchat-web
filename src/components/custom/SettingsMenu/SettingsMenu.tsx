@@ -4,6 +4,7 @@ import { useNavigate } from "@tanstack/react-router";
 import {
 	Bell,
 	CircleX,
+	LogOut,
 	Palette,
 	Search,
 	Settings,
@@ -29,6 +30,9 @@ import {
 	SidebarContent,
 	Title,
 } from "./SettingsMenu.styled";
+import { Separator } from "@radix-ui/react-select";
+import { logout } from "@/services/auth/authAPI";
+import cookieUtils from "@/services/cookieUtils";
 
 type SettingsSection =
 	| "general"
@@ -90,6 +94,12 @@ export const SettingsMenu: React.FC<SettingsMenuProps> = ({
 		navigate({ to: "/chat/friend" });
 	};
 
+	const handleLogout = async () => {
+		await logout();
+		cookieUtils.clear();
+		navigate({ to: "/auth/login" });
+	};
+
 	return (
 		<SettingsContainer backgroundImage={bgImage}>
 			<Header>
@@ -140,6 +150,11 @@ export const SettingsMenu: React.FC<SettingsMenuProps> = ({
 									</MenuItem>
 								);
 							})}
+							<Separator className="bg-gray-300 h-0.25" />
+							<MenuItem onClick={() => handleLogout()} $isActive={false}>
+								<LogOut className="text-red-500" />{" "}
+								<span className="text-red-500">Logout</span>
+							</MenuItem>
 						</MenuNav>
 					</SidebarContent>
 				</Sidebar>
