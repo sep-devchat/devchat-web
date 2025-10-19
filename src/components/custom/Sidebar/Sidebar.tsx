@@ -28,6 +28,7 @@ import {
 	GroupSummary,
 	ExpandedGroup,
 } from "../../../sampleData";
+import devchatLogo from "@/assets/devchat-logo.png";
 
 /**
  * NOTE:
@@ -148,7 +149,9 @@ export const SidebarMenu: React.FC<SidebarMenuProps> = ({
 				<NavigatorIcon>
 					{/* LogoSection - khi click hiện logo menu */}
 					<LogoSection onClick={handleLogoClick} style={{ cursor: "pointer" }}>
-						<LogoBox>LOGO</LogoBox>
+						<LogoBox>
+							<img src={devchatLogo} className="rounded-full" />
+						</LogoBox>
 					</LogoSection>
 
 					{/* IndentedSection hiển thị avatars các group */}

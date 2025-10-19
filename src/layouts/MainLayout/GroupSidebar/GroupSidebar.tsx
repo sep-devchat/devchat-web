@@ -17,6 +17,7 @@ import AddGroupModal from "@/components/custom/AddGroupModal/AddGroupModal";
 import { listGroups, GroupResponse } from "@/services/groupAPI";
 import { theme } from "@/themes";
 import { listChannels } from "@/services/channelAPI";
+import devchatLogo from "@/assets/devchat-logo.png";
 
 type SidebarGroup = {
 	id: string;
@@ -180,7 +181,9 @@ const GroupSidebar: React.FC = () => {
 	return (
 		<GroupSidebarContainer>
 			<LogoSection onClick={handleLogoClick} style={{ cursor: "pointer" }}>
-				<LogoBox>LOGO</LogoBox>
+				<LogoBox>
+					<img src={devchatLogo} className="rounded-full" />
+				</LogoBox>
 			</LogoSection>
 
 			<GroupList ref={contentWrapperRef}>
