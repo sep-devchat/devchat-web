@@ -187,3 +187,8 @@ export const SettingsButton = styled.button`
 		}
 	}
 `;
+
+export const ActionButton = styled.div`
+	display: flex;
+	gap; 12px;
+`;

@@ -15,13 +15,16 @@ import { User } from "lucide-react";
 import GroupSidebar from "./GroupSidebar";
 import Profile from "./Profile";
 import AuthLayout from "../AuthLayout";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import ThreadPanel from "@/components/custom/RightPanel/ThreadPanel/ThreadPanel";
 import CodeList from "@/components/custom/RightPanel/CodeList/CodeList";
 import MemberList from "@/components/custom/RightPanel/MemberList/MemberList";
 import Header from "./Header";
 import { GroupSetting } from "@/pages/GroupSetting";
 import { LeftSidebar } from "./LeftSidebar/LeftSidebar";
+import TodoFloatingManager from "@/components/custom/ResizableFloatingWindow/TodoFloatingManager/TodoFloatingManager";
+import { GroupResponse, listGroups } from "@/services/groupAPI";
+import { theme } from "@/themes";
 import { ResizableHandle } from "@/components/ui/resizable";
 
 const MainLayout = () => {
@@ -33,8 +36,49 @@ const MainLayout = () => {
 	const search = useSearch({ strict: false }) as { channel?: string };
 	const groupId = params.groupId;
 	const channelId = search.channel;
+	const [localGroups, setLocalGroups] = useState<any[]>([]);
 
 	console.log("MainLayout - Current IDs:", { groupId, channelId });
+
+	useEffect(() => {
+		let mounted = true;
+		const fetch = async () => {
+			try {
+				const res = await listGroups();
+				const payload = (res && (res.data ?? res)) as GroupResponse[];
+				if (!mounted) return;
+
+				const mapped = (payload || []).map((g) => {
+					const initials = (g.name || "")
+						.split(" ")
+						.map((s) => s[0] ?? "")
+						.join("")
+						.slice(0, 2)
+						.toUpperCase();
+					return {
+						id: g.id,
+						name: g.name,
+						initials,
+						avatarColor: `${theme.color.primary}`, // giữ mặc định như trước; đổi nếu có logic color khác
+						unread: 0,
+						avatar: g.avatar ?? undefined,
+						isActive: g.isActive ?? true,
+					} as any;
+				});
+
+				const onlyActive = mapped.filter((mg) => mg.isActive === true);
+
+				setLocalGroups(onlyActive);
+			} catch (err) {
+				console.error("Failed to load groups:", err);
+			}
+		};
+
+		fetch();
+		return () => {
+			mounted = false;
+		};
+	}, []);
 
 	const handleCreateThread = () => {
 		setSelectedThreadId("");
@@ -88,6 +132,8 @@ const MainLayout = () => {
 		<>
 			<AuthLayout>
 				<MainBg />
+				<TodoFloatingManager groups={localGroups} />
+
 				{!settingSelect ? (
 					<MainLayoutContainer>
 						<TitleBar title="DevChat" icon={<User />} />
