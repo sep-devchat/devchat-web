@@ -1,6 +1,16 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useRef, useState } from "react";
 import {
+	createTodo,
+	deleteTodo,
+	getTodos,
+	Todo,
+	TodoPriorityEnum,
+	TodoStatusEnum,
+	updateTodo,
+	UpdateTodoRequest,
+} from "../../../../services/todoAPI";
+import {
 	Search,
 	Plus,
 	Edit3,
@@ -40,19 +50,6 @@ import {
 	DragHandle,
 } from "./PersonalTodo.styled";
 
-const STORAGE_KEY = "devchat_personal_tasks";
-
-type Task = {
-	id: string;
-	name: string;
-	description?: string;
-	priority?: number;
-	status?: number;
-	dueDate?: string;
-	createdAt?: number;
-	done?: boolean;
-};
-
 /* ---------- utils ---------- */
 function parseDateInputToISO(value: string | null) {
 	if (!value) return undefined;
@@ -80,34 +77,31 @@ function daysDiffFromNow(iso?: string) {
 	return Math.ceil(diff / (1000 * 60 * 60 * 24));
 }
 
+// Mapping functions for priority
+function toApiPriority(p: number): TodoPriorityEnum {
+	if (p === 1) return TodoPriorityEnum.HIGH;
+	if (p === 2) return TodoPriorityEnum.MEDIUM;
+	return TodoPriorityEnum.LOW;
+}
+
+function fromApiPriority(p: TodoPriorityEnum): number {
+	if (p === TodoPriorityEnum.HIGH) return 1;
+	if (p === TodoPriorityEnum.MEDIUM) return 2;
+	return 3;
+}
+
+// // Mapping functions for status
+// function toApiStatus(done: boolean): TodoStatusEnum {
+// 	return done ? TodoStatusEnum.DONE : TodoStatusEnum.TODO;
+// }
+
+function fromApiStatus(s: TodoStatusEnum): boolean {
+	return s === TodoStatusEnum.DONE;
+}
+
 /* ---------- component ---------- */
 export default function PersonalTodo() {
-	const [tasks, setTasks] = useState<Task[]>(() => {
-		try {
-			const raw =
-				typeof window !== "undefined"
-					? localStorage.getItem(STORAGE_KEY)
-					: null;
-			if (!raw) {
-				return [
-					{
-						id: "t-" + Date.now(),
-						name: "Email to my boss",
-						description: "Send an email to my boss at 7:00 AM",
-						priority: 1,
-						status: 0,
-						dueDate: "2025-12-31T23:59:59.000Z",
-						createdAt: Date.now(),
-						done: false,
-					},
-				];
-			}
-			return JSON.parse(raw);
-		} catch (e) {
-			console.warn("Failed to parse tasks", e);
-			return [];
-		}
-	});
+	const [tasks, setTasks] = useState<Todo[]>([]);
 
 	const [q, setQ] = useState<string>("");
 	const [showAddCard, setShowAddCard] = useState(false);
@@ -121,36 +115,43 @@ export default function PersonalTodo() {
 
 	// inline edit
 	const [editingId, setEditingId] = useState<string | null>(null);
-	const [editFields, setEditFields] = useState<Partial<Task>>({});
+	const [editFields, setEditFields] = useState<Partial<Todo>>({});
+
+	async function fetchTasks() {
+		try {
+			const res = await getTodos({ page: 1, limit: 100 }); // TODO: add pagination
+			setTasks(
+				res.data.sort((a, b) => (a.priority ?? 99) - (b.priority ?? 99)),
+			);
+		} catch (e) {
+			console.error("Failed to fetch tasks", e);
+			// TODO: show error to user
+		}
+	}
 
 	useEffect(() => {
-		try {
-			localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
-		} catch (e) {
-			console.log("Failed to save tasks", e);
-		}
-	}, [tasks]);
+		fetchTasks();
+	}, []);
 
 	/* ---------- CRUD: add / delete / toggle / inline edit ---------- */
-	function addTaskFinalize() {
+	async function addTaskFinalize() {
 		const nm = (name ?? "").trim();
 		if (!nm) return;
 		const iso = parseDateInputToISO(dueDateInput);
-		const t: Task = {
-			id: "t" + Date.now(),
-			name: nm,
-			description: description?.trim(),
-			priority: priority ?? 99,
-			status: 0,
-			dueDate: iso,
-			createdAt: Date.now(),
-			done: false,
-		};
-		setTasks((s) => {
-			const next = [t, ...s];
-			next.sort((a, b) => (a.priority ?? 99) - (b.priority ?? 99));
-			return next;
-		});
+		try {
+			await createTodo({
+				name: nm,
+				description: description?.trim() || null,
+				priority: toApiPriority(priority),
+				status: TodoStatusEnum.TODO,
+				dueDate: iso || null,
+			});
+			fetchTasks(); // Refresh the list after adding
+		} catch (e) {
+			console.error("Failed to create task", e);
+			// TODO: show error to user
+		}
+
 		setName("");
 		setDescription("");
 		setPriority(3);
@@ -165,32 +166,68 @@ export default function PersonalTodo() {
 		setShowAddCard(false);
 	}
 
-	function deleteTask(id: string) {
+	async function deleteTask(id: string) {
 		const ok = window.confirm("Are you sure you want to delete this task?");
 		if (!ok) return;
-		setTasks((s) => s.filter((x) => x.id !== id));
+		try {
+			await deleteTodo(id);
+			fetchTasks(); // Refresh the list after deleting
+		} catch (e) {
+			console.error("Failed to delete task", e);
+			// TODO: show error to user
+		}
 	}
 
-	function toggleDone(id: string) {
-		setTasks((s) => s.map((x) => (x.id === id ? { ...x, done: !x.done } : x)));
+	async function toggleDone(id: string) {
+		const task = tasks.find((x) => x.id === id);
+		if (!task) return;
+		const newStatus =
+			task.status === TodoStatusEnum.DONE
+				? TodoStatusEnum.TODO
+				: TodoStatusEnum.DONE;
+		try {
+			await updateTodo(id, { status: newStatus });
+			fetchTasks(); // Refresh the list after toggling done status
+		} catch (e) {
+			console.error("Failed to update task status", e);
+			// TODO: show error to user
+		}
 	}
 
 	function startEditInline(id: string) {
 		const t = tasks.find((x) => x.id === id);
 		if (!t) return;
 		setEditingId(id);
-		setEditFields({ ...t });
+		setEditFields({
+			...t,
+			priority: fromApiPriority(t.priority),
+			// The status is already a number in the API, so no special mapping needed for editFields
+		});
 	}
 	function cancelInlineEdit() {
 		setEditingId(null);
 		setEditFields({});
 	}
-	function saveInlineEdit(id: string) {
+	async function saveInlineEdit(id: string) {
 		const text = (editFields.name ?? "").trim();
 		if (!text) return;
-		setTasks((s) =>
-			s.map((x) => (x.id === id ? { ...x, ...(editFields as Task) } : x)),
-		);
+
+		const updatedData: UpdateTodoRequest = {
+			name: text,
+			description: editFields.description ?? null,
+			priority: toApiPriority(editFields.priority as number),
+			status: editFields.status,
+			dueDate: editFields.dueDate ?? null,
+		};
+
+		try {
+			await updateTodo(id, updatedData);
+			fetchTasks(); // Refresh the list after saving
+		} catch (e) {
+			console.error("Failed to update task", e);
+			// TODO: show error to user
+		}
+
 		setEditingId(null);
 		setEditFields({});
 	}
@@ -370,7 +407,7 @@ export default function PersonalTodo() {
 					<div style={{ color: "#64748b" }}>No matching tasks.</div>
 				) : (
 					shown.map((t) => {
-						const daysLeft = daysDiffFromNow(t.dueDate);
+						const daysLeft = daysDiffFromNow(t.dueDate ?? "");
 						const isDueSoon =
 							daysLeft !== null && daysLeft <= 2 && daysLeft >= 0;
 						const isOverdue = daysLeft !== null && daysLeft < 0;
@@ -410,7 +447,7 @@ export default function PersonalTodo() {
 								<div>
 									<Checkbox
 										type="checkbox"
-										checked={!!t.done}
+										checked={fromApiStatus(t.status)}
 										onChange={() => toggleDone(t.id)}
 									/>
 								</div>
@@ -425,7 +462,9 @@ export default function PersonalTodo() {
 										}}
 									>
 										<div style={{ flex: 1 }}>
-											<TaskTitle done={t.done}>{t.name}</TaskTitle>
+											<TaskTitle done={fromApiStatus(t.status)}>
+												{t.name}
+											</TaskTitle>
 											<TaskDesc>{t.description}</TaskDesc>
 										</div>
 
