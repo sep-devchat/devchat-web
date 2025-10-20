@@ -7,9 +7,9 @@ import {
 	DropdownMenuItem,
 	DropdownMenuGroup,
 } from "@/components/ui/dropdown-menu"; // shadcn dropdown
-import { Input } from "../../../ui/input";
+import { Input } from "../../ui/input";
 import { Image, Link, Pencil } from "lucide-react";
-import { InboxType } from "../../ChatInputComponent/ChatTypeModal/InboxType";
+import { InboxType } from "../ChatInputComponent/ChatTypeModal/InboxType";
 
 type Props = {
 	trigger?: React.ReactNode;

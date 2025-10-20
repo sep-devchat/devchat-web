@@ -51,6 +51,12 @@ export interface DataTableProps {
 
 	serverSide?: boolean; // if true, `data` is expected to be the current page's rows
 	onPageSizeChange?: (size: number) => void; // notify parent when page size changes
+
+	// NEW selection props
+	rowSelection?: "single" | "multiple"; // if provided, render selection controls
+	onSelectionChange?: (rows: any[] | any | null) => void;
+
+	// legacy
 }
 
 export default function CTable({
@@ -73,6 +79,9 @@ export default function CTable({
 	serverSide = false,
 	onPageSizeChange,
 	showPaginationControls = true,
+	// new selection
+	rowSelection,
+	onSelectionChange,
 }: DataTableProps) {
 	const [editing, setEditing] = useState<{
 		rowIndex: number;
@@ -110,7 +119,6 @@ export default function CTable({
 		if (!resp) return undefined;
 		const p = resp.pagination ?? resp.meta ?? resp.paging ?? resp; // try a few shapes
 		if (!p) return undefined;
-		// try common keys
 		const candidates = [
 			p.totalPage,
 			p.totalPages,
@@ -128,10 +136,6 @@ export default function CTable({
 	};
 
 	// Determine total pages to render with precedence:
-	// 1) serverResponse.pagination.totalPage (if parent passed full response to serverResponse)
-	// 2) propTotalPages (explicit prop)
-	// 3) derive from totalRows (totalRecord) if available
-	// 4) derive from data.length (client-side fallback)
 	const totalPagesFromResp = readTotalPageFromResponse(serverResponse);
 	const totalPagesCount =
 		typeof totalPagesFromResp === "number"
@@ -295,13 +299,101 @@ export default function CTable({
 		notifyPageChange(clampPage(newPage));
 	};
 
+	/* ------------------ Selection logic ------------------ */
+	// selectedMap keeps selected rows keyed by keyStr (string of rowKey or index)
+	const [selectedMap, setSelectedMap] = useState<Record<string, any>>({});
+	const [selectedIdSingle, setSelectedIdSingle] = useState<string | null>(null);
+
+	const getRowKeyString = (r: any, dataIndex: number) => {
+		const raw = rowKey ? (r?.[rowKey] ?? dataIndex) : dataIndex;
+		return String(raw);
+	};
+
+	// toggle single selection
+	const selectSingle = (r: any, dataIndex: number) => {
+		const k = getRowKeyString(r, dataIndex);
+		if (selectedIdSingle === k) {
+			setSelectedIdSingle(null);
+			if (onSelectionChange) onSelectionChange(null);
+		} else {
+			setSelectedIdSingle(k);
+			setSelectedMap({ [k]: r });
+			if (onSelectionChange) onSelectionChange(r);
+		}
+	};
+
+	// toggle multiple selection for one row
+	const toggleMultiple = (r: any, dataIndex: number) => {
+		const k = getRowKeyString(r, dataIndex);
+		setSelectedMap((prev) => {
+			const next = { ...prev };
+			if (next[k]) {
+				delete next[k];
+			} else {
+				next[k] = r;
+			}
+			if (onSelectionChange) onSelectionChange(Object.values(next));
+			return next;
+		});
+	};
+
+	// select/deselect all visible rows
+	const toggleSelectAllVisible = (select: boolean) => {
+		if (!rowSelection || rowSelection !== "multiple") return;
+		if (select) {
+			const add: Record<string, any> = { ...selectedMap };
+			pagedData.forEach((r, idx) => {
+				const k = getRowKeyString(r, currentPage * pageSize + idx);
+				add[k] = r;
+			});
+			setSelectedMap(add);
+			if (onSelectionChange) onSelectionChange(Object.values(add));
+		} else {
+			// remove visible keys from map
+			setSelectedMap((prev) => {
+				const next = { ...prev };
+				pagedData.forEach((r, idx) => {
+					const k = getRowKeyString(r, currentPage * pageSize + idx);
+					delete next[k];
+				});
+				if (onSelectionChange) onSelectionChange(Object.values(next));
+				return next;
+			});
+		}
+	};
+
+	const allVisibleSelected = (() => {
+		if (rowSelection !== "multiple") return false;
+		if (pagedData.length === 0) return false;
+		return pagedData.every((r, idx) => {
+			const k = getRowKeyString(r, currentPage * pageSize + idx);
+			return !!selectedMap[k];
+		});
+	})();
+
+	/* ----------------------------------------------------- */
+
 	return (
 		<TableArea>
 			<TableWrapper>
 				<Table className="w-full h-full border-collapse overflow-y-auto">
 					{caption ? <TableCaption>{caption}</TableCaption> : null}
 					<TableHeader className="sticky top-0 z-10 bg-[#f1f4f9]">
-						<TableRow>
+						<TableRow className="border-none">
+							{/* selection header if enabled */}
+							{rowSelection === "multiple" ? (
+								<TH className="text-center">
+									<input
+										type="checkbox"
+										aria-label="select-all-visible"
+										checked={allVisibleSelected}
+										onChange={(e) => toggleSelectAllVisible(e.target.checked)}
+									/>
+								</TH>
+							) : rowSelection === "single" ? (
+								<TH className="text-center"> </TH>
+							) : null}
+
 							{columns.map((col) => (
 								<TH
 									key={col.field}
@@ -317,8 +409,11 @@ export default function CTable({
 						{/* Loading skeleton */}
 						{loading ? (
 							<>
-								<TableRow>
-									<TableCell colSpan={columns.length} className="py-6">
+								<TableRow className="border-none">
+									<TableCell
+										colSpan={columns.length + (rowSelection ? 1 : 0)}
+										className="py-6"
+									>
 										<div className="flex items-center justify-center gap-4">
 											<div
 												className="w-8 h-8 border-4 border-t-transparent rounded-full animate-spin"
@@ -331,11 +426,19 @@ export default function CTable({
 
 								{/* skeleton rows */}
 								{Array.from({ length: skeletonCount }).map((_, i) => (
-									<TableRow key={`skeleton-${i}`} className="bg-white">
+									<TableRow
+										key={`skeleton-${i}`}
+										className="bg-white border-none"
+									>
+										{rowSelection ? (
+											<TableCell className="align-baseline">
+												<div className="h-4 w-4 rounded bg-gray-200 animate-pulse" />
+											</TableCell>
+										) : null}
 										{columns.map((col) => (
 											<TableCell
 												key={`s-${i}-${col.field}`}
-												className={`${getAlignClass(col.align)} align-top`}
+												className={`${getAlignClass(col.align)} align-baseline`}
 											>
 												<div className="h-4 rounded bg-gray-200 animate-pulse max-w-[120px]" />
 											</TableCell>
@@ -347,9 +450,9 @@ export default function CTable({
 							// Normal rows (not loading)
 							<>
 								{pagedData.length === 0 ? (
-									<TableRow>
+									<TableRow className="border-none">
 										<TableCell
-											colSpan={columns.length}
+											colSpan={columns.length + (rowSelection ? 1 : 0)}
 											className="py-6 text-center text-sm text-gray-500"
 										>
 											Không có dữ liệu.
@@ -364,11 +467,35 @@ export default function CTable({
 												? currentPage * pageSize + localIndex
 												: localIndex;
 										const isEven = (dataIndex + 1) % 2 === 0; // human-even rows => background #F1F4F9
+										const rowKeyStr = getRowKeyString(row, dataIndex);
+
 										return (
 											<TableRow
 												key={rowKey ? (row[rowKey] ?? dataIndex) : dataIndex}
-												className={`${isEven ? "bg-[#F1F4F9]" : "bg-white"} hover:bg-[#e5e7eb]`}
+												className={`${isEven ? "bg-[#F1F4F9]" : "bg-white"} hover:bg-[#e5e7eb] border-none`}
 											>
+												{/* selection cell */}
+												{rowSelection === "multiple" ? (
+													<TableCell className="text-center align-baseline">
+														<input
+															type="checkbox"
+															checked={!!selectedMap[rowKeyStr]}
+															onChange={() => toggleMultiple(row, dataIndex)}
+															aria-label={`select-${rowKeyStr}`}
+														/>
+													</TableCell>
+												) : rowSelection === "single" ? (
+													<TableCell className="text-center align-baseline">
+														<input
+															type="radio"
+															name="ctable-single-select"
+															checked={selectedIdSingle === rowKeyStr}
+															onChange={() => selectSingle(row, dataIndex)}
+															aria-label={`select-${rowKeyStr}`}
+														/>
+													</TableCell>
+												) : null}
+
 												{columns.map((col) => {
 													const cellKey = `${dataIndex}_${col.field}`;
 													const rawValue = row?.[col.field];
@@ -383,7 +510,7 @@ export default function CTable({
 													return (
 														<TableCell
 															key={cellKey}
-															className={`${getAlignClass(col.align)} align-top whitespace-nowrap max-w-[240px] overflow-hidden text-ellipsis`}
+															className={`${getAlignClass(col.align)} align-baseline whitespace-nowrap max-w-[240px] overflow-hidden text-ellipsis`}
 															onDoubleClick={() => {
 																if (col.editable)
 																	startEdit(dataIndex, col.field, rawValue);
@@ -423,13 +550,12 @@ export default function CTable({
 					</TableBody>
 				</Table>
 			</TableWrapper>
-			{/* Pagination controls */}
+			{/* Pagination controls (same as before) */}
 			{showPaginationControls &&
 				pagination &&
 				!loading &&
 				totalPagesCount > 0 && (
 					<div className="mt-3 flex items-center justify-between gap-4  shrink-0">
-						{/* left side intentionally removed as requested */}
 						<div className="flex items-center gap-3 text-sm">
 							<div>
 								Showing{" "}

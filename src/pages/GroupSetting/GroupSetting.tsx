@@ -3,7 +3,6 @@ import React, { useRef, useEffect, useState, Suspense } from "react";
 import {
 	Palette,
 	Search,
-	User,
 	Bell,
 	Settings as SettingsIcon,
 	CircleX,
@@ -29,9 +28,9 @@ import {
 import bgImage from "@/assets/image/loginBackground.png";
 import ProfileSection from "./Sections/ProfileSection";
 import { DeleteSection } from "./Sections/DeleteSection";
-import InviteSection from "./Sections/InviteSection";
-import ActivitySection from "./Sections/ActivitySection";
-import MemberSection from "./Sections/MemberSection";
+import InviteSection from "./Sections/InviteSection/InviteSection";
+import ActivitySection from "./Sections/ActivitySection/ActivitySection";
+import MemberSection from "./MemberSection/MemberSection";
 
 /* 1) Định nghĩa lại kiểu section hợp lệ */
 type SettingsSection = "profile" | "invite" | "member" | "activity" | "delete";
@@ -46,7 +45,7 @@ const menuItems: MenuItemType[] = [
 	{ id: "profile", label: "Server Profile", icon: SettingsIcon },
 	{ id: "invite", label: "Invites", icon: Palette },
 	{ id: "member", label: "Member", icon: Bell },
-	{ id: "activity", label: "Activity", icon: User },
+	// { id: "activity", label: "Activity", icon: User },
 	{ id: "delete", label: "Delete Server", icon: Trash },
 ];
 
