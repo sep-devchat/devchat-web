@@ -33,6 +33,7 @@ import {
 import { Separator } from "@radix-ui/react-select";
 import { logout } from "@/services/auth/authAPI";
 import cookieUtils from "@/services/cookieUtils";
+import { useSocket } from "@/hooks";
 
 type SettingsSection =
 	| "general"
@@ -60,6 +61,7 @@ export const SettingsMenu: React.FC<SettingsMenuProps> = ({
 }) => {
 	const contentWrapperRef = useRef<HTMLDivElement>(null);
 	const navigate = useNavigate();
+	const { socket } = useSocket();
 
 	const menuItems: MenuItemType[] = [
 		{ id: "general", label: "General", icon: Settings },
@@ -97,6 +99,7 @@ export const SettingsMenu: React.FC<SettingsMenuProps> = ({
 	const handleLogout = async () => {
 		await logout();
 		cookieUtils.clear();
+		socket.disconnect();
 		navigate({ to: "/auth/login" });
 	};
 
