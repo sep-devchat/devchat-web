@@ -40,6 +40,10 @@ import {
 import { MoreHorizontal, Search, Star, UserMinus } from "lucide-react";
 import sendImage from "../../assets/image/sendImage.png";
 import { useSearch } from "@tanstack/react-router";
+import { listUsers, UserResponse } from "@/services/userAPI";
+import { sendFriendRequest } from "@/services/friendAPI";
+import { useSelector } from "react-redux";
+import { RootState } from "@/store";
 
 interface User {
 	id: string;
@@ -47,14 +51,6 @@ interface User {
 	handle: string;
 	avatar: string;
 	mutualFriends: number;
-}
-
-interface PendingRequest {
-	id: string;
-	name: string;
-	handle: string;
-	avatar: string;
-	type: "received" | "sent";
 }
 
 interface Friend {
@@ -69,251 +65,134 @@ const Friend: React.FC = () => {
 	const search = useSearch({ from: "/chat/friend" });
 	const activeTab = search.tab || "add-friend";
 
+	const currentUserProfile = useSelector(
+		(state: RootState) => state.user.profile,
+	);
+	const currentUserId = currentUserProfile?.id || "";
+
+	useEffect(() => {
+		console.log("Current User ID:", currentUserId);
+	}, [currentUserId]);
+
+	const [availableUsers, setAvailableUsers] = useState<UserResponse[]>([]);
+	const [isLoadingUsers, setIsLoadingUsers] = useState(false);
+	const [isSendingRequest, setIsSendingRequest] = useState(false);
+
 	const [searchAdd, setSearchAdd] = useState("");
 	const [searchAll, setSearchAll] = useState("");
 	const [searchPending, setSearchPending] = useState("");
 
 	const [searchResults, setSearchResults] = useState<User[]>([]);
 	const [selectedUser, setSelectedUser] = useState<User | null>(null);
-	const [showModal, setShowModal] = useState(false);
-	const [activeMenu, setActiveMenu] = useState<string | null>(null);
 
+	const [showModal, setShowModal] = useState(false);
+	const [modalType, setModalType] = useState<"success" | "error">("success");
+	const [modalMessage, setModalMessage] = useState("");
+	const [isUserSelectedFromList, setIsUserSelectedFromList] = useState(false);
+
+	const [activeMenu, setActiveMenu] = useState<string | null>(null);
 	const [currentPage, setCurrentPage] = useState(1);
 	const friendsPerPage = 18;
 
-	const [allFriends, setAllFriends] = useState<Friend[]>([
+	const [allFriends] = useState<Friend[]>([
 		{
 			id: "1",
-			name: "Nhu Phien",
-			handle: "@nhunguyen1",
+			name: "John Doe",
+			handle: "@johndoe",
 			avatar:
-				"https://images.unsplash.com/photo-1494790108755-2616b332c-c3?w=100&h=100&fit=crop&crop=face",
+				"https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop",
 			mutualFriends: 5,
 		},
 		{
 			id: "2",
-			name: "Nhu Nguyen",
-			handle: "@nhunguyen2",
+			name: "Jane Smith",
+			handle: "@janesmith",
 			avatar:
-				"https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face",
-			mutualFriends: 3,
-		},
-		{
-			id: "3",
-			name: "Nhu Phien",
-			handle: "@nhunguyen1",
-			avatar:
-				"https://images.unsplash.com/photo-1494790108755-2616b332c-c3?w=100&h=100&fit=crop&crop=face",
-			mutualFriends: 5,
-		},
-		{
-			id: "3",
-			name: "Nhu Phien",
-			handle: "@nhunguyen1",
-			avatar:
-				"https://images.unsplash.com/photo-1494790108755-2616b332c-c3?w=100&h=100&fit=crop&crop=face",
-			mutualFriends: 5,
-		},
-		{
-			id: "4",
-			name: "Nhu Nguyen",
-			handle: "@nhunguyen2",
-			avatar:
-				"https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face",
-			mutualFriends: 3,
-		},
-		{
-			id: "5",
-			name: "Nhu Phien",
-			handle: "@nhunguyen1",
-			avatar:
-				"https://images.unsplash.com/photo-1494790108755-2616b332c-c3?w=100&h=100&fit=crop&crop=face",
-			mutualFriends: 5,
-		},
-		{
-			id: "6",
-			name: "Nhu Nguyen",
-			handle: "@nhunguyen2",
-			avatar:
-				"https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face",
-			mutualFriends: 3,
-		},
-		{
-			id: "7",
-			name: "Nhu Phien",
-			handle: "@nhunguyen1",
-			avatar:
-				"https://images.unsplash.com/photo-1494790108755-2616b332c-c3?w=100&h=100&fit=crop&crop=face",
-			mutualFriends: 5,
-		},
-		{
-			id: "8",
-			name: "Nhu Nguyen",
-			handle: "@nhunguyen2",
-			avatar:
-				"https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face",
-			mutualFriends: 3,
-		},
-		{
-			id: "9",
-			name: "Nhu Phien",
-			handle: "@nhunguyen1",
-			avatar:
-				"https://images.unsplash.com/photo-1494790108755-2616b332c-c3?w=100&h=100&fit=crop&crop=face",
-			mutualFriends: 5,
-		},
-		{
-			id: "10",
-			name: "Nhu Nguyen",
-			handle: "@nhunguyen2",
-			avatar:
-				"https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face",
-			mutualFriends: 3,
-		},
-		{
-			id: "11",
-			name: "Nhu Phien",
-			handle: "@nhunguyen1",
-			avatar:
-				"https://images.unsplash.com/photo-1494790108755-2616b332c-c3?w=100&h=100&fit=crop&crop=face",
-			mutualFriends: 5,
-		},
-		{
-			id: "12",
-			name: "Nhu Nguyen",
-			handle: "@nhunguyen2",
-			avatar:
-				"https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face",
-			mutualFriends: 3,
-		},
-		{
-			id: "13",
-			name: "Nhu Phien",
-			handle: "@nhunguyen1",
-			avatar:
-				"https://images.unsplash.com/photo-1494790108755-2616b332c-c3?w=100&h=100&fit=crop&crop=face",
-			mutualFriends: 5,
-		},
-		{
-			id: "14",
-			name: "Nhu Nguyen",
-			handle: "@nhunguyen2",
-			avatar:
-				"https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face",
-			mutualFriends: 3,
-		},
-		{
-			id: "15",
-			name: "Nhu Phien",
-			handle: "@nhunguyen1",
-			avatar:
-				"https://images.unsplash.com/photo-1494790108755-2616b332c-c3?w=100&h=100&fit=crop&crop=face",
-			mutualFriends: 5,
-		},
-		{
-			id: "16",
-			name: "Nhu Nguyen",
-			handle: "@nhunguyen2",
-			avatar:
-				"https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face",
-			mutualFriends: 3,
-		},
-		{
-			id: "17",
-			name: "Nhu Phien",
-			handle: "@nhunguyen1",
-			avatar:
-				"https://images.unsplash.com/photo-1494790108755-2616b332c-c3?w=100&h=100&fit=crop&crop=face",
-			mutualFriends: 5,
-		},
-		{
-			id: "18",
-			name: "Nhu Nguyen",
-			handle: "@nhunguyen2",
-			avatar:
-				"https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face",
-			mutualFriends: 3,
-		},
-		{
-			id: "19",
-			name: "Nhu Phien",
-			handle: "@nhunguyen1",
-			avatar:
-				"https://images.unsplash.com/photo-1494790108755-2616b332c-c3?w=100&h=100&fit=crop&crop=face",
-			mutualFriends: 5,
-		},
-		{
-			id: "20",
-			name: "Nhu Nguyen",
-			handle: "@nhunguyen2",
-			avatar:
-				"https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face",
-			mutualFriends: 3,
-		},
-		{
-			id: "21",
-			name: "Nhu Phien",
-			handle: "@nhunguyen1",
-			avatar:
-				"https://images.unsplash.com/photo-1494790108755-2616b332c-c3?w=100&h=100&fit=crop&crop=face",
-			mutualFriends: 5,
-		},
-		{
-			id: "22",
-			name: "Nhu Nguyen",
-			handle: "@nhunguyen2",
-			avatar:
-				"https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face",
+				"https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop",
 			mutualFriends: 3,
 		},
 	]);
 
-	const [pendingRequests, setPendingRequests] = useState<PendingRequest[]>([
+	const [pendingRequests] = useState([
 		{
 			id: "1",
-			name: "Nhu Nguyen",
-			handle: "@nhunguyen_req1",
+			name: "Alice Johnson",
+			handle: "@alice",
 			avatar:
-				"https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop&crop=face",
-			type: "received",
+				"https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop",
+			type: "received" as const,
 		},
 		{
 			id: "2",
-			name: "Nhu Nguyen",
-			handle: "@nhunguyen_sent1",
+			name: "Bob Wilson",
+			handle: "@bobwilson",
 			avatar:
-				"https://images.unsplash.com/photo-1506794778202-cad84cf45f-ad?w=100&h=100&fit=crop&crop=face",
-			type: "sent",
+				"https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&h=100&fit=crop",
+			type: "sent" as const,
 		},
 	]);
 
-	const mockUsers: User[] = [
-		{
-			id: "1",
-			name: "Nhu Nguyen",
-			handle: "@nhunguyen",
-			avatar:
-				"https://images.unsplash.com/photo-1494790108755-2616b332c-c3?w=100&h=100&fit=crop&crop=face",
-			mutualFriends: 2,
-		},
-		{
-			id: "2",
-			name: "Nhu Nguyen",
-			handle: "@nhunguyen2",
-			avatar:
-				"https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face",
-			mutualFriends: 5,
-		},
-	];
+	useEffect(() => {
+		const fetchActiveUsers = async () => {
+			setIsLoadingUsers(true);
+			try {
+				const response = await listUsers(1, 100);
+				if (response && response.data) {
+					const activeUsers = response.data.filter(
+						(user: UserResponse) => user.isActive === true,
+					);
+					setAvailableUsers(activeUsers);
+				}
+			} catch (error) {
+				console.error("Error fetching users:", error);
+			} finally {
+				setIsLoadingUsers(false);
+			}
+		};
+		fetchActiveUsers();
+	}, []);
 
 	const handleSearchAdd = (query: string) => {
 		setSearchAdd(query);
+
+		if (selectedUser && selectedUser.name !== query) {
+			setSelectedUser(null);
+			setIsUserSelectedFromList(false);
+		}
+
 		if (query.trim()) {
-			const filtered = mockUsers.filter(
-				(user) =>
-					user.name.toLowerCase().includes(query.toLowerCase()) ||
-					user.handle.toLowerCase().includes(query.toLowerCase()),
-			);
+			const filtered = availableUsers
+				.filter((user) => {
+					if (!user || !user.id) return false;
+
+					const userIdString = String(user.id);
+					const currentIdString = String(currentUserId);
+
+					if (currentIdString.length > 0 && userIdString === currentIdString) {
+						return false;
+					}
+
+					const fullName = `${user.firstName} ${user.lastName}`.toLowerCase();
+					const username = user.username.toLowerCase();
+					const email = user.email?.toLowerCase() || "";
+					const searchTerm = query.toLowerCase();
+
+					return (
+						fullName.includes(searchTerm) ||
+						username.includes(searchTerm) ||
+						email.includes(searchTerm)
+					);
+				})
+				.map((user) => ({
+					id: user.id,
+					name: `${user.firstName} ${user.lastName}`,
+					handle: `@${user.username}`,
+					avatar:
+						user.avatarUrl ||
+						"https://images.unsplash.com/photo-1494790108755-2616b332c-c3?w=100&h=100&fit=crop&crop=face",
+					mutualFriends: 0,
+				}));
+
 			setSearchResults(filtered);
 		} else {
 			setSearchResults([]);
@@ -324,43 +203,76 @@ const Friend: React.FC = () => {
 		setSelectedUser(user);
 		setSearchAdd(user.name);
 		setSearchResults([]);
+		setIsUserSelectedFromList(true);
 	};
 
-	const handleSendRequest = () => {
-		if (selectedUser) {
-			setShowModal(true);
-			setSearchAdd("");
-			setSearchResults([]);
-			setSelectedUser(null);
+	const handleSendRequest = async () => {
+		if (selectedUser && !isSendingRequest) {
+			if (selectedUser.id === currentUserId) {
+				setModalType("error");
+				setModalMessage("You cannot send a friend request to yourself!");
+				setShowModal(true);
+				return;
+			}
+
+			setIsSendingRequest(true);
+			try {
+				await sendFriendRequest({
+					receiverId: selectedUser.id,
+					message: "Hi! I'd like to be friends.",
+				});
+
+				setModalType("success");
+				setModalMessage(
+					`Your friend request to ${selectedUser.name} was sent!`,
+				);
+				setShowModal(true);
+				setSearchAdd("");
+				setSearchResults([]);
+				setSelectedUser(null);
+				setIsUserSelectedFromList(false);
+			} catch (error: any) {
+				let errorMessage = "Failed to send friend request";
+
+				if (error.response) {
+					if (error.response.status === 400) {
+						errorMessage =
+							error.response.data?.message ||
+							"Invalid request. This user may already be your friend or have a pending request.";
+					} else if (error.response.status === 404) {
+						errorMessage = "User not found";
+					} else if (error.response.status === 409) {
+						errorMessage =
+							error.response.data?.message ||
+							"Already had pending request before";
+					} else {
+						errorMessage =
+							error.response.data?.message ||
+							`Server Error (${error.response.status})`;
+					}
+				} else if (error.request) {
+					errorMessage =
+						"No response from server. Please check your connection.";
+				} else {
+					errorMessage = error.message;
+				}
+
+				setModalType("error");
+				setModalMessage(errorMessage);
+				setShowModal(true);
+			} finally {
+				setIsSendingRequest(false);
+			}
 		}
 	};
 
 	const handleCloseModal = () => {
 		setShowModal(false);
-		setSelectedUser(null);
-	};
-
-	const handleAcceptRequest = (requestId: string) => {
-		const request = pendingRequests.find((req) => req.id === requestId);
-		if (request) {
-			const newFriend: Friend = {
-				id: request.id,
-				name: request.name,
-				handle: request.handle,
-				avatar: request.avatar,
-				mutualFriends: Math.floor(Math.random() * 10) + 1,
-			};
-			setAllFriends((prev) => [...prev, newFriend]);
-			setPendingRequests((prev) => prev.filter((req) => req.id !== requestId));
+		if (modalType === "success") {
+			setSelectedUser(null);
+			setIsUserSelectedFromList(false);
+			setSearchAdd("");
 		}
-	};
-
-	const handleDeclineRequest = (requestId: string) => {
-		setPendingRequests((prev) => prev.filter((req) => req.id !== requestId));
-	};
-
-	const handleCancelSentRequest = (requestId: string) => {
-		setPendingRequests((prev) => prev.filter((req) => req.id !== requestId));
 	};
 
 	const handleMenuToggle = (friendId: string, e: React.MouseEvent) => {
@@ -369,8 +281,8 @@ const Friend: React.FC = () => {
 	};
 
 	const handleMenuAction = (action: string, friendName: string) => {
-		console.log(`${action} - ${friendName}`);
 		setActiveMenu(null);
+		alert(`Action "${action}" for ${friendName} - UI only`);
 	};
 
 	useEffect(() => {
@@ -381,49 +293,80 @@ const Friend: React.FC = () => {
 		return () => document.removeEventListener("click", handleClickOutside);
 	}, [activeMenu]);
 
-	const renderAddFriendContent = () => (
-		<>
-			<Title>Let's find and add friends!</Title>
-			<Subtitle>
-				You can find and add friends with their email/username
-			</Subtitle>
+	const renderAddFriendContent = () => {
+		const showNoResults =
+			searchAdd.trim() &&
+			searchResults.length === 0 &&
+			!isLoadingUsers &&
+			!isUserSelectedFromList &&
+			!selectedUser;
 
-			<SearchContainer>
-				<Search size={20} color="#1A1A1A" />
-				<SearchInput
-					type="text"
-					placeholder="Search by name or username"
-					value={searchAdd}
-					onChange={(e) => handleSearchAdd(e.target.value)}
-				/>
-				<SendButton
-					onClick={handleSendRequest}
-					disabled={!selectedUser || !searchAdd.trim()}
-				>
-					Send request
-				</SendButton>
-			</SearchContainer>
+		const showResults =
+			searchResults.length > 0 && !isLoadingUsers && !isUserSelectedFromList;
 
-			{searchResults.length > 0 && (
-				<ResultsList>
-					{searchResults.map((user) => (
-						<ResultItem
-							key={user.id}
-							selected={selectedUser?.id === user.id}
-							onClick={() => handleSelectUser(user)}
-						>
-							<Avatar src={user.avatar} alt={user.name} />
-							<UserInfo>
-								<UserName>{user.name}</UserName>
-								<UserHandle>{user.handle}</UserHandle>
-							</UserInfo>
-							<MutualFriends>{user.mutualFriends} mutual friends</MutualFriends>
-						</ResultItem>
-					))}
-				</ResultsList>
-			)}
-		</>
-	);
+		return (
+			<>
+				<Title>Let's find and add friends!</Title>
+				<Subtitle>
+					You can find and add friends with their email/username
+				</Subtitle>
+
+				<SearchContainer>
+					<Search size={20} color="#1A1A1A" />
+					<SearchInput
+						type="text"
+						placeholder="Search by name or username"
+						value={searchAdd}
+						onChange={(e) => handleSearchAdd(e.target.value)}
+						disabled={isLoadingUsers}
+					/>
+					<SendButton
+						onClick={handleSendRequest}
+						disabled={
+							!isUserSelectedFromList || isLoadingUsers || isSendingRequest
+						}
+					>
+						{isSendingRequest
+							? "Sending..."
+							: isLoadingUsers
+								? "Loading..."
+								: "Send request"}
+					</SendButton>
+				</SearchContainer>
+
+				{isLoadingUsers && (
+					<div
+						style={{ textAlign: "center", padding: "20px", color: "#6B7280" }}
+					>
+						Loading users...
+					</div>
+				)}
+
+				{showResults && (
+					<ResultsList>
+						{searchResults.map((user) => (
+							<ResultItem
+								key={user.id}
+								selected={false}
+								onClick={() => handleSelectUser(user)}
+							>
+								<Avatar src={user.avatar} alt={user.name} />
+								<UserInfo>
+									<UserName>{user.name}</UserName>
+									<UserHandle>{user.handle}</UserHandle>
+								</UserInfo>
+								<MutualFriends>
+									{user.mutualFriends} mutual friends
+								</MutualFriends>
+							</ResultItem>
+						))}
+					</ResultsList>
+				)}
+
+				{showNoResults && <NoResults>No users found</NoResults>}
+			</>
+		);
+	};
 
 	const renderAllContent = () => {
 		const filteredFriends = allFriends.filter(
@@ -482,7 +425,7 @@ const Friend: React.FC = () => {
 										<FriendInfo>
 											<FriendName>{friend.name}</FriendName>
 											<MutualFriends>
-												{friend.mutualFriends} bạn chung
+												{friend.mutualFriends} mutual friends
 											</MutualFriends>
 										</FriendInfo>
 									</div>
@@ -496,22 +439,22 @@ const Friend: React.FC = () => {
 											<MenuDropdown>
 												<MenuItem
 													onClick={() =>
-														handleMenuAction("Yêu thích", friend.name)
+														handleMenuAction("Favorite", friend.name)
 													}
 												>
 													<Star size={18} style={{ marginRight: "12px" }} />
-													<span>Yêu thích</span>
+													<span>Favorite</span>
 												</MenuItem>
 												<MenuItem
 													onClick={() =>
-														handleMenuAction("Hủy kết bạn", friend.name)
+														handleMenuAction("Unfriend", friend.name)
 													}
 												>
 													<UserMinus
 														size={18}
 														style={{ marginRight: "12px" }}
 													/>
-													<span>Hủy kết bạn</span>
+													<span>Unfriend</span>
 												</MenuItem>
 											</MenuDropdown>
 										)}
@@ -537,7 +480,7 @@ const Friend: React.FC = () => {
 				)}
 
 				{filteredFriends.length === 0 && (
-					<NoResults>Không tìm thấy bạn bè nào</NoResults>
+					<NoResults>No friends found</NoResults>
 				)}
 			</>
 		);
@@ -587,13 +530,13 @@ const Friend: React.FC = () => {
 									<ActionButtons>
 										<ActionButton
 											variant="accept"
-											onClick={() => handleAcceptRequest(request.id)}
+											onClick={() => alert("Accept - UI only")}
 										>
 											✓
 										</ActionButton>
 										<ActionButton
 											variant="decline"
-											onClick={() => handleDeclineRequest(request.id)}
+											onClick={() => alert("Decline - UI only")}
 										>
 											✕
 										</ActionButton>
@@ -617,7 +560,7 @@ const Friend: React.FC = () => {
 									</UserInfo>
 									<ActionButton
 										variant="unfriend"
-										onClick={() => handleCancelSentRequest(request.id)}
+										onClick={() => alert("Cancel - UI only")}
 									>
 										✕
 									</ActionButton>
@@ -625,6 +568,10 @@ const Friend: React.FC = () => {
 							))}
 						</ResultsList>
 					</>
+				)}
+
+				{received.length === 0 && sent.length === 0 && (
+					<NoResults>No pending requests</NoResults>
 				)}
 			</>
 		);
@@ -649,13 +596,40 @@ const Friend: React.FC = () => {
 
 			{showModal && (
 				<Modal>
-					<ModalContent>
-						<ModalTitle>Success!</ModalTitle>
-						<SendImg src={sendImage} alt="Send Success" />
-						<ModalMessage>
-							Your friend request to {selectedUser?.name || "user"} was sent!
+					<ModalContent
+						style={{
+							borderTop:
+								modalType === "error"
+									? "4px solid #EF4444"
+									: "4px solid #10B981",
+						}}
+					>
+						<ModalTitle
+							style={{
+								color: modalType === "error" ? "#EF4444" : "#10B981",
+							}}
+						>
+							{modalType === "success" ? "Success!" : "Error"}
+						</ModalTitle>
+						{modalType === "success" && (
+							<SendImg src={sendImage} alt="Send Success" />
+						)}
+						<ModalMessage
+							style={{
+								color: modalType === "error" ? "#DC2626" : "#374151",
+							}}
+						>
+							{modalMessage}
 						</ModalMessage>
-						<ModalButton onClick={handleCloseModal}>OK</ModalButton>
+						<ModalButton
+							onClick={handleCloseModal}
+							style={{
+								backgroundColor: modalType === "error" ? "#EF4444" : "#10B981",
+								borderColor: modalType === "error" ? "#DC2626" : "#10B981",
+							}}
+						>
+							OK
+						</ModalButton>
 					</ModalContent>
 				</Modal>
 			)}
