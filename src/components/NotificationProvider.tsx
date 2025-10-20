@@ -1,5 +1,4 @@
 import publicRuntimeConfig from "@/config/publicRuntime";
-import { useAuth } from "@/hooks";
 import useSocketEvent from "@/hooks/useSocketEvent";
 import { MessageResponse } from "@/services/messageAPI";
 import { SocketEvents } from "@/utils/constants";
@@ -27,11 +26,7 @@ async function handleBrowserNotification(data: MessageResponse) {
 }
 
 export default function NotificationProvider() {
-	const { profile } = useAuth();
-
 	useSocketEvent(SocketEvents.MESSAGE_NOTIFICATION, (data: MessageResponse) => {
-		if (data.senderId === profile?.id) return;
-		console.log("Message Notification", data);
 		if (publicRuntimeConfig.ELECTRON) {
 			handleElectronNotification(data);
 		} else {
