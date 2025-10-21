@@ -16,10 +16,12 @@ import {
 	directUploadWithSignature,
 	getUploadSignature,
 } from "@/services/upload/upload.api";
-import { htmlToMarkdown } from "../ChatInputComponent/Markdown/Markdown";
+import { markdownToHtml } from "../ChatInputComponent/Markdown/Markdown";
 import ReplyPreview from "../ChatInputComponent/ReplyPreview/ReplyPreview";
 import ChatTypeDropdown from "../ChatInputComponent/ChatTypeModal/ChatTypeModal";
-import Toolbar from "../ChatInputComponent/MarkdownToolbar/Toolbar";
+import Toolbar, {
+	ToolbarAction,
+} from "../ChatInputComponent/MarkdownToolbar/Toolbar";
 import EmojiPicker from "../ChatInputComponent/EmojiPicker/EmojiPicker";
 import FilePreview from "../ChatInputComponent/FilePreview/FilePreview";
 
@@ -37,7 +39,8 @@ export default function ChatInput({
 	onCancelReply,
 	editingMode = false,
 }: ChatInputProps) {
-	const [html, setHtml] = useState("");
+	const [, setHtml] = useState("");
+	const [mdText, setMdText] = useState("");
 	const [files, setFiles] = useState<File[]>([]);
 	const [imagePreviews, setImagePreviews] = useState<string[]>([]);
 	const [inboxType, setInboxType] = useState<InboxType>(propInboxType ?? null);
@@ -82,6 +85,7 @@ export default function ChatInput({
 				.replace(/\+\+(.+?)\+\+/g, "<u>$1</u>")
 				.replace(/\n/g, "<br/>");
 			setHtml(htmlFromMd);
+			setMdText(md);
 			editorRef.current?.setHtml(htmlFromMd);
 			editorRef.current?.focus();
 			setInboxType("normal");
@@ -134,11 +138,6 @@ export default function ChatInput({
 				generateDelivery: false,
 			});
 			return uploadRes?.secure_url ?? delivery?.url ?? null;
-
-			console.warn(
-				"uploadFileAndGetUrl: please replace placeholder with your real upload flow.",
-			);
-			return null;
 		} catch (err) {
 			console.error("Upload failed", err);
 			return null;
@@ -150,9 +149,39 @@ export default function ChatInput({
 			e?.preventDefault();
 			if (disabled) return;
 
-			if ((inboxType === "image" || inboxType === "file") && files.length > 0) {
+			// Capture current typed markdown content first
+			const typedMd = (mdText || "").trim();
+			// Snapshot current files and inboxType, then immediately clear UI for optimistic UX
+			const snapshotFiles = files.slice();
+			const snapshotInboxType = inboxType;
+			// Clear input and staged files immediately
+			setFiles([]);
+			setImagePreviews([]);
+			setHtml("");
+			setMdText("");
+			editorRef.current?.setHtml("");
+			setInboxType("normal");
+
+			if (
+				(snapshotInboxType === "image" || snapshotInboxType === "file") &&
+				snapshotFiles.length > 0
+			) {
+				// Create a clientTempId for preview and final message linkage
+				const clientTempId = `temp-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+				// Send a preview payload immediately to show low-opacity message
+				await onSend?.({
+					type: "preview",
+					text: typedMd,
+					clientTempId,
+					meta: {
+						uploadingImages: snapshotFiles.filter((f) =>
+							f.type.startsWith("image/"),
+						).length,
+					},
+				});
 				const mdParts: string[] = [];
-				for (const f of files) {
+				if (typedMd.length > 0) mdParts.push(typedMd);
+				for (const f of snapshotFiles) {
 					const url = await uploadFileAndGetUrl(f);
 					if (url)
 						mdParts.push(
@@ -166,28 +195,14 @@ export default function ChatInput({
 						);
 				}
 				const combined = mdParts.join("\n");
-				if (combined.trim().length > 0)
-					await onSend?.({ type: "text", text: combined });
-				else await onSend?.({ type: "files", files });
-				setFiles([]);
-				setImagePreviews([]);
-				setHtml("");
-				editorRef.current?.setHtml("");
-				setInboxType("normal");
+				await onSend?.({ type: "text", text: combined, clientTempId });
 				return;
 			}
 
-			const currentHtml = editorRef.current?.getHtml() ?? html;
-			const md = htmlToMarkdown(currentHtml || "");
-			const trimmed = md.trim();
-			if (trimmed.length === 0) return;
-			await onSend?.({ type: "text", text: trimmed });
-
-			setHtml("");
-			editorRef.current?.setHtml("");
-			setInboxType("normal");
+			if (typedMd.length === 0) return;
+			await onSend?.({ type: "text", text: typedMd });
 		},
-		[disabled, files, inboxType, onSend, html],
+		[disabled, files, inboxType, onSend, mdText],
 	);
 
 	// selection/toolbar logic (kept simple)
@@ -227,24 +242,97 @@ export default function ChatInput({
 		return () => document.removeEventListener("selectionchange", onSelChange);
 	}, []);
 
-	const execFormat = (cmd: string) => {
-		try {
-			editorRef.current?.focus?.();
-		} catch (e) {
-			console.log("Editor focus error:", e);
-		}
-		// một số browser cần focus thực sự vào element contenteditable
+	// Markdown insertion helpers operating on current selection inside contenteditable
+	const wrapSelection = (prefix: string, suffix = prefix) => {
+		const sel = window.getSelection();
 		const container = document.querySelector(
 			"[contenteditable]",
 		) as HTMLElement | null;
-		if (container) container.focus();
+		if (!container) return;
+		container.focus();
+		if (!sel || sel.rangeCount === 0) return;
+		const range = sel.getRangeAt(0);
+		const text = sel.toString() || "";
+		const replacement = document.createTextNode(`${prefix}${text}${suffix}`);
+		range.deleteContents();
+		range.insertNode(replacement);
+		range.setStartAfter(replacement);
+		range.collapse(true);
+		sel.removeAllRanges();
+		sel.addRange(range);
+		container.dispatchEvent(new Event("input", { bubbles: true }));
+		setHtml(editorRef.current?.getHtml?.() ?? container.innerHTML);
+	};
 
-		// map cmd nếu cần (strikeThrough spelled properly)
-		const actual = cmd === "strikeThrough" ? "strikeThrough" : cmd;
-		document.execCommand(actual);
-		// cập nhật html state từ editor
-		setHtml(editorRef.current?.getHtml?.() ?? container?.innerHTML ?? "");
-		// ẩn toolbar nhẹ sau khi format
+	const insertBlock = (blockText: string) => {
+		const container = document.querySelector(
+			"[contenteditable]",
+		) as HTMLElement | null;
+		if (!container) return;
+		container.focus();
+		const sel = window.getSelection();
+		if (!sel || sel.rangeCount === 0) return;
+		const range = sel.getRangeAt(0);
+		range.collapse(false);
+		const node = document.createTextNode(blockText);
+		range.insertNode(node);
+		range.setStartAfter(node);
+		range.collapse(true);
+		sel.removeAllRanges();
+		sel.addRange(range);
+		container.dispatchEvent(new Event("input", { bubbles: true }));
+		setHtml(editorRef.current?.getHtml?.() ?? container.innerHTML);
+	};
+
+	const onToolbarAction = (action: ToolbarAction) => {
+		switch (action) {
+			case "bold":
+				wrapSelection("**");
+				break;
+			case "italic":
+				wrapSelection("*");
+				break;
+			case "underline":
+				wrapSelection("++");
+				break;
+			case "strike":
+				wrapSelection("~~");
+				break;
+			case "code":
+				wrapSelection("`");
+				break;
+			case "codeblock":
+				insertBlock("\n```\n\n```\n");
+				break;
+			case "h1":
+				insertBlock("\n# ");
+				break;
+			case "h2":
+				insertBlock("\n## ");
+				break;
+			case "ul":
+				insertBlock("\n- ");
+				break;
+			case "ol":
+				insertBlock("\n1. ");
+				break;
+			case "quote":
+				insertBlock("\n> ");
+				break;
+			case "link": {
+				const url = prompt("Enter URL");
+				if (!url) return;
+				const text = window.getSelection()?.toString() || "link";
+				insertBlock(`[${text}](${url})`);
+				break;
+			}
+			case "image": {
+				const url = prompt("Enter image URL");
+				if (!url) return;
+				insertBlock(`\n![](${url})\n`);
+				break;
+			}
+		}
 		setTimeout(() => setToolbarVisible(false), 80);
 	};
 
@@ -271,6 +359,119 @@ export default function ChatInput({
 		container.dispatchEvent(new Event("input", { bubbles: true }));
 	};
 
+	// ===== Handlers moved out of JSX =====
+	const handleChatTypeChoose = useCallback(
+		(type: InboxType | null, chosenFiles?: File[]) => {
+			setInboxType(type || "normal");
+			if (chosenFiles && chosenFiles.length) {
+				setFiles((p) => [...p, ...chosenFiles]);
+				setInboxType(
+					chosenFiles.some((f) => f.type.startsWith("image/"))
+						? "image"
+						: "file",
+				);
+			}
+			setTimeout(() => editorRef.current?.focus(), 50);
+		},
+		[],
+	);
+
+	const handleFileInputChange = useCallback(
+		(e: React.ChangeEvent<HTMLInputElement>) => {
+			handleAddFiles(e.target.files);
+		},
+		[handleAddFiles],
+	);
+
+	const handleEditorInput = useCallback(
+		(ev: React.FormEvent<HTMLDivElement>) => {
+			const el = ev.currentTarget as HTMLDivElement;
+			// Keep raw markdown text, and also render HTML preview
+			const text = el.innerText || "";
+			setMdText(text);
+			const converted = markdownToHtml(text);
+			if (converted !== el.innerHTML) {
+				// Replace content and place caret at end (simple, reliable)
+				el.innerHTML = converted;
+				// place caret at end
+				const range = document.createRange();
+				range.selectNodeContents(el);
+				range.collapse(false);
+				const sel = window.getSelection();
+				sel?.removeAllRanges();
+				sel?.addRange(range);
+			}
+			setHtml(el.innerHTML);
+		},
+		[],
+	);
+
+	const handleEditorKeyDown = useCallback(
+		(e: React.KeyboardEvent<HTMLDivElement>) => {
+			const isComposing = (e as any).nativeEvent?.isComposing;
+			if (!isComposing && e.key === "Enter") {
+				if (!e.shiftKey) {
+					e.preventDefault();
+					void handleSubmit();
+					return;
+				}
+			}
+			if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "b") {
+				e.preventDefault();
+				onToolbarAction("bold");
+			}
+			if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "i") {
+				e.preventDefault();
+				onToolbarAction("italic");
+			}
+		},
+		[handleSubmit],
+	);
+
+	const handleEditorPaste = useCallback(
+		async (e: React.ClipboardEvent<HTMLDivElement>) => {
+			const items = Array.from(e.clipboardData?.items || []);
+			const imageItems = items.filter((it) => it.type.startsWith("image/"));
+			if (imageItems.length === 0) return; // allow normal paste for text
+			e.preventDefault();
+			const filesFromClipboard: File[] = [];
+			for (const it of imageItems) {
+				const blob = it.getAsFile();
+				if (!blob) continue;
+				const fileName = `pasted_${Date.now()}.${blob.type.split("/")[1] || "png"}`;
+				const file = new File([blob], fileName, { type: blob.type });
+				filesFromClipboard.push(file);
+			}
+			if (filesFromClipboard.length === 0) return;
+			// Stage files only; upload will occur on send
+			setFiles((prev) => [...prev, ...filesFromClipboard]);
+			setInboxType("image");
+		},
+		[],
+	);
+
+	const handleEmojiToggle = useCallback(
+		(ev: React.MouseEvent<HTMLButtonElement>) => {
+			ev.stopPropagation();
+			setEmojiPickerVisible((v) => !v);
+		},
+		[],
+	);
+
+	const handleEmojiPick = useCallback(
+		(em: string) => insertTextAtCaret(em),
+		[],
+	);
+
+	const handleEmojiClose = useCallback(() => setEmojiPickerVisible(false), []);
+
+	const handleCancelEditClick = useCallback(() => {
+		onCancelEdit?.();
+		setHtml("");
+		setMdText("");
+		editorRef.current?.setHtml("");
+	}, [onCancelEdit]);
+
 	return (
 		<Composer onSubmit={handleSubmit}>
 			<ReplyPreview replyTo={replyTo} onCancelReply={onCancelReply} />
@@ -292,87 +493,61 @@ export default function ChatInput({
 							<Plus size={20} />
 						</IconButton>
 					}
-					onChoose={(type, chosenFiles) => {
-						setInboxType(type || "normal");
-						if (chosenFiles && chosenFiles.length) {
-							setFiles((p) => [...p, ...chosenFiles]);
-							setInboxType(
-								chosenFiles.some((f) => f.type.startsWith("image/"))
-									? "image"
-									: "file",
-							);
-						}
-						setTimeout(() => editorRef.current?.focus(), 50);
-					}}
+					onChoose={handleChatTypeChoose}
 				/>
 
 				<Input
 					ref={fileInputRef}
 					style={{ display: "none" }}
 					type="file"
-					onChange={(e) => handleAddFiles(e.target.files)}
+					onChange={handleFileInputChange}
 					multiple
 					accept={inboxType === "image" ? "image/*" : undefined}
 				/>
 
-				{/* Editor */}
-				<Editor
-					ref={editorRef}
-					placeholder={placeholder}
-					onInput={(ev) => {
-						// convert simple markdown to html as user types
-						const el = ev.currentTarget as HTMLDivElement;
-						setHtml(el.innerHTML);
-						// const text = el.innerText || "";
-						// const converted = text ? markdownToHtml(text) : el.innerHTML;
-						// if (converted !== el.innerHTML) el.innerHTML = converted;
-						// setHtml(el.innerHTML);
-					}}
-					onKeyDown={(e) => {
-						// Send on Enter, newline on Shift+Enter
-						const isComposing = (e as any).nativeEvent?.isComposing;
-						if (!isComposing && e.key === "Enter") {
-							if (!e.shiftKey) {
-								e.preventDefault();
-								// trigger submit
-								void handleSubmit();
-								return;
-							}
-							// allow Shift+Enter to insert a line break
-						}
-						if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "b") {
-							e.preventDefault();
-							execFormat("bold");
-						}
-						if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "i") {
-							e.preventDefault();
-							execFormat("italic");
-						}
-					}}
-				/>
+				{/* Group: uploaded images + chat input, stacked in a column */}
+				<div
+					className="flex flex-col gap-2 w-full"
+					style={{ position: "relative", minWidth: 0, flex: 1 }}
+				>
+					{/* Staged file previews (above editor) */}
+					{files.length > 0 && (
+						<FilePreview
+							files={files}
+							imagePreviews={imagePreviews}
+							onRemove={handleRemoveFile}
+						/>
+					)}
 
-				<Toolbar
-					visible={toolbarVisible}
-					pos={toolbarPos}
-					onFormat={execFormat}
-				/>
+					{/* Editor */}
+					<Editor
+						ref={editorRef}
+						placeholder={placeholder}
+						onInput={handleEditorInput}
+						onKeyDown={handleEditorKeyDown}
+						onPaste={handleEditorPaste}
+					/>
+
+					<Toolbar
+						visible={toolbarVisible}
+						pos={toolbarPos}
+						onAction={onToolbarAction}
+					/>
+				</div>
 
 				<div style={{ position: "relative" }}>
 					<IconButton
 						type="button"
 						title="Emoji"
 						className="emoji-toggle"
-						onClick={(ev) => {
-							ev.stopPropagation();
-							setEmojiPickerVisible((v) => !v);
-						}}
+						onClick={handleEmojiToggle}
 					>
 						<Smile size={20} />
 					</IconButton>
 					<EmojiPicker
 						visible={emojiPickerVisible}
-						onPick={(em) => insertTextAtCaret(em)}
-						onClose={() => setEmojiPickerVisible(false)}
+						onPick={handleEmojiPick}
+						onClose={handleEmojiClose}
 					/>
 				</div>
 
@@ -380,11 +555,7 @@ export default function ChatInput({
 					<IconButton
 						type="button"
 						title="Cancel edit"
-						onClick={() => {
-							onCancelEdit();
-							setHtml("");
-							editorRef.current?.setHtml("");
-						}}
+						onClick={handleCancelEditClick}
 					>
 						<CornerUpLeft size={18} />
 					</IconButton>
@@ -395,13 +566,8 @@ export default function ChatInput({
 					disabled={
 						disabled ||
 						(inboxType === "image" || inboxType === "file"
-							? files.length === 0
-							: editorRef.current
-								? (
-										(document.querySelector("[contenteditable]") as HTMLElement)
-											?.innerText || ""
-									).trim().length === 0
-								: true)
+							? files.length === 0 && mdText.trim().length === 0
+							: mdText.trim().length === 0)
 					}
 					title={editingMode ? "Update message" : "Send message"}
 					style={{ marginLeft: 8 }}
@@ -409,11 +575,7 @@ export default function ChatInput({
 					<Send size={20} />
 				</IconButton>
 
-				<FilePreview
-					files={files}
-					imagePreviews={imagePreviews}
-					onRemove={handleRemoveFile}
-				/>
+				{/* Note: FilePreview is rendered above the editor when files are staged */}
 			</InputContainer>
 		</Composer>
 	);

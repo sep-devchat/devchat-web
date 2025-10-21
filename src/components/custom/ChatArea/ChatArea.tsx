@@ -33,7 +33,6 @@ import {
 	formatDateHeader,
 	formatMessageTime,
 	isSameDay,
-	createMarkdownRenderer,
 } from "./ChatArea.helpers";
 import {
 	Dialog,
@@ -48,6 +47,10 @@ import {
 	ChatInputPayload,
 	InboxType,
 } from "../ChatInputComponent/ChatTypeModal/InboxType";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import rehypeRaw from "rehype-raw";
+import rehypeSanitize from "rehype-sanitize";
 
 type Thread = {
 	id: string;
@@ -99,8 +102,7 @@ const ChatArea: React.FC = () => {
 	const [messagePendingDelete, setMessagePendingDelete] =
 		useState<MessageResponse | null>(null);
 	const [deleteSubmitting, setDeleteSubmitting] = useState(false);
-	const { parseContentToElements, isOnlySingleImageMarkdown } =
-		createMarkdownRenderer();
+	// Markdown rendering handled by react-markdown with GFM and safe sanitize
 
 	// Query thread detail only when user navigates to a specific thread
 	const {
@@ -581,6 +583,32 @@ const ChatArea: React.FC = () => {
 				}
 			};
 
+			if (payload.type === "preview") {
+				const text = (payload.text || "").trim();
+				const clientTempId =
+					payload.clientTempId ||
+					`temp-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+				const optimistic: MessageResponse = {
+					id: clientTempId,
+					content: text,
+					createdAt: new Date().toISOString(),
+					channelId: channelIdParam,
+					threadId: threadIdParam ?? null,
+					groupId,
+					sender: {
+						id: profile?.id ?? "me",
+						firstName: profile?.firstName,
+						lastName: profile?.lastName,
+						username: profile?.username,
+						avatarUrl: profile?.avatarUrl,
+					} as any,
+					pending: true,
+				} as any;
+
+				setRealtimeMessages((prev) => [...prev, optimistic]);
+				return;
+			}
+
 			if (payload.type === "text") {
 				const text = payload.text.trim();
 				if (!text) return;
@@ -601,7 +629,7 @@ const ChatArea: React.FC = () => {
 
 				// optimistic
 				const optimistic: MessageResponse = {
-					id: tempId,
+					id: payload.clientTempId || tempId,
 					content: text,
 					createdAt: new Date().toISOString(),
 					channelId: channelIdParam,
@@ -623,7 +651,7 @@ const ChatArea: React.FC = () => {
 					...baseEmit,
 					parentMessageId: replyToMessage?.id || null,
 					content: text,
-					clientTempId: tempId,
+					clientTempId: payload.clientTempId || tempId,
 					senderId: senderPayload.id,
 					sender: senderPayload,
 				};
@@ -640,44 +668,106 @@ const ChatArea: React.FC = () => {
 				const files = payload.files;
 				if (!files || files.length === 0) return;
 
-				const attachmentsMeta = files.map((f) => ({
-					name: f.name,
-					size: f.size,
-					type: f.type,
-				}));
-
-				const optimisticFilesMsg: MessageResponse = {
-					id: tempId,
-					content: "",
-					createdAt: new Date().toISOString(),
-					channelId: channelIdParam,
-					threadId: threadIdParam ?? null,
-					groupId,
-					sender: {
-						id: profile?.id ?? "me",
-						firstName: profile?.firstName,
-						lastName: profile?.lastName,
-						username: profile?.username,
-						avatarUrl: profile?.avatarUrl,
-					} as any,
-					attachments: attachmentsMeta,
-				} as any;
-
-				setRealtimeMessages((prev) => [...prev, optimisticFilesMsg]);
-
-				const ev = SocketEvents.MESSAGE;
-				const p = {
-					...baseEmit,
-					parentMessageId: replyToMessage?.id || null,
-					content: "",
-					attachments: attachmentsMeta,
-					clientTempId: tempId,
-					senderId: senderPayload.id,
-					sender: senderPayload,
+				const isMarkdownText = (f: File) => {
+					const mt = (f.type || "").toLowerCase();
+					if (mt === "text/markdown" || mt === "text/plain") return true;
+					const lower = f.name.toLowerCase();
+					return (
+						lower.endsWith(".md") ||
+						lower.endsWith(".markdown") ||
+						lower.endsWith(".txt")
+					);
 				};
 
-				console.debug("[ChatArea] about to emit attachments", ev, p);
-				safeEmit(ev, p);
+				const mdFiles = files.filter(isMarkdownText);
+				const otherFiles = files.filter((f) => !isMarkdownText(f));
+
+				// 1) For markdown/text files: read their content and send as text messages (markdown)
+				for (const f of mdFiles) {
+					try {
+						const content = await f.text();
+						const mdTempId = `temp-${Date.now()}-${Math.floor(Math.random() * 10000)}-md`;
+
+						const optimisticMd: MessageResponse = {
+							id: mdTempId,
+							content,
+							createdAt: new Date().toISOString(),
+							channelId: channelIdParam,
+							threadId: threadIdParam ?? null,
+							groupId,
+							sender: {
+								id: profile?.id ?? "me",
+								firstName: profile?.firstName,
+								lastName: profile?.lastName,
+								username: profile?.username,
+								avatarUrl: profile?.avatarUrl,
+							} as any,
+						} as any;
+
+						setRealtimeMessages((prev) => [...prev, optimisticMd]);
+
+						const evMd = SocketEvents.MESSAGE;
+						const pMd = {
+							...baseEmit,
+							parentMessageId: replyToMessage?.id || null,
+							content,
+							clientTempId: mdTempId,
+							senderId: senderPayload.id,
+							sender: senderPayload,
+						};
+
+						console.debug(
+							"[ChatArea] about to emit markdown message",
+							evMd,
+							pMd,
+						);
+						safeEmit(evMd, pMd);
+					} catch (e) {
+						console.error("Failed to read markdown file", f.name, e);
+					}
+				}
+
+				// 2) For remaining files: send as attachments as before
+				if (otherFiles.length > 0) {
+					const attachmentsMeta = otherFiles.map((f) => ({
+						name: f.name,
+						size: f.size,
+						type: f.type,
+					}));
+
+					const optimisticFilesMsg: MessageResponse = {
+						id: tempId,
+						content: "",
+						createdAt: new Date().toISOString(),
+						channelId: channelIdParam,
+						threadId: threadIdParam ?? null,
+						groupId,
+						sender: {
+							id: profile?.id ?? "me",
+							firstName: profile?.firstName,
+							lastName: profile?.lastName,
+							username: profile?.username,
+							avatarUrl: profile?.avatarUrl,
+						} as any,
+						attachments: attachmentsMeta,
+					} as any;
+
+					setRealtimeMessages((prev) => [...prev, optimisticFilesMsg]);
+
+					const ev = SocketEvents.MESSAGE;
+					const p = {
+						...baseEmit,
+						parentMessageId: replyToMessage?.id || null,
+						content: "",
+						attachments: attachmentsMeta,
+						clientTempId: tempId,
+						senderId: senderPayload.id,
+						sender: senderPayload,
+					};
+
+					console.debug("[ChatArea] about to emit attachments", ev, p);
+					safeEmit(ev, p);
+				}
 
 				setReplyToMessage(null);
 				return;
@@ -864,9 +954,8 @@ const ChatArea: React.FC = () => {
 				variant={viewportVariant}
 				className={inboxTypeSelected ? "items-end" : ""}
 			>
-				{messagesLoading || threadLoading ? (
-					<p className="text-sm text-muted-foreground">Loading messages…</p>
-				) : messagesError || threadError ? (
+				{messagesLoading || threadLoading ? null : messagesError ||
+				  threadError ? (
 					<p className="text-sm text-red-500">Failed to load messages.</p>
 				) : displayItems.length === 0 ? (
 					<p className="text-sm text-muted-foreground">
@@ -920,6 +1009,13 @@ const ChatArea: React.FC = () => {
 						const showDateHeader =
 							!prevDate || !isSameDay(prevDate, m.createdAt);
 
+						// Group with previous message if same sender and no date break
+						const isSameSenderAsPrev =
+							!showDateHeader &&
+							prevItem?.type === "msg" &&
+							(prevItem.payload?.sender?.id ?? null) === (m.sender?.id ?? null);
+						const showAvatarAndHeader = !isSameSenderAsPrev;
+
 						const name =
 							[m.sender?.firstName, m.sender?.lastName]
 								.filter(Boolean)
@@ -953,65 +1049,69 @@ const ChatArea: React.FC = () => {
 									<MessageItem
 										className={`flex items-start gap-2 ${positionClassName}`}
 									>
-										{m.sender?.avatarUrl ? (
-											<img
-												src={m.sender.avatarUrl}
-												alt={name}
-												className="h-8 w-8 rounded-full"
-											/>
+										{showAvatarAndHeader ? (
+											m.sender?.avatarUrl ? (
+												<img
+													src={m.sender.avatarUrl}
+													alt={name}
+													className="h-8 w-8 rounded-full"
+												/>
+											) : (
+												<div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center text-xs font-medium select-none">
+													{initials || (name[0] ?? "?")}
+												</div>
+											)
 										) : (
-											<div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center text-xs font-medium select-none">
-												{initials || (name[0] ?? "?")}
-											</div>
+											// spacer to keep alignment when avatar/name are hidden for grouped messages
+											<div className="h-8 w-8" />
 										)}
 
 										<div
 											className={`flex flex-col max-w-[70%]  ${isCurrentUser ? "items-end" : ""}`}
 										>
-											<div
-												className={`flex gap-4 items-center text-xs text-muted-foreground mb-1 ${isCurrentUser ? "flex-row-reverse" : ""}`}
-											>
-												<span className="font-bold text-sm">{name}</span>
-												<span>{formatMessageTime(m.createdAt)}</span>
-											</div>
+											{showAvatarAndHeader && (
+												<div
+													className={`flex gap-4 items-center text-xs text-muted-foreground mb-1 ${isCurrentUser ? "flex-row-reverse" : ""}`}
+												>
+													<span className="font-bold text-sm">{name}</span>
+													<span>{formatMessageTime(m.createdAt)}</span>
+												</div>
+											)}
 											<div
 												className={`flex w-full items-end gap-2 ${isCurrentUser ? "flex-row-reverse" : ""}`}
 											>
 												<MessageBubbleStyle
-													className={`message-bubble w-fit max-w-full rounded-lg px-3 py-2 text-sm shadow-none ${isCurrentUser ? "me" : "other"}`}
+													className={`message-bubble w-fit max-w-full rounded-lg px-3 py-2 text-sm shadow-none ${isCurrentUser ? "me" : "other"} ${(m as any).pending ? "opacity-50" : ""}`}
 													// giữ lại whitespace cho text
 													style={{ whiteSpace: "pre-wrap" }}
 												>
-													{isOnlySingleImageMarkdown(m.content)
-														? // nếu chỉ 1 ảnh markdown, hiển thị ảnh lớn (bên trong bubble)
-															(() => {
-																const match = m.content
-																	.trim()
-																	.match(
-																		/^!\[([^\]]*)\]\((https?:\/\/[^\s)]+)\)$/,
-																	);
-																const url = match ? match[2] : null;
-																const alt = match ? match[1] : "";
-																return url ? (
+													<ReactMarkdown
+														remarkPlugins={[remarkGfm]}
+														rehypePlugins={[rehypeRaw, rehypeSanitize]}
+														components={{
+															img: ({ src, alt }) =>
+																src ? (
 																	<ImageWithModal
-																		src={url}
+																		src={src}
 																		alt={alt || "image"}
 																		maxWidthPx={420}
 																		maxHeightPx={520}
 																	/>
-																) : (
-																	m.content
-																);
-															})()
-														: // nội dung có text và/hoặc nhiều ảnh => render hỗn hợp
-															parseContentToElements(m.content).map((el, i) => (
-																<span
-																	key={i}
-																	className={typeof el === "string" ? "" : ""}
+																) : null,
+															a: ({ href, children }) => (
+																<a
+																	href={href}
+																	target="_blank"
+																	rel="noreferrer noopener"
+																	className="underline"
 																>
-																	{el}
-																</span>
-															))}
+																	{children}
+																</a>
+															),
+														}}
+													>
+														{m.content || ""}
+													</ReactMarkdown>
 												</MessageBubbleStyle>
 
 												<div className="flex items-end">
