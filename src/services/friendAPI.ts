@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { get, post, put, remove } from "./apiCaller";
 
 export interface UserInfo {
@@ -69,4 +70,13 @@ export const updateFriendRequestStatus = (
 
 export const deleteFriend = (id: string) => {
 	return remove<any>(`/api/user-friend/${id}`);
+};
+
+export const listFriends = (page: number, limit: number) => {
+	return get(`/api/user-friend?page=${page}&limit=${limit}`);
+};
+
+export const listInvitationFriend = () => {
+	// để tạm nhen
+	return get("/api/user-friend/invitation");
 };
