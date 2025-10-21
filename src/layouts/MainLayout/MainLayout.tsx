@@ -26,6 +26,7 @@ import TodoFloatingManager from "@/components/custom/ResizableFloatingWindow/Tod
 import { GroupResponse, listGroups } from "@/services/groupAPI";
 import { theme } from "@/themes";
 import { ResizableHandle } from "@/components/ui/resizable";
+import TaskGroup from "@/components/custom/RightPanel/TaskGroup/TaskGroup";
 
 const MainLayout = () => {
 	const [iconSelected, setIconSelected] = useState<string>("");
@@ -117,6 +118,8 @@ const MainLayout = () => {
 			);
 		}
 		switch (iconSelected) {
+			case "tasks":
+				return <TaskGroup onClose={() => setIconSelected("")} />;
 			case "code":
 				return <CodeList />;
 			case "users":

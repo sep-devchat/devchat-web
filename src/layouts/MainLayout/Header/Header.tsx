@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import {
 	Bell,
+	Folder,
 	MessageSquarePlus,
 	Spool,
 	SquareCode,
@@ -175,6 +176,19 @@ const Header = ({
 			<div className="flex items-center gap-2" style={{ position: "relative" }}>
 				{isGroupPage ? (
 					<div className="flex gap-2">
+						<IconBtn
+							aria-label="tasks"
+							onMouseEnter={() => setHoveredIcon("tasks")}
+							onMouseLeave={() =>
+								setHoveredIcon((h) => (h === "tasks" ? null : h))
+							}
+							onClick={() => onIconClick("tasks")}
+							onKeyDown={(e) => onIconKeyDown(e, "tasks")}
+							disabled={loading}
+						>
+							<Folder size={20} />
+							<Tooltip visible={hoveredIcon === "tasks"}>Tasks</Tooltip>
+						</IconBtn>
 						<IconBtn
 							aria-label="notifications"
 							onMouseEnter={() => setHoveredIcon("notifications")}
