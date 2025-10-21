@@ -11,12 +11,13 @@ type Props = {
 	placeholder?: string;
 	onInput?: (e: React.FormEvent<HTMLDivElement>) => void;
 	onKeyDown?: (e: React.KeyboardEvent<HTMLDivElement>) => void;
+	onPaste?: (e: React.ClipboardEvent<HTMLDivElement>) => void;
 	className?: string;
 	style?: React.CSSProperties;
 };
 
 const Editor = forwardRef<EditorHandle, Props>(
-	({ placeholder, onInput, onKeyDown, className, style }, ref) => {
+	({ placeholder, onInput, onKeyDown, onPaste, className, style }, ref) => {
 		const editableRef = useRef<HTMLDivElement | null>(null);
 
 		useImperativeHandle(ref, () => ({
@@ -35,6 +36,7 @@ const Editor = forwardRef<EditorHandle, Props>(
 					suppressContentEditableWarning
 					onInput={onInput}
 					onKeyDown={onKeyDown}
+					onPaste={onPaste}
 					className={className}
 					style={{
 						minHeight: 24,

@@ -2,8 +2,14 @@
 export type InboxType = null | "normal" | "quillCode" | "image" | "file";
 
 export type ChatInputPayload =
-	| { type: "text"; text: string }
-	| { type: "files"; files: File[] };
+	| { type: "text"; text: string; clientTempId?: string }
+	| { type: "files"; files: File[] }
+	| {
+			type: "preview";
+			text: string;
+			clientTempId: string;
+			meta?: { uploadingImages?: number };
+	  };
 
 export type ChatInputProps = {
 	setInboxTypeSelected?: React.Dispatch<React.SetStateAction<InboxType>>;
