@@ -75,3 +75,8 @@ export const deleteFriend = (id: string) => {
 export const listFriends = (page: number, limit: number) => {
 	return get(`/api/user-friend?page=${page}&limit=${limit}`);
 };
+
+export const listInvitationFriend = () => {
+	// để tạm nhen
+	return get("/api/user-friend/invitation");
+};

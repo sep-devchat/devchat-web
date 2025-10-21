@@ -25,8 +25,10 @@ import {
 interface FriendType {
 	id: string;
 	name: string;
+	firstName: string | null;
+	lastName: string | null;
 	handle: string;
-	avatar: string;
+	avatarUrl: string;
 	mutualFriends: number;
 }
 
@@ -53,11 +55,12 @@ const AllFriends: React.FC<Props> = ({
 	onMenuToggle,
 	onMenuAction,
 }) => {
-	const filteredFriends = allFriends.filter(
-		(friend) =>
-			friend.name.toLowerCase().includes(searchAll.toLowerCase()) ||
-			friend.handle.toLowerCase().includes(searchAll.toLowerCase()),
-	);
+	const filteredFriends = allFriends.filter((friend) => {
+		const name = (friend.name ?? "").toString().toLowerCase();
+		const handle = (friend.handle ?? "").toString().toLowerCase();
+		const q = searchAll.toLowerCase();
+		return name.includes(q) || handle.includes(q);
+	});
 
 	const indexOfLastFriend = currentPage * friendsPerPage;
 	const indexOfFirstFriend = indexOfLastFriend - friendsPerPage;
@@ -95,11 +98,14 @@ const AllFriends: React.FC<Props> = ({
 								<div
 									style={{ display: "flex", gap: "8px", alignItems: "center" }}
 								>
-									<Avatar src={friend.avatar} alt={friend.name} />
+									<Avatar src={friend.avatarUrl} alt={friend.name} />
 									<FriendInfo>
-										<FriendName>{friend.name}</FriendName>
+										<FriendName>
+											{friend.name ??
+												`${friend.firstName ?? ""} ${friend.lastName ?? ""}`}
+										</FriendName>
 										<MutualFriends>
-											{friend.mutualFriends} bạn chung
+											{friend.mutualFriends ?? 0} bạn chung
 										</MutualFriends>
 									</FriendInfo>
 								</div>

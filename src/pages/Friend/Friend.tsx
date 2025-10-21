@@ -18,7 +18,15 @@ import { useSearch } from "@tanstack/react-router";
 import { useSelector } from "react-redux";
 import { RootState } from "@/store";
 import { listUsers, UserResponse } from "@/services/userAPI";
-import { sendFriendRequest } from "@/services/friendAPI";
+import {
+	listFriends,
+	sendFriendRequest,
+	listInvitationFriend,
+	updateFriendRequestStatus,
+} from "@/services/friendAPI";
+import {} from "@/services/groupAPI";
+import { listInvitationGr, updateInvitation } from "@/services/userGroupAPI";
+import { showGlobalAlert } from "@/components/custom/AlertCustom/Alert";
 
 const Friend: React.FC = () => {
 	const search = useSearch({ from: "/chat/friend" });
@@ -50,12 +58,28 @@ const Friend: React.FC = () => {
 	const [currentPage, setCurrentPage] = useState(1);
 	const friendsPerPage = 18;
 
-	const [allFriends, setAllFriends] = useState<any[]>([
-		// keep previous mock or start empty; you can seed with server data later
-	]);
-	const [pendingRequests, setPendingRequests] = useState<any[]>([
-		// keep previous mock or start empty; you can seed with server data later
-	]);
+	const [allFriends, setAllFriends] = useState<any[]>([]);
+	// split pending into two lists
+	const [pendingFriendRequests, setPendingFriendRequests] = useState<any[]>([]);
+	const [pendingGroupInvites, setPendingGroupInvites] = useState<any[]>([]);
+	const [isLoadingPending, setIsLoadingPending] = useState(false);
+
+	const extractUserIdFromInvitation = (raw: any): string | null => {
+		if (!raw) return null;
+		// thử nhiều tên trường phổ biến
+		return (
+			raw.fromId ??
+			raw.requesterId ??
+			raw.userId ??
+			raw.senderId ??
+			raw.inviterId ??
+			raw.user?.id ??
+			raw.requester?.id ??
+			raw.from?.id ??
+			raw.inviter?.id ??
+			null
+		);
+	};
 
 	// Fetch active users on mount
 	useEffect(() => {
@@ -80,6 +104,103 @@ const Friend: React.FC = () => {
 		};
 
 		fetchActiveUsers();
+	}, [currentUserId]);
+
+	// Fetch friends
+	useEffect(() => {
+		const fetchFriends = async () => {
+			setIsLoadingUsers(true);
+			try {
+				const response = await listFriends(1, 100);
+				if (response && response.data) {
+					// normalize shape expected by AllFriends
+					const normalized = response.data.map((u: any) => ({
+						id: u.id,
+						name: `${u.firstName ?? ""} ${u.lastName ?? ""}`.trim(),
+						handle: u.username ? `@${u.username}` : "",
+						avatar: u.avatarUrl || "",
+						mutualFriends: u.mutualFriends ?? 0,
+					}));
+					setAllFriends(normalized);
+				}
+			} catch (err) {
+				console.error("Failed to fetch friends", err);
+			} finally {
+				setIsLoadingUsers(false);
+			}
+		};
+
+		fetchFriends();
+	}, []);
+
+	// Fetch pending friend requests + group invites
+	useEffect(() => {
+		const fetchPendings = async () => {
+			setIsLoadingPending(true);
+			try {
+				const [friendResp, groupResp] = await Promise.allSettled([
+					listInvitationFriend() ?? Promise.resolve({ data: [] }),
+					listInvitationGr() ?? Promise.resolve({ data: [] }),
+				]);
+
+				// normalize friend invites
+				if (friendResp.status === "fulfilled" && friendResp.value?.data) {
+					const normalizedFriend = friendResp.value.data.map((r: any) => {
+						// try common shapes: r.from*, r.requester*, or r.user*
+						const inviterName =
+							(r.fromFirstName && `${r.fromFirstName} ${r.fromLastName}`) ||
+							(r.requesterFirstName &&
+								`${r.requesterFirstName} ${r.requesterLastName}`) ||
+							r.name ||
+							"";
+						const inviterUsername =
+							r.fromUsername || r.requesterUsername || r.username || "";
+						return {
+							id: r.id,
+							name: inviterName.trim() || inviterUsername || r.email || "User",
+							handle: inviterUsername ? `@${inviterUsername}` : "",
+							avatar: r.fromAvatarUrl || r.avatarUrl || "",
+							direction:
+								r.type === "sent" || r.direction === "sent"
+									? "sent"
+									: "received", // best effort
+							raw: r,
+						};
+					});
+					setPendingFriendRequests(normalizedFriend);
+				}
+
+				// normalize group invites
+				if (groupResp.status === "fulfilled" && groupResp.value?.data) {
+					const normalizedGroup = groupResp.value.data.map((inv: any) => {
+						const inviter =
+							inv.inviterName ||
+							inv.fromName ||
+							`${inv.inviterFirstName ?? ""} ${inv.inviterLastName ?? ""}`.trim() ||
+							"";
+						return {
+							id: inv.id,
+							groupId: inv.groupId,
+							groupName: inv.groupName ?? inv.name ?? "Group",
+							inviterName: inviter || inv.username || "",
+							inviterAvatar: inv.inviterAvatarUrl || inv.avatarUrl || "",
+							direction:
+								inv.type === "sent" || inv.direction === "sent"
+									? "sent"
+									: "received",
+							raw: inv,
+						};
+					});
+					setPendingGroupInvites(normalizedGroup);
+				}
+			} catch (err) {
+				console.error("Failed to fetch pending invites", err);
+			} finally {
+				setIsLoadingPending(false);
+			}
+		};
+
+		fetchPendings();
 	}, [currentUserId]);
 
 	// --- Actions ---
@@ -149,15 +270,15 @@ const Friend: React.FC = () => {
 			setModalMessage(`Your friend request to ${selectedUser.name} was sent!`);
 			setShowModal(true);
 
-			// add to pendingRequests as 'sent' so UI reflects change immediately
-			setPendingRequests((prev) => [
+			// add to pendingFriendRequests as 'sent' so UI reflects change immediately
+			setPendingFriendRequests((prev) => [
 				...prev,
 				{
 					id: String(selectedUser.id),
 					name: selectedUser.name,
 					handle: selectedUser.handle,
 					avatar: selectedUser.avatar,
-					type: "sent",
+					direction: "sent",
 				},
 			]);
 
@@ -207,28 +328,104 @@ const Friend: React.FC = () => {
 		}
 	};
 
-	const handleAcceptRequest = (requestId: string) => {
-		const request = pendingRequests.find((req) => req.id === requestId);
-		if (request) {
-			const newFriend = {
-				id: request.id,
-				name: request.name,
-				handle: request.handle,
-				avatar: request.avatar,
-				mutualFriends: Math.floor(Math.random() * 10) + 1,
-			};
-			setAllFriends((prev) => [...prev, newFriend]);
-			setPendingRequests((prev) => prev.filter((req) => req.id !== requestId));
+	// Friend pending actions
+	const handleAcceptFriend = async (requestId: string) => {
+		try {
+			setPendingFriendRequests((prev) =>
+				prev.filter((r) => r.id !== requestId),
+			);
+
+			// tìm raw object tương ứng để lấy userId
+			const item = pendingFriendRequests.find((r) => r.id === requestId);
+			const raw = item?.raw;
+			const userId = extractUserIdFromInvitation(raw) ?? requestId;
+
+			const acceptRequest = { status: 1 };
+			const res = await updateFriendRequestStatus(userId, acceptRequest);
+			showGlobalAlert({ type: "success", message: "Accepted successfully!" });
+			console.log("Friend request accepted (userId):", userId, res);
+		} catch (err) {
+			showGlobalAlert({ type: "error", message: "Accepted fail!" });
+			console.error("accept friend failed", err);
 		}
 	};
 
-	const handleDeclineRequest = (requestId: string) => {
-		setPendingRequests((prev) => prev.filter((req) => req.id !== requestId));
+	const handleDeclineFriend = async (requestId: string) => {
+		try {
+			setPendingFriendRequests((prev) =>
+				prev.filter((r) => r.id !== requestId),
+			);
+
+			const item = pendingFriendRequests.find((r) => r.id === requestId);
+			const raw = item?.raw;
+			const userId = extractUserIdFromInvitation(raw) ?? requestId;
+
+			const declineRequest = { status: 0 };
+			const res = await updateFriendRequestStatus(userId, declineRequest);
+			showGlobalAlert({ type: "success", message: "Declined successfully!" });
+			console.log("Friend request declined (userId):", userId, res);
+		} catch (err) {
+			showGlobalAlert({ type: "error", message: "Declined fail!" });
+			console.error("decline friend failed", err);
+		}
 	};
 
-	const handleCancelSentRequest = (requestId: string) => {
-		setPendingRequests((prev) => prev.filter((req) => req.id !== requestId));
+	// Group invite actions
+	const handleAcceptGroup = async (inviteId: string) => {
+		try {
+			setPendingGroupInvites((prev) => prev.filter((r) => r.id !== inviteId));
+
+			// tìm item để lấy groupId
+			const item = pendingGroupInvites.find((r) => r.id === inviteId);
+			const raw = item?.raw;
+			const groupId =
+				item?.groupId ??
+				raw?.groupId ??
+				raw?.roomId ??
+				raw?.targetId ??
+				inviteId;
+
+			const acceptRequest = { userIdOrEmail: currentUserId, status: 1 };
+			const res = await updateInvitation(groupId, acceptRequest);
+			showGlobalAlert({ type: "success", message: "Accepted successfully!" });
+			console.log("Group invite accepted (groupId):", groupId, res);
+		} catch (err) {
+			showGlobalAlert({ type: "error", message: "Accepted fail!" });
+			console.error("accept group invite failed", err);
+		}
 	};
+
+	const handleDeclineGroup = async (inviteId: string) => {
+		try {
+			setPendingGroupInvites((prev) => prev.filter((r) => r.id !== inviteId));
+
+			const item = pendingGroupInvites.find((r) => r.id === inviteId);
+			const raw = item?.raw;
+			const groupId =
+				item?.groupId ??
+				raw?.groupId ??
+				raw?.roomId ??
+				raw?.targetId ??
+				inviteId;
+
+			const declineRequest = { userIdOrEmail: currentUserId, status: 0 };
+			const res = await updateInvitation(groupId, declineRequest);
+			showGlobalAlert({ type: "success", message: "Declined successfully!" });
+			console.log("Group invite declined (groupId):", groupId, res);
+		} catch (err) {
+			showGlobalAlert({ type: "error", message: "Declined fail!" });
+			console.error("decline group invite failed", err);
+		}
+	};
+
+	// const handleCancelSentGroup = async (inviteId: string) => {
+	// 	try {
+	// 		setPendingGroupInvites((prev) => prev.filter((r) => r.id !== inviteId));
+	// 		if (cancelGroupInvite) await cancelGroupInvite(inviteId);
+	// 	} catch (err) {
+	// 		console.error("cancel group invite failed", err);
+	// 	}
+	// };
 
 	const handleMenuToggle = (friendId: string, e: React.MouseEvent) => {
 		e.stopPropagation();
@@ -282,12 +479,17 @@ const Friend: React.FC = () => {
 
 				{activeTab === "pending" && (
 					<Pending
-						pendingRequests={pendingRequests}
+						pendingFriendRequests={pendingFriendRequests}
+						pendingGroupInvites={pendingGroupInvites}
 						searchPending={searchPending}
 						setSearchPending={setSearchPending}
-						onAccept={handleAcceptRequest}
-						onDecline={handleDeclineRequest}
-						onCancelSent={handleCancelSentRequest}
+						onAcceptFriend={handleAcceptFriend}
+						onDeclineFriend={handleDeclineFriend}
+						// onCancelFriend={handleCancelSentFriend}
+						onAcceptGroup={handleAcceptGroup}
+						onDeclineGroup={handleDeclineGroup}
+						// onCancelGroup={handleCancelSentGroup}
+						isLoadingPending={isLoadingPending}
 					/>
 				)}
 			</Content>

@@ -2,11 +2,15 @@
 import { get, post, put, remove } from "./apiCaller";
 
 export interface InviteRequest {
+	userIdOrEmail: string;
+}
+
+export interface RemoveGrRequest {
 	userId: string;
 }
 
 export interface UpdateInvitationRequest {
-	userId: string;
+	userIdOrEmail: string;
 	status: number;
 }
 
@@ -37,7 +41,7 @@ export const membersGroup = (groupId: string, page: number, limit: number) => {
 	return get(`/api/group/${groupId}/member?page=${page}&limit=${limit}`);
 };
 
-export const deleteMemberGroup = (groupId: string, data: InviteRequest) => {
+export const deleteMemberGroup = (groupId: string, data: RemoveGrRequest) => {
 	return remove(`/api/group/${groupId}/member`, data);
 };
 
@@ -47,4 +51,9 @@ export const updateRoleMember = (
 	data: UpdateRoleRequest,
 ) => {
 	return put(`/api/group/${groupId}/member/${userId}/role`, data);
+};
+
+export const listInvitationGr = () => {
+	// nối tạm
+	return get("/api/invitation");
 };
