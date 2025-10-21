@@ -15,63 +15,106 @@ import AddFriend from "./AddFriend/AddFriend";
 import AllFriends from "./AllFriends/AllFriends";
 import Pending from "./Pending/Pending";
 import { useSearch } from "@tanstack/react-router";
+import { useSelector } from "react-redux";
+import { RootState } from "@/store";
+import { listUsers, UserResponse } from "@/services/userAPI";
+import { sendFriendRequest } from "@/services/friendAPI";
 
 const Friend: React.FC = () => {
 	const search = useSearch({ from: "/chat/friend" });
 	const activeTab = (search.tab as string) || "add-friend";
+
+	// redux current user id
+	const currentUserProfile = useSelector(
+		(state: RootState) => state.user.profile,
+	);
+	const currentUserId = currentUserProfile?.id || "";
 
 	// --- Shared state ---
 	const [searchAdd, setSearchAdd] = useState("");
 	const [searchAll, setSearchAll] = useState("");
 	const [searchPending, setSearchPending] = useState("");
 
+	const [availableUsers, setAvailableUsers] = useState<UserResponse[]>([]);
+	const [isLoadingUsers, setIsLoadingUsers] = useState(false);
+	const [isSendingRequest, setIsSendingRequest] = useState(false);
+	const [isUserSelectedFromList, setIsUserSelectedFromList] = useState(false);
+
 	const [searchResults, setSearchResults] = useState<any[]>([]);
 	const [selectedUser, setSelectedUser] = useState<any | null>(null);
 	const [showModal, setShowModal] = useState(false);
+	const [modalType, setModalType] = useState<"success" | "error">("success");
+	const [modalMessage, setModalMessage] = useState("");
 	const [activeMenu, setActiveMenu] = useState<string | null>(null);
 
 	const [currentPage, setCurrentPage] = useState(1);
 	const friendsPerPage = 18;
 
 	const [allFriends, setAllFriends] = useState<any[]>([
-		/* initial mock data (same as before) */
+		// keep previous mock or start empty; you can seed with server data later
 	]);
 	const [pendingRequests, setPendingRequests] = useState<any[]>([
-		/* initial mock data (same as before) */
+		// keep previous mock or start empty; you can seed with server data later
 	]);
 
-	// NOTE: For brevity I omitted the long arrays; keep your original mock arrays here.
+	// Fetch active users on mount
+	useEffect(() => {
+		const fetchActiveUsers = async () => {
+			setIsLoadingUsers(true);
+			try {
+				const response = await listUsers(1, 200);
+				if (response && response.data) {
+					// keep only active and exclude current user
+					const active = response.data.filter(
+						(user: UserResponse) =>
+							user.isActive === true &&
+							String(user.id) !== String(currentUserId),
+					);
+					setAvailableUsers(active);
+				}
+			} catch (err) {
+				console.error("Failed to fetch users", err);
+			} finally {
+				setIsLoadingUsers(false);
+			}
+		};
+
+		fetchActiveUsers();
+	}, [currentUserId]);
 
 	// --- Actions ---
 	const handleSearchAdd = (query: string) => {
 		setSearchAdd(query);
-		// Example client-side filtering against mockUsers in AddFriend component
-		// We'll store filtered results here for AddFriend to consume
+
+		if (selectedUser && selectedUser.name !== query) {
+			setSelectedUser(null);
+			setIsUserSelectedFromList(false);
+		}
+
 		if (query.trim()) {
-			// mock data inside AddFriend - mimic a small search
-			const mockUsers = [
-				{
-					id: "1",
-					name: "Nhu Nguyen",
-					handle: "@nhunguyen",
+			const searchTerm = query.toLowerCase();
+			const filtered = availableUsers
+				.filter((user) => {
+					// build comparable strings
+					const fullName = `${user.firstName} ${user.lastName}`.toLowerCase();
+					const username = (user.username || "").toLowerCase();
+					const email = (user.email || "").toLowerCase();
+					return (
+						fullName.includes(searchTerm) ||
+						username.includes(searchTerm) ||
+						email.includes(searchTerm)
+					);
+				})
+				.map((user) => ({
+					id: user.id,
+					name: `${user.firstName} ${user.lastName}`,
+					handle: `@${user.username}`,
 					avatar:
+						user.avatarUrl ||
 						"https://images.unsplash.com/photo-1494790108755-2616b332c-c3?w=100&h=100&fit=crop&crop=face",
-					mutualFriends: 2,
-				},
-				{
-					id: "2",
-					name: "Nhu Nguyen",
-					handle: "@nhunguyen2",
-					avatar:
-						"https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face",
-					mutualFriends: 5,
-				},
-			];
-			const filtered = mockUsers.filter(
-				(user) =>
-					user.name.toLowerCase().includes(query.toLowerCase()) ||
-					user.handle.toLowerCase().includes(query.toLowerCase()),
-			);
+					mutualFriends: 0,
+				}));
+
 			setSearchResults(filtered);
 		} else {
 			setSearchResults([]);
@@ -82,20 +125,86 @@ const Friend: React.FC = () => {
 		setSelectedUser(user);
 		setSearchAdd(user.name);
 		setSearchResults([]);
+		setIsUserSelectedFromList(true);
 	};
 
-	const handleSendRequest = () => {
-		if (selectedUser) {
+	const handleSendRequest = async () => {
+		if (!selectedUser || isSendingRequest) return;
+
+		if (String(selectedUser.id) === String(currentUserId)) {
+			setModalType("error");
+			setModalMessage("You cannot send a friend request to yourself!");
 			setShowModal(true);
+			return;
+		}
+
+		setIsSendingRequest(true);
+		try {
+			await sendFriendRequest({
+				receiverId: selectedUser.id,
+				message: "Hi! I'd like to be friends.",
+			});
+
+			setModalType("success");
+			setModalMessage(`Your friend request to ${selectedUser.name} was sent!`);
+			setShowModal(true);
+
+			// add to pendingRequests as 'sent' so UI reflects change immediately
+			setPendingRequests((prev) => [
+				...prev,
+				{
+					id: String(selectedUser.id),
+					name: selectedUser.name,
+					handle: selectedUser.handle,
+					avatar: selectedUser.avatar,
+					type: "sent",
+				},
+			]);
+
 			setSearchAdd("");
 			setSearchResults([]);
 			setSelectedUser(null);
+			setIsUserSelectedFromList(false);
+		} catch (error: any) {
+			let errorMessage = "Failed to send friend request";
+
+			if (error?.response) {
+				const status = error.response.status;
+				if (status === 400) {
+					errorMessage =
+						error.response.data?.message ||
+						"Invalid request. This user may already be your friend or have a pending request.";
+				} else if (status === 404) {
+					errorMessage = "User not found";
+				} else if (status === 409) {
+					errorMessage =
+						error.response.data?.message ||
+						"Already had pending request before";
+				} else {
+					errorMessage =
+						error.response.data?.message || `Server Error (${status})`;
+				}
+			} else if (error?.request) {
+				errorMessage = "No response from server. Please check your connection.";
+			} else {
+				errorMessage = error.message || errorMessage;
+			}
+
+			setModalType("error");
+			setModalMessage(errorMessage);
+			setShowModal(true);
+		} finally {
+			setIsSendingRequest(false);
 		}
 	};
 
 	const handleCloseModal = () => {
 		setShowModal(false);
-		setSelectedUser(null);
+		if (modalType === "success") {
+			setSelectedUser(null);
+			setIsUserSelectedFromList(false);
+			setSearchAdd("");
+		}
 	};
 
 	const handleAcceptRequest = (requestId: string) => {
@@ -151,6 +260,9 @@ const Friend: React.FC = () => {
 						onSelectUser={handleSelectUser}
 						selectedUser={selectedUser}
 						onSendRequest={handleSendRequest}
+						isLoadingUsers={isLoadingUsers}
+						isSendingRequest={isSendingRequest}
+						isUserSelectedFromList={isUserSelectedFromList}
 					/>
 				)}
 
@@ -182,11 +294,36 @@ const Friend: React.FC = () => {
 
 			{showModal && (
 				<Modal>
-					<ModalContent>
-						<ModalTitle>Success!</ModalTitle>
-						<SendImg src={sendImage} alt="Send Success" />
-						<ModalMessage>Your friend request was sent!</ModalMessage>
-						<ModalButton onClick={handleCloseModal}>OK</ModalButton>
+					<ModalContent
+						style={{
+							borderTop:
+								modalType === "error"
+									? "4px solid #EF4444"
+									: "4px solid #10B981",
+						}}
+					>
+						<ModalTitle
+							style={{ color: modalType === "error" ? "#EF4444" : "#10B981" }}
+						>
+							{modalType === "success" ? "Success!" : "Error"}
+						</ModalTitle>
+						{modalType === "success" && (
+							<SendImg src={sendImage} alt="Send Success" />
+						)}
+						<ModalMessage
+							style={{ color: modalType === "error" ? "#DC2626" : "#374151" }}
+						>
+							{modalMessage}
+						</ModalMessage>
+						<ModalButton
+							onClick={handleCloseModal}
+							style={{
+								backgroundColor: modalType === "error" ? "#EF4444" : "#10B981",
+								borderColor: modalType === "error" ? "#DC2626" : "#10B981",
+							}}
+						>
+							OK
+						</ModalButton>
 					</ModalContent>
 				</Modal>
 			)}

@@ -61,7 +61,7 @@ const Pending: React.FC<Props> = ({
 			<Subtitle>View your sent and incoming requests</Subtitle>
 
 			<SearchContainer>
-				<Search size={20} color="#1A1A1A" />
+				<Search size={20} />
 				<SearchInput
 					type="text"
 					placeholder="Search pending requests..."

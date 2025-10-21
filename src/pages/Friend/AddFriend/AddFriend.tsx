@@ -30,6 +30,9 @@ interface Props {
 	onSelectUser: (u: User) => void;
 	selectedUser: User | null;
 	onSendRequest: () => void;
+	isLoadingUsers: boolean;
+	isSendingRequest: boolean;
+	isUserSelectedFromList: boolean;
 }
 
 const AddFriend: React.FC<Props> = ({
@@ -39,6 +42,9 @@ const AddFriend: React.FC<Props> = ({
 	onSelectUser,
 	selectedUser,
 	onSendRequest,
+	isLoadingUsers,
+	isSendingRequest,
+	isUserSelectedFromList,
 }) => {
 	return (
 		<>
@@ -48,22 +54,35 @@ const AddFriend: React.FC<Props> = ({
 			</Subtitle>
 
 			<SearchContainer>
-				<Search size={20} color="#1A1A1A" />
+				<Search size={20} />
 				<SearchInput
 					type="text"
 					placeholder="Search by name or username"
 					value={searchAdd}
 					onChange={(e) => onSearchAdd(e.target.value)}
+					disabled={isLoadingUsers}
 				/>
 				<SendButton
 					onClick={onSendRequest}
-					disabled={!selectedUser || !searchAdd.trim()}
+					disabled={
+						!isUserSelectedFromList || isLoadingUsers || isSendingRequest
+					}
 				>
-					Send request
+					{isSendingRequest
+						? "Sending..."
+						: isLoadingUsers
+							? "Loading..."
+							: "Send request"}
 				</SendButton>
 			</SearchContainer>
 
-			{searchResults.length > 0 && (
+			{isLoadingUsers && (
+				<div style={{ textAlign: "center", padding: "20px", color: "#6B7280" }}>
+					Loading users...
+				</div>
+			)}
+
+			{searchResults.length > 0 && !isUserSelectedFromList && (
 				<ResultsList>
 					{searchResults.map((user) => (
 						<ResultItem
