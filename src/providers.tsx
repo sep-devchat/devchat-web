@@ -17,7 +17,6 @@ import AuthProvider from "./components/AuthProvider.tsx";
 import SocketProvider from "./components/SocketProvider.tsx";
 import { io } from "socket.io-client";
 import ThemeInit from "./components/ThemeInit.tsx";
-import NotificationProvider from "./components/NotificationProvider.tsx";
 
 // Create a new router instance
 let history: RouterHistory | undefined;
@@ -50,7 +49,6 @@ export function Providers() {
 			<QueryClientProvider client={queryClient}>
 				<AuthProvider>
 					<SocketProvider socket={socket}>
-						<NotificationProvider />
 						<ThemeInit />
 						<RouterProvider router={router} />
 						{Boolean(config.publicRuntime.DEV_ENABLED) ? (
