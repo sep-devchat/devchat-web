@@ -1,49 +1,52 @@
-// AddGroupModal.styled.ts
 import styled from "styled-components";
-import { Button } from "../../../ui/button";
-import { Input } from "../../../ui/input";
-import { DialogContent, DialogOverlay } from "@radix-ui/react-dialog";
-import { Textarea } from "../../../ui/textarea";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
+import { theme } from "@/themes";
 
-/* Overlay + Content (giữ giống như trước) */
-export const StyledDialogOverlay = styled(DialogOverlay)`
-	position: fixed;
-	inset: 0;
-	background: rgba(0, 0, 0, 0.35);
-	z-index: 50;
-`;
-
-export const DialogContentWrapper = styled(DialogContent)`
-	position: fixed;
-	top: 50%;
-	left: 50%;
-	transform: translate(-50%, -50%);
-	width: min(720px, 95vw);
-	max-height: calc(100vh - 48px);
+export const SectionWrapper = styled.div`
 	overflow: auto;
 	background: var(--card-bg, #fff);
 	border-radius: 12px;
 	padding: 20px;
-	z-index: 60;
-	box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
-	box-sizing: border-box;
+`;
+
+export const TitleArea = styled.div`
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	margin-bottom: 20px;
+`;
+
+export const TitleSection = styled.h2`
+	font-weight: 700;
+	font-size: 23px;
+	color: ${theme.color.black};
+`;
+
+export const DescripSection = styled.p`
+	font-size: 16px;
+	color: ${theme.color.grey90};
 `;
 
 /* existing styles (Form, AvatarRow, ...) keep same as before */
 export const Form = styled.form`
 	display: flex;
 	flex-direction: column;
-	gap: 16px;
+	gap: 32px;
 `;
 
 /* --- Friend list UI --- */
 export const SearchBox = styled(Input)`
 	width: 100%;
 	padding: 12px 14px;
-	border-radius: 10px;
 	box-sizing: border-box;
 	margin-top: 10px;
 	margin-bottom: 6px;
+	border-radius: 8px;
+	border: 1px solid #e5e7eb;
+	font-size: 14px;
+	box-shadow: none;
 `;
 
 export const CountText = styled.div`
@@ -102,8 +105,9 @@ export const EmailText = styled.div`
 
 /* Add / Added button */
 export const AddButton = styled.button<{ $added?: boolean }>`
-	background: ${(p) => (p.$added ? "#e6ffed" : "#0b5cff")};
-	color: ${(p) => (p.$added ? "#05652a" : "#fff")};
+	background: ${(p) =>
+		p.$added ? `${theme.color.successBackground}` : `${theme.color.primary}`};
+	color: ${(p) => (p.$added ? `${theme.color.success}` : "#fff")};
 	border: none;
 	padding: 8px 12px;
 	border-radius: 8px;
@@ -130,7 +134,7 @@ export const InviteInput = styled.input`
 `;
 
 export const CopyButton = styled.button`
-	background: #0b5cff;
+	background: ${theme.color.primary};
 	color: white;
 	border: none;
 	padding: 8px 12px;
@@ -257,4 +261,11 @@ export const ErrorText = styled.div`
 	color: #dc2626;
 	font-size: 13px;
 	margin-top: 4px;
+`;
+
+export const Divider = styled.div`
+	color: ${theme.color.grey40};
+	width: 100%;
+	height: 1px;
+	background-color: ${theme.color.grey40};
 `;

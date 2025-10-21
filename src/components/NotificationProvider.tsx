@@ -1,17 +1,18 @@
 import publicRuntimeConfig from "@/config/publicRuntime";
-import { useAuth } from "@/hooks";
 import useSocketEvent from "@/hooks/useSocketEvent";
 import { MessageResponse } from "@/services/messageAPI";
 import { SocketEvents } from "@/utils/constants";
+import { useNavigate } from "@tanstack/react-router";
+import { useEffect } from "react";
 
 async function handleElectronNotification(data: MessageResponse) {
-	await window.nativeAPI.showMessageNotification(
-		"New Message",
-		data.content || "You have a new message.",
-	);
+	await window.nativeAPI.showMessageNotification(data);
 }
 
-async function handleBrowserNotification(data: MessageResponse) {
+async function handleBrowserNotification(
+	data: MessageResponse,
+	navigate: ReturnType<typeof useNavigate>,
+) {
 	let perm = Notification.permission;
 	if (perm != "granted") {
 		perm = await new Promise((resolve) => {
@@ -21,21 +22,57 @@ async function handleBrowserNotification(data: MessageResponse) {
 
 	if (perm != "granted") return;
 
-	new Notification("New Message", {
-		body: data.content || "You have a new message.",
-	});
+	const notification = new Notification(
+		data.sender.firstName + " " + data.sender.lastName,
+		{
+			body: data.content || "You have a new message.",
+			icon: data.sender.avatarUrl,
+		},
+	);
+
+	notification.onclick = () => {
+		window.focus();
+		navigate({
+			to: "/chat/group/$groupId",
+			params: { groupId: data.channel?.groupId },
+			replace: true,
+			search: {
+				channel: data.channel?.id,
+			},
+		});
+	};
 }
 
 export default function NotificationProvider() {
-	const { profile } = useAuth();
+	const navigate = useNavigate();
+
+	if (publicRuntimeConfig.ELECTRON) {
+		useEffect(() => {
+			const dispose = window.nativeAPI.nativeAPICallback(
+				"notification-clicked",
+				(_, message: MessageResponse) => {
+					navigate({
+						to: "/chat/group/$groupId",
+						params: { groupId: message.channel?.groupId },
+						replace: true,
+						search: {
+							channel: message.channel?.id,
+						},
+					});
+				},
+			);
+
+			return () => {
+				dispose();
+			};
+		}, []);
+	}
 
 	useSocketEvent(SocketEvents.MESSAGE_NOTIFICATION, (data: MessageResponse) => {
-		if (data.senderId === profile?.id) return;
-		console.log("Message Notification", data);
 		if (publicRuntimeConfig.ELECTRON) {
 			handleElectronNotification(data);
 		} else {
-			handleBrowserNotification(data);
+			handleBrowserNotification(data, navigate);
 		}
 	});
 

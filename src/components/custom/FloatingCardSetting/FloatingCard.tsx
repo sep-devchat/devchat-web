@@ -5,7 +5,7 @@ export type Action = {
 	key?: string;
 	label: string;
 	onClick: (e?: React.MouseEvent<HTMLButtonElement>) => void;
-	variant?: "primary" | "secondary" | "link";
+	variant?: "primary" | "secondary" | "link" | "destructive";
 	disabled?: boolean;
 	ariaLabel?: string;
 };
@@ -15,6 +15,7 @@ export interface FloatingCardProps {
 	actions?: Action[] /** Các action button do parent truyền vào */;
 	className?: string;
 	icon?: React.ReactNode;
+	visible?: boolean;
 }
 
 const FloatingCard: React.FC<FloatingCardProps> = ({
@@ -22,7 +23,10 @@ const FloatingCard: React.FC<FloatingCardProps> = ({
 	actions = [],
 	className = "",
 	icon,
+	visible = true,
 }) => {
+	if (!visible) return null;
+
 	return (
 		<Wrapper role="status" aria-live="polite" className={className}>
 			{/* Left: icon + message */}
@@ -46,6 +50,8 @@ const FloatingCard: React.FC<FloatingCardProps> = ({
 						secondary:
 							"bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 focus:ring-gray-300",
 						link: "bg-transparent text-gray-600 underline hover:text-gray-800 focus:ring-transparent",
+						destructive:
+							"bg-red-600 text-white hover:bg-red-700 focus:ring-red-500",
 					};
 					const cls = `${base} ${variants[a.variant ?? "primary"]}`;
 

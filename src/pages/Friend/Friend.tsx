@@ -1,367 +1,431 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect } from "react";
 import {
 	Container,
 	Content,
-	Title,
-	Subtitle,
-	SearchContainer,
-	SearchInput,
-	SendButton,
-	ResultsList,
-	ResultItem,
-	Avatar,
-	UserInfo,
-	UserName,
-	UserHandle,
-	MutualFriends,
-	SectionHeader,
-	ActionButton,
-	ActionButtons,
 	Modal,
 	ModalContent,
 	ModalTitle,
 	SendImg,
 	ModalMessage,
 	ModalButton,
-	FriendsGrid,
-	FriendCard,
-	CardContent,
-	CardHeader,
-	MenuContainer,
-	MenuButton,
-	MenuDropdown,
-	MenuItem,
-	FriendInfo,
-	FriendName,
-	NoResults,
-	PaginationContainer,
-	PageButton,
-} from "./Friend.styed";
-import { MoreHorizontal, Search, Star, UserMinus } from "lucide-react";
+} from "./Friend.styled";
 import sendImage from "../../assets/image/sendImage.png";
+import AddFriend from "./AddFriend/AddFriend";
+import AllFriends from "./AllFriends/AllFriends";
+import Pending from "./Pending/Pending";
 import { useSearch } from "@tanstack/react-router";
-
-interface User {
-	id: string;
-	name: string;
-	handle: string;
-	avatar: string;
-	mutualFriends: number;
-}
-
-interface PendingRequest {
-	id: string;
-	name: string;
-	handle: string;
-	avatar: string;
-	type: "received" | "sent";
-}
-
-interface Friend {
-	id: string;
-	name: string;
-	handle: string;
-	avatar: string;
-	mutualFriends: number;
-}
+import { useSelector } from "react-redux";
+import { RootState } from "@/store";
+import { listUsers, UserResponse } from "@/services/userAPI";
+import {
+	listFriends,
+	sendFriendRequest,
+	listInvitationFriend,
+	updateFriendRequestStatus,
+} from "@/services/friendAPI";
+import {} from "@/services/groupAPI";
+import { listInvitationGr, updateInvitation } from "@/services/userGroupAPI";
+import { showGlobalAlert } from "@/components/custom/AlertCustom/Alert";
 
 const Friend: React.FC = () => {
 	const search = useSearch({ from: "/chat/friend" });
-	const activeTab = search.tab || "add-friend";
+	const activeTab = (search.tab as string) || "add-friend";
 
+	// redux current user id
+	const currentUserProfile = useSelector(
+		(state: RootState) => state.user.profile,
+	);
+	const currentUserId = currentUserProfile?.id || "";
+
+	// --- Shared state ---
 	const [searchAdd, setSearchAdd] = useState("");
 	const [searchAll, setSearchAll] = useState("");
 	const [searchPending, setSearchPending] = useState("");
 
-	const [searchResults, setSearchResults] = useState<User[]>([]);
-	const [selectedUser, setSelectedUser] = useState<User | null>(null);
+	const [availableUsers, setAvailableUsers] = useState<UserResponse[]>([]);
+	const [isLoadingUsers, setIsLoadingUsers] = useState(false);
+	const [isSendingRequest, setIsSendingRequest] = useState(false);
+	const [isUserSelectedFromList, setIsUserSelectedFromList] = useState(false);
+
+	const [searchResults, setSearchResults] = useState<any[]>([]);
+	const [selectedUser, setSelectedUser] = useState<any | null>(null);
 	const [showModal, setShowModal] = useState(false);
+	const [modalType, setModalType] = useState<"success" | "error">("success");
+	const [modalMessage, setModalMessage] = useState("");
 	const [activeMenu, setActiveMenu] = useState<string | null>(null);
 
 	const [currentPage, setCurrentPage] = useState(1);
 	const friendsPerPage = 18;
 
-	const [allFriends, setAllFriends] = useState<Friend[]>([
-		{
-			id: "1",
-			name: "Nhu Phien",
-			handle: "@nhunguyen1",
-			avatar:
-				"https://images.unsplash.com/photo-1494790108755-2616b332c-c3?w=100&h=100&fit=crop&crop=face",
-			mutualFriends: 5,
-		},
-		{
-			id: "2",
-			name: "Nhu Nguyen",
-			handle: "@nhunguyen2",
-			avatar:
-				"https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face",
-			mutualFriends: 3,
-		},
-		{
-			id: "3",
-			name: "Nhu Phien",
-			handle: "@nhunguyen1",
-			avatar:
-				"https://images.unsplash.com/photo-1494790108755-2616b332c-c3?w=100&h=100&fit=crop&crop=face",
-			mutualFriends: 5,
-		},
-		{
-			id: "3",
-			name: "Nhu Phien",
-			handle: "@nhunguyen1",
-			avatar:
-				"https://images.unsplash.com/photo-1494790108755-2616b332c-c3?w=100&h=100&fit=crop&crop=face",
-			mutualFriends: 5,
-		},
-		{
-			id: "4",
-			name: "Nhu Nguyen",
-			handle: "@nhunguyen2",
-			avatar:
-				"https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face",
-			mutualFriends: 3,
-		},
-		{
-			id: "5",
-			name: "Nhu Phien",
-			handle: "@nhunguyen1",
-			avatar:
-				"https://images.unsplash.com/photo-1494790108755-2616b332c-c3?w=100&h=100&fit=crop&crop=face",
-			mutualFriends: 5,
-		},
-		{
-			id: "6",
-			name: "Nhu Nguyen",
-			handle: "@nhunguyen2",
-			avatar:
-				"https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face",
-			mutualFriends: 3,
-		},
-		{
-			id: "7",
-			name: "Nhu Phien",
-			handle: "@nhunguyen1",
-			avatar:
-				"https://images.unsplash.com/photo-1494790108755-2616b332c-c3?w=100&h=100&fit=crop&crop=face",
-			mutualFriends: 5,
-		},
-		{
-			id: "8",
-			name: "Nhu Nguyen",
-			handle: "@nhunguyen2",
-			avatar:
-				"https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face",
-			mutualFriends: 3,
-		},
-		{
-			id: "9",
-			name: "Nhu Phien",
-			handle: "@nhunguyen1",
-			avatar:
-				"https://images.unsplash.com/photo-1494790108755-2616b332c-c3?w=100&h=100&fit=crop&crop=face",
-			mutualFriends: 5,
-		},
-		{
-			id: "10",
-			name: "Nhu Nguyen",
-			handle: "@nhunguyen2",
-			avatar:
-				"https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face",
-			mutualFriends: 3,
-		},
-		{
-			id: "11",
-			name: "Nhu Phien",
-			handle: "@nhunguyen1",
-			avatar:
-				"https://images.unsplash.com/photo-1494790108755-2616b332c-c3?w=100&h=100&fit=crop&crop=face",
-			mutualFriends: 5,
-		},
-		{
-			id: "12",
-			name: "Nhu Nguyen",
-			handle: "@nhunguyen2",
-			avatar:
-				"https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face",
-			mutualFriends: 3,
-		},
-		{
-			id: "13",
-			name: "Nhu Phien",
-			handle: "@nhunguyen1",
-			avatar:
-				"https://images.unsplash.com/photo-1494790108755-2616b332c-c3?w=100&h=100&fit=crop&crop=face",
-			mutualFriends: 5,
-		},
-		{
-			id: "14",
-			name: "Nhu Nguyen",
-			handle: "@nhunguyen2",
-			avatar:
-				"https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face",
-			mutualFriends: 3,
-		},
-		{
-			id: "15",
-			name: "Nhu Phien",
-			handle: "@nhunguyen1",
-			avatar:
-				"https://images.unsplash.com/photo-1494790108755-2616b332c-c3?w=100&h=100&fit=crop&crop=face",
-			mutualFriends: 5,
-		},
-		{
-			id: "16",
-			name: "Nhu Nguyen",
-			handle: "@nhunguyen2",
-			avatar:
-				"https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face",
-			mutualFriends: 3,
-		},
-		{
-			id: "17",
-			name: "Nhu Phien",
-			handle: "@nhunguyen1",
-			avatar:
-				"https://images.unsplash.com/photo-1494790108755-2616b332c-c3?w=100&h=100&fit=crop&crop=face",
-			mutualFriends: 5,
-		},
-		{
-			id: "18",
-			name: "Nhu Nguyen",
-			handle: "@nhunguyen2",
-			avatar:
-				"https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face",
-			mutualFriends: 3,
-		},
-		{
-			id: "19",
-			name: "Nhu Phien",
-			handle: "@nhunguyen1",
-			avatar:
-				"https://images.unsplash.com/photo-1494790108755-2616b332c-c3?w=100&h=100&fit=crop&crop=face",
-			mutualFriends: 5,
-		},
-		{
-			id: "20",
-			name: "Nhu Nguyen",
-			handle: "@nhunguyen2",
-			avatar:
-				"https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face",
-			mutualFriends: 3,
-		},
-		{
-			id: "21",
-			name: "Nhu Phien",
-			handle: "@nhunguyen1",
-			avatar:
-				"https://images.unsplash.com/photo-1494790108755-2616b332c-c3?w=100&h=100&fit=crop&crop=face",
-			mutualFriends: 5,
-		},
-		{
-			id: "22",
-			name: "Nhu Nguyen",
-			handle: "@nhunguyen2",
-			avatar:
-				"https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face",
-			mutualFriends: 3,
-		},
-	]);
+	const [allFriends, setAllFriends] = useState<any[]>([]);
+	// split pending into two lists
+	const [pendingFriendRequests, setPendingFriendRequests] = useState<any[]>([]);
+	const [pendingGroupInvites, setPendingGroupInvites] = useState<any[]>([]);
+	const [isLoadingPending, setIsLoadingPending] = useState(false);
 
-	const [pendingRequests, setPendingRequests] = useState<PendingRequest[]>([
-		{
-			id: "1",
-			name: "Nhu Nguyen",
-			handle: "@nhunguyen_req1",
-			avatar:
-				"https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop&crop=face",
-			type: "received",
-		},
-		{
-			id: "2",
-			name: "Nhu Nguyen",
-			handle: "@nhunguyen_sent1",
-			avatar:
-				"https://images.unsplash.com/photo-1506794778202-cad84cf45f-ad?w=100&h=100&fit=crop&crop=face",
-			type: "sent",
-		},
-	]);
+	const extractUserIdFromInvitation = (raw: any): string | null => {
+		if (!raw) return null;
+		// thử nhiều tên trường phổ biến
+		return (
+			raw.fromId ??
+			raw.requesterId ??
+			raw.userId ??
+			raw.senderId ??
+			raw.inviterId ??
+			raw.user?.id ??
+			raw.requester?.id ??
+			raw.from?.id ??
+			raw.inviter?.id ??
+			null
+		);
+	};
 
-	const mockUsers: User[] = [
-		{
-			id: "1",
-			name: "Nhu Nguyen",
-			handle: "@nhunguyen",
-			avatar:
-				"https://images.unsplash.com/photo-1494790108755-2616b332c-c3?w=100&h=100&fit=crop&crop=face",
-			mutualFriends: 2,
-		},
-		{
-			id: "2",
-			name: "Nhu Nguyen",
-			handle: "@nhunguyen2",
-			avatar:
-				"https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face",
-			mutualFriends: 5,
-		},
-	];
+	// Fetch active users on mount
+	useEffect(() => {
+		const fetchActiveUsers = async () => {
+			setIsLoadingUsers(true);
+			try {
+				const response = await listUsers(1, 200);
+				if (response && response.data) {
+					// keep only active and exclude current user
+					const active = response.data.filter(
+						(user: UserResponse) =>
+							user.isActive === true &&
+							String(user.id) !== String(currentUserId),
+					);
+					setAvailableUsers(active);
+				}
+			} catch (err) {
+				console.error("Failed to fetch users", err);
+			} finally {
+				setIsLoadingUsers(false);
+			}
+		};
 
+		fetchActiveUsers();
+	}, [currentUserId]);
+
+	// Fetch friends
+	useEffect(() => {
+		const fetchFriends = async () => {
+			setIsLoadingUsers(true);
+			try {
+				const response = await listFriends(1, 100);
+				if (response && response.data) {
+					// normalize shape expected by AllFriends
+					const normalized = response.data.map((u: any) => ({
+						id: u.id,
+						name: `${u.firstName ?? ""} ${u.lastName ?? ""}`.trim(),
+						handle: u.username ? `@${u.username}` : "",
+						avatar: u.avatarUrl || "",
+						mutualFriends: u.mutualFriends ?? 0,
+					}));
+					setAllFriends(normalized);
+				}
+			} catch (err) {
+				console.error("Failed to fetch friends", err);
+			} finally {
+				setIsLoadingUsers(false);
+			}
+		};
+
+		fetchFriends();
+	}, []);
+
+	// Fetch pending friend requests + group invites
+	useEffect(() => {
+		const fetchPendings = async () => {
+			setIsLoadingPending(true);
+			try {
+				const [friendResp, groupResp] = await Promise.allSettled([
+					listInvitationFriend() ?? Promise.resolve({ data: [] }),
+					listInvitationGr() ?? Promise.resolve({ data: [] }),
+				]);
+
+				// normalize friend invites
+				if (friendResp.status === "fulfilled" && friendResp.value?.data) {
+					const normalizedFriend = friendResp.value.data.map((r: any) => {
+						// try common shapes: r.from*, r.requester*, or r.user*
+						const inviterName =
+							(r.fromFirstName && `${r.fromFirstName} ${r.fromLastName}`) ||
+							(r.requesterFirstName &&
+								`${r.requesterFirstName} ${r.requesterLastName}`) ||
+							r.name ||
+							"";
+						const inviterUsername =
+							r.fromUsername || r.requesterUsername || r.username || "";
+						return {
+							id: r.id,
+							name: inviterName.trim() || inviterUsername || r.email || "User",
+							handle: inviterUsername ? `@${inviterUsername}` : "",
+							avatar: r.fromAvatarUrl || r.avatarUrl || "",
+							direction:
+								r.type === "sent" || r.direction === "sent"
+									? "sent"
+									: "received", // best effort
+							raw: r,
+						};
+					});
+					setPendingFriendRequests(normalizedFriend);
+				}
+
+				// normalize group invites
+				if (groupResp.status === "fulfilled" && groupResp.value?.data) {
+					const normalizedGroup = groupResp.value.data.map((inv: any) => {
+						const inviter =
+							inv.inviterName ||
+							inv.fromName ||
+							`${inv.inviterFirstName ?? ""} ${inv.inviterLastName ?? ""}`.trim() ||
+							"";
+						return {
+							id: inv.id,
+							groupId: inv.groupId,
+							groupName: inv.groupName ?? inv.name ?? "Group",
+							inviterName: inviter || inv.username || "",
+							inviterAvatar: inv.inviterAvatarUrl || inv.avatarUrl || "",
+							direction:
+								inv.type === "sent" || inv.direction === "sent"
+									? "sent"
+									: "received",
+							raw: inv,
+						};
+					});
+					setPendingGroupInvites(normalizedGroup);
+				}
+			} catch (err) {
+				console.error("Failed to fetch pending invites", err);
+			} finally {
+				setIsLoadingPending(false);
+			}
+		};
+
+		fetchPendings();
+	}, [currentUserId]);
+
+	// --- Actions ---
 	const handleSearchAdd = (query: string) => {
 		setSearchAdd(query);
+
+		if (selectedUser && selectedUser.name !== query) {
+			setSelectedUser(null);
+			setIsUserSelectedFromList(false);
+		}
+
 		if (query.trim()) {
-			const filtered = mockUsers.filter(
-				(user) =>
-					user.name.toLowerCase().includes(query.toLowerCase()) ||
-					user.handle.toLowerCase().includes(query.toLowerCase()),
-			);
+			const searchTerm = query.toLowerCase();
+			const filtered = availableUsers
+				.filter((user) => {
+					// build comparable strings
+					const fullName = `${user.firstName} ${user.lastName}`.toLowerCase();
+					const username = (user.username || "").toLowerCase();
+					const email = (user.email || "").toLowerCase();
+					return (
+						fullName.includes(searchTerm) ||
+						username.includes(searchTerm) ||
+						email.includes(searchTerm)
+					);
+				})
+				.map((user) => ({
+					id: user.id,
+					name: `${user.firstName} ${user.lastName}`,
+					handle: `@${user.username}`,
+					avatar:
+						user.avatarUrl ||
+						"https://images.unsplash.com/photo-1494790108755-2616b332c-c3?w=100&h=100&fit=crop&crop=face",
+					mutualFriends: 0,
+				}));
+
 			setSearchResults(filtered);
 		} else {
 			setSearchResults([]);
 		}
 	};
 
-	const handleSelectUser = (user: User) => {
+	const handleSelectUser = (user: any) => {
 		setSelectedUser(user);
 		setSearchAdd(user.name);
 		setSearchResults([]);
+		setIsUserSelectedFromList(true);
 	};
 
-	const handleSendRequest = () => {
-		if (selectedUser) {
+	const handleSendRequest = async () => {
+		if (!selectedUser || isSendingRequest) return;
+
+		if (String(selectedUser.id) === String(currentUserId)) {
+			setModalType("error");
+			setModalMessage("You cannot send a friend request to yourself!");
 			setShowModal(true);
+			return;
+		}
+
+		setIsSendingRequest(true);
+		try {
+			await sendFriendRequest({
+				receiverId: selectedUser.id,
+				message: "Hi! I'd like to be friends.",
+			});
+
+			setModalType("success");
+			setModalMessage(`Your friend request to ${selectedUser.name} was sent!`);
+			setShowModal(true);
+
+			// add to pendingFriendRequests as 'sent' so UI reflects change immediately
+			setPendingFriendRequests((prev) => [
+				...prev,
+				{
+					id: String(selectedUser.id),
+					name: selectedUser.name,
+					handle: selectedUser.handle,
+					avatar: selectedUser.avatar,
+					direction: "sent",
+				},
+			]);
+
 			setSearchAdd("");
 			setSearchResults([]);
 			setSelectedUser(null);
+			setIsUserSelectedFromList(false);
+		} catch (error: any) {
+			let errorMessage = "Failed to send friend request";
+
+			if (error?.response) {
+				const status = error.response.status;
+				if (status === 400) {
+					errorMessage =
+						error.response.data?.message ||
+						"Invalid request. This user may already be your friend or have a pending request.";
+				} else if (status === 404) {
+					errorMessage = "User not found";
+				} else if (status === 409) {
+					errorMessage =
+						error.response.data?.message ||
+						"Already had pending request before";
+				} else {
+					errorMessage =
+						error.response.data?.message || `Server Error (${status})`;
+				}
+			} else if (error?.request) {
+				errorMessage = "No response from server. Please check your connection.";
+			} else {
+				errorMessage = error.message || errorMessage;
+			}
+
+			setModalType("error");
+			setModalMessage(errorMessage);
+			setShowModal(true);
+		} finally {
+			setIsSendingRequest(false);
 		}
 	};
 
 	const handleCloseModal = () => {
 		setShowModal(false);
-		setSelectedUser(null);
-	};
-
-	const handleAcceptRequest = (requestId: string) => {
-		const request = pendingRequests.find((req) => req.id === requestId);
-		if (request) {
-			const newFriend: Friend = {
-				id: request.id,
-				name: request.name,
-				handle: request.handle,
-				avatar: request.avatar,
-				mutualFriends: Math.floor(Math.random() * 10) + 1,
-			};
-			setAllFriends((prev) => [...prev, newFriend]);
-			setPendingRequests((prev) => prev.filter((req) => req.id !== requestId));
+		if (modalType === "success") {
+			setSelectedUser(null);
+			setIsUserSelectedFromList(false);
+			setSearchAdd("");
 		}
 	};
 
-	const handleDeclineRequest = (requestId: string) => {
-		setPendingRequests((prev) => prev.filter((req) => req.id !== requestId));
+	// Friend pending actions
+	const handleAcceptFriend = async (requestId: string) => {
+		try {
+			setPendingFriendRequests((prev) =>
+				prev.filter((r) => r.id !== requestId),
+			);
+
+			// tìm raw object tương ứng để lấy userId
+			const item = pendingFriendRequests.find((r) => r.id === requestId);
+			const raw = item?.raw;
+			const userId = extractUserIdFromInvitation(raw) ?? requestId;
+
+			const acceptRequest = { status: 1 };
+			const res = await updateFriendRequestStatus(userId, acceptRequest);
+			showGlobalAlert({ type: "success", message: "Accepted successfully!" });
+			console.log("Friend request accepted (userId):", userId, res);
+		} catch (err) {
+			showGlobalAlert({ type: "error", message: "Accepted fail!" });
+			console.error("accept friend failed", err);
+		}
 	};
 
-	const handleCancelSentRequest = (requestId: string) => {
-		setPendingRequests((prev) => prev.filter((req) => req.id !== requestId));
+	const handleDeclineFriend = async (requestId: string) => {
+		try {
+			setPendingFriendRequests((prev) =>
+				prev.filter((r) => r.id !== requestId),
+			);
+
+			const item = pendingFriendRequests.find((r) => r.id === requestId);
+			const raw = item?.raw;
+			const userId = extractUserIdFromInvitation(raw) ?? requestId;
+
+			const declineRequest = { status: 0 };
+			const res = await updateFriendRequestStatus(userId, declineRequest);
+			showGlobalAlert({ type: "success", message: "Declined successfully!" });
+			console.log("Friend request declined (userId):", userId, res);
+		} catch (err) {
+			showGlobalAlert({ type: "error", message: "Declined fail!" });
+			console.error("decline friend failed", err);
+		}
 	};
+
+	// Group invite actions
+	const handleAcceptGroup = async (inviteId: string) => {
+		try {
+			setPendingGroupInvites((prev) => prev.filter((r) => r.id !== inviteId));
+
+			// tìm item để lấy groupId
+			const item = pendingGroupInvites.find((r) => r.id === inviteId);
+			const raw = item?.raw;
+			const groupId =
+				item?.groupId ??
+				raw?.groupId ??
+				raw?.roomId ??
+				raw?.targetId ??
+				inviteId;
+
+			const acceptRequest = { userIdOrEmail: currentUserId, status: 1 };
+			const res = await updateInvitation(groupId, acceptRequest);
+			showGlobalAlert({ type: "success", message: "Accepted successfully!" });
+			console.log("Group invite accepted (groupId):", groupId, res);
+		} catch (err) {
+			showGlobalAlert({ type: "error", message: "Accepted fail!" });
+			console.error("accept group invite failed", err);
+		}
+	};
+
+	const handleDeclineGroup = async (inviteId: string) => {
+		try {
+			setPendingGroupInvites((prev) => prev.filter((r) => r.id !== inviteId));
+
+			const item = pendingGroupInvites.find((r) => r.id === inviteId);
+			const raw = item?.raw;
+			const groupId =
+				item?.groupId ??
+				raw?.groupId ??
+				raw?.roomId ??
+				raw?.targetId ??
+				inviteId;
+
+			const declineRequest = { userIdOrEmail: currentUserId, status: 0 };
+			const res = await updateInvitation(groupId, declineRequest);
+			showGlobalAlert({ type: "success", message: "Declined successfully!" });
+			console.log("Group invite declined (groupId):", groupId, res);
+		} catch (err) {
+			showGlobalAlert({ type: "error", message: "Declined fail!" });
+			console.error("decline group invite failed", err);
+		}
+	};
+
+	// const handleCancelSentGroup = async (inviteId: string) => {
+	// 	try {
+	// 		setPendingGroupInvites((prev) => prev.filter((r) => r.id !== inviteId));
+	// 		if (cancelGroupInvite) await cancelGroupInvite(inviteId);
+	// 	} catch (err) {
+	// 		console.error("cancel group invite failed", err);
+	// 	}
+	// };
 
 	const handleMenuToggle = (friendId: string, e: React.MouseEvent) => {
 		e.stopPropagation();
@@ -381,281 +445,87 @@ const Friend: React.FC = () => {
 		return () => document.removeEventListener("click", handleClickOutside);
 	}, [activeMenu]);
 
-	const renderAddFriendContent = () => (
-		<>
-			<Title>Let's find and add friends!</Title>
-			<Subtitle>
-				You can find and add friends with their email/username
-			</Subtitle>
-
-			<SearchContainer>
-				<Search size={20} color="#1A1A1A" />
-				<SearchInput
-					type="text"
-					placeholder="Search by name or username"
-					value={searchAdd}
-					onChange={(e) => handleSearchAdd(e.target.value)}
-				/>
-				<SendButton
-					onClick={handleSendRequest}
-					disabled={!selectedUser || !searchAdd.trim()}
-				>
-					Send request
-				</SendButton>
-			</SearchContainer>
-
-			{searchResults.length > 0 && (
-				<ResultsList>
-					{searchResults.map((user) => (
-						<ResultItem
-							key={user.id}
-							selected={selectedUser?.id === user.id}
-							onClick={() => handleSelectUser(user)}
-						>
-							<Avatar src={user.avatar} alt={user.name} />
-							<UserInfo>
-								<UserName>{user.name}</UserName>
-								<UserHandle>{user.handle}</UserHandle>
-							</UserInfo>
-							<MutualFriends>{user.mutualFriends} mutual friends</MutualFriends>
-						</ResultItem>
-					))}
-				</ResultsList>
-			)}
-		</>
-	);
-
-	const renderAllContent = () => {
-		const filteredFriends = allFriends.filter(
-			(friend) =>
-				friend.name.toLowerCase().includes(searchAll.toLowerCase()) ||
-				friend.handle.toLowerCase().includes(searchAll.toLowerCase()),
-		);
-
-		const indexOfLastFriend = currentPage * friendsPerPage;
-		const indexOfFirstFriend = indexOfLastFriend - friendsPerPage;
-		const currentFriends = filteredFriends.slice(
-			indexOfFirstFriend,
-			indexOfLastFriend,
-		);
-
-		const totalPages = Math.ceil(filteredFriends.length / friendsPerPage);
-
-		const handlePageChange = (page: number) => {
-			setCurrentPage(page);
-		};
-
-		return (
-			<>
-				<Title>All Friend - {allFriends.length}</Title>
-				<Subtitle>Here are your friends.</Subtitle>
-
-				<SearchContainer>
-					<Search size={20} color="#1A1A1A" />
-					<SearchInput
-						type="text"
-						placeholder="Search your friends..."
-						value={searchAll}
-						onChange={(e) => {
-							setSearchAll(e.target.value);
-							setCurrentPage(1);
-						}}
-					/>
-				</SearchContainer>
-
-				<FriendsGrid
-					className="hide-scrollbar"
-					style={{ scrollbarWidth: "none" }}
-				>
-					{currentFriends.map((friend) => (
-						<FriendCard key={friend.id}>
-							<CardContent>
-								<CardHeader>
-									<div
-										style={{
-											display: "flex",
-											gap: "8px",
-											alignItems: "center",
-										}}
-									>
-										<Avatar src={friend.avatar} alt={friend.name} />
-										<FriendInfo>
-											<FriendName>{friend.name}</FriendName>
-											<MutualFriends>
-												{friend.mutualFriends} bạn chung
-											</MutualFriends>
-										</FriendInfo>
-									</div>
-
-									<MenuContainer>
-										<MenuButton onClick={(e) => handleMenuToggle(friend.id, e)}>
-											<MoreHorizontal size={20} color="#6B7280" />
-										</MenuButton>
-
-										{activeMenu === friend.id && (
-											<MenuDropdown>
-												<MenuItem
-													onClick={() =>
-														handleMenuAction("Yêu thích", friend.name)
-													}
-												>
-													<Star size={18} style={{ marginRight: "12px" }} />
-													<span>Yêu thích</span>
-												</MenuItem>
-												<MenuItem
-													onClick={() =>
-														handleMenuAction("Hủy kết bạn", friend.name)
-													}
-												>
-													<UserMinus
-														size={18}
-														style={{ marginRight: "12px" }}
-													/>
-													<span>Hủy kết bạn</span>
-												</MenuItem>
-											</MenuDropdown>
-										)}
-									</MenuContainer>
-								</CardHeader>
-							</CardContent>
-						</FriendCard>
-					))}
-				</FriendsGrid>
-
-				{filteredFriends.length > friendsPerPage && (
-					<PaginationContainer>
-						{Array.from({ length: totalPages }, (_, index) => (
-							<PageButton
-								key={index + 1}
-								onClick={() => handlePageChange(index + 1)}
-								$active={currentPage === index + 1}
-							>
-								{index + 1}
-							</PageButton>
-						))}
-					</PaginationContainer>
-				)}
-
-				{filteredFriends.length === 0 && (
-					<NoResults>Không tìm thấy bạn bè nào</NoResults>
-				)}
-			</>
-		);
-	};
-
-	const renderPendingContent = () => {
-		const received = pendingRequests.filter((req) => req.type === "received");
-		const sent = pendingRequests.filter((req) => req.type === "sent");
-
-		const filteredReceived = received.filter(
-			(req) =>
-				req.name.toLowerCase().includes(searchPending.toLowerCase()) ||
-				req.handle.toLowerCase().includes(searchPending.toLowerCase()),
-		);
-		const filteredSent = sent.filter(
-			(req) =>
-				req.name.toLowerCase().includes(searchPending.toLowerCase()) ||
-				req.handle.toLowerCase().includes(searchPending.toLowerCase()),
-		);
-
-		return (
-			<>
-				<Title>Pending Page</Title>
-				<Subtitle>View your sent and incoming requests</Subtitle>
-
-				<SearchContainer>
-					<Search size={20} color="#1A1A1A" />
-					<SearchInput
-						type="text"
-						placeholder="Search pending requests..."
-						value={searchPending}
-						onChange={(e) => setSearchPending(e.target.value)}
-					/>
-				</SearchContainer>
-
-				{filteredReceived.length > 0 && (
-					<>
-						<SectionHeader>Received - {filteredReceived.length}</SectionHeader>
-						<ResultsList style={{ marginBottom: "24px" }}>
-							{filteredReceived.map((request) => (
-								<ResultItem key={request.id}>
-									<Avatar src={request.avatar} alt={request.name} />
-									<UserInfo>
-										<UserName>{request.name}</UserName>
-										<UserHandle>{request.handle}</UserHandle>
-									</UserInfo>
-									<ActionButtons>
-										<ActionButton
-											variant="accept"
-											onClick={() => handleAcceptRequest(request.id)}
-										>
-											✓
-										</ActionButton>
-										<ActionButton
-											variant="decline"
-											onClick={() => handleDeclineRequest(request.id)}
-										>
-											✕
-										</ActionButton>
-									</ActionButtons>
-								</ResultItem>
-							))}
-						</ResultsList>
-					</>
-				)}
-
-				{filteredSent.length > 0 && (
-					<>
-						<SectionHeader>Sent - {filteredSent.length}</SectionHeader>
-						<ResultsList>
-							{filteredSent.map((request) => (
-								<ResultItem key={request.id}>
-									<Avatar src={request.avatar} alt={request.name} />
-									<UserInfo>
-										<UserName>{request.name}</UserName>
-										<UserHandle>{request.handle}</UserHandle>
-									</UserInfo>
-									<ActionButton
-										variant="unfriend"
-										onClick={() => handleCancelSentRequest(request.id)}
-									>
-										✕
-									</ActionButton>
-								</ResultItem>
-							))}
-						</ResultsList>
-					</>
-				)}
-			</>
-		);
-	};
-
-	const renderContent = () => {
-		switch (activeTab) {
-			case "add-friend":
-				return renderAddFriendContent();
-			case "all":
-				return renderAllContent();
-			case "pending":
-				return renderPendingContent();
-			default:
-				return renderAddFriendContent();
-		}
-	};
-
 	return (
 		<Container>
-			<Content>{renderContent()}</Content>
+			<Content>
+				{/* pass only the bits each component needs */}
+				{activeTab === "add-friend" && (
+					<AddFriend
+						searchAdd={searchAdd}
+						onSearchAdd={handleSearchAdd}
+						searchResults={searchResults}
+						onSelectUser={handleSelectUser}
+						selectedUser={selectedUser}
+						onSendRequest={handleSendRequest}
+						isLoadingUsers={isLoadingUsers}
+						isSendingRequest={isSendingRequest}
+						isUserSelectedFromList={isUserSelectedFromList}
+					/>
+				)}
+
+				{activeTab === "all" && (
+					<AllFriends
+						allFriends={allFriends}
+						searchAll={searchAll}
+						setSearchAll={setSearchAll}
+						currentPage={currentPage}
+						setCurrentPage={setCurrentPage}
+						friendsPerPage={friendsPerPage}
+						activeMenu={activeMenu}
+						onMenuToggle={handleMenuToggle}
+						onMenuAction={handleMenuAction}
+					/>
+				)}
+
+				{activeTab === "pending" && (
+					<Pending
+						pendingFriendRequests={pendingFriendRequests}
+						pendingGroupInvites={pendingGroupInvites}
+						searchPending={searchPending}
+						setSearchPending={setSearchPending}
+						onAcceptFriend={handleAcceptFriend}
+						onDeclineFriend={handleDeclineFriend}
+						// onCancelFriend={handleCancelSentFriend}
+						onAcceptGroup={handleAcceptGroup}
+						onDeclineGroup={handleDeclineGroup}
+						// onCancelGroup={handleCancelSentGroup}
+						isLoadingPending={isLoadingPending}
+					/>
+				)}
+			</Content>
 
 			{showModal && (
 				<Modal>
-					<ModalContent>
-						<ModalTitle>Success!</ModalTitle>
-						<SendImg src={sendImage} alt="Send Success" />
-						<ModalMessage>
-							Your friend request to {selectedUser?.name || "user"} was sent!
+					<ModalContent
+						style={{
+							borderTop:
+								modalType === "error"
+									? "4px solid #EF4444"
+									: "4px solid #10B981",
+						}}
+					>
+						<ModalTitle
+							style={{ color: modalType === "error" ? "#EF4444" : "#10B981" }}
+						>
+							{modalType === "success" ? "Success!" : "Error"}
+						</ModalTitle>
+						{modalType === "success" && (
+							<SendImg src={sendImage} alt="Send Success" />
+						)}
+						<ModalMessage
+							style={{ color: modalType === "error" ? "#DC2626" : "#374151" }}
+						>
+							{modalMessage}
 						</ModalMessage>
-						<ModalButton onClick={handleCloseModal}>OK</ModalButton>
+						<ModalButton
+							onClick={handleCloseModal}
+							style={{
+								backgroundColor: modalType === "error" ? "#EF4444" : "#10B981",
+								borderColor: modalType === "error" ? "#DC2626" : "#10B981",
+							}}
+						>
+							OK
+						</ModalButton>
 					</ModalContent>
 				</Modal>
 			)}

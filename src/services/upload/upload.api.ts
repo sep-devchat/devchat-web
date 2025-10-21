@@ -7,7 +7,7 @@ import {
 	DirectUploadResult,
 	ProgressCallback,
 } from "./upload.type";
-import { post } from "@/services/apiCaller";
+import { post, remove } from "@/services/apiCaller";
 
 function unwrap<T>(resp: any): T {
 	const payload = resp?.data ?? resp;
@@ -163,6 +163,17 @@ export async function saveDirectUpload(
 		return true;
 	} catch (e) {
 		// Swallow error; caller can decide whether to surface
+		return false;
+	}
+}
+
+// Delete an uploaded asset by publicId (server should delete from storage and metadata)
+export async function deleteUploadedAsset(publicId: string): Promise<boolean> {
+	try {
+		await remove(`/api/upload/attachment/${publicId}`);
+		return true;
+	} catch (e) {
+		// Best-effort: if delete endpoint not available or fails, return false
 		return false;
 	}
 }
