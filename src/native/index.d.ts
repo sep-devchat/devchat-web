@@ -1,3 +1,4 @@
+import { MessageResponse } from "@/services/messageAPI";
 import {
 	MakeHttpRequestParams,
 	MakeHttpRequestResult,
@@ -25,7 +26,7 @@ interface nativeAPI {
 		language: string,
 		content: string,
 	): Promise<CodeExecutionResult>;
-	showMessageNotification(title: string, body: string): Promise<void>;
+	showMessageNotification(message: MessageResponse): Promise<void>;
 }
 
 declare global {

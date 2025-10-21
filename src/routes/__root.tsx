@@ -1,3 +1,4 @@
+import NotificationProvider from "@/components/NotificationProvider";
 import { Outlet, createRootRoute } from "@tanstack/react-router";
 
 export const Route = createRootRoute({
@@ -5,5 +6,10 @@ export const Route = createRootRoute({
 });
 
 function RootComponent() {
-	return <Outlet />;
+	return (
+		<>
+			<NotificationProvider />
+			<Outlet />
+		</>
+	);
 }
