@@ -98,6 +98,7 @@ export const SettingsMenu: React.FC<SettingsMenuProps> = ({
 
 	const handleLogout = async () => {
 		await logout();
+		window.localStorage.removeItem("accessToken");
 		cookieUtils.clear();
 		socket.disconnect();
 		navigate({ to: "/auth/login" });
