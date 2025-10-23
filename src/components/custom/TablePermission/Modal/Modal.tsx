@@ -14,12 +14,6 @@ export interface PermissionModalProps {
 	tabType?: "api-keys" | "resource-limit" | "feature" | "other";
 }
 
-const RESOURCE_LIMIT_PRESETS: Record<string, string[]> = {
-	default: ["Unlimited", "100", "200", "500", "1000", "5000"],
-	storage: ["Unlimited", "1 GB", "5 GB", "10 GB", "50 GB", "100 GB"],
-	fileSize: ["Unlimited", "10 MB", "25 MB", "50 MB", "100 MB"],
-};
-
 export const PermissionModal: React.FC<PermissionModalProps> = ({
 	isOpen,
 	onClose,
@@ -41,15 +35,16 @@ export const PermissionModal: React.FC<PermissionModalProps> = ({
 				const defaultData: RolePermission = {};
 				columns.forEach((column) => {
 					if (column.key !== "actions" && column.key !== "action") {
-						if (tabType === "api-keys" || tabType === "feature") {
-							if (isRoleColumn(column.key)) {
-								defaultData[column.key] = false;
-							} else {
-								defaultData[column.key] = "";
-							}
-						} else {
-							defaultData[column.key] = "";
-						}
+						// if (tabType === "api-keys" || tabType === "feature") {
+						// 	if (isRoleColumn(column.key)) {
+						// 		defaultData[column.key] = false;
+						// 	} else {
+						// 		defaultData[column.key] = "";
+						// 	}
+						// } else {
+						// 	defaultData[column.key] = "";
+						// }
+						defaultData[column.key] = "";
 					}
 				});
 				setFormData(defaultData);
@@ -58,27 +53,28 @@ export const PermissionModal: React.FC<PermissionModalProps> = ({
 		}
 	}, [isOpen, mode, initialData, columns, tabType]);
 
-	const isRoleColumn = (key: string): boolean => {
-		const rolePrefixes = ["super", "admin", "moderator", "support", "member"];
-		const lowerKey = key.toLowerCase();
-		return rolePrefixes.some((prefix) => lowerKey.includes(prefix));
+	// const isRoleColumn = (key: string): boolean => {
+	// 	const rolePrefixes = ["super", "admin", "moderator", "support", "member"];
+	// 	const lowerKey = key.toLowerCase();
+	// 	return rolePrefixes.some((prefix) => lowerKey.includes(prefix));
+	// };
+
+	const isRequiredField = (key: string): boolean => {
+		// For feature type, code and name are required
+		const requiredFields = ["code", "name", "permissionname"];
+		return requiredFields.includes(key.toLowerCase());
 	};
 
-	const isFirstColumn = (key: string): boolean => {
-		const firstColumnKeys = ["service", "resource", "feature"];
-		return firstColumnKeys.includes(key.toLowerCase());
-	};
-
-	const getResourcePresets = (key: string): string[] => {
-		const lowerKey = key.toLowerCase();
-		if (lowerKey.includes("storage")) {
-			return RESOURCE_LIMIT_PRESETS.storage;
-		}
-		if (lowerKey.includes("size")) {
-			return RESOURCE_LIMIT_PRESETS.fileSize;
-		}
-		return RESOURCE_LIMIT_PRESETS.default;
-	};
+	// const getResourcePresets = (key: string): string[] => {
+	// 	const lowerKey = key.toLowerCase();
+	// 	if (lowerKey.includes("storage")) {
+	// 		return RESOURCE_LIMIT_PRESETS.storage;
+	// 	}
+	// 	if (lowerKey.includes("size")) {
+	// 		return RESOURCE_LIMIT_PRESETS.fileSize;
+	// 	}
+	// 	return RESOURCE_LIMIT_PRESETS.default;
+	// };
 
 	const handleChange = (key: string, value: any) => {
 		setFormData((prev) => ({ ...prev, [key]: value }));
@@ -91,16 +87,16 @@ export const PermissionModal: React.FC<PermissionModalProps> = ({
 		}
 	};
 
-	const handleToggle = (key: string) => {
-		setFormData((prev) => ({
-			...prev,
-			[key]: !prev[key],
-		}));
-	};
+	// const handleToggle = (key: string) => {
+	// 	setFormData((prev) => ({
+	// 		...prev,
+	// 		[key]: !prev[key],
+	// 	}));
+	// };
 
-	const handlePresetClick = (key: string, value: string) => {
-		handleChange(key, value);
-	};
+	// const handlePresetClick = (key: string, value: string) => {
+	// 	handleChange(key, value);
+	// };
 
 	const validateForm = (): boolean => {
 		const newErrors: Record<string, string> = {};
@@ -112,17 +108,24 @@ export const PermissionModal: React.FC<PermissionModalProps> = ({
 				return;
 			}
 
-			if (isFirstColumn(column.key)) {
+			// Validate required fields for feature type
+			if (tabType === "feature" && isRequiredField(column.key)) {
 				if (!value || String(value).trim() === "") {
 					newErrors[column.key] = `${column.label} là bắt buộc`;
 				}
 			}
 
-			if (tabType === "resource-limit" && isRoleColumn(column.key)) {
-				if (!value || String(value).trim() === "") {
-					newErrors[column.key] = `${column.label} là bắt buộc`;
-				}
-			}
+			// if (isFirstColumn(column.key)) {
+			// 	if (!value || String(value).trim() === "") {
+			// 		newErrors[column.key] = `${column.label} là bắt buộc`;
+			// 	}
+			// }
+
+			// if (tabType === "resource-limit" && isRoleColumn(column.key)) {
+			// 	if (!value || String(value).trim() === "") {
+			// 		newErrors[column.key] = `${column.label} là bắt buộc`;
+			// 	}
+			// }
 		});
 
 		setErrors(newErrors);
@@ -133,7 +136,14 @@ export const PermissionModal: React.FC<PermissionModalProps> = ({
 		e.preventDefault();
 
 		if (validateForm()) {
-			onSubmit(formData);
+			// Format data according to API requirements for feature type
+			const submittedData: RolePermission = {
+				code: formData.code || "",
+				name: formData.name || "",
+				description: formData.description || "",
+			};
+
+			onSubmit(submittedData);
 			onClose();
 		}
 	};
@@ -146,7 +156,7 @@ export const PermissionModal: React.FC<PermissionModalProps> = ({
 
 	if (!isOpen) return null;
 
-	const modalTitle = title || (mode === "create" ? "Thêm mới" : "Chỉnh sửa");
+	const modalTitle = title || (mode === "create" ? "Add" : "Update");
 
 	return (
 		<S.Overlay onClick={handleBackdropClick}>
@@ -164,17 +174,17 @@ export const PermissionModal: React.FC<PermissionModalProps> = ({
 							.filter((col) => col.key !== "actions" && col.key !== "action")
 							.map((column) => {
 								const value = formData[column.key];
-								const isRole = isRoleColumn(column.key);
-								const isFirst = isFirstColumn(column.key);
+								// const isRole = isRoleColumn(column.key);
+								const isRequired = isRequiredField(column.key);
 
 								return (
 									<S.FormGroup key={column.key}>
 										<S.Label>
 											{column.label}
-											{isFirst && <S.Required>*</S.Required>}
+											{isRequired && <S.Required>*</S.Required>}
 										</S.Label>
 
-										{(tabType === "api-keys" || tabType === "feature") &&
+										{/* {(tabType === "api-keys" || tabType === "feature") &&
 										isRole ? (
 											<div
 												style={{
@@ -291,19 +301,17 @@ export const PermissionModal: React.FC<PermissionModalProps> = ({
 													<S.ErrorText>{errors[column.key]}</S.ErrorText>
 												)}
 											</div>
-										) : (
-											<S.Input
-												type="text"
-												value={String(value || "")}
-												onChange={(e) =>
-													handleChange(column.key, e.target.value)
-												}
-												placeholder={`Nhập ${column.label.toLowerCase()}`}
-												error={!!errors[column.key]}
-											/>
-										)}
+										) : ( */}
+										<S.Input
+											type="text"
+											value={String(value || "")}
+											onChange={(e) => handleChange(column.key, e.target.value)}
+											placeholder={`Nhập ${column.label.toLowerCase()}`}
+											error={!!errors[column.key]}
+										/>
+										{/* )} */}
 
-										{errors[column.key] && !isRole && (
+										{errors[column.key] && (
 											<S.ErrorText>{errors[column.key]}</S.ErrorText>
 										)}
 									</S.FormGroup>
@@ -312,10 +320,10 @@ export const PermissionModal: React.FC<PermissionModalProps> = ({
 
 						<S.ModalFooter>
 							<S.CancelButton type="button" onClick={onClose}>
-								Hủy
+								Cancel
 							</S.CancelButton>
 							<S.SubmitButton type="submit">
-								{mode === "create" ? "Thêm mới" : "Cập nhật"}
+								{mode === "create" ? "Add" : "Update"}
 							</S.SubmitButton>
 						</S.ModalFooter>
 					</S.Form>

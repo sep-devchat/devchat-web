@@ -115,34 +115,34 @@ const Header: React.FC = () => {
 					},
 					{
 						id: "feature",
-						label: "Feature Permissions",
+						label: "Permissions",
 						path: "/admin/permission?tab=feature",
 					},
-					{
-						id: "project",
-						label: "Project Permissions",
-						path: "/admin/permission?tab=project",
-					},
-					{
-						id: "resource-limit",
-						label: "Resource Limit",
-						path: "/admin/permission?tab=resource-limit",
-					},
-					{
-						id: "api-keys",
-						label: "API Keys",
-						path: "/admin/permission?tab=api-keys",
-					},
-					{
-						id: "code-execution",
-						label: "Code Execution",
-						path: "/admin/permission?tab=code-execution",
-					},
-					{
-						id: "security",
-						label: "Advanced Security",
-						path: "/admin/permission?tab=security",
-					},
+					// {
+					// 	id: "project",
+					// 	label: "Project Permissions",
+					// 	path: "/admin/permission?tab=project",
+					// },
+					// {
+					// 	id: "resource-limit",
+					// 	label: "Resource Limit",
+					// 	path: "/admin/permission?tab=resource-limit",
+					// },
+					// {
+					// 	id: "api-keys",
+					// 	label: "API Keys",
+					// 	path: "/admin/permission?tab=api-keys",
+					// },
+					// {
+					// 	id: "code-execution",
+					// 	label: "Code Execution",
+					// 	path: "/admin/permission?tab=code-execution",
+					// },
+					// {
+					// 	id: "security",
+					// 	label: "Advanced Security",
+					// 	path: "/admin/permission?tab=security",
+					// },
 					{
 						id: "change-history",
 						label: "Change History",

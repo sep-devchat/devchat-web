@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
 	Wrapper,
 	Container,
@@ -23,16 +23,12 @@ import {
 	PermissionItem,
 	PermissionDot,
 	PermissionText,
-	IconWrapper,
 	RoleNameText,
 	DeleteButton,
 } from "./RolePermission.styled";
-import { EditIcon, Shield, Trash } from "lucide-react";
-import {
-	SystemRoleModal,
-	ProjectModal,
-	DeleteConfirmModal,
-} from "./Modal/Modal";
+import { DeleteConfirmModal } from "./Modal/Modal";
+
+import { EditIcon, Trash } from "lucide-react";
 
 interface Permission {
 	id: string;
@@ -41,10 +37,10 @@ interface Permission {
 
 interface RolePermissionRole {
 	id: string;
+	role: string;
 	name: string;
-	description?: string;
+	level: number;
 	color: string;
-	icon?: React.ReactNode;
 	permissions: Permission[];
 	metadata?: {
 		users?: number;
@@ -61,13 +57,13 @@ interface RolePermissionsProps {
 	title: string;
 	subtitle: string;
 	type: "system-roles" | "project";
-	onAdd?: (data: any) => void;
-	onEdit?: (index: number, data: any) => void;
+	onAdd?: () => void;
+	onEdit?: (index: number) => void;
 	onDelete?: (index: number) => void;
 }
 
 const RolePermissions: React.FC<RolePermissionsProps> = ({
-	roles: initialRoles,
+	roles,
 	title,
 	subtitle,
 	type,
@@ -75,17 +71,18 @@ const RolePermissions: React.FC<RolePermissionsProps> = ({
 	onEdit,
 	onDelete,
 }) => {
-	const [roles, setRoles] = useState<RolePermissionRole[]>(initialRoles);
 	const [expandedRoles, setExpandedRoles] = useState<Set<string>>(
 		new Set(roles.map((role) => role.id)),
 	);
 
-	const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-	const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 	const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 	const [selectedRoleIndex, setSelectedRoleIndex] = useState<number | null>(
 		null,
 	);
+
+	useEffect(() => {
+		setExpandedRoles(new Set(roles.map((role) => role.id)));
+	}, [roles]);
 
 	const toggleRole = (roleId: string) => {
 		setExpandedRoles((prev) => {
@@ -99,12 +96,15 @@ const RolePermissions: React.FC<RolePermissionsProps> = ({
 		type === "system-roles" ? "Add Role" : "Add Project";
 
 	const handleAddClick = () => {
-		setIsAddModalOpen(true);
+		if (onAdd) {
+			onAdd();
+		}
 	};
 
 	const handleEditClick = (index: number) => {
-		setSelectedRoleIndex(index);
-		setIsEditModalOpen(true);
+		if (onEdit) {
+			onEdit(index);
+		}
 	};
 
 	const handleDeleteClick = (index: number) => {
@@ -112,60 +112,9 @@ const RolePermissions: React.FC<RolePermissionsProps> = ({
 		setIsDeleteModalOpen(true);
 	};
 
-	const handleAddSave = (data: any) => {
-		const newRole: RolePermissionRole = {
-			id: Date.now().toString(),
-			name: data.name,
-			description: data.description || data.owner,
-			color: data.color,
-			icon: data.icon,
-			permissions: data.permissions,
-		};
-
-		const updatedRoles = [...roles, newRole];
-		setRoles(updatedRoles);
-
-		if (onAdd) {
-			onAdd(data);
-		}
-
-		setIsAddModalOpen(false);
-	};
-
-	const handleEditSave = (data: any) => {
-		if (selectedRoleIndex !== null) {
-			const updatedRoles = [...roles];
-			updatedRoles[selectedRoleIndex] = {
-				...updatedRoles[selectedRoleIndex],
-				name: data.name,
-				description: data.description || data.owner,
-				color: data.color,
-				icon: data.icon,
-				permissions: data.permissions,
-			};
-
-			setRoles(updatedRoles);
-
-			if (onEdit) {
-				onEdit(selectedRoleIndex, data);
-			}
-
-			setIsEditModalOpen(false);
-			setSelectedRoleIndex(null);
-		}
-	};
-
 	const handleDeleteConfirm = () => {
-		if (selectedRoleIndex !== null) {
-			const updatedRoles = roles.filter(
-				(_, index) => index !== selectedRoleIndex,
-			);
-			setRoles(updatedRoles);
-
-			if (onDelete) {
-				onDelete(selectedRoleIndex);
-			}
-
+		if (selectedRoleIndex !== null && onDelete) {
+			onDelete(selectedRoleIndex);
 			setIsDeleteModalOpen(false);
 			setSelectedRoleIndex(null);
 		}
@@ -205,16 +154,13 @@ const RolePermissions: React.FC<RolePermissionsProps> = ({
 														gap: "14px",
 													}}
 												>
-													<IconWrapper color={role.color}>
-														{role.icon ? role.icon : <Shield size={18} />}
-													</IconWrapper>
 													<div>
-														<RoleNameText>{role.name}</RoleNameText>
-														{role.description && (
-															<RoleDescription>
-																{role.description}
-															</RoleDescription>
-														)}
+														<RoleNameText>
+															{role.name} - {role.role}
+														</RoleNameText>
+														<RoleDescription>
+															Level: {role.level}
+														</RoleDescription>
 													</div>
 												</div>
 												<Arrow expanded={isExpanded}>▶</Arrow>
@@ -261,45 +207,6 @@ const RolePermissions: React.FC<RolePermissionsProps> = ({
 					})}
 				</ScrollArea>
 			</Container>
-
-			{type === "system-roles" ? (
-				<>
-					<SystemRoleModal
-						isOpen={isAddModalOpen}
-						onClose={() => setIsAddModalOpen(false)}
-						onSave={handleAddSave}
-						mode="add"
-					/>
-					<SystemRoleModal
-						isOpen={isEditModalOpen}
-						onClose={() => {
-							setIsEditModalOpen(false);
-							setSelectedRoleIndex(null);
-						}}
-						onSave={handleEditSave}
-						mode="edit"
-					/>
-				</>
-			) : (
-				<>
-					<ProjectModal
-						isOpen={isAddModalOpen}
-						onClose={() => setIsAddModalOpen(false)}
-						onSave={handleAddSave}
-						mode="add"
-					/>
-					<ProjectModal
-						isOpen={isEditModalOpen}
-						onClose={() => {
-							setIsEditModalOpen(false);
-							setSelectedRoleIndex(null);
-						}}
-						onSave={handleEditSave}
-						project={selectedRole || undefined}
-						mode="edit"
-					/>
-				</>
-			)}
 
 			<DeleteConfirmModal
 				isOpen={isDeleteModalOpen}

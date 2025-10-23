@@ -1,13 +1,6 @@
 import React, { useState, useEffect } from "react";
-import {
-	X,
-	Shield,
-	Briefcase,
-	UserCheck,
-	Users,
-	Headphones,
-	User,
-} from "lucide-react";
+import { X, ChevronDown } from "lucide-react";
+
 import {
 	ModalOverlay,
 	ModalContainer,
@@ -18,31 +11,23 @@ import {
 	FormGroup,
 	Label,
 	Input,
-	Textarea,
-	Select,
 	ColorGrid,
 	ColorOption,
-	IconGrid,
-	IconButton,
 	PermissionItem,
 	PermissionText,
 	RemoveButton,
 	PermissionInputWrapper,
 	ModalFooter,
 	Button,
+	SelectWrapper,
+	CustomSelect,
+	SelectIcon,
+	OptionsDropdown,
+	Option,
 	DeleteModalContainer,
 	DeleteMessage,
 	WarningMessage,
 } from "./Modal.styled";
-
-const iconOptions = [
-	{ value: "shield", label: "Shield", component: Shield },
-	{ value: "briefcase", label: "Briefcase", component: Briefcase },
-	{ value: "user-check", label: "User Check", component: UserCheck },
-	{ value: "users", label: "Users", component: Users },
-	{ value: "headphones", label: "Headphones", component: Headphones },
-	{ value: "user", label: "User", component: User },
-];
 
 const colorOptions = [
 	"#fed7aa",
@@ -62,11 +47,22 @@ interface Permission {
 	label: string;
 }
 
+const availablePermissions: Permission[] = [
+	{ id: "p1", label: "Manage Users" },
+	{ id: "p2", label: "Edit Content" },
+	{ id: "p3", label: "View Reports" },
+	{ id: "p4", label: "System Configuration" },
+	{ id: "p5", label: "Moderator Tools" },
+];
+
+const levelOptions = [1, 2, 3, 4];
+
 interface SystemRoleFormData {
+	id: string;
+	role: string;
 	name: string;
-	description: string;
+	level: number;
 	color: string;
-	icon: string;
 	permissions: Permission[];
 }
 
@@ -74,9 +70,18 @@ interface SystemRoleModalProps {
 	isOpen: boolean;
 	onClose: () => void;
 	onSave: (data: SystemRoleFormData) => void;
-	role?: SystemRoleFormData & { id?: string };
+	role?: any;
 	mode?: "add" | "edit";
 }
+
+const getEmptyFormData = (): SystemRoleFormData => ({
+	id: "",
+	role: "",
+	name: "",
+	level: 1,
+	color: "#fed7aa",
+	permissions: [],
+});
 
 export const SystemRoleModal: React.FC<SystemRoleModalProps> = ({
 	isOpen,
@@ -85,64 +90,151 @@ export const SystemRoleModal: React.FC<SystemRoleModalProps> = ({
 	role,
 	mode = "add",
 }) => {
-	const [formData, setFormData] = useState<SystemRoleFormData>({
-		name: "",
-		description: "",
-		color: "#fed7aa",
-		icon: "shield",
-		permissions: [],
-	});
+	const [formData, setFormData] =
+		useState<SystemRoleFormData>(getEmptyFormData());
+	const [originalData, setOriginalData] =
+		useState<SystemRoleFormData>(getEmptyFormData());
+	const [newPermissionId, setNewPermissionId] = useState("");
+	const [openDropdown, setOpenDropdown] = useState<
+		"level" | "permissions" | null
+	>(null);
 
-	const [newPermission, setNewPermission] = useState("");
+	const levelRef = React.useRef<HTMLDivElement>(null);
+	const permissionsRef = React.useRef<HTMLDivElement>(null);
 
 	useEffect(() => {
-		if (role && mode === "edit") {
-			setFormData({
-				name: role.name,
-				description: role.description || "",
-				color: role.color,
-				icon: role.icon || "shield",
-				permissions: role.permissions || [],
-			});
-		} else {
-			setFormData({
-				name: "",
-				description: "",
-				color: "#fed7aa",
-				icon: "shield",
-				permissions: [],
-			});
+		if (isOpen) {
+			if (mode === "edit" && role) {
+				const initialData = {
+					id: role.id || "",
+					role: role.role || "",
+					name: role.name || "",
+					level: role.level || 1,
+					color: role.color || "#fed7aa",
+					permissions: role.permissions ? [...role.permissions] : [],
+				};
+				setFormData(initialData);
+				setOriginalData(initialData);
+			} else {
+				const emptyData = getEmptyFormData();
+				setFormData(emptyData);
+				setOriginalData(emptyData);
+			}
+			setNewPermissionId("");
+			setOpenDropdown(null);
 		}
-	}, [role, mode, isOpen]);
+	}, [isOpen, role, mode]);
+
+	useEffect(() => {
+		const handleClickOutside = (event: MouseEvent) => {
+			if (
+				levelRef.current &&
+				!levelRef.current.contains(event.target as Node) &&
+				openDropdown === "level"
+			) {
+				setOpenDropdown(null);
+			}
+			if (
+				permissionsRef.current &&
+				!permissionsRef.current.contains(event.target as Node) &&
+				openDropdown === "permissions"
+			) {
+				setOpenDropdown(null);
+			}
+		};
+
+		document.addEventListener("mousedown", handleClickOutside);
+		return () => {
+			document.removeEventListener("mousedown", handleClickOutside);
+		};
+	}, [openDropdown]);
+
+	const isFormValid = () => {
+		const hasRequiredFields =
+			formData.name.trim() !== "" && formData.role.trim() !== "";
+
+		if (mode === "add") {
+			return hasRequiredFields && formData.permissions.length > 0;
+		}
+
+		return hasRequiredFields;
+	};
+
+	const hasChanges = () => {
+		if (mode === "add") {
+			return isFormValid();
+		}
+
+		const roleChanged = formData.role !== originalData.role;
+		const nameChanged = formData.name !== originalData.name;
+		const levelChanged = formData.level !== originalData.level;
+		const colorChanged = formData.color !== originalData.color;
+
+		const currentPermissionIds = [...formData.permissions]
+			.map((p) => p.id)
+			.sort()
+			.join(",");
+		const originalPermissionIds = [...originalData.permissions]
+			.map((p) => p.id)
+			.sort()
+			.join(",");
+		const permissionsChanged = currentPermissionIds !== originalPermissionIds;
+
+		const hasAnyChanges =
+			roleChanged ||
+			nameChanged ||
+			levelChanged ||
+			colorChanged ||
+			permissionsChanged;
+
+		return hasAnyChanges && isFormValid();
+	};
 
 	const handleSubmit = () => {
-		if (formData.name.trim()) {
+		if (hasChanges()) {
 			onSave(formData);
-			onClose();
 		}
 	};
 
 	const addPermission = () => {
-		if (newPermission.trim()) {
-			setFormData({
-				...formData,
-				permissions: [
-					...formData.permissions,
-					{ id: Date.now().toString(), label: newPermission.trim() },
-				],
-			});
-			setNewPermission("");
+		if (newPermissionId) {
+			const selectedPermission = availablePermissions.find(
+				(p) => p.id === newPermissionId,
+			);
+
+			if (
+				selectedPermission &&
+				!formData.permissions?.some((fp) => fp.id === selectedPermission.id)
+			) {
+				setFormData((prev) => ({
+					...prev,
+					permissions: [...(prev.permissions || []), selectedPermission],
+				}));
+				setNewPermissionId("");
+				setOpenDropdown(null);
+			}
 		}
 	};
 
 	const removePermission = (id: string) => {
-		setFormData({
-			...formData,
-			permissions: formData.permissions.filter((p) => p.id !== id),
-		});
+		setFormData((prev) => ({
+			...prev,
+			permissions: (prev.permissions || []).filter((p) => p.id !== id),
+		}));
+	};
+
+	const getPermissionLabel = (id: string) => {
+		return (
+			availablePermissions.find((p) => p.id === id)?.label ||
+			"Select permission to add"
+		);
 	};
 
 	if (!isOpen) return null;
+
+	const permissionsToAdd = availablePermissions.filter(
+		(p) => !formData.permissions?.some((fp) => fp.id === p.id),
+	);
 
 	return (
 		<ModalOverlay onClick={onClose}>
@@ -159,6 +251,20 @@ export const SystemRoleModal: React.FC<SystemRoleModalProps> = ({
 				<ModalBody>
 					<FormGroup>
 						<Label>
+							Role <span style={{ color: "#D83232" }}>*</span>
+						</Label>
+						<Input
+							type="text"
+							value={formData.role}
+							onChange={(e) =>
+								setFormData({ ...formData, role: e.target.value })
+							}
+							placeholder="e.g., ADMIN"
+						/>
+					</FormGroup>
+
+					<FormGroup>
+						<Label>
 							Role Name <span style={{ color: "#D83232" }}>*</span>
 						</Label>
 						<Input
@@ -172,35 +278,37 @@ export const SystemRoleModal: React.FC<SystemRoleModalProps> = ({
 					</FormGroup>
 
 					<FormGroup>
-						<Label>Description</Label>
-						<Textarea
-							value={formData.description}
-							onChange={(e) =>
-								setFormData({ ...formData, description: e.target.value })
-							}
-							placeholder="Brief description of this role"
-						/>
-					</FormGroup>
+						<Label>Level</Label>
+						<SelectWrapper ref={levelRef}>
+							<CustomSelect
+								$isOpen={openDropdown === "level"}
+								onClick={() =>
+									setOpenDropdown(openDropdown === "level" ? null : "level")
+								}
+							>
+								Level {formData.level}
+							</CustomSelect>
+							<SelectIcon $isOpen={openDropdown === "level"}>
+								<ChevronDown size={18} />
+							</SelectIcon>
 
-					<FormGroup>
-						<Label>Icon</Label>
-						<IconGrid>
-							{iconOptions.map((icon) => {
-								const IconComponent = icon.component;
-								return (
-									<IconButton
-										key={icon.value}
-										type="button"
-										onClick={() =>
-											setFormData({ ...formData, icon: icon.value })
-										}
-										isSelected={formData.icon === icon.value}
-									>
-										<IconComponent size={18} />
-									</IconButton>
-								);
-							})}
-						</IconGrid>
+							{openDropdown === "level" && (
+								<OptionsDropdown>
+									{levelOptions.map((level) => (
+										<Option
+											key={level}
+											$isSelected={formData.level === level}
+											onClick={() => {
+												setFormData({ ...formData, level: level });
+												setOpenDropdown(null);
+											}}
+										>
+											Level {level}
+										</Option>
+									))}
+								</OptionsDropdown>
+							)}
+						</SelectWrapper>
 					</FormGroup>
 
 					<FormGroup>
@@ -219,9 +327,11 @@ export const SystemRoleModal: React.FC<SystemRoleModalProps> = ({
 					</FormGroup>
 
 					<FormGroup>
-						<Label>Permissions</Label>
+						<Label>
+							Permissions <span style={{ color: "#D83232" }}>*</span>
+						</Label>
 						<div>
-							{formData.permissions.map((permission) => (
+							{formData.permissions?.map((permission) => (
 								<PermissionItem key={permission.id}>
 									<PermissionText>{permission.label}</PermissionText>
 									<RemoveButton
@@ -233,20 +343,58 @@ export const SystemRoleModal: React.FC<SystemRoleModalProps> = ({
 								</PermissionItem>
 							))}
 						</div>
+						{/* {mode === "add" && formData.permissions.length === 0 && (
+							<div style={{ color: "#D83232", fontSize: "12px", marginTop: "8px" }}>
+								At least one permission is required
+							</div>
+						)} */}
+
 						<PermissionInputWrapper>
-							<Input
-								type="text"
-								value={newPermission}
-								onChange={(e) => setNewPermission(e.target.value)}
-								placeholder="Enter permission name"
-								onKeyPress={(e) => {
-									if (e.key === "Enter") {
-										e.preventDefault();
-										addPermission();
+							<SelectWrapper ref={permissionsRef}>
+								<CustomSelect
+									$isOpen={openDropdown === "permissions"}
+									onClick={() =>
+										permissionsToAdd.length > 0 &&
+										setOpenDropdown(
+											openDropdown === "permissions" ? null : "permissions",
+										)
 									}
-								}}
-							/>
-							<Button type="button" onClick={addPermission} variant="primary">
+								>
+									{newPermissionId
+										? getPermissionLabel(newPermissionId)
+										: permissionsToAdd.length > 0
+											? "Select permission to add"
+											: "All permissions added"}
+								</CustomSelect>
+								<SelectIcon $isOpen={openDropdown === "permissions"}>
+									<ChevronDown size={18} />
+								</SelectIcon>
+
+								{openDropdown === "permissions" &&
+									permissionsToAdd.length > 0 && (
+										<OptionsDropdown>
+											{permissionsToAdd.map((permission) => (
+												<Option
+													key={permission.id}
+													$isSelected={newPermissionId === permission.id}
+													onClick={() => {
+														setNewPermissionId(permission.id);
+														setOpenDropdown(null);
+													}}
+												>
+													{permission.label}
+												</Option>
+											))}
+										</OptionsDropdown>
+									)}
+							</SelectWrapper>
+
+							<Button
+								type="button"
+								onClick={addPermission}
+								variant="primary"
+								disabled={!newPermissionId || permissionsToAdd.length === 0}
+							>
 								Add
 							</Button>
 						</PermissionInputWrapper>
@@ -257,7 +405,12 @@ export const SystemRoleModal: React.FC<SystemRoleModalProps> = ({
 					<Button type="button" variant="secondary" onClick={onClose}>
 						Cancel
 					</Button>
-					<Button type="button" onClick={handleSubmit} variant="primary">
+					<Button
+						type="button"
+						onClick={handleSubmit}
+						variant="primary"
+						disabled={!hasChanges()}
+					>
 						{mode === "add" ? "Create Role" : "Save Changes"}
 					</Button>
 				</ModalFooter>
@@ -266,188 +419,9 @@ export const SystemRoleModal: React.FC<SystemRoleModalProps> = ({
 	);
 };
 
-interface ProjectFormData {
-	name: string;
-	owner: string;
-	color: string;
-	members: string;
-	access: string;
-	lastActivity: string;
-}
-
-interface ProjectModalProps {
-	isOpen: boolean;
-	onClose: () => void;
-	onSave: (data: any) => void;
-	project?: any;
-	mode?: "add" | "edit";
-}
-
-export const ProjectModal: React.FC<ProjectModalProps> = ({
-	isOpen,
-	onClose,
-	onSave,
-	project,
-	mode = "add",
-}) => {
-	const [formData, setFormData] = useState<ProjectFormData>({
-		name: "",
-		owner: "",
-		color: "#ddd6fe",
-		members: "",
-		access: "",
-		lastActivity: new Date().toISOString().split("T")[0],
-	});
-
-	useEffect(() => {
-		if (project && mode === "edit") {
-			const membersPermission = project.permissions?.find((p: Permission) =>
-				p.label.includes("members"),
-			);
-			const accessPermission = project.permissions?.find((p: Permission) =>
-				p.label.includes("with"),
-			);
-
-			setFormData({
-				name: project.name,
-				owner: project.description?.replace("Owner: ", "") || "",
-				color: project.color,
-				members: membersPermission ? membersPermission.label.split(" ")[0] : "",
-				access: accessPermission
-					? accessPermission.label.split("with ")[1]
-					: "",
-				lastActivity:
-					project.permissions
-						?.find((p: Permission) => p.label.includes("Last activity"))
-						?.label.split(": ")[1] || new Date().toISOString().split("T")[0],
-			});
-		} else {
-			setFormData({
-				name: "",
-				owner: "",
-				color: "#ddd6fe",
-				members: "",
-				access: "",
-				lastActivity: new Date().toISOString().split("T")[0],
-			});
-		}
-	}, [project, mode, isOpen]);
-
-	const handleSubmit = () => {
-		if (formData.name.trim() && formData.owner.trim()) {
-			const projectData = {
-				name: formData.name,
-				description: `Owner: ${formData.owner}`,
-				color: formData.color,
-				permissions: [
-					{
-						id: "1",
-						label: `${formData.members} members with ${formData.access}`,
-					},
-					{ id: "2", label: `Last activity: ${formData.lastActivity}` },
-				],
-			};
-
-			onSave(projectData);
-			onClose();
-		}
-	};
-
-	if (!isOpen) return null;
-
-	return (
-		<ModalOverlay onClick={onClose}>
-			<ModalContainer onClick={(e) => e.stopPropagation()}>
-				<ModalHeader>
-					<ModalTitle>
-						{mode === "add" ? "Add New Project" : "Edit Project"}
-					</ModalTitle>
-					<CloseButton onClick={onClose}>
-						<X size={20} />
-					</CloseButton>
-				</ModalHeader>
-
-				<ModalBody>
-					<FormGroup>
-						<Label>Project Name *</Label>
-						<Input
-							type="text"
-							value={formData.name}
-							onChange={(e) =>
-								setFormData({ ...formData, name: e.target.value })
-							}
-							placeholder="e.g., DevChat Platform"
-						/>
-					</FormGroup>
-
-					<FormGroup>
-						<Label>Owner Email *</Label>
-						<Input
-							type="email"
-							value={formData.owner}
-							onChange={(e) =>
-								setFormData({ ...formData, owner: e.target.value })
-							}
-							placeholder="e.g., admin@devchat.com"
-						/>
-					</FormGroup>
-
-					<FormGroup>
-						<Label>Number of Members *</Label>
-						<Input
-							type="number"
-							value={formData.members}
-							onChange={(e) =>
-								setFormData({ ...formData, members: e.target.value })
-							}
-							placeholder="e.g., 45"
-							min="0"
-						/>
-					</FormGroup>
-
-					<FormGroup>
-						<Label>Access Level *</Label>
-						<Select
-							value={formData.access}
-							onChange={(e) =>
-								setFormData({ ...formData, access: e.target.value })
-							}
-						>
-							<option value="">Select access level</option>
-							<option value="Full Access">Full Access</option>
-							<option value="Read/Write">Read/Write</option>
-							<option value="Read Only">Read Only</option>
-						</Select>
-					</FormGroup>
-
-					<FormGroup>
-						<Label>Color Theme</Label>
-						<ColorGrid>
-							{colorOptions.map((color) => (
-								<ColorOption
-									key={color}
-									type="button"
-									color={color}
-									isSelected={formData.color === color}
-									onClick={() => setFormData({ ...formData, color })}
-								/>
-							))}
-						</ColorGrid>
-					</FormGroup>
-				</ModalBody>
-
-				<ModalFooter>
-					<Button type="button" variant="secondary" onClick={onClose}>
-						Cancel
-					</Button>
-					<Button type="button" onClick={handleSubmit} variant="primary">
-						{mode === "add" ? "Create Project" : "Save Changes"}
-					</Button>
-				</ModalFooter>
-			</ModalContainer>
-		</ModalOverlay>
-	);
-};
+// --------------------------------------------------------------------
+// DeleteConfirmModal
+// --------------------------------------------------------------------
 
 interface DeleteConfirmModalProps {
 	isOpen: boolean;

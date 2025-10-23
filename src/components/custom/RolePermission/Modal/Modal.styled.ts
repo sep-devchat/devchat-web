@@ -1,4 +1,4 @@
-import styled from "styled-components";
+import styled, { keyframes } from "styled-components";
 
 export const ModalOverlay = styled.div`
 	position: fixed;
@@ -11,6 +11,10 @@ export const ModalOverlay = styled.div`
 	align-items: center;
 	justify-content: center;
 	z-index: 1000;
+
+	::-webkit-scrollbar {
+		width: 2px;
+	}
 `;
 
 export const ModalContainer = styled.div`
@@ -101,22 +105,6 @@ export const Textarea = styled.textarea`
 	}
 `;
 
-export const Select = styled.select`
-	width: 100%;
-	padding: 10px 12px;
-	font-size: 14px;
-	border: 1px solid #d1d5db;
-	border-radius: 6px;
-	outline: none;
-	transition: border-color 0.2s;
-	box-sizing: border-box;
-	background-color: white;
-
-	&:focus {
-		border-color: #133e87;
-	}
-`;
-
 export const ColorGrid = styled.div`
 	display: grid;
 	grid-template-columns: repeat(5, 1fr);
@@ -194,6 +182,10 @@ export const RemoveButton = styled.button`
 	&:hover {
 		color: #991b1b;
 	}
+
+	&:focus {
+		outline: none;
+	}
 `;
 
 export const PermissionInputWrapper = styled.div`
@@ -221,6 +213,11 @@ export const Button = styled.button<{
 	cursor: pointer;
 	transition: all 0.2s;
 	white-space: nowrap;
+	&:disabled {
+		opacity: 0.5;
+		cursor: not-allowed;
+		pointer-events: none;
+	}
 
 	${(props) => {
 		switch (props.variant) {
@@ -270,4 +267,100 @@ export const WarningMessage = styled.p`
 	margin-top: 12px;
 	font-weight: 500;
 	margin-bottom: 0;
+`;
+
+export const SelectWrapper = styled.div`
+	position: relative;
+	width: 100%;
+`;
+
+export const CustomSelect = styled.div<{ $isOpen: boolean }>`
+	width: 100%;
+	padding: 12px 40px 12px 16px;
+	border: 1.5px solid ${(props) => (props.$isOpen ? "#3b82f6" : "#e5e7eb")};
+	border-radius: 10px;
+	font-size: 14px;
+	color: #1f2937;
+	background: ${(props) =>
+		props.$isOpen ? "white" : "linear-gradient(to bottom, #ffffff, #f9fafb)"};
+	cursor: pointer;
+	transition: all 0.3s ease;
+	box-shadow: ${(props) =>
+		props.$isOpen
+			? "0 0 0 4px rgba(59, 130, 246, 0.12), 0 4px 6px rgba(0, 0, 0, 0.07)"
+			: "0 1px 3px rgba(0, 0, 0, 0.05)"};
+	user-select: none;
+
+	&:hover {
+		border-color: #3b82f6;
+		background: white;
+		box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
+		transform: translateY(-1px);
+	}
+`;
+
+const slideDown = keyframes`
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+`;
+
+export const OptionsDropdown = styled.div`
+	position: absolute;
+	top: calc(100% + 8px);
+	left: 0;
+	right: 0;
+	background: white;
+	border: 1.5px solid #e5e7eb;
+	border-radius: 12px;
+	box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+	z-index: 1000;
+	overflow: hidden;
+	animation: ${slideDown} 0.2s ease-out;
+`;
+
+export const Option = styled.div<{ $isSelected: boolean; $isFirst?: boolean }>`
+	padding: 12px 16px;
+	font-size: 14px;
+	color: #1f2937;
+	font-weight: ${(props) => (props.$isSelected ? "600" : "500")};
+	background: ${(props) =>
+		props.$isSelected ? "linear-gradient(135deg, #3b82f6, #2563eb)" : "white"};
+	color: ${(props) => (props.$isSelected ? "white" : "#1f2937")};
+	cursor: pointer;
+	transition: all 0.2s ease;
+	margin: 6px 8px;
+	border-radius: 8px;
+	min-height: 42px;
+	display: flex;
+	align-items: center;
+
+	&:hover {
+		background: ${(props) =>
+			props.$isSelected
+				? "linear-gradient(135deg, #3b82f6, #2563eb)"
+				: "linear-gradient(to right, #dbeafe, #eff6ff)"};
+		color: ${(props) => (props.$isSelected ? "white" : "#1e40af")};
+		transform: translateX(4px);
+	}
+
+	&:active {
+		transform: translateX(4px) scale(0.98);
+	}
+`;
+
+export const SelectIcon = styled.div<{ $isOpen: boolean }>`
+	position: absolute;
+	right: 12px;
+	top: 50%;
+	transform: translateY(-50%)
+		rotate(${(props) => (props.$isOpen ? "180deg" : "0deg")});
+	color: #6b7280;
+	pointer-events: none;
+	transition: transform 0.3s ease;
 `;

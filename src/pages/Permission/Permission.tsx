@@ -5,21 +5,19 @@ import { DEFAULT_TAB, TABS } from "./permission.constants";
 import { COLUMNS, MOCK_DATA } from "./permission.mockData";
 import * as S from "./Permission.styled";
 import RolePermissions from "@/components/custom/RolePermission/RolePermission";
-import { Shield, UserCog, User } from "lucide-react";
-import CodePermission from "@/components/custom/CodePermission/CodePermission";
-import SecurityPermission from "@/components/custom/SecurityPermission/SecurityPermission";
 import {
 	TablePermission,
 	RolePermission as RolePermissionType,
 } from "@/components/custom/TablePermission/TablePermission";
 import { PermissionModal } from "@/components/custom/TablePermission/Modal/Modal";
+import { SystemRoleModal } from "@/components/custom/RolePermission/Modal/Modal";
 
 interface RolePermissionRole {
 	id: string;
 	name: string;
-	description?: string;
+	role: string;
+	level: number;
 	color: string;
-	icon?: React.ReactNode;
 	permissions: Array<{ id: string; label: string }>;
 	metadata?: {
 		users?: number;
@@ -31,12 +29,31 @@ interface RolePermissionRole {
 	};
 }
 
+interface SystemRoleData {
+	id: string;
+	role: string;
+	name: string;
+	level: number;
+	color: string;
+	permissions: Array<{ id: string; label: string }>;
+	users: number;
+	status: string;
+	lastModified: string;
+}
+
 export const Permission: React.FC = () => {
 	const search = useSearch({ from: "/admin/permission" });
 	const activeTab = (search.tab as TabId) || DEFAULT_TAB;
 
 	const [isModalOpen, setIsModalOpen] = useState(false);
 	const [modalMode, setModalMode] = useState<"create" | "edit">("create");
+
+	const [isRoleModalOpen, setIsRoleModalOpen] = useState(false);
+	const [roleModalMode, setRoleModalMode] = useState<"add" | "edit">("add");
+	const [editingRoleData, setEditingRoleData] = useState<SystemRoleData | null>(
+		null,
+	);
+
 	const [selectedRowIndex, setSelectedRowIndex] = useState<number | null>(null);
 	const [tableData, setTableData] = useState<
 		Record<TabId, RolePermissionType[]>
@@ -46,9 +63,19 @@ export const Permission: React.FC = () => {
 
 	const handleEdit = (index: number) => {
 		console.log(`Edit item at index ${index} in tab ${activeTab}`);
-		setSelectedRowIndex(index);
-		setModalMode("edit");
-		setIsModalOpen(true);
+
+		if (activeTab === "system-roles") {
+			const roleToEdit = (
+				tableData["system-roles"] as unknown as SystemRoleData[]
+			)[index];
+			setEditingRoleData(roleToEdit);
+			setRoleModalMode("edit");
+			setIsRoleModalOpen(true);
+		} else {
+			setSelectedRowIndex(index);
+			setModalMode("edit");
+			setIsModalOpen(true);
+		}
 	};
 
 	const handleDelete = (index: number) => {
@@ -63,9 +90,15 @@ export const Permission: React.FC = () => {
 
 	const handleActionButtonClick = () => {
 		console.log(`Add new item in tab ${activeTab}`);
-		setSelectedRowIndex(null);
-		setModalMode("create");
-		setIsModalOpen(true);
+		if (activeTab === "system-roles") {
+			setEditingRoleData(null);
+			setRoleModalMode("add");
+			setIsRoleModalOpen(true);
+		} else {
+			setSelectedRowIndex(null);
+			setModalMode("create");
+			setIsModalOpen(true);
+		}
 	};
 
 	const handleModalSubmit = (data: RolePermissionType) => {
@@ -84,11 +117,79 @@ export const Permission: React.FC = () => {
 			}));
 			console.log("Updated item at index", selectedRowIndex, ":", data);
 		}
+		handleModalClose();
 	};
 
 	const handleModalClose = () => {
 		setIsModalOpen(false);
 		setSelectedRowIndex(null);
+	};
+
+	const handleRoleModalSubmit = (data: any) => {
+		setTableData((prev) => {
+			const currentRoles = prev["system-roles"] as unknown as SystemRoleData[];
+
+			if (roleModalMode === "edit" && editingRoleData) {
+				const updatedRoles = currentRoles.map((role) =>
+					role.id === editingRoleData.id
+						? {
+								...role,
+								role: data.role,
+								name: data.name,
+								level: data.level,
+								color: data.color,
+								permissions: data.permissions,
+								lastModified:
+									new Date().toLocaleDateString("en-CA") +
+									" " +
+									new Date().toLocaleTimeString("en-US", {
+										hour12: false,
+										hour: "2-digit",
+										minute: "2-digit",
+									}),
+							}
+						: role,
+				);
+				return {
+					...prev,
+					"system-roles": updatedRoles as unknown as RolePermissionType[],
+				};
+			} else {
+				const newRole: SystemRoleData = {
+					id: data.role.toLowerCase().replace(/\s+/g, "-") + "-" + Date.now(),
+					role: data.role,
+					name: data.name,
+					level: data.level,
+					color: data.color,
+					permissions: data.permissions,
+					users: 0,
+					status: "Active",
+					lastModified:
+						new Date().toLocaleDateString("en-CA") +
+						" " +
+						new Date().toLocaleTimeString("en-US", {
+							hour12: false,
+							hour: "2-digit",
+							minute: "2-digit",
+						}),
+				};
+				return {
+					...prev,
+					"system-roles": [
+						...currentRoles,
+						newRole,
+					] as unknown as RolePermissionType[],
+				};
+			}
+		});
+
+		handleRoleModalClose();
+	};
+
+	const handleRoleModalClose = () => {
+		setIsRoleModalOpen(false);
+		setEditingRoleData(null);
+		setRoleModalMode("add");
 	};
 
 	const getTableTitle = (): string => {
@@ -100,11 +201,6 @@ export const Permission: React.FC = () => {
 		const subtitles: Record<TabId, string> = {
 			"system-roles": "Manage user roles and permissions across the system",
 			feature: "Configure feature permissions for different user roles",
-			project: "Control project access and collaboration settings",
-			"resource-limit": "Set resource usage limits for each user role",
-			"api-keys": "Manage API key access and permissions",
-			"code-execution": "Configure code execution environments and limits",
-			security: "Manage security policies and enforcement rules",
 			"change-history": "View audit log of all permission changes",
 		};
 		return subtitles[activeTab] || "";
@@ -114,135 +210,38 @@ export const Permission: React.FC = () => {
 		const buttonTexts: Partial<Record<TabId, string>> = {
 			"system-roles": "Add Role",
 			feature: "Add Feature",
-			project: "Add Project",
-			"resource-limit": "Add Limit",
-			"api-keys": "Add API Key",
-			"code-execution": "Add Environment",
-			security: "Add Policy",
 		};
 		return buttonTexts[activeTab];
 	};
 
 	const getModalTitle = (): string => {
 		const titles: Partial<Record<TabId, string>> = {
-			"api-keys":
-				modalMode === "create" ? "Thêm API Key mới" : "Chỉnh sửa API Key",
-			"resource-limit":
-				modalMode === "create" ? "Thêm giới hạn mới" : "Chỉnh sửa giới hạn",
 			feature:
-				modalMode === "create" ? "Thêm tính năng mới" : "Chỉnh sửa tính năng",
+				modalMode === "create" ? "Add new Permission" : "Update Permission",
 		};
-		return (
-			titles[activeTab] || (modalMode === "create" ? "Thêm mới" : "Chỉnh sửa")
-		);
-	};
-
-	const getRoleColor = (roleName: string): string => {
-		const colors: Record<string, string> = {
-			"System Admin": "#EFB00833",
-			"Group Admin": "#B54BB333",
-			Member: "#1CCA9333",
-			"DevChat Platform": "#B54BB333",
-			"API Gateway": "#608BC133",
-			"Mobile App": "#1CCA9333",
-		};
-		return colors[roleName] || "#F0F0F0";
-	};
-
-	const getRoleStyle = (roleName: string) => {
-		const roleMap: Record<
-			string,
-			{
-				icon: React.ReactNode;
-				iconColor: string;
-				iconBgColor: string;
-				permissions: Array<{ id: string; label: string }>;
-			}
-		> = {
-			"System Admin": {
-				icon: <Shield size={18} />,
-				iconColor: "#f97316",
-				iconBgColor: "#FFE8D4",
-				permissions: [
-					{ id: "1", label: "Full system access with all permissions" },
-					{ id: "2", label: "Manage all users and roles" },
-					{ id: "3", label: "Configure system settings" },
-					{ id: "4", label: "View all audit logs" },
-				],
-			},
-			"Group Admin": {
-				icon: <UserCog size={18} />,
-				iconColor: "#9333ea",
-				iconBgColor: "#E8D4F8",
-				permissions: [
-					{
-						id: "1",
-						label: "Administrative access with limited system settings",
-					},
-					{ id: "2", label: "Manage user roles" },
-					{ id: "3", label: "Access analytics" },
-				],
-			},
-			Member: {
-				icon: <User size={18} />,
-				iconColor: "#1CCA93",
-				iconBgColor: "#D4F8E8",
-				permissions: [
-					{ id: "1", label: "Basic user access" },
-					{ id: "2", label: "Use core features" },
-				],
-			},
-		};
-
-		return (
-			roleMap[roleName] || {
-				icon: <User size={18} />,
-				iconColor: "#6b7280",
-				iconBgColor: "#F0F0F0",
-				permissions: [],
-			}
-		);
+		return titles[activeTab] || (modalMode === "create" ? "Add" : "Update");
 	};
 
 	const convertToRolePermissionFormat = (): RolePermissionRole[] => {
 		if (activeTab === "system-roles") {
-			return tableData["system-roles"].map((item: any) => {
-				const roleStyle = getRoleStyle(item.role);
-				return {
-					id: item.role.toLowerCase().replace(/\s+/g, "-"),
-					name: item.role,
-					description: item.description,
-					color: getRoleColor(item.role),
-					icon: roleStyle.icon,
-					permissions: roleStyle.permissions,
-					metadata: {
-						users: item.users,
-						status: item.status,
-						lastModified: item.lastModified,
-					},
-				};
-			});
-		}
-
-		if (activeTab === "project") {
-			return tableData.project.map((item: any) => ({
-				id: item.project.toLowerCase().replace(/\s+/g, "-"),
-				name: item.project,
-				description: `Owner: ${item.owner}`,
-				color: getRoleColor(item.project),
-				icon: <Shield size={18} />,
-				permissions: [
-					{ id: "1", label: `${item.members} members with ${item.access}` },
-					{ id: "2", label: `Last activity: ${item.lastActivity}` },
-				],
-				metadata: {
-					members: item.members,
-					access: item.access,
-					lastActivity: item.lastActivity,
+			return (tableData["system-roles"] as unknown as SystemRoleData[]).map(
+				(item) => {
+					return {
+						id: item.id,
+						role: item.role,
+						name: item.name,
+						level: item.level,
+						color: item.color,
+						permissions: item.permissions,
+						metadata: {
+							users: item.users,
+							status: item.status,
+							lastModified: item.lastModified,
+						},
+					};
 				},
-			}));
+			);
 		}
-
 		return [];
 	};
 
@@ -266,61 +265,15 @@ export const Permission: React.FC = () => {
 			);
 		}
 
-		if (activeTab === "resource-limit" && column.key === "resource") {
-			const resourceDescriptions: Record<string, string> = {
-				"Messages / Day": "Maximum number of messages that can be sent",
-				"Code Execution / Day": "Number of code executions in sandbox",
-				"AI Requests / Day": "Number of AI assistant calls",
-				"File Upload Size": "Maximum file size per upload",
-				"Total Storage": "Total storage space available",
-				"Concurrent Connections": "Maximum simultaneous connections",
-			};
-			return (
-				<div>
-					<div style={{ fontWeight: 600 }}>{value}</div>
-					<div style={{ fontSize: "12px", color: "#666" }}>
-						{resourceDescriptions[value]}
-					</div>
-				</div>
-			);
-		}
-
-		if (activeTab === "api-keys" && column.key === "service") {
-			const serviceDescriptions: Record<string, string> = {
-				"OpenAI API": "Use GPT models for AI assistant",
-				"GitHub API": "Integrate with repositories and PRs",
-				"Code Execution API": "Sandbox environment for running code",
-				"Documentation Search API": "Search documentation with slash commands",
-				"GitLab API": "Integrate with GitLab repos",
-			};
-			const rateLimits: Record<string, string> = {
-				"OpenAI API": "1000 req/day",
-				"GitHub API": "5000 req/hour",
-				"Code Execution API": "500 req/day",
-				"Documentation Search API": "2000 req/day",
-				"GitLab API": "3000 req/hour",
-			};
-			return (
-				<div>
-					<div style={{ fontWeight: 600 }}>{value}</div>
-					<div style={{ fontSize: "12px", color: "#666" }}>
-						{serviceDescriptions[value]}
-					</div>
-					<div style={{ fontSize: "12px", color: "#999" }}>
-						Rate Limit: {rateLimits[value]}
-					</div>
-				</div>
-			);
-		}
-
 		return undefined;
 	};
 
-	if (activeTab === "system-roles" || activeTab === "project") {
+	if (activeTab === "system-roles") {
 		return (
 			<S.Container>
 				<S.TableWrapper>
 					<RolePermissions
+						key={JSON.stringify(tableData["system-roles"])}
 						roles={convertToRolePermissionFormat()}
 						title={getTableTitle()}
 						subtitle={getTableSubtitle()}
@@ -330,26 +283,16 @@ export const Permission: React.FC = () => {
 						onDelete={handleDelete}
 					/>
 				</S.TableWrapper>
-			</S.Container>
-		);
-	}
-
-	if (activeTab === "code-execution") {
-		return (
-			<S.Container>
-				<S.TableWrapper>
-					<CodePermission />
-				</S.TableWrapper>
-			</S.Container>
-		);
-	}
-
-	if (activeTab === "security") {
-		return (
-			<S.Container>
-				<S.TableWrapper style={{ background: "transparent" }}>
-					<SecurityPermission />
-				</S.TableWrapper>
+				{isRoleModalOpen && (
+					<SystemRoleModal
+						key={editingRoleData?.id || "new-role"}
+						isOpen={isRoleModalOpen}
+						onClose={handleRoleModalClose}
+						onSave={handleRoleModalSubmit}
+						role={editingRoleData || undefined}
+						mode={roleModalMode}
+					/>
+				)}
 			</S.Container>
 		);
 	}
@@ -375,12 +318,11 @@ export const Permission: React.FC = () => {
 					onEdit={activeTab !== "change-history" ? handleEdit : undefined}
 					onDelete={activeTab !== "change-history" ? handleDelete : undefined}
 					renderCell={renderCell}
+					showCellBackground={activeTab === "change-history"}
 				/>
 			</S.TableWrapper>
 
-			{(activeTab === "api-keys" ||
-				activeTab === "resource-limit" ||
-				activeTab === "feature") && (
+			{activeTab === "feature" && (
 				<PermissionModal
 					isOpen={isModalOpen}
 					onClose={handleModalClose}
@@ -389,7 +331,7 @@ export const Permission: React.FC = () => {
 					mode={modalMode}
 					initialData={initialData}
 					title={getModalTitle()}
-					tabType={activeTab as "api-keys" | "resource-limit" | "feature"}
+					tabType={activeTab as "feature"}
 				/>
 			)}
 		</S.Container>

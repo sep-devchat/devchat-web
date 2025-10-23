@@ -1,12 +1,4 @@
-export type TabId =
-	| "system-roles"
-	| "feature"
-	| "project"
-	| "resource-limit"
-	| "api-keys"
-	| "code-execution"
-	| "security"
-	| "change-history";
+export type TabId = "system-roles" | "feature" | "change-history";
 
 export interface Tab {
 	id: TabId;
@@ -20,8 +12,13 @@ export interface FilterValues {
 	dateRange?: string;
 }
 
+export interface Permission {
+	id: string;
+	label: string;
+}
+
 export interface RolePermission {
-	[key: string]: boolean | string | number | React.ReactNode;
+	[key: string]: boolean | string | number | React.ReactNode | Permission[];
 }
 
 export interface Column {

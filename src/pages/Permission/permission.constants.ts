@@ -3,11 +3,6 @@ import { Tab, TabId } from "./permission.types";
 export const TABS: Tab[] = [
 	{ id: "system-roles", label: "System Roles" },
 	{ id: "feature", label: "Feature Permissions" },
-	{ id: "project", label: "Project Access" },
-	{ id: "resource-limit", label: "Resource Limits" },
-	{ id: "api-keys", label: "API Keys" },
-	{ id: "code-execution", label: "Code Execution" },
-	{ id: "security", label: "Security Settings" },
 	{ id: "change-history", label: "Change History" },
 ];
 

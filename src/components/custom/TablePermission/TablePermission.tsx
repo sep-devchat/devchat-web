@@ -78,6 +78,7 @@ export interface TablePermissionProps {
 	pageSize?: number;
 	showSearch?: boolean;
 	showPagination?: boolean;
+	showCellBackground?: boolean;
 }
 
 export const TablePermission: React.FC<TablePermissionProps> = ({
@@ -93,6 +94,7 @@ export const TablePermission: React.FC<TablePermissionProps> = ({
 	pageSize = 10,
 	showSearch = true,
 	showPagination = true,
+	showCellBackground = true,
 }) => {
 	const [searchTerm, setSearchTerm] = useState("");
 	const [currentPage, setCurrentPage] = useState(1);
@@ -183,23 +185,26 @@ export const TablePermission: React.FC<TablePermissionProps> = ({
 				return <Badge variant={getBadgeVariant(value)}>{value}</Badge>;
 			}
 
-			const colors = getValueColor(value);
-			return (
-				<span
-					style={{
-						display: "inline-block",
-						padding: "4px 12px",
-						borderRadius: "12px",
-						fontSize: "13px",
-						fontWeight: "500",
-						whiteSpace: "nowrap",
-						background: colors.bg,
-						color: colors.text,
-					}}
-				>
-					{value}
-				</span>
-			);
+			if (showCellBackground) {
+				const colors = getValueColor(value);
+				return (
+					<span
+						style={{
+							display: "inline-block",
+							padding: "4px 12px",
+							borderRadius: "12px",
+							fontSize: "13px",
+							fontWeight: "500",
+							whiteSpace: "nowrap",
+							background: colors.bg,
+							color: colors.text,
+						}}
+					>
+						{value}
+					</span>
+				);
+			}
+			return <span style={{ color: "#374151" }}>{value}</span>;
 		}
 
 		return value;
