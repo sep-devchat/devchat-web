@@ -21,6 +21,7 @@ export interface Member {
 	name: string;
 	avatar: string;
 	isOnline: boolean;
+	email?: string;
 }
 
 interface MemberItemProps {
@@ -45,6 +46,13 @@ export default function MemberItem({
 	const [hoveredMember, setHoveredMember] = useState<number | string | null>(
 		null,
 	);
+
+	const getFirstName = (fullName: string) => {
+		const parts = fullName.trim().split(/\s+/);
+		return parts[parts.length - 1] || fullName;
+	};
+
+	const firstName = getFirstName(member.name);
 
 	const handleMouseEnter = () => {
 		if (showTooltip) {
@@ -145,17 +153,24 @@ export default function MemberItem({
 				<TooltipCard>
 					<TooltipHeader>
 						<TooltipAvatar src={member.avatar} alt={member.name} />
-						<div>
+						<div
+							style={{
+								minWidth: 0,
+								flex: 1,
+								overflow: "hidden",
+							}}
+						>
 							<TooltipName>{member.name}</TooltipName>
 							<TooltipUsername>
-								@{member.name.toLowerCase().replace(/\s+/g, "")}
+								{member.email ||
+									`@${member.name.toLowerCase().replace(/\s+/g, "")}`}
 							</TooltipUsername>
 						</div>
 					</TooltipHeader>
 
 					<TooltipInput
 						type="text"
-						placeholder={`Message @${member.name.split(" ")[0]}`}
+						placeholder={`Message @${firstName}`}
 						onKeyDown={handleMessageKeyDown}
 					/>
 				</TooltipCard>
