@@ -61,7 +61,7 @@ const MainLayout = () => {
 						id: g.id,
 						name: g.name,
 						initials,
-						avatarColor: `${theme.color.primary}`, // giữ mặc định như trước; đổi nếu có logic color khác
+						avatarColor: `${theme.color.primary}`,
 						unread: 0,
 						avatar: g.avatar ?? undefined,
 						isActive: g.isActive ?? true,
