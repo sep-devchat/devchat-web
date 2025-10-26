@@ -100,6 +100,11 @@ export const TooltipCard = styled.div`
 	border-radius: 8px;
 	width: 260px;
 	box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+
+	@media (max-width: 768px) {
+		min-width: 240px;
+		max-width: 320px;
+	}
 `;
 
 export const TooltipHeader = styled.div`
@@ -109,18 +114,18 @@ export const TooltipHeader = styled.div`
 `;
 
 export const TooltipAvatar = styled.img`
-	width: 48px;
-	height: 48px;
+	width: 39px;
+	height: 39px;
 	border-radius: 50%;
 `;
 
 export const TooltipName = styled.div`
-	font-size: 16px;
+	font-size: 12px;
 	font-weight: bold;
 `;
 
 export const TooltipUsername = styled.div`
-	font-size: 14px;
+	font-size: 10px;
 	color: #aaa;
 `;
 
@@ -131,7 +136,7 @@ export const TooltipInput = styled.input`
 	border-radius: 6px;
 	background: #2b2d31;
 	color: #fff;
-	font-size: 14px;
+	font-size: 12px;
 
 	&:focus {
 		outline: 2px solid #133e87;

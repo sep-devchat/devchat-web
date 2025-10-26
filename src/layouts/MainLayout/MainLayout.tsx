@@ -27,6 +27,7 @@ import { GroupResponse, listGroups } from "@/services/groupAPI";
 import { theme } from "@/themes";
 import { ResizableHandle } from "@/components/ui/resizable";
 import TaskGroup from "@/components/custom/RightPanel/TaskGroup/TaskGroup";
+import FriendList from "@/components/custom/RightPanel/FriendList/FriendList";
 
 const MainLayout = () => {
 	const [iconSelected, setIconSelected] = useState<string>("");
@@ -127,7 +128,7 @@ const MainLayout = () => {
 			case "notifications":
 				return null;
 			default:
-				return <MemberList />;
+				return <FriendList />;
 		}
 	};
 

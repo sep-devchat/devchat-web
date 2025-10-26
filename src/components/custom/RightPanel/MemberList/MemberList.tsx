@@ -1,3 +1,5 @@
+import { useEffect, useState } from "react";
+import { useParams } from "@tanstack/react-router";
 import MemberItem from "../../MemberItem/MemberItem";
 import {
 	CPHeader,
@@ -11,47 +13,86 @@ import {
 	SectionHeader,
 	SectionTitle,
 } from "./MemberList.styled";
+import { membersGroup } from "@/services/userGroupAPI";
 
-const mockMembers = {
-	status: [
-		{
-			id: 1,
-			name: "Nguyen Van A",
-			avatar:
-				"https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face",
-			isOnline: true,
-		},
-		{
-			id: 2,
-			name: "Nguyen Van B",
-			avatar:
-				"https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face",
-			isOnline: false,
-		},
-		{
-			id: 3,
-			name: "Nguyen Van C",
-			avatar:
-				"https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face",
-			isOnline: true,
-		},
-		{
-			id: 4,
-			name: "Nguyen Van D",
-			avatar:
-				"https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face",
-			isOnline: false,
-		},
-	],
-};
+interface MemberData {
+	id: string;
+	name: string;
+	avatar?: string;
+	isOnline?: boolean;
+	email?: string;
+	role?: {
+		name: string;
+		level: number;
+	};
+}
 
 export default function MemberList() {
-	const onlineMembers = mockMembers.status.filter(
-		(member) => member.isOnline === true,
-	);
-	const offlineMembers = mockMembers.status.filter(
-		(member) => member.isOnline === false,
-	);
+	const params = useParams({ strict: false }) as { groupId?: string };
+	const groupId = params.groupId;
+
+	const [members, setMembers] = useState<MemberData[]>([]);
+	const [loading, setLoading] = useState(false);
+	const [error, setError] = useState<string | null>(null);
+	const [page] = useState(1);
+	const [limit] = useState(50); // Có thể tăng nếu muốn load nhiều members
+
+	useEffect(() => {
+		if (!groupId) {
+			setError("No group selected");
+			return;
+		}
+
+		let mounted = true;
+
+		const fetchMembers = async () => {
+			setLoading(true);
+			setError(null);
+			try {
+				const response = await membersGroup(groupId, page, limit);
+
+				if (!mounted) return;
+
+				const data = response?.data || response;
+				const membersList = Array.isArray(data) ? data : data?.members || [];
+
+				const mappedMembers = membersList.map((member: any) => {
+					const fullName =
+						`${member.lastName || ""} ${member.firstName || ""}`.trim() ||
+						member.username ||
+						"Unknown User";
+
+					return {
+						id: member.id || member.userId || member._id,
+						name: fullName,
+						avatar:
+							member.avatarUrl ||
+							`https://ui-avatars.com/api/?name=${encodeURIComponent(fullName)}&background=random`,
+						isOnline: member.isActive ?? false,
+						email: member.email,
+						role: member.role,
+					};
+				});
+
+				setMembers(mappedMembers);
+			} catch (err: any) {
+				console.error("Failed to fetch members:", err);
+				if (mounted) {
+					setError(err?.message || "Failed to load members");
+				}
+			} finally {
+				if (mounted) {
+					setLoading(false);
+				}
+			}
+		};
+
+		fetchMembers();
+
+		return () => {
+			mounted = false;
+		};
+	}, [groupId, page, limit]);
 
 	const handleMessageSend = (memberId: number | string, message: string) => {
 		console.log(`Send message to member ${memberId}:`, message);
@@ -61,6 +102,59 @@ export default function MemberList() {
 		console.log(`Button clicked for member ${memberId}`);
 	};
 
+	if (!groupId) {
+		return (
+			<PageWrapper>
+				<CPHeader>
+					<CPHeaderLeft>
+						<CPTitle>Member List</CPTitle>
+					</CPHeaderLeft>
+				</CPHeader>
+				<MemberContent>
+					<div style={{ padding: "20px", textAlign: "center", color: "#888" }}>
+						Please select a group to view members
+					</div>
+				</MemberContent>
+			</PageWrapper>
+		);
+	}
+
+	if (loading) {
+		return (
+			<PageWrapper>
+				<CPHeader>
+					<CPHeaderLeft>
+						<CPTitle>Member List</CPTitle>
+					</CPHeaderLeft>
+				</CPHeader>
+				<MemberContent>
+					<div style={{ padding: "20px", textAlign: "center", color: "#888" }}>
+						Loading members...
+					</div>
+				</MemberContent>
+			</PageWrapper>
+		);
+	}
+
+	if (error) {
+		return (
+			<PageWrapper>
+				<CPHeader>
+					<CPHeaderLeft>
+						<CPTitle>Member List</CPTitle>
+					</CPHeaderLeft>
+				</CPHeader>
+				<MemberContent>
+					<div
+						style={{ padding: "20px", textAlign: "center", color: "#f44336" }}
+					>
+						{error}
+					</div>
+				</MemberContent>
+			</PageWrapper>
+		);
+	}
+
 	return (
 		<PageWrapper>
 			<CPHeader>
@@ -68,41 +162,38 @@ export default function MemberList() {
 					<CPTitle>Member List</CPTitle>
 				</CPHeaderLeft>
 			</CPHeader>
+
 			<MemberContent>
 				<MemberSection>
 					<SectionHeader>
-						<SectionTitle>Online</SectionTitle>
-						<MemberCount>{onlineMembers.length}</MemberCount>
+						<SectionTitle>All Members</SectionTitle>
+						<MemberCount>{members.length}</MemberCount>
 					</SectionHeader>
 					<MembersList>
-						{onlineMembers.map((member) => (
-							<MemberItem
-								key={member.id}
-								member={member}
-								showTooltip={true}
-								buttonType="more"
-								onButtonClick={handleButtonClick}
-								onMessageSend={handleMessageSend}
-							/>
-						))}
-					</MembersList>
-				</MemberSection>
-				<MemberSection>
-					<SectionHeader>
-						<SectionTitle>Offline</SectionTitle>
-						<MemberCount>{offlineMembers.length}</MemberCount>
-					</SectionHeader>
-					<MembersList>
-						{offlineMembers.map((member) => (
-							<MemberItem
-								key={member.id}
-								member={member}
-								showTooltip={true}
-								buttonType="close"
-								onButtonClick={handleButtonClick}
-								onMessageSend={handleMessageSend}
-							/>
-						))}
+						{members.length === 0 ? (
+							<div
+								style={{ padding: "20px", textAlign: "center", color: "#888" }}
+							>
+								No members found in this group
+							</div>
+						) : (
+							members.map((member) => (
+								<MemberItem
+									key={member.id}
+									member={{
+										id: member.id,
+										name: member.name,
+										avatar: member.avatar || "",
+										isOnline: member.isOnline || false,
+										email: member.email,
+									}}
+									showTooltip={true}
+									buttonType="more"
+									onButtonClick={handleButtonClick}
+									onMessageSend={handleMessageSend}
+								/>
+							))
+						)}
 					</MembersList>
 				</MemberSection>
 			</MemberContent>
