@@ -1,4 +1,4 @@
-import styled from "styled-components";
+import styled, { css } from "styled-components";
 
 export const TableContainer = styled.div`
 	background: white;
@@ -48,6 +48,37 @@ export const ActionButton = styled.button`
 	&:active {
 		background: #1e40af;
 	}
+
+	&:focus {
+		outline: none;
+	}
+`;
+
+export const SearchWrapper = styled.div`
+	margin-bottom: 24px;
+	position: relative;
+	display: flex;
+	align-items: center;
+
+	& > svg {
+		position: absolute;
+		left: 12px;
+		color: #9ca3af;
+	}
+`;
+
+export const SearchInput = styled.input`
+	width: 100%;
+	padding: 10px 12px 10px 38px;
+	border: 1px solid #e5e7eb;
+	border-radius: 6px;
+	font-size: 14px;
+	outline: none;
+	transition: border-color 0.2s;
+
+	&:focus {
+		border-color: #133e87;
+	}
 `;
 
 export const Table = styled.table`
@@ -96,14 +127,7 @@ export const Td = styled.td<{ align?: "left" | "center" | "right" }>`
 	vertical-align: middle;
 `;
 
-export const Badge = styled.span<{ variant?: string }>`
-	display: inline-block;
-	padding: 4px 12px;
-	border-radius: 12px;
-	font-size: 13px;
-	font-weight: 500;
-	white-space: nowrap;
-
+const badgeVariants = css<{ variant?: string }>`
 	${(props) => {
 		switch (props.variant) {
 			case "purple":
@@ -118,7 +142,7 @@ export const Badge = styled.span<{ variant?: string }>`
         `;
 			case "green":
 				return `
-          background: #1CCA9333;
+          background: #1CCA9333; /* Using 20% alpha on green */
           color: #1CCA93;
         `;
 			case "yellow":
@@ -140,33 +164,54 @@ export const Badge = styled.span<{ variant?: string }>`
 	}}
 `;
 
-export const CheckIcon = styled.span`
+export const Badge = styled.span<{ variant?: string }>`
+	display: inline-block;
+	padding: 4px 12px;
+	border-radius: 12px;
+	font-size: 13px;
+	font-weight: 500;
+	white-space: nowrap;
+	${badgeVariants}
+`;
+
+export const CellBackgroundSpan = styled.span<{ variant?: string }>`
+	display: inline-block;
+	padding: 4px 12px;
+	border-radius: 12px;
+	font-size: 13px;
+	font-weight: 500;
+	white-space: nowrap;
+	${badgeVariants}
+`;
+
+const IconBase = styled.span`
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
 	width: 20px;
 	height: 20px;
 	border-radius: 50%;
+	font-size: 14px;
+	font-weight: bold;
+`;
+
+export const CheckIconWrapper = styled(IconBase)`
 	background: #1cca9333;
 	color: #1cca93;
-	font-size: 14px;
-	font-weight: bold;
 `;
 
-export const CloseIcon = styled.span`
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	width: 20px;
-	height: 20px;
-	border-radius: 50%;
+export const CloseIconWrapper = styled(IconBase)`
 	background: #fee2e2;
 	color: #d83232;
-	font-size: 14px;
-	font-weight: bold;
 `;
 
-export const IconButton = styled.button<{ variant?: "danger" }>`
+export const ActionGroup = styled.div`
+	display: flex;
+	gap: 8px;
+	justify-content: center;
+`;
+
+export const IconButton = styled.button<{ variant?: "danger" | "default" }>`
 	background: transparent;
 	border: none;
 	cursor: pointer;
@@ -177,6 +222,11 @@ export const IconButton = styled.button<{ variant?: "danger" }>`
 	justify-content: center;
 	transition: background 0.2s;
 
+	& > svg {
+		color: ${(props) => (props.variant === "danger" ? "#D83232" : "#3B82F6")};
+		font-size: 16px;
+	}
+
 	&:hover {
 		background: ${(props) =>
 			props.variant === "danger" ? "#fee2e2" : "#f3f4f6"};
@@ -185,14 +235,75 @@ export const IconButton = styled.button<{ variant?: "danger" }>`
 	&:active {
 		transform: scale(0.95);
 	}
+
+	&:focus {
+		outline: none;
+	}
 `;
 
-export const EditIcon = styled.span`
-	color: #133e87;
-	font-size: 16px;
+export const PaginationWrapper = styled.div`
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	margin-top: 24px;
+
+	& > p {
+		font-size: 14px;
+		color: #666;
+		margin: 0;
+	}
+
+	& > div {
+		display: flex;
+		gap: 6px;
+		align-items: center;
+	}
 `;
 
-export const DeleteIcon = styled.span`
-	color: #d83232;
-	font-size: 16px;
+export const PaginationButton = styled.button<{ $isActive?: boolean }>`
+	padding: 8px 12px;
+	border: 1px solid #e5e7eb;
+	border-radius: 6px;
+	background: white;
+	color: #6b7280;
+	cursor: pointer;
+	font-size: 14px;
+	font-weight: 500;
+	min-width: 36px;
+	transition: all 0.2s;
+
+	/* Active state (for page numbers) */
+	${(props) =>
+		props.$isActive &&
+		css`
+			border-color: #133e87;
+			background: #133e87;
+			color: white;
+			font-weight: 600;
+
+			&:hover {
+				background: #133e87 !important;
+				border-color: #133e87 !important;
+			}
+		`}
+
+	&:disabled {
+		cursor: not-allowed;
+		opacity: 0.4;
+	}
+
+	&:focus {
+		outline: none;
+	}
+
+	&:not(:hover):not(:disabled) {
+		border-color: #e5e7eb;
+		background: white;
+		color: #6b7280;
+	}
+
+	&:hover:not(:disabled):not([$isActive="true"]) {
+		background: #f3f4f6;
+		border-color: #d1d5db;
+	}
 `;
