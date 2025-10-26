@@ -23,11 +23,12 @@ import Header from "./Header";
 import { GroupSetting } from "@/pages/GroupSetting";
 import { LeftSidebar } from "./LeftSidebar/LeftSidebar";
 import TodoFloatingManager from "@/components/custom/ResizableFloatingWindow/TodoFloatingManager/TodoFloatingManager";
-import { GroupResponse, listGroups } from "@/services/groupAPI";
+import { detailGroup, GroupResponse, listGroups } from "@/services/groupAPI";
 import { theme } from "@/themes";
 import { ResizableHandle } from "@/components/ui/resizable";
 import TaskGroup from "@/components/custom/RightPanel/TaskGroup/TaskGroup";
-import FriendList from "@/components/custom/RightPanel/FriendList/FriendList";
+import { useSelector } from "react-redux";
+import { RootState } from "@/store";
 
 const MainLayout = () => {
 	const [iconSelected, setIconSelected] = useState<string>("");
@@ -36,9 +37,15 @@ const MainLayout = () => {
 	const [selectedThreadId, setSelectedThreadId] = useState<string>("");
 	const params = useParams({ strict: false }) as { groupId?: string };
 	const search = useSearch({ strict: false }) as { channel?: string };
+	const [showCodeListPanel, setShowCodeListPanel] = useState<boolean>(false);
 	const groupId = params.groupId;
 	const channelId = search.channel;
 	const [localGroups, setLocalGroups] = useState<any[]>([]);
+	const [isAdmin, setIsAdmin] = useState<boolean>(false);
+	const currentUserProfile = useSelector(
+		(state: RootState) => state.user.profile,
+	);
+	const currentUserId = currentUserProfile?.id || "";
 
 	console.log("MainLayout - Current IDs:", { groupId, channelId });
 
@@ -82,6 +89,46 @@ const MainLayout = () => {
 		};
 	}, []);
 
+	useEffect(() => {
+		const fetchGroupDetail = async () => {
+			if (!groupId) return;
+			try {
+				const res = await detailGroup(groupId || "");
+				const createdBy = res?.data?.createdBy || res;
+				if (currentUserId === createdBy) {
+					setIsAdmin(true);
+				} else {
+					setIsAdmin(false);
+				}
+			} catch (err) {
+				console.error("Failed to fetch channel detail:", err);
+				// don't block UI with alert in layout
+			}
+		};
+		fetchGroupDetail();
+	}, [groupId, currentUserId]);
+
+	// Ensure opening one panel hides the other
+	useEffect(() => {
+		if (iconSelected === "code") {
+			// when code icon is selected, close thread panel
+			setShowThreadPanel(false);
+			setSelectedThreadId("");
+			setShowCodeListPanel(true);
+		} else {
+			// when selecting anything else, we don't force code panel open
+			setShowCodeListPanel(false);
+		}
+	}, [iconSelected]);
+
+	useEffect(() => {
+		if (showThreadPanel) {
+			// when thread panel opens, hide code list & clear icon selection
+			setShowCodeListPanel(false);
+			setIconSelected("");
+		}
+	}, [showThreadPanel]);
+
 	const handleCreateThread = () => {
 		setSelectedThreadId("");
 		setShowThreadPanel(true);
@@ -105,8 +152,20 @@ const MainLayout = () => {
 		setSelectedThreadId("");
 	};
 
+	const handleCloseCodePanel = () => {
+		// close code panel and show member list instead
+		setShowCodeListPanel(false);
+		setIconSelected("users");
+	};
+
 	const renderRightPanel = () => {
-		if (showThreadPanel && groupId && channelId) {
+		// Give priority to code panel when it's active so it won't be hidden by thread
+		if ((showCodeListPanel || iconSelected === "code") && !showThreadPanel) {
+			return <CodeList onClose={handleCloseCodePanel} />;
+		}
+
+		// Thread panel should only show when explicitly opened and not blocked by code panel
+		if (showThreadPanel && groupId && channelId && !showCodeListPanel) {
 			return (
 				<ThreadPanel
 					key={selectedThreadId || "new-thread"}
@@ -118,17 +177,18 @@ const MainLayout = () => {
 				/>
 			);
 		}
+
 		switch (iconSelected) {
 			case "tasks":
 				return <TaskGroup onClose={() => setIconSelected("")} />;
 			case "code":
-				return <CodeList />;
+				return <CodeList onClose={handleCloseCodePanel} />;
 			case "users":
 				return <MemberList />;
 			case "notifications":
 				return null;
 			default:
-				return <FriendList />;
+				return <MemberList />;
 		}
 	};
 
@@ -171,7 +231,7 @@ const MainLayout = () => {
 						<BottomSpacer />
 					</MainLayoutContainer>
 				) : (
-					<GroupSetting setSettingSelect={setSettingSelect} />
+					<GroupSetting setSettingSelect={setSettingSelect} isAdmin={isAdmin} />
 				)}
 			</AuthLayout>
 		</>
