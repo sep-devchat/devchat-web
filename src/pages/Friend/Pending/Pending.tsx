@@ -44,9 +44,9 @@ interface Props {
 	setSearchPending: (s: string) => void;
 	onAcceptFriend: (id: string) => void;
 	onDeclineFriend: (id: string) => void;
+	onCancelFriend: (id: string) => void;
 	onAcceptGroup: (id: string) => void;
 	onDeclineGroup: (id: string) => void;
-	// onCancelGroup: (id: string) => void;
 	isLoadingPending?: boolean;
 }
 
@@ -59,16 +59,15 @@ const Pending: React.FC<Props> = ({
 	setSearchPending,
 	onAcceptFriend,
 	onDeclineFriend,
+	onCancelFriend,
 	onAcceptGroup,
 	onDeclineGroup,
-	// onCancelGroup,
 	isLoadingPending,
 }) => {
 	const q = searchPending.toLowerCase();
 
-	// split friend lists by direction
 	const friendReceived = pendingFriendRequests.filter(
-		(r) => r.direction !== "sent",
+		(r) => r.direction === "received",
 	);
 	const friendSent = pendingFriendRequests.filter(
 		(r) => r.direction === "sent",
@@ -83,9 +82,9 @@ const Pending: React.FC<Props> = ({
 			safeLower(req.name).includes(q) || safeLower(req.handle).includes(q),
 	);
 
-	// group invites
+	// Group invites
 	const groupReceived = pendingGroupInvites.filter(
-		(r) => r.direction !== "sent",
+		(r) => r.direction === "received",
 	);
 	const groupSent = pendingGroupInvites.filter((r) => r.direction === "sent");
 
@@ -99,6 +98,12 @@ const Pending: React.FC<Props> = ({
 			safeLower(inv.groupName).includes(q) ||
 			safeLower(inv.inviterName).includes(q),
 	);
+
+	const hasAnyResults =
+		filteredFriendReceived.length > 0 ||
+		filteredFriendSent.length > 0 ||
+		filteredGroupReceived.length > 0 ||
+		filteredGroupSent.length > 0;
 
 	return (
 		<>
@@ -123,11 +128,10 @@ const Pending: React.FC<Props> = ({
 				</div>
 			)}
 
-			{/* FRIENDS */}
 			{filteredFriendReceived.length > 0 && (
 				<>
 					<SectionHeader>
-						Friend Requests — Received ({filteredFriendReceived.length})
+						Received - {filteredFriendReceived.length}
 					</SectionHeader>
 					<ResultsList style={{ marginBottom: 16 }}>
 						{filteredFriendReceived.map((req) => (
@@ -156,10 +160,10 @@ const Pending: React.FC<Props> = ({
 					</ResultsList>
 				</>
 			)}
-			{/* 
+
 			{filteredFriendSent.length > 0 && (
 				<>
-					<SectionHeader>Friend Requests — Sent ({filteredFriendSent.length})</SectionHeader>
+					<SectionHeader>Sent - {filteredFriendSent.length}</SectionHeader>
 					<ResultsList style={{ marginBottom: 16 }}>
 						{filteredFriendSent.map((req) => (
 							<ResultItem key={req.id}>
@@ -168,14 +172,19 @@ const Pending: React.FC<Props> = ({
 									<UserName>{req.name}</UserName>
 									<UserHandle>{req.handle}</UserHandle>
 								</UserInfo>
-								<ActionButton variant="unfriend" onClick={() => onCancelFriend(req.id)}>✕</ActionButton>
+								<ActionButton
+									variant="unfriend"
+									onClick={() => onCancelFriend(req.id)}
+								>
+									✕
+								</ActionButton>
 							</ResultItem>
 						))}
 					</ResultsList>
 				</>
-			)} */}
+			)}
 
-			{/* GROUP INVITES */}
+			{/* GROUP INVITES - RECEIVED */}
 			{filteredGroupReceived.length > 0 && (
 				<>
 					<SectionHeader>
@@ -214,30 +223,38 @@ const Pending: React.FC<Props> = ({
 				</>
 			)}
 
-			{/* {filteredGroupSent.length > 0 && (
+			{/* GROUP INVITES - SENT */}
+			{filteredGroupSent.length > 0 && (
 				<>
-					<SectionHeader>Group Invites — Sent ({filteredGroupSent.length})</SectionHeader>
-					<ResultsList>
+					<SectionHeader>
+						Group Invites — Sent ({filteredGroupSent.length})
+					</SectionHeader>
+					<ResultsList style={{ marginBottom: 16 }}>
 						{filteredGroupSent.map((inv) => (
 							<ResultItem key={inv.id}>
 								<Avatar src={inv.inviterAvatar} alt={inv.groupName} />
 								<UserInfo>
 									<UserName>{inv.groupName}</UserName>
-									<UserHandle>{inv.inviterName ? `Invited by ${inv.inviterName}` : ""}</UserHandle>
+									<UserHandle>
+										{inv.inviterName ? `Invited by ${inv.inviterName}` : ""}
+									</UserHandle>
 								</UserInfo>
-								<ActionButton variant="unfriend" onClick={() => onCancelGroup(inv.id)}>✕</ActionButton>
+								<ActionButton
+									variant="unfriend"
+									onClick={() => console.log("Cancel group invite:", inv.id)}
+								>
+									✕
+								</ActionButton>
 							</ResultItem>
 						))}
 					</ResultsList>
 				</>
-			)} */}
+			)}
 
-			{/* empty state */}
-			{filteredFriendReceived.length === 0 &&
-				filteredFriendSent.length === 0 &&
-				filteredGroupReceived.length === 0 &&
-				filteredGroupSent.length === 0 &&
-				!isLoadingPending && <NoResults>Không có lời mời nào</NoResults>}
+			{/* Empty state */}
+			{!hasAnyResults && !isLoadingPending && (
+				<NoResults>No invitations available.</NoResults>
+			)}
 		</>
 	);
 };
