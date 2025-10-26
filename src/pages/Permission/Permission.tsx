@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useSearch } from "@tanstack/react-router";
 import { TabId } from "./permission.types";
 import { DEFAULT_TAB, TABS } from "./permission.constants";
@@ -11,6 +11,15 @@ import {
 } from "@/components/custom/TablePermission/TablePermission";
 import { PermissionModal } from "@/components/custom/TablePermission/Modal/Modal";
 import { SystemRoleModal } from "@/components/custom/RolePermission/Modal/Modal";
+import {
+	listPermissions,
+	createPermission,
+	updatePermission,
+	deletePermission,
+	FeaturePermissionResponse,
+	FeaturePermissionRequest,
+} from "@/services/permissionAPI";
+import ErrorMessage from "@/components/custom/ErrorMessage/ErrorMessage";
 
 interface RolePermissionRole {
 	id: string;
@@ -55,11 +64,56 @@ export const Permission: React.FC = () => {
 	);
 
 	const [selectedRowIndex, setSelectedRowIndex] = useState<number | null>(null);
+	const [selectedPermissionId, setSelectedPermissionId] = useState<
+		string | null
+	>(null);
 	const [tableData, setTableData] = useState<
 		Record<TabId, RolePermissionType[]>
 	>({
 		...MOCK_DATA,
 	} as any);
+
+	const [isLoading, setIsLoading] = useState(false);
+	const [error, setError] = useState<string | null>(null);
+
+	useEffect(() => {
+		if (activeTab === "feature") {
+			fetchFeaturePermissions();
+		}
+	}, [activeTab]);
+
+	const fetchFeaturePermissions = async () => {
+		setIsLoading(true);
+		setError(null);
+		try {
+			const response = await listPermissions(1, 100);
+			if (response && response.data && Array.isArray(response.data)) {
+				const activePermissions = response.data.filter(
+					(item: FeaturePermissionResponse) => item.isActive === true,
+				);
+
+				const formattedData = activePermissions.map(
+					(item: FeaturePermissionResponse) => ({
+						id: item.id,
+						code: item.code,
+						name: item.name,
+						description: item.description,
+						feature: item.name,
+					}),
+				);
+
+				setTableData((prev) => ({
+					...prev,
+					feature: formattedData,
+				}));
+			}
+		} catch (err: any) {
+			console.error("Error fetching permissions:", err);
+			setError(err.message || "Error fetching permissions");
+		} finally {
+			setIsLoading(false);
+		}
+	};
 
 	const handleEdit = (index: number) => {
 		console.log(`Edit item at index ${index} in tab ${activeTab}`);
@@ -71,6 +125,12 @@ export const Permission: React.FC = () => {
 			setEditingRoleData(roleToEdit);
 			setRoleModalMode("edit");
 			setIsRoleModalOpen(true);
+		} else if (activeTab === "feature") {
+			const permissionToEdit = tableData["feature"][index];
+			setSelectedPermissionId(permissionToEdit.id as string);
+			setSelectedRowIndex(index);
+			setModalMode("edit");
+			setIsModalOpen(true);
 		} else {
 			setSelectedRowIndex(index);
 			setModalMode("edit");
@@ -78,8 +138,24 @@ export const Permission: React.FC = () => {
 		}
 	};
 
-	const handleDelete = (index: number) => {
-		if (window.confirm("Bạn có chắc chắn muốn xóa mục này?")) {
+	const handleDelete = async (index: number) => {
+		if (activeTab === "feature") {
+			const permissionToDelete = tableData["feature"][index];
+			const permissionId = permissionToDelete.id as string;
+
+			setIsLoading(true);
+			try {
+				await deletePermission(permissionId);
+				console.log(`Deleted permission with id ${permissionId}`);
+
+				await fetchFeaturePermissions();
+			} catch (err: any) {
+				console.error("Error deleting permission:", err);
+				alert(err.message || "Không thể xóa permission");
+			} finally {
+				setIsLoading(false);
+			}
+		} else {
 			console.log(`Delete item at index ${index} in tab ${activeTab}`);
 			setTableData((prev) => ({
 				...prev,
@@ -96,26 +172,64 @@ export const Permission: React.FC = () => {
 			setIsRoleModalOpen(true);
 		} else {
 			setSelectedRowIndex(null);
+			setSelectedPermissionId(null);
 			setModalMode("create");
 			setIsModalOpen(true);
 		}
 	};
 
-	const handleModalSubmit = (data: RolePermissionType) => {
-		if (modalMode === "create") {
-			setTableData((prev) => ({
-				...prev,
-				[activeTab]: [...prev[activeTab], data],
-			}));
-			console.log("Created new item:", data);
-		} else if (modalMode === "edit" && selectedRowIndex !== null) {
-			setTableData((prev) => ({
-				...prev,
-				[activeTab]: prev[activeTab].map((item, index) =>
-					index === selectedRowIndex ? data : item,
-				),
-			}));
-			console.log("Updated item at index", selectedRowIndex, ":", data);
+	const handleModalSubmit = async (data: RolePermissionType) => {
+		if (activeTab === "feature") {
+			setIsLoading(true);
+			try {
+				if (modalMode === "create") {
+					const requestData: FeaturePermissionRequest = {
+						code: data.code as string,
+						name: data.name as string,
+						description: (data.description as string) || "",
+					};
+
+					const response = await createPermission(requestData);
+					console.log("Created new permission:", response);
+
+					await fetchFeaturePermissions();
+				} else if (modalMode === "edit" && selectedPermissionId) {
+					const requestData: any = {
+						code: data.code as string,
+						name: data.name as string,
+						description: (data.description as string) || "",
+					};
+
+					const response = await updatePermission(
+						selectedPermissionId,
+						requestData,
+					);
+					console.log("Updated permission:", response);
+
+					await fetchFeaturePermissions();
+				}
+			} catch (err: any) {
+				console.error("Error saving permission:", err);
+				alert(err.message || "Không thể lưu permission");
+			} finally {
+				setIsLoading(false);
+			}
+		} else {
+			if (modalMode === "create") {
+				setTableData((prev) => ({
+					...prev,
+					[activeTab]: [...prev[activeTab], data],
+				}));
+				console.log("Created new item:", data);
+			} else if (modalMode === "edit" && selectedRowIndex !== null) {
+				setTableData((prev) => ({
+					...prev,
+					[activeTab]: prev[activeTab].map((item, index) =>
+						index === selectedRowIndex ? data : item,
+					),
+				}));
+				console.log("Updated item at index", selectedRowIndex, ":", data);
+			}
 		}
 		handleModalClose();
 	};
@@ -123,6 +237,7 @@ export const Permission: React.FC = () => {
 	const handleModalClose = () => {
 		setIsModalOpen(false);
 		setSelectedRowIndex(null);
+		setSelectedPermissionId(null);
 	};
 
 	const handleRoleModalSubmit = (data: any) => {
@@ -247,20 +362,17 @@ export const Permission: React.FC = () => {
 
 	const renderCell = (value: any, column: any): React.ReactNode | undefined => {
 		if (activeTab === "feature" && column.key === "feature") {
-			const featureDescriptions: Record<string, string> = {
-				"Real-time Chat": "Allow sending and receiving real-time messages",
-				"Code Execution": "Run code snippets in sandbox environment",
-				"AI Assistant": "Use AI to suggest code and debug",
-				"GitHub Integration": "Connect with GitHub repos and PRs",
-				"Snippet Library": "Save and share code snippets",
-				"File Upload": "Upload files and attachments",
-			};
+			const currentData = tableData["feature"] || [];
+			const rowData = currentData.find((row) => row.name === value);
+
 			return (
 				<div>
 					<div style={{ fontWeight: 600 }}>{value}</div>
-					<div style={{ fontSize: "12px", color: "#666" }}>
-						{featureDescriptions[value]}
-					</div>
+					{rowData && rowData.description && (
+						<div style={{ fontSize: "12px", color: "#666" }}>
+							{rowData.description}
+						</div>
+					)}
 				</div>
 			);
 		}
@@ -304,6 +416,7 @@ export const Permission: React.FC = () => {
 
 	return (
 		<S.Container>
+			{error && <ErrorMessage />}
 			<S.TableWrapper>
 				<TablePermission
 					title={getTableTitle()}
@@ -319,6 +432,16 @@ export const Permission: React.FC = () => {
 					onDelete={activeTab !== "change-history" ? handleDelete : undefined}
 					renderCell={renderCell}
 					showCellBackground={activeTab === "change-history"}
+					deleteConfirmTitle="Confirm Deletion"
+					deleteConfirmMessage={(rowData: RolePermissionType) => {
+						if (activeTab === "feature" && rowData?.name) {
+							return `Are you sure you want to delete permission "${rowData.name}"?`;
+						}
+						return "Are you sure you want to delete this item?";
+					}}
+					deleteConfirmText="Delete"
+					deleteCancelText="Cancel"
+					isLoading={isLoading}
 				/>
 			</S.TableWrapper>
 
