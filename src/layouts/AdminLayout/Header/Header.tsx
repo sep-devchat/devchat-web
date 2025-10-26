@@ -103,10 +103,52 @@ const Header: React.FC = () => {
 			};
 		}
 
-		if (pathname.startsWith("/admin/permissions")) {
+		if (pathname.startsWith("/admin/permission")) {
 			return {
 				title: "Permissions",
-				path: "/admin/permissions",
+				path: "/admin/permission",
+				tabs: [
+					{
+						id: "system-roles",
+						label: "System Roles",
+						path: "/admin/permission?tab=system-roles",
+					},
+					{
+						id: "feature",
+						label: "Permissions",
+						path: "/admin/permission?tab=feature",
+					},
+					// {
+					// 	id: "project",
+					// 	label: "Project Permissions",
+					// 	path: "/admin/permission?tab=project",
+					// },
+					// {
+					// 	id: "resource-limit",
+					// 	label: "Resource Limit",
+					// 	path: "/admin/permission?tab=resource-limit",
+					// },
+					// {
+					// 	id: "api-keys",
+					// 	label: "API Keys",
+					// 	path: "/admin/permission?tab=api-keys",
+					// },
+					// {
+					// 	id: "code-execution",
+					// 	label: "Code Execution",
+					// 	path: "/admin/permission?tab=code-execution",
+					// },
+					// {
+					// 	id: "security",
+					// 	label: "Advanced Security",
+					// 	path: "/admin/permission?tab=security",
+					// },
+					{
+						id: "change-history",
+						label: "Change History",
+						path: "/admin/permission?tab=change-history",
+					},
+				],
 			};
 		}
 
