@@ -1,31 +1,53 @@
 import React, { useMemo, useState } from "react";
 import { Edit3, Trash2, Search, ChevronLeft, ChevronRight } from "lucide-react";
-import ConfirmModal from "@/components/custom/ConfirmModal/ConfirmModal";
 
-import {
-	TableContainer,
-	TableHeader,
-	TableTitle,
-	TableSubtitle,
-	ActionButton,
-	SearchWrapper,
-	SearchInput,
-	Table,
-	Thead,
-	Tbody,
-	Tr,
-	Th,
-	Td,
-	Badge,
-	CellBackgroundSpan,
-	CheckIconWrapper,
-	CloseIconWrapper,
-	ActionGroup,
-	IconButton,
-	PaginationWrapper,
-	PaginationButton,
-} from "./TablePermission.styled";
-import LoadingSpinner from "../LoadingSpinner/LoadingSpinner";
+const Badge: React.FC<{ variant?: string; children: React.ReactNode }> = ({
+	variant,
+	children,
+}) => {
+	let bgColor = "#f3f4f6";
+	let textColor = "#6b7280";
+
+	switch (variant) {
+		case "purple":
+			bgColor = "#B54BB333";
+			textColor = "#B54BB3";
+			break;
+		case "blue":
+			bgColor = "#608BC133";
+			textColor = "#608BC1";
+			break;
+		case "green":
+			bgColor = "#1CCA9333";
+			textColor = "#1CCA93";
+			break;
+		case "yellow":
+			bgColor = "#EFB00833";
+			textColor = "#EFB008";
+			break;
+		case "red":
+			bgColor = "#D8323233";
+			textColor = "#D83232";
+			break;
+	}
+
+	return (
+		<span
+			style={{
+				display: "inline-block",
+				padding: "4px 12px",
+				borderRadius: "12px",
+				fontSize: "13px",
+				fontWeight: "500",
+				whiteSpace: "nowrap",
+				background: bgColor,
+				color: textColor,
+			}}
+		>
+			{children}
+		</span>
+	);
+};
 
 export interface Column {
 	key: string;
@@ -57,11 +79,6 @@ export interface TablePermissionProps {
 	showSearch?: boolean;
 	showPagination?: boolean;
 	showCellBackground?: boolean;
-	deleteConfirmTitle?: string;
-	deleteConfirmMessage?: string | ((rowData: RolePermission) => string);
-	deleteConfirmText?: string;
-	deleteCancelText?: string;
-	isLoading?: boolean;
 }
 
 export const TablePermission: React.FC<TablePermissionProps> = ({
@@ -78,19 +95,9 @@ export const TablePermission: React.FC<TablePermissionProps> = ({
 	showSearch = true,
 	showPagination = true,
 	showCellBackground = true,
-	deleteConfirmTitle = "Confirm Deletion",
-	deleteConfirmMessage = "Are you sure you want to delete this item?",
-	deleteConfirmText = "Delete",
-	deleteCancelText = "Cancel",
-	isLoading: isTableLoading = false,
 }) => {
 	const [searchTerm, setSearchTerm] = useState("");
 	const [currentPage, setCurrentPage] = useState(1);
-	const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
-	const [deleteTargetIndex, setDeleteTargetIndex] = useState<number | null>(
-		null,
-	);
-	const [isDeleting, setIsDeleting] = useState(false);
 
 	const filteredData = useMemo(() => {
 		if (!searchTerm.trim()) return data;
@@ -113,50 +120,28 @@ export const TablePermission: React.FC<TablePermissionProps> = ({
 		setCurrentPage(1);
 	}, [searchTerm]);
 
-	const totalColumns = columns.length + (onEdit || onDelete ? 1 : 0);
-
-	const getValueVariant = (value: string): string => {
+	const getValueColor = (value: string): { bg: string; text: string } => {
 		const lowerValue = value.toLowerCase();
 
-		if (
-			lowerValue === "unlimited" ||
-			lowerValue.includes("100mb") ||
-			parseInt(lowerValue) >= 1000
-		)
-			return "purple";
-		if (
-			lowerValue.includes("50mb") ||
-			lowerValue.includes("10mb") ||
-			parseInt(lowerValue) >= 500
-		)
-			return "blue";
-		if (
-			lowerValue.includes("25mb") ||
-			lowerValue.includes("5mb") ||
-			parseInt(lowerValue) >= 100
-		)
-			return "green";
+		if (lowerValue === "unlimited") return { bg: "#ede9fe", text: "#7c3aed" };
+		if (lowerValue.includes("mb") || lowerValue.includes("gb")) {
+			if (lowerValue.includes("100")) return { bg: "#ede9fe", text: "#7c3aed" };
+			if (lowerValue.includes("50") || lowerValue.includes("10"))
+				return { bg: "#dbeafe", text: "#133e87" };
+			if (lowerValue.includes("25") || lowerValue.includes("5"))
+				return { bg: "#1CCA9333", text: "#1CCA93" };
+			if (lowerValue.includes("1")) return { bg: "#fef3c7", text: "#d97706" };
+		}
+
 		const numValue = parseInt(lowerValue);
-		if (
-			lowerValue.includes("1mb") ||
-			(!isNaN(numValue) && numValue < 100 && numValue > 0)
-		)
-			return "yellow";
+		if (!isNaN(numValue)) {
+			if (numValue >= 1000) return { bg: "#ede9fe", text: "#7c3aed" };
+			if (numValue >= 500) return { bg: "#dbeafe", text: "#133e87" };
+			if (numValue >= 100) return { bg: "#1CCA9333", text: "#1CCA93" };
+			return { bg: "#fef3c7", text: "#d97706" };
+		}
 
-		return "default";
-	};
-
-	const getBadgeVariant = (value: string): string => {
-		const lowerValue = value.toLowerCase();
-		if (lowerValue.includes("admin") || lowerValue.includes("unlimited"))
-			return "purple";
-		if (lowerValue.includes("moderator")) return "blue";
-		if (lowerValue.includes("support") || lowerValue.includes("enabled"))
-			return "green";
-		if (lowerValue.includes("member")) return "yellow";
-		if (lowerValue.includes("disabled")) return "red";
-
-		return "default";
+		return { bg: "#f3f4f6", text: "#6b7280" };
 	};
 
 	const defaultRenderCell = (
@@ -171,10 +156,23 @@ export const TablePermission: React.FC<TablePermissionProps> = ({
 		}
 
 		if (typeof value === "boolean") {
-			return value ? (
-				<CheckIconWrapper>✓</CheckIconWrapper>
-			) : (
-				<CloseIconWrapper>✕</CloseIconWrapper>
+			return (
+				<span
+					style={{
+						display: "inline-flex",
+						alignItems: "center",
+						justifyContent: "center",
+						width: "20px",
+						height: "20px",
+						borderRadius: "50%",
+						background: value ? "#1CCA9333" : "#fee2e2",
+						color: value ? "#1CCA93" : "#D83232",
+						fontSize: "14px",
+						fontWeight: "bold",
+					}}
+				>
+					{value ? "✓" : "✕"}
+				</span>
 			);
 		}
 
@@ -188,208 +186,391 @@ export const TablePermission: React.FC<TablePermissionProps> = ({
 			}
 
 			if (showCellBackground) {
+				const colors = getValueColor(value);
 				return (
-					<CellBackgroundSpan variant={getValueVariant(value)}>
+					<span
+						style={{
+							display: "inline-block",
+							padding: "4px 12px",
+							borderRadius: "12px",
+							fontSize: "13px",
+							fontWeight: "500",
+							whiteSpace: "nowrap",
+							background: colors.bg,
+							color: colors.text,
+						}}
+					>
 						{value}
-					</CellBackgroundSpan>
+					</span>
 				);
 			}
-
-			return value;
+			return <span style={{ color: "#374151" }}>{value}</span>;
 		}
 
 		return value;
 	};
 
-	const handleDeleteClick = (rowIndex: number) => {
-		const startIdx = (currentPage - 1) * pageSize;
-		const actualIndex = startIdx + rowIndex;
-		setDeleteTargetIndex(actualIndex);
-		setIsConfirmModalOpen(true);
-	};
-
-	const handleConfirmDelete = async () => {
-		if (deleteTargetIndex === null || !onDelete) return;
-
-		setIsDeleting(true);
-		try {
-			await onDelete(deleteTargetIndex);
-
-			setIsConfirmModalOpen(false);
-			setDeleteTargetIndex(null);
-		} catch (error) {
-			console.error("Error deleting item:", error);
-		} finally {
-			setIsDeleting(false);
-		}
-	};
-
-	const handleCancelDelete = () => {
-		setIsConfirmModalOpen(false);
-		setDeleteTargetIndex(null);
-	};
-
-	const getConfirmMessage = (): string => {
-		if (deleteTargetIndex === null) return String(deleteConfirmMessage);
-
-		if (typeof deleteConfirmMessage === "function") {
-			const rowData = filteredData[deleteTargetIndex];
-			return deleteConfirmMessage(rowData);
-		}
-
-		return String(deleteConfirmMessage);
+	const getBadgeVariant = (value: string): string => {
+		const lowerValue = value.toLowerCase();
+		if (lowerValue.includes("admin")) return "purple";
+		if (lowerValue.includes("moderator")) return "blue";
+		if (lowerValue.includes("support")) return "green";
+		if (lowerValue.includes("member")) return "yellow";
+		if (lowerValue.includes("unlimited")) return "purple";
+		if (lowerValue.includes("enabled")) return "green";
+		if (lowerValue.includes("disabled")) return "red";
+		return "default";
 	};
 
 	return (
-		<>
-			<TableContainer>
-				<TableHeader>
-					<div>
-						<TableTitle>{title}</TableTitle>
-						{subtitle && <TableSubtitle>{subtitle}</TableSubtitle>}
-					</div>
-					{actionButtonText && onActionButtonClick && (
-						<ActionButton onClick={onActionButtonClick}>
-							+ {actionButtonText}
-						</ActionButton>
+		<div
+			style={{
+				background: "white",
+				borderRadius: "8px",
+				padding: "24px",
+				boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)",
+			}}
+		>
+			<div
+				style={{
+					display: "flex",
+					justifyContent: "space-between",
+					alignItems: "center",
+					marginBottom: "24px",
+				}}
+			>
+				<div>
+					<h2
+						style={{
+							fontSize: "20px",
+							fontWeight: "600",
+							color: "#1a1a1a",
+							margin: "0 0 4px 0",
+						}}
+					>
+						{title}
+					</h2>
+					{subtitle && (
+						<p style={{ fontSize: "14px", color: "#666", margin: "0" }}>
+							{subtitle}
+						</p>
 					)}
-				</TableHeader>
+				</div>
+				{actionButtonText && onActionButtonClick && (
+					<button
+						onClick={onActionButtonClick}
+						style={{
+							background: "#133e87",
+							color: "white",
+							border: "none",
+							borderRadius: "6px",
+							padding: "10px 16px",
+							fontSize: "14px",
+							fontWeight: "500",
+							cursor: "pointer",
+							display: "flex",
+							alignItems: "center",
+							gap: "6px",
+							transition: "background 0.2s",
+						}}
+						onMouseEnter={(e) => (e.currentTarget.style.background = "#1952b3")}
+						onMouseLeave={(e) => (e.currentTarget.style.background = "#133e87")}
+					>
+						+ {actionButtonText}
+					</button>
+				)}
+			</div>
 
-				{showSearch && (
-					<SearchWrapper>
-						<Search size={18} />
-						<SearchInput
+			{showSearch && (
+				<div style={{ marginBottom: "24px", position: "relative" }}>
+					<div
+						style={{
+							position: "relative",
+							display: "flex",
+							alignItems: "center",
+						}}
+					>
+						<Search
+							size={18}
+							style={{ position: "absolute", left: "12px", color: "#9ca3af" }}
+						/>
+						<input
 							type="text"
-							placeholder="Search..."
+							placeholder="Tìm kiếm theo người dùng, hành động..."
 							value={searchTerm}
 							onChange={(e) => setSearchTerm(e.target.value)}
+							style={{
+								width: "100%",
+								padding: "10px 12px 10px 38px",
+								border: "1px solid #e5e7eb",
+								borderRadius: "6px",
+								fontSize: "14px",
+								outline: "none",
+								transition: "border-color 0.2s",
+							}}
+							onFocus={(e) => (e.target.style.borderColor = "#133e87")}
+							onBlur={(e) => (e.target.style.borderColor = "#e5e7eb")}
 						/>
-					</SearchWrapper>
-				)}
+					</div>
+				</div>
+			)}
 
-				<Table>
-					<Thead>
-						<Tr>
-							{columns.map((column) => (
-								<Th key={column.key} width={column.width} align={column.align}>
-									{column.label}
-								</Th>
-							))}
-							{(onEdit || onDelete) && <Th align="center">Actions</Th>}
-						</Tr>
-					</Thead>
-					<Tbody>
-						{isTableLoading || isDeleting ? (
-							<Tr>
-								<Td
-									colSpan={totalColumns}
-									align="center"
-									style={{ height: "150px" }}
-								>
-									<LoadingSpinner />
-								</Td>
-							</Tr>
-						) : (
-							paginatedData.map((row, rowIndex) => (
-								<Tr key={rowIndex}>
-									{columns.map((column) => (
-										<Td key={`${rowIndex}-${column.key}`} align={column.align}>
-											{defaultRenderCell(
-												row[column.key],
-												column,
-												row,
-												rowIndex,
-											)}
-										</Td>
-									))}
-									{(onEdit || onDelete) && (
-										<Td align="center">
-											<ActionGroup>
-												{onEdit && (
-													<IconButton
-														onClick={() =>
-															onEdit((currentPage - 1) * pageSize + rowIndex)
-														}
-														title="Edit"
-														variant="default"
-													>
-														<Edit3 size={16} />
-													</IconButton>
-												)}
-												{onDelete && (
-													<IconButton
-														onClick={() => handleDeleteClick(rowIndex)}
-														title="Delete"
-														variant="danger"
-													>
-														<Trash2 size={16} />
-													</IconButton>
-												)}
-											</ActionGroup>
-										</Td>
-									)}
-								</Tr>
-							))
+			<table
+				style={{ width: "100%", borderCollapse: "collapse", fontSize: "14px" }}
+			>
+				<thead
+					style={{ background: "#f9fafb", borderBottom: "1px solid #e5e7eb" }}
+				>
+					<tr>
+						{columns.map((column) => (
+							<th
+								key={column.key}
+								style={{
+									padding: "12px 16px",
+									textAlign: column.align || "left",
+									fontWeight: "600",
+									color: "#6b7280",
+									fontSize: "12px",
+									textTransform: "uppercase",
+									letterSpacing: "0.5px",
+									width: column.width || "auto",
+								}}
+							>
+								{column.label}
+							</th>
+						))}
+						{(onEdit || onDelete) && (
+							<th
+								style={{
+									padding: "12px 16px",
+									textAlign: "center",
+									fontWeight: "600",
+									color: "#6b7280",
+									fontSize: "12px",
+									textTransform: "uppercase",
+									letterSpacing: "0.5px",
+								}}
+							>
+								Actions
+							</th>
 						)}
-					</Tbody>
-				</Table>
-
-				{showPagination && totalPages > 1 && (
-					<PaginationWrapper>
-						<p>
-							Showing{" "}
-							{Math.min((currentPage - 1) * pageSize + 1, filteredData.length)}-
-							{Math.min(pageSize * currentPage, filteredData.length)} out of{" "}
-							{filteredData.length} records
-						</p>
-						<div>
-							<PaginationButton
-								onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-								disabled={currentPage === 1}
-								title="Previous Page"
-							>
-								<ChevronLeft size={18} />
-							</PaginationButton>
-
-							{Array.from({ length: totalPages }, (_, i) => i + 1)
-								.slice(
-									Math.max(0, currentPage - 2),
-									Math.min(totalPages, currentPage + 2),
-								)
-								.map((page) => (
-									<PaginationButton
-										key={page}
-										onClick={() => setCurrentPage(page)}
-										$isActive={currentPage === page}
+					</tr>
+				</thead>
+				<tbody>
+					{paginatedData.map((row, rowIndex) => (
+						<tr
+							key={rowIndex}
+							style={{
+								borderBottom: "1px solid #f3f4f6",
+								transition: "background 0.2s",
+							}}
+							onMouseEnter={(e) =>
+								(e.currentTarget.style.background = "#f9fafb")
+							}
+							onMouseLeave={(e) =>
+								(e.currentTarget.style.background = "transparent")
+							}
+						>
+							{columns.map((column) => (
+								<td
+									key={`${rowIndex}-${column.key}`}
+									style={{
+										padding: "16px",
+										textAlign: column.align || "left",
+										color: "#374151",
+										verticalAlign: "middle",
+									}}
+								>
+									{defaultRenderCell(row[column.key], column, row, rowIndex)}
+								</td>
+							))}
+							{(onEdit || onDelete) && (
+								<td
+									style={{
+										padding: "16px",
+										textAlign: "center",
+										color: "#374151",
+										verticalAlign: "middle",
+									}}
+								>
+									<div
+										style={{
+											display: "flex",
+											gap: "8px",
+											justifyContent: "center",
+										}}
 									>
-										{page}
-									</PaginationButton>
-								))}
+										{onEdit && (
+											<button
+												onClick={() => onEdit(rowIndex)}
+												title="Chỉnh sửa"
+												style={{
+													background: "transparent",
+													border: "none",
+													cursor: "pointer",
+													padding: "6px",
+													borderRadius: "4px",
+													display: "inline-flex",
+													alignItems: "center",
+													justifyContent: "center",
+													transition: "background 0.2s",
+													color: "#3B82F6",
+												}}
+												onMouseEnter={(e) =>
+													(e.currentTarget.style.background = "#f3f4f6")
+												}
+												onMouseLeave={(e) =>
+													(e.currentTarget.style.background = "transparent")
+												}
+											>
+												<Edit3 size={16} />
+											</button>
+										)}
+										{onDelete && (
+											<button
+												onClick={() => onDelete(rowIndex)}
+												title="Xóa"
+												style={{
+													background: "transparent",
+													border: "none",
+													cursor: "pointer",
+													padding: "6px",
+													borderRadius: "4px",
+													display: "inline-flex",
+													alignItems: "center",
+													justifyContent: "center",
+													transition: "background 0.2s",
+													color: "#D83232",
+												}}
+												onMouseEnter={(e) =>
+													(e.currentTarget.style.background = "#fee2e2")
+												}
+												onMouseLeave={(e) =>
+													(e.currentTarget.style.background = "transparent")
+												}
+											>
+												<Trash2 size={16} />
+											</button>
+										)}
+									</div>
+								</td>
+							)}
+						</tr>
+					))}
+				</tbody>
+			</table>
 
-							<PaginationButton
-								onClick={() =>
-									setCurrentPage((p) => Math.min(totalPages, p + 1))
+			{showPagination && totalPages > 1 && (
+				<div
+					style={{
+						display: "flex",
+						justifyContent: "space-between",
+						alignItems: "center",
+						marginTop: "24px",
+					}}
+				>
+					<p style={{ fontSize: "14px", color: "#666", margin: "0" }}>
+						Hiển thị 1-{Math.min(pageSize, filteredData.length)} trong tổng số{" "}
+						{filteredData.length} bản ghi
+					</p>
+					<div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
+						<button
+							onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+							disabled={currentPage === 1}
+							style={{
+								padding: "8px 10px",
+								border: "1px solid #e5e7eb",
+								borderRadius: "6px",
+								background: "white",
+								cursor: currentPage === 1 ? "not-allowed" : "pointer",
+								opacity: currentPage === 1 ? 0.4 : 1,
+								transition: "all 0.2s",
+								color: "#6b7280",
+							}}
+							onMouseEnter={(e) => {
+								if (currentPage !== 1) {
+									e.currentTarget.style.background = "#f3f4f6";
+									e.currentTarget.style.borderColor = "#d1d5db";
 								}
-								disabled={currentPage === totalPages}
-								title="Next Page"
-							>
-								<ChevronRight size={18} />
-							</PaginationButton>
-						</div>
-					</PaginationWrapper>
-				)}
-			</TableContainer>
+							}}
+							onMouseLeave={(e) => {
+								e.currentTarget.style.background = "white";
+								e.currentTarget.style.borderColor = "#e5e7eb";
+							}}
+						>
+							<ChevronLeft size={18} />
+						</button>
 
-			<ConfirmModal
-				isOpen={isConfirmModalOpen}
-				title={deleteConfirmTitle}
-				message={getConfirmMessage()}
-				confirmText={deleteConfirmText}
-				cancelText={deleteCancelText}
-				onConfirm={handleConfirmDelete}
-				onCancel={handleCancelDelete}
-				isLoading={isDeleting}
-			/>
-		</>
+						{Array.from({ length: totalPages }, (_, i) => i + 1)
+							.slice(
+								Math.max(0, currentPage - 2),
+								Math.min(totalPages, currentPage + 2),
+							)
+							.map((page) => (
+								<button
+									key={page}
+									onClick={() => setCurrentPage(page)}
+									style={{
+										padding: "8px 12px",
+										border:
+											currentPage === page
+												? "1px solid #133e87"
+												: "1px solid #e5e7eb",
+										borderRadius: "6px",
+										background: currentPage === page ? "#133e87" : "white",
+										color: currentPage === page ? "white" : "#6b7280",
+										cursor: "pointer",
+										fontSize: "14px",
+										fontWeight: currentPage === page ? "600" : "500",
+										minWidth: "36px",
+										transition: "all 0.2s",
+									}}
+									onMouseEnter={(e) => {
+										if (currentPage !== page) {
+											e.currentTarget.style.background = "#f9fafb";
+											e.currentTarget.style.borderColor = "#d1d5db";
+										}
+									}}
+									onMouseLeave={(e) => {
+										if (currentPage !== page) {
+											e.currentTarget.style.background = "white";
+											e.currentTarget.style.borderColor = "#e5e7eb";
+										}
+									}}
+								>
+									{page}
+								</button>
+							))}
+
+						<button
+							onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+							disabled={currentPage === totalPages}
+							style={{
+								padding: "8px 10px",
+								border: "1px solid #e5e7eb",
+								borderRadius: "6px",
+								background: "white",
+								cursor: currentPage === totalPages ? "not-allowed" : "pointer",
+								opacity: currentPage === totalPages ? 0.4 : 1,
+								transition: "all 0.2s",
+								color: "#6b7280",
+							}}
+							onMouseEnter={(e) => {
+								if (currentPage !== totalPages) {
+									e.currentTarget.style.background = "#f3f4f6";
+									e.currentTarget.style.borderColor = "#d1d5db";
+								}
+							}}
+							onMouseLeave={(e) => {
+								e.currentTarget.style.background = "white";
+								e.currentTarget.style.borderColor = "#e5e7eb";
+							}}
+						>
+							<ChevronRight size={18} />
+						</button>
+					</div>
+				</div>
+			)}
+		</div>
 	);
 };

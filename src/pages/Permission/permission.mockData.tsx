@@ -74,7 +74,38 @@ export const MOCK_DATA: Record<TabId, RolePermission[]> = {
 			lastModified: "2025-10-10 08:00",
 		},
 	],
-	feature: [],
+	feature: [
+		{
+			code: "REAL_TIME_CHAT",
+			name: "Real-time Chat",
+			description: "Allow sending and receiving real-time messages",
+		},
+		{
+			code: "CODE_EXEC",
+			name: "Code Execution",
+			description: "Run code snippets in sandbox environment",
+		},
+		{
+			code: "AI_ASSISTANT",
+			name: "AI Assistant",
+			description: "Use AI to suggest code and debug",
+		},
+		{
+			code: "GITHUB_INT",
+			name: "GitHub Integration",
+			description: "Connect with GitHub repos and PRs",
+		},
+		{
+			code: "SNIPPET_LIB",
+			name: "Snippet Library",
+			description: "Save and share code snippets",
+		},
+		{
+			code: "FILE_UPLOAD",
+			name: "File Upload",
+			description: "Upload files and attachments",
+		},
+	],
 	"change-history": [
 		{
 			time: "2025-10-16 14:32:15",
