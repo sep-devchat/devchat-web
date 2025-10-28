@@ -30,11 +30,17 @@ interface PendingFriend {
 interface PendingGroup {
 	id: string;
 	groupId?: string;
-	groupName: string;
+	groupAvatar?: string;
+	groupName?: string;
+	addedBy: {
+		firstName?: string;
+		lastName?: string;
+	};
 	inviterName?: string;
 	inviterAvatar?: string;
 	direction?: "received" | "sent";
 	raw?: any;
+	invitedAt: string;
 }
 
 interface Props {
@@ -44,9 +50,9 @@ interface Props {
 	setSearchPending: (s: string) => void;
 	onAcceptFriend: (id: string) => void;
 	onDeclineFriend: (id: string) => void;
-	onCancelFriend: (id: string) => void;
 	onAcceptGroup: (id: string) => void;
 	onDeclineGroup: (id: string) => void;
+	// onCancelGroup: (id: string) => void;
 	isLoadingPending?: boolean;
 }
 
@@ -59,15 +65,16 @@ const Pending: React.FC<Props> = ({
 	setSearchPending,
 	onAcceptFriend,
 	onDeclineFriend,
-	onCancelFriend,
 	onAcceptGroup,
 	onDeclineGroup,
+	// onCancelGroup,
 	isLoadingPending,
 }) => {
 	const q = searchPending.toLowerCase();
 
+	// split friend lists by direction
 	const friendReceived = pendingFriendRequests.filter(
-		(r) => r.direction === "received",
+		(r) => r.direction !== "sent",
 	);
 	const friendSent = pendingFriendRequests.filter(
 		(r) => r.direction === "sent",
@@ -82,28 +89,22 @@ const Pending: React.FC<Props> = ({
 			safeLower(req.name).includes(q) || safeLower(req.handle).includes(q),
 	);
 
-	// Group invites
-	const groupReceived = pendingGroupInvites.filter(
-		(r) => r.direction === "received",
-	);
-	const groupSent = pendingGroupInvites.filter((r) => r.direction === "sent");
+	// group invites
+	// const groupReceived = pendingGroupInvites.filter(
+	// 	(r) => r.direction !== "sent",
+	// );
+	// const groupSent = pendingGroupInvites.filter((r) => r.direction === "sent");
 
-	const filteredGroupReceived = groupReceived.filter(
+	const filteredGroupReceived = pendingGroupInvites.filter(
 		(inv) =>
 			safeLower(inv.groupName).includes(q) ||
 			safeLower(inv.inviterName).includes(q),
 	);
-	const filteredGroupSent = groupSent.filter(
-		(inv) =>
-			safeLower(inv.groupName).includes(q) ||
-			safeLower(inv.inviterName).includes(q),
-	);
-
-	const hasAnyResults =
-		filteredFriendReceived.length > 0 ||
-		filteredFriendSent.length > 0 ||
-		filteredGroupReceived.length > 0 ||
-		filteredGroupSent.length > 0;
+	// const filteredGroupSent = pendingGroupInvites.filter(
+	// 	(inv) =>
+	// 		safeLower(inv.groupName).includes(q) ||
+	// 		safeLower(inv.inviterName).includes(q),
+	// );
 
 	return (
 		<>
@@ -128,10 +129,11 @@ const Pending: React.FC<Props> = ({
 				</div>
 			)}
 
+			{/* FRIENDS */}
 			{filteredFriendReceived.length > 0 && (
 				<>
 					<SectionHeader>
-						Received - {filteredFriendReceived.length}
+						Friend Requests — Received ({filteredFriendReceived.length})
 					</SectionHeader>
 					<ResultsList style={{ marginBottom: 16 }}>
 						{filteredFriendReceived.map((req) => (
@@ -160,10 +162,10 @@ const Pending: React.FC<Props> = ({
 					</ResultsList>
 				</>
 			)}
-
+			{/* 
 			{filteredFriendSent.length > 0 && (
 				<>
-					<SectionHeader>Sent - {filteredFriendSent.length}</SectionHeader>
+					<SectionHeader>Friend Requests — Sent ({filteredFriendSent.length})</SectionHeader>
 					<ResultsList style={{ marginBottom: 16 }}>
 						{filteredFriendSent.map((req) => (
 							<ResultItem key={req.id}>
@@ -172,19 +174,14 @@ const Pending: React.FC<Props> = ({
 									<UserName>{req.name}</UserName>
 									<UserHandle>{req.handle}</UserHandle>
 								</UserInfo>
-								<ActionButton
-									variant="unfriend"
-									onClick={() => onCancelFriend(req.id)}
-								>
-									✕
-								</ActionButton>
+								<ActionButton variant="unfriend" onClick={() => onCancelFriend(req.id)}>✕</ActionButton>
 							</ResultItem>
 						))}
 					</ResultsList>
 				</>
-			)}
+			)} */}
 
-			{/* GROUP INVITES - RECEIVED */}
+			{/* GROUP INVITES */}
 			{filteredGroupReceived.length > 0 && (
 				<>
 					<SectionHeader>
@@ -193,10 +190,7 @@ const Pending: React.FC<Props> = ({
 					<ResultsList style={{ marginBottom: 16 }}>
 						{filteredGroupReceived.map((inv) => (
 							<ResultItem key={inv.id}>
-								<Avatar
-									src={inv.inviterAvatar}
-									alt={inv.inviterName || inv.groupName}
-								/>
+								<Avatar src={inv.groupAvatar} alt={inv.groupName} />
 								<UserInfo>
 									<UserName>{inv.groupName}</UserName>
 									<UserHandle>
@@ -223,38 +217,30 @@ const Pending: React.FC<Props> = ({
 				</>
 			)}
 
-			{/* GROUP INVITES - SENT */}
-			{filteredGroupSent.length > 0 && (
+			{/* {filteredGroupSent.length > 0 && (
 				<>
-					<SectionHeader>
-						Group Invites — Sent ({filteredGroupSent.length})
-					</SectionHeader>
-					<ResultsList style={{ marginBottom: 16 }}>
+					<SectionHeader>Group Invites — Sent ({filteredGroupSent.length})</SectionHeader>
+					<ResultsList>
 						{filteredGroupSent.map((inv) => (
 							<ResultItem key={inv.id}>
-								<Avatar src={inv.inviterAvatar} alt={inv.groupName} />
+								<Avatar src={inv.inviterAvatar} alt={inv.name} />
 								<UserInfo>
-									<UserName>{inv.groupName}</UserName>
-									<UserHandle>
-										{inv.inviterName ? `Invited by ${inv.inviterName}` : ""}
-									</UserHandle>
+									<UserName>{inv.name}</UserName>
+									<UserHandle>{inv.inviterName ? `Invited by ${inv.inviterName}` : ""}</UserHandle>
 								</UserInfo>
-								<ActionButton
-									variant="unfriend"
-									onClick={() => console.log("Cancel group invite:", inv.id)}
-								>
-									✕
-								</ActionButton>
+								<ActionButton variant="unfriend" onClick={() => onCancelGroup(inv.id)}>✕</ActionButton>
 							</ResultItem>
 						))}
 					</ResultsList>
 				</>
-			)}
+			)} */}
 
-			{/* Empty state */}
-			{!hasAnyResults && !isLoadingPending && (
-				<NoResults>No invitations available.</NoResults>
-			)}
+			{/* empty state */}
+			{filteredFriendReceived.length === 0 &&
+				filteredFriendSent.length === 0 &&
+				filteredGroupReceived.length === 0 &&
+				// filteredGroupSent.length === 0 &&
+				!isLoadingPending && <NoResults>Không có lời mời nào</NoResults>}
 		</>
 	);
 };

@@ -41,7 +41,7 @@ interface Props {
 	friendsPerPage: number;
 	activeMenu: string | null;
 	onMenuToggle: (id: string, e: React.MouseEvent) => void;
-	onMenuAction: (action: string, name: string, id: string) => void;
+	onMenuAction: (action: string, name: string) => void;
 }
 
 const AllFriends: React.FC<Props> = ({
@@ -118,20 +118,16 @@ const AllFriends: React.FC<Props> = ({
 									{activeMenu === friend.id && (
 										<MenuDropdown>
 											<MenuItem
-												onClick={() =>
-													onMenuAction("Yêu thích", friend.name, friend.id)
-												}
+												onClick={() => onMenuAction("Yêu thích", friend.name)}
 											>
 												<Star size={18} style={{ marginRight: "12px" }} />
 												<span>Yêu thích</span>
 											</MenuItem>
 											<MenuItem
-												onClick={() =>
-													onMenuAction("Unfriend", friend.name, friend.id)
-												}
+												onClick={() => onMenuAction("Hủy kết bạn", friend.name)}
 											>
 												<UserMinus size={18} style={{ marginRight: "12px" }} />
-												<span>Unfriend</span>
+												<span>Hủy kết bạn</span>
 											</MenuItem>
 										</MenuDropdown>
 									)}
@@ -156,7 +152,9 @@ const AllFriends: React.FC<Props> = ({
 				</PaginationContainer>
 			)}
 
-			{filteredFriends.length === 0 && <NoResults>No friends found.</NoResults>}
+			{filteredFriends.length === 0 && (
+				<NoResults>Không tìm thấy bạn bè nào</NoResults>
+			)}
 		</>
 	);
 };
