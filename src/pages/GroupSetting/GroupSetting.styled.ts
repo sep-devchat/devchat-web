@@ -189,12 +189,19 @@ export const MenuItem = styled.button<{ $isActive: boolean }>`
   `}
 `;
 
-export const MenuIcon = styled.div`
+export const MenuLabel = styled.div<{ $isDelete?: boolean }>`
+	color: ${({ $isDelete }) =>
+		$isDelete ? theme.color.error : theme.color.black};
+`;
+
+export const MenuIcon = styled.div<{ $isDelete?: boolean }>`
 	width: 20px;
 	height: 20px;
 	display: flex;
 	align-items: center;
 	justify-content: center;
+	color: ${({ $isDelete }) =>
+		$isDelete ? theme.color.error : theme.color.black};
 `;
 
 export const MainContent = styled.div`

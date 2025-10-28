@@ -55,5 +55,5 @@ export const updateRoleMember = (
 
 export const listInvitationGr = () => {
 	// nối tạm
-	return get("/api/invitation");
+	return get("/api/user/group-requests/received?status=0");
 };

@@ -101,11 +101,6 @@ export const SendButton = styled.button`
 		background: #ccc;
 		cursor: not-allowed;
 	}
-
-	&:focus {
-		outline: none;
-		box-shadow: none;
-	}
 `;
 
 export const ResultsList = styled.div`
@@ -230,10 +225,6 @@ export const ActionButton = styled.button<{
 	&:first-child {
 		margin-left: 0;
 	}
-
-	&:focus {
-		outline: none;
-	}
 `;
 
 export const ActionButtons = styled.div`
@@ -253,10 +244,6 @@ export const UnfriendButton = styled.button`
 	transition: background-color 0.2s ease;
 	&:hover {
 		background-color: #fef2f2;
-	}
-	&:focus {
-		outline: none;
-		box-shadow: none;
 	}
 `;
 
@@ -317,11 +304,6 @@ export const ModalButton = styled.button`
 	transition: background-color 0.2s ease;
 	&:hover {
 		background: #16a34a;
-	}
-
-	&:focus {
-		outline: none;
-		box-shadow: none;
 	}
 `;
 
@@ -436,7 +418,7 @@ export const FriendInfo = styled.div`
 export const FriendName = styled.h3`
 	font-weight: 600;
 	color: #111827;
-	font-size: 1rem;
+	font-size: 1.125rem;
 `;
 
 export const NoResults = styled.div`

@@ -3,7 +3,7 @@ import styled from "styled-components";
 
 export const PageWrapper = styled.div`
 	height: 100%;
-	width: 350px;
+	width: 250px;
 	position: relative;
 	display: flex;
 	flex-direction: column;
