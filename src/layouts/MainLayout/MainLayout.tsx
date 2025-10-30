@@ -9,6 +9,7 @@ import {
 	RightSection,
 	OutletContainer,
 	BottomSpacer,
+	RightPanelWrapper,
 } from "./MainLayout.styled";
 import TitleBar from "./TitleBar/TitleBar";
 import { User } from "lucide-react";
@@ -39,8 +40,20 @@ const MainLayout = () => {
 	const groupId = params.groupId;
 	const channelId = search.channel;
 	const [localGroups, setLocalGroups] = useState<any[]>([]);
+	const [isHalf, setIsHalf] = useState(window.innerWidth < 1220);
 
 	console.log("MainLayout - Current IDs:", { groupId, channelId });
+
+	const hasOpenPanel = isHalf && (showThreadPanel || iconSelected !== "");
+
+	const shouldShowBorderRadius =
+		(showThreadPanel || iconSelected !== "") && iconSelected !== "users";
+
+	useEffect(() => {
+		const handleResize = () => setIsHalf(window.innerWidth < 1220);
+		window.addEventListener("resize", handleResize);
+		return () => window.removeEventListener("resize", handleResize);
+	}, []);
 
 	useEffect(() => {
 		let mounted = true;
@@ -100,7 +113,8 @@ const MainLayout = () => {
 		setIconSelected("");
 	};
 
-	const handleCloseThreadPanel = () => {
+	const handleClosePanel = () => {
+		setIconSelected("");
 		setShowThreadPanel(false);
 		setSelectedThreadId("");
 	};
@@ -113,22 +127,22 @@ const MainLayout = () => {
 					groupId={groupId}
 					channelId={channelId}
 					threadId={selectedThreadId || undefined}
-					onClose={handleCloseThreadPanel}
+					onClose={handleClosePanel}
 					onThreadCreated={handleThreadCreated}
 				/>
 			);
 		}
 		switch (iconSelected) {
 			case "tasks":
-				return <TaskGroup onClose={() => setIconSelected("")} />;
+				return <TaskGroup onClose={handleClosePanel} />;
 			case "code":
-				return <CodeList />;
+				return <CodeList onClose={handleClosePanel} />;
 			case "users":
-				return <MemberList />;
-			case "notifications":
-				return null;
+				return <MemberList onClose={handleClosePanel} />;
+			// case "notifications":
+			// 	return null;
 			default:
-				return <FriendList />;
+				return isHalf ? null : <FriendList />;
 		}
 	};
 
@@ -143,28 +157,38 @@ const MainLayout = () => {
 						<TitleBar title="DevChat" icon={<User />} />
 						<ContentWrapper direction="horizontal">
 							<LeftSection
-								defaultSize={20}
+								defaultSize={isHalf ? 25 : 20}
 								collapsible
-								minSize={15}
-								maxSize={25}
+								minSize={isHalf ? 30 : 15}
+								maxSize={isHalf ? 35 : 25}
 							>
 								<GroupSidebar />
 								<LeftSidebar setSettingSelect={setSettingSelect} />
 							</LeftSection>
 							<ResizableHandle />
-							<RightSection defaultSize={100}>
-								<CenterPanel>
-									<Header
-										setIconSelected={setIconSelected}
-										iconSelected={iconSelected}
-										onCreateThread={handleCreateThread}
-										onThreadSelect={handleThreadSelect}
-									/>
-									<OutletContainer>
-										<Outlet />
-									</OutletContainer>
-								</CenterPanel>
-								{renderRightPanel()}
+							<RightSection
+								defaultSize={100}
+								style={{ marginRight: isHalf ? "16px" : "0" }}
+							>
+								{!hasOpenPanel && (
+									<CenterPanel
+										$isHalf={isHalf}
+										$hasRightBorderRadius={shouldShowBorderRadius}
+									>
+										<Header
+											setIconSelected={setIconSelected}
+											iconSelected={iconSelected}
+											onCreateThread={handleCreateThread}
+											onThreadSelect={handleThreadSelect}
+										/>
+										<OutletContainer>
+											<Outlet />
+										</OutletContainer>
+									</CenterPanel>
+								)}
+								<RightPanelWrapper $fullWidth={hasOpenPanel}>
+									{renderRightPanel()}
+								</RightPanelWrapper>
 							</RightSection>
 						</ContentWrapper>
 						<Profile />

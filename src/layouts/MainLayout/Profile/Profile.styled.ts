@@ -44,6 +44,15 @@ export const ProfileContainer = styled.div`
 		padding: 12px;
 		border-radius: 10px;
 	}
+
+	@media (max-width: 1220px) {
+		bottom: 25px;
+		left: 22px;
+		height: 56px;
+		padding: 8px;
+		border-radius: 6px;
+		width: 27%;
+	}
 `;
 
 export const ProfileInfo = styled.div`
@@ -95,6 +104,11 @@ export const Avatar = styled.div`
 		width: 50px;
 		height: 40px;
 	}
+
+	@media (max-width: 1220px) {
+		width: 45px;
+		height: 40px;
+	}
 `;
 
 export const Name = styled.div`
@@ -118,6 +132,10 @@ export const Name = styled.div`
 
 	@media (min-width: 1920px) {
 		font-size: 16px;
+	}
+
+	@media (max-width: 1220px) {
+		font-size: 12px;
 	}
 `;
 

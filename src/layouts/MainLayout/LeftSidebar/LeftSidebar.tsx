@@ -1,12 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import {
-	Search,
-	X,
-	SettingsIcon,
-	Plus,
-	MessageCircle,
-	Settings,
-} from "lucide-react";
+import { X, MessageCircle, Settings, PlusIcon } from "lucide-react";
 import {
 	SearchInput,
 	FriendList,
@@ -35,6 +28,17 @@ import {
 	ButtonModal,
 	Divider,
 	LeftSidebarContainer,
+	HeaderContainer,
+	GroupHeader,
+	GroupTitle,
+	IconButtonGroup,
+	IconButton,
+	SettingsIconStyled,
+	SearchContainer,
+	SearchIcon,
+	SectionHeader,
+	SectionTitle,
+	AddButton,
 } from "./LeftSidebar.styled";
 import { useNavigate, useParams, useSearch } from "@tanstack/react-router";
 import { useState } from "react";
@@ -282,53 +286,42 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
 	}, [params.groupId]);
 
 	return (
-		<LeftSidebarContainer className="flex flex-col w-full bg-[rgba(255,255,255,0.30)] rounded-l-lg">
-			<div className="flex items-center justify-center p-2 pr-4 border-b border-white">
+		<LeftSidebarContainer>
+			<HeaderContainer>
 				{isGroupPage ? (
-					<div className="w-full px-1 py-1.5 flex justify-between items-center">
-						<h3 className="text-base font-semibold truncate">
-							{currentGroup?.name ?? "Group"}
-						</h3>
-						<div className="flex gap-2">
-							<Plus
-								width={20}
-								className="ml-3 hover:text-blue-500 cursor-pointer"
-								onClick={handleAddChannel}
-							/>
-							<SettingsIcon
-								width={20}
-								className="hover:text-blue-500 cursor-pointer"
-								onClick={() => setSettingSelect(true)}
-							/>
-						</div>
-					</div>
+					<GroupHeader>
+						<GroupTitle>{currentGroup?.name ?? "Group"}</GroupTitle>
+						<IconButtonGroup>
+							<IconButton onClick={handleAddChannel}>
+								<PlusIcon />
+							</IconButton>
+							<IconButton onClick={() => setSettingSelect(true)}>
+								<SettingsIconStyled />
+							</IconButton>
+						</IconButtonGroup>
+					</GroupHeader>
 				) : (
-					<div className="relative w-full">
-						<Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-						<SearchInput
-							placeholder="Find or start a conversation"
-							className="pl-9 shadow-none focus-visible:ring-1 focus-visible:ring-[rgba(25,82,179,0.21)]"
-						/>
-					</div>
+					<SearchContainer>
+						<SearchIcon />
+						<SearchInput placeholder="Find or start a conversation" />
+					</SearchContainer>
 				)}
-			</div>
+			</HeaderContainer>
 
 			{isGroupPage ? (
-				<div className="flex p-2 justify-between items-center">
-					<h3 className="text-lg font-semibold">Channels</h3>
-				</div>
+				<SectionHeader>
+					<SectionTitle>Channels</SectionTitle>
+				</SectionHeader>
 			) : (
-				<div className="flex p-2 justify-between items-center">
-					<h3 className="text-lg font-semibold">Conversations</h3>
-					<button className="w-6 h-6 flex items-center justify-center rounded hover:bg-gray-200 cursor-pointer">
-						+
-					</button>
-				</div>
+				<SectionHeader>
+					<SectionTitle>Conversations</SectionTitle>
+					<AddButton>+</AddButton>
+				</SectionHeader>
 			)}
 
 			{isGroupPage ? (
 				<FriendList>
-					{channels.map((c) => (
+					{channels.map((c: any) => (
 						<ChannelItem
 							key={c.id}
 							channel={c}
@@ -337,7 +330,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
 							onClick={() =>
 								navigate({
 									to: "/chat/group/$groupId",
-									params: { groupId: params.groupId! },
+									params: { groupId: params.groupId },
 									search: (s: any) => ({ ...s, channel: c.id }),
 								})
 							}
@@ -347,7 +340,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
 								if (search.channel === c.id) {
 									navigate({
 										to: "/chat/group/$groupId",
-										params: { groupId: params.groupId! },
+										params: { groupId: params.groupId },
 										search: {},
 									});
 								}

@@ -636,7 +636,11 @@ export default function TaskGroup({ onClose }: TaskGroupProps) {
 					<S.Title>Task Management</S.Title>
 				</S.HeaderLeft>
 				<S.HeaderRight>
-					<X style={{ cursor: "pointer" }} size={20} onClick={onClose} />
+					{onClose && (
+						<S.CloseButton onClick={onClose}>
+							<X size={20} />
+						</S.CloseButton>
+					)}
 				</S.HeaderRight>
 			</S.Header>
 

@@ -1,4 +1,5 @@
 import {
+	CloseButton,
 	CPHeader,
 	CPHeaderIcon,
 	CPHeaderLeft,
@@ -7,7 +8,11 @@ import {
 } from "./CodeList.styled";
 import { SquareCode, X } from "lucide-react";
 
-export default function CodeList() {
+interface CodeListProps {
+	onClose?: () => void;
+}
+
+export default function CodeList({ onClose }: CodeListProps) {
 	return (
 		<PageWrapper>
 			<CPHeader>
@@ -18,9 +23,11 @@ export default function CodeList() {
 					<CPTitle>Code List</CPTitle>
 				</CPHeaderLeft>
 
-				<CPHeaderLeft>
-					<X />
-				</CPHeaderLeft>
+				{onClose && (
+					<CloseButton onClick={onClose}>
+						<X size={20} />
+					</CloseButton>
+				)}
 			</CPHeader>
 		</PageWrapper>
 	);

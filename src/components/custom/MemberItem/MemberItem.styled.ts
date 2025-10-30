@@ -72,7 +72,6 @@ export const Tooltip = styled.div<TooltipProps>`
 		opacity 0.2s ease,
 		visibility 0.2s ease;
 	z-index: 9999;
-
 	&::after {
 		content: "";
 		position: absolute;
@@ -83,6 +82,20 @@ export const Tooltip = styled.div<TooltipProps>`
 		height: 0;
 		border: 5px solid transparent;
 		border-left-color: #000;
+	}
+
+	@media (max-width: 1220px) {
+		left: 40%;
+		right: auto;
+		margin-right: 0;
+		margin-left: 8px;
+
+		&::after {
+			left: auto;
+			right: 100%;
+			border-left-color: transparent;
+			border-right-color: #000;
+		}
 	}
 `;
 

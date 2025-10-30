@@ -7,10 +7,17 @@ export const PageWrapper = styled.div`
 	position: relative;
 	display: flex;
 	flex-direction: column;
-	margin-left: 12px;
-	background: #f9fafb;
+	margin-right: 18px;
+	background: ${theme.color.grey30};
 	border-radius: 10px;
 	margin-right: 18px;
+	margin-left: 12px;
+
+	@media (max-width: 1220px) {
+		width: 100%;
+		margin: 0;
+		border-radius: 0px 10px 10px 0px;
+	}
 `;
 
 export const Header = styled.div`
@@ -639,4 +646,24 @@ export const Description = styled.p`
 	font-size: 14px;
 	color: #6b7280;
 	margin: 4px 0 0 0;
+`;
+
+export const CloseButton = styled.button`
+	background: none;
+	border: none;
+	cursor: pointer;
+	padding: 8px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	color: #888;
+	transition: color 0.2s;
+
+	&:hover {
+		color: #fff;
+	}
+
+	&:focus {
+		outline: none;
+	}
 `;
