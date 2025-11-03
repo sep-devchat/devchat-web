@@ -3,14 +3,21 @@ import styled from "styled-components";
 
 export const PageWrapper = styled.div`
 	height: 100%;
-	width: 1000px;
+	width: 600px;
 	position: relative;
 	display: flex;
 	flex-direction: column;
-	margin-left: 12px;
-	background: ${theme.color.grey10};
+	margin-right: 18px;
+	background: ${theme.color.grey30};
 	border-radius: 10px;
 	margin-right: 18px;
+	margin-left: 12px;
+
+	@media (max-width: 1220px) {
+		width: 100%;
+		margin: 0;
+		border-radius: 0px 10px 10px 0px;
+	}
 `;
 
 export const CPHeader = styled.div`
@@ -68,4 +75,24 @@ export const CPHash = styled.div`
 export const CPTitle = styled.h2`
 	margin: 0;
 	font-size: 18px;
+`;
+
+export const CloseButton = styled.button`
+	background: none;
+	border: none;
+	cursor: pointer;
+	padding: 8px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	color: #888;
+	transition: color 0.2s;
+
+	&:hover {
+		color: #fff;
+	}
+
+	&:focus {
+		outline: none;
+	}
 `;

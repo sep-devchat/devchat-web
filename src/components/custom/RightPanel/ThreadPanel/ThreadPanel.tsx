@@ -31,6 +31,7 @@ import {
 	Line,
 	DateText,
 	PrivateText,
+	CloseButton,
 } from "./ThreadPanel.styled";
 import MentionModal from "@/components/custom/MentionModal/MentionModal";
 import { createThread, detailThread } from "@/services/threadAPI";
@@ -304,12 +305,6 @@ const ThreadPanel: React.FC<ThreadPanelProps> = ({
 		});
 	};
 
-	const handleClose = (): void => {
-		if (onClose) {
-			onClose();
-		}
-	};
-
 	const handleCreateThread = async (): Promise<void> => {
 		if (threadName.trim() && message.trim() && !isCreating) {
 			setIsCreating(true);
@@ -459,9 +454,11 @@ const ThreadPanel: React.FC<ThreadPanelProps> = ({
 						</CPHeaderIcon>
 						<CPTitle>Thread</CPTitle>
 					</CPHeaderLeft>
-					<IconButton onClick={handleClose}>
-						<X size={20} />
-					</IconButton>
+					{onClose && (
+						<CloseButton onClick={onClose}>
+							<X size={20} />
+						</CloseButton>
+					)}
 				</CPHeader>
 				<MessagesArea>
 					<div
@@ -486,9 +483,11 @@ const ThreadPanel: React.FC<ThreadPanelProps> = ({
 						</CPHeaderIcon>
 						<CPTitle>Thread</CPTitle>
 					</CPHeaderLeft>
-					<IconButton onClick={handleClose}>
-						<X size={20} />
-					</IconButton>
+					{onClose && (
+						<CloseButton onClick={onClose}>
+							<X size={20} />
+						</CloseButton>
+					)}
 				</CPHeader>
 
 				<MessagesArea>
@@ -588,9 +587,11 @@ const ThreadPanel: React.FC<ThreadPanelProps> = ({
 					</CPHeaderIcon>
 					<CPTitle>Thread</CPTitle>
 				</CPHeaderLeft>
-				<IconButton onClick={handleClose}>
-					<X size={20} />
-				</IconButton>
+				{onClose && (
+					<CloseButton onClick={onClose}>
+						<X size={20} />
+					</CloseButton>
+				)}
 			</CPHeader>
 
 			<MessagesArea>

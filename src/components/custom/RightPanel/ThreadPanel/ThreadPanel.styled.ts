@@ -25,11 +25,17 @@ export const PageWrapper = styled.div`
 	position: relative;
 	display: flex;
 	flex-direction: column;
-	margin-left: 12px;
+	margin-right: 18px;
 	background: ${theme.color.grey10};
 	border-radius: 10px;
 	margin-right: 18px;
-	border: 1px solid ${theme.color.grey200};
+	margin-left: 12px;
+
+	@media (max-width: 1220px) {
+		width: 100%;
+		margin: 0;
+		border-radius: 0px 10px 10px 0px;
+	}
 `;
 
 export const CPHeader = styled.div`
@@ -42,6 +48,9 @@ export const CPHeader = styled.div`
 	border-top-left-radius: 10px;
 	border-top-right-radius: 10px;
 	border-bottom: 1px solid ${theme.color.grey300};
+	@media (max-width: 1220px) {
+		border-radius: 0px 10px 0px 0px;
+	}
 `;
 
 export const CPHeaderIcon = styled.div`
@@ -283,4 +292,24 @@ export const PrivateText = styled.span`
 	margin-top: 8px;
 	color: #666;
 	font-size: 12px;
+`;
+
+export const CloseButton = styled.button`
+	background: none;
+	border: none;
+	cursor: pointer;
+	padding: 8px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	color: #888;
+	transition: color 0.2s;
+
+	&:hover {
+		color: #fff;
+	}
+
+	&:focus {
+		outline: none;
+	}
 `;

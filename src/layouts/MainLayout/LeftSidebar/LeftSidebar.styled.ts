@@ -1,38 +1,126 @@
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Plus, Search, Settings as SettingsIcon } from "lucide-react";
 import styled from "styled-components";
 
 export const LeftSidebarContainer = styled.div`
-	width: calc(100% - 65px);
-	// display: flex;
-	// flex-direction: column;
-	// border-radius: 10px 0 0 10px;
-	// background: rgba(255, 255, 255, 0.3);
+	display: flex;
+	flex-direction: column;
+	width: 100%;
+	background: rgba(255, 255, 255, 0.3);
+	border-radius: 10px 0 0 10px;
 `;
 
-export const SearchInput = styled(Input)`
-	border-radius: 5px;
-	border: 1px solid rgba(25, 82, 179, 0.21);
-	background: rgba(32, 102, 223, 0.09);
+export const HeaderContainer = styled.div`
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 0.5rem;
+	padding-right: 1rem;
+	border-bottom: 1px solid white;
 `;
 
-export const IconButton = styled(Button)`
-	box-shadow: none;
-	border: none;
-	font-size: 1.25rem;
-	padding: 0;
+export const GroupHeader = styled.div`
+	width: 100%;
+	padding: 0.25rem 0.25rem;
+	padding-top: 0.375rem;
+	padding-bottom: 0.375rem;
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+`;
+
+export const GroupTitle = styled.h3`
+	font-size: 1rem;
+	font-weight: 600;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+`;
+
+export const IconButtonGroup = styled.div`
+	display: flex;
+	gap: 0.5rem;
+`;
+
+export const IconButton = styled.div`
+	cursor: pointer;
 
 	&:hover {
-		color: hsl(var(--ring));
-	}
-
-	&:focus,
-	&:focus-visible {
-		outline: none;
+		color: #3b82f6;
 	}
 `;
 
-// Friend list styles
+export const PlusIcon = styled(Plus)`
+	width: 20px;
+	margin-left: 0.75rem;
+`;
+
+export const SettingsIconStyled = styled(SettingsIcon)`
+	width: 20px;
+`;
+
+export const SearchContainer = styled.div`
+	position: relative;
+	width: 100%;
+`;
+
+export const SearchIcon = styled(Search)`
+	pointer-events: none;
+	position: absolute;
+	left: 0.75rem;
+	top: 50%;
+	height: 1rem;
+	width: 1rem;
+	transform: translateY(-50%);
+	color: #9ca3af;
+`;
+
+export const SearchInput = styled.input`
+	width: 100%;
+	padding-left: 2.25rem;
+	padding: 0.5rem 0.75rem;
+	border-radius: 0.375rem;
+	border: 1px solid rgba(25, 82, 179, 0.21);
+	background: rgba(32, 102, 223, 0.09);
+	box-shadow: none;
+
+	&:focus {
+		outline: none;
+		ring: 1px solid rgba(25, 82, 179, 0.21);
+	}
+
+	&::placeholder {
+		color: #9ca3af;
+	}
+`;
+
+export const SectionHeader = styled.div`
+	display: flex;
+	padding: 0.5rem;
+	justify-content: space-between;
+	align-items: center;
+`;
+
+export const SectionTitle = styled.h3`
+	font-size: 1.125rem;
+	font-weight: 600;
+`;
+
+export const AddButton = styled.button`
+	width: 1.5rem;
+	height: 1.5rem;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	border-radius: 0.25rem;
+	cursor: pointer;
+	background: transparent;
+	border: none;
+
+	&:hover {
+		background: #e5e7eb;
+	}
+`;
+
 export const FriendList = styled.ul`
 	list-style: none;
 	margin: 0;
@@ -40,50 +128,6 @@ export const FriendList = styled.ul`
 	display: flex;
 	flex-direction: column;
 	gap: 6px;
-`;
-
-export const Avatar = styled.div`
-	width: 32px;
-	height: 32px;
-	border-radius: 9999px;
-	display: grid;
-	place-items: center;
-	background: hsl(var(--primary));
-	color: hsl(var(--primary-foreground));
-	font-weight: 600;
-	font-size: 0.85rem;
-	letter-spacing: 0.3px;
-	flex: 0 0 auto;
-`;
-
-export const FriendName = styled.span`
-	flex: 1;
-	min-width: 0;
-	white-space: nowrap;
-	overflow: hidden;
-	text-overflow: ellipsis;
-	color: hsl(var(--foreground));
-	font-size: 0.95rem;
-`;
-
-export const ChannelIcon = styled(Avatar)`
-	background: hsl(var(--muted));
-	color: hsl(var(--foreground));
-	font-weight: 700;
-`;
-
-export const FriendItem = styled.li`
-	position: relative;
-	display: flex;
-	align-items: center;
-	gap: 10px;
-	padding: 6px 36px 6px 8px; /* leave room for the remove button */
-	border-radius: 8px;
-	cursor: pointer;
-
-	&:hover {
-		background: rgba(0, 0, 0, 0.05);
-	}
 `;
 
 export const ModalOverlay = styled.div`
@@ -133,11 +177,29 @@ export const CloseButton = styled.button`
 	padding: 4px;
 	border-radius: 4px;
 	transition: color 0.2s ease;
+
 	&:hover {
 		color: #374151;
 	}
+
 	&:focus {
 		outline: none;
+	}
+`;
+
+export const Divider = styled.div`
+	display: flex;
+	align-items: center;
+	text-align: center;
+	margin-bottom: 20px;
+	color: #9ca3af;
+	font-size: 14px;
+
+	&::before,
+	&::after {
+		content: "";
+		flex: 1;
+		border-bottom: 1px solid #e5e7eb;
 	}
 `;
 
@@ -166,7 +228,6 @@ export const ChannelTypeIcon = styled.div`
 	width: 20px;
 	height: 20px;
 	color: #6b7280;
-	margin-top: 2px;
 `;
 
 export const ChannelTypeContent = styled.div`
@@ -193,10 +254,12 @@ export const InputModal = styled.input`
 	font-size: 14px;
 	transition: border-color 0.2s ease;
 	background: #f3f5f7;
+
 	&:focus {
 		outline: none;
 		border-color: #133e87;
 	}
+
 	&::placeholder {
 		color: #6b7280;
 	}
@@ -257,6 +320,7 @@ export const ToggleSlider = styled.span<{ checked: boolean }>`
 	background-color: ${(props) => (props.checked ? "#1952B3" : "#d1d5db")};
 	transition: 0.4s;
 	border-radius: 24px;
+
 	&:before {
 		position: absolute;
 		content: "";
@@ -277,50 +341,38 @@ export const ModalFooter = styled.div`
 	margin-top: 24px;
 `;
 
-export const ButtonModal = styled.button<{ variant?: "primary" | "secondary" }>`
+export const ButtonModal = styled.button<{
+	variant?: "primary" | "secondary";
+	disabled?: boolean;
+}>`
 	padding: 10px 16px;
 	border-radius: 8px;
-	cursor: pointer;
+	cursor: ${(props) => (props.disabled ? "not-allowed" : "pointer")};
 	transition: all 0.2s ease;
 	font-size: 14px;
+
 	${(props) =>
 		props.variant === "primary"
 			? `
-        background: #1952B3;
-        color: white;
-        border: none;
-        &:hover {
-            background: #1d4ed8;
-        }
-        &:disabled {
-            background: #9ca3af;
-            cursor: not-allowed;
-        }
-    `
+    background: ${props.disabled ? "#9ca3af" : "#1952B3"};
+    color: white;
+    border: none;
+    
+    &:hover {
+      background: ${props.disabled ? "#9ca3af" : "#1d4ed8"};
+    }
+  `
 			: `
-        background: transparent;
-        color: #1952B3;
-        border: 1px solid #1952B3;
-        &:hover {
-            background: #F3F5F7;
-        }
-    `}
+    background: transparent;
+    color: #1952B3;
+    border: 1px solid #1952B3;
+    
+    &:hover {
+      background: #F3F5F7;
+    }
+  `}
+
 	&:focus {
 		outline: none;
-	}
-`;
-
-export const Divider = styled.div`
-	display: flex;
-	align-items: center;
-	text-align: center;
-	margin-bottom: 20px;
-	color: #9ca3af;
-	font-size: 14px;
-	&::before,
-	&::after {
-		content: "";
-		flex: 1;
-		border-bottom: 1px solid #e5e7eb;
 	}
 `;

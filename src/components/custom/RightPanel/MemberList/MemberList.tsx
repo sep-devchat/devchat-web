@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import { useParams } from "@tanstack/react-router";
+import { X } from "lucide-react";
 import MemberItem from "../../MemberItem/MemberItem";
 import {
+	CloseButton,
 	CPHeader,
 	CPHeaderLeft,
 	CPTitle,
@@ -27,7 +29,11 @@ interface MemberData {
 	};
 }
 
-export default function MemberList() {
+interface MemberListProps {
+	onClose?: () => void;
+}
+
+export default function MemberList({ onClose }: MemberListProps) {
 	const params = useParams({ strict: false }) as { groupId?: string };
 	const groupId = params.groupId;
 
@@ -35,7 +41,7 @@ export default function MemberList() {
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	const [page] = useState(1);
-	const [limit] = useState(50); // Có thể tăng nếu muốn load nhiều members
+	const [limit] = useState(50);
 
 	useEffect(() => {
 		if (!groupId) {
@@ -109,6 +115,11 @@ export default function MemberList() {
 					<CPHeaderLeft>
 						<CPTitle>Member List</CPTitle>
 					</CPHeaderLeft>
+					{onClose && (
+						<CloseButton onClick={onClose}>
+							<X size={20} />
+						</CloseButton>
+					)}
 				</CPHeader>
 				<MemberContent>
 					<div style={{ padding: "20px", textAlign: "center", color: "#888" }}>
@@ -126,6 +137,11 @@ export default function MemberList() {
 					<CPHeaderLeft>
 						<CPTitle>Member List</CPTitle>
 					</CPHeaderLeft>
+					{onClose && (
+						<CloseButton onClick={onClose}>
+							<X size={20} />
+						</CloseButton>
+					)}
 				</CPHeader>
 				<MemberContent>
 					<div style={{ padding: "20px", textAlign: "center", color: "#888" }}>
@@ -143,6 +159,11 @@ export default function MemberList() {
 					<CPHeaderLeft>
 						<CPTitle>Member List</CPTitle>
 					</CPHeaderLeft>
+					{onClose && (
+						<CloseButton onClick={onClose}>
+							<X size={20} />
+						</CloseButton>
+					)}
 				</CPHeader>
 				<MemberContent>
 					<div
@@ -161,6 +182,11 @@ export default function MemberList() {
 				<CPHeaderLeft>
 					<CPTitle>Member List</CPTitle>
 				</CPHeaderLeft>
+				{onClose && (
+					<CloseButton onClick={onClose}>
+						<X size={20} />
+					</CloseButton>
+				)}
 			</CPHeader>
 
 			<MemberContent>

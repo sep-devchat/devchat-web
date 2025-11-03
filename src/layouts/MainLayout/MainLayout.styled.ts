@@ -41,13 +41,28 @@ export const RightSection = styled(ResizablePanel)`
 	overflow: hidden;
 `;
 
-export const CenterPanel = styled.div`
+export const CenterPanel = styled.div<{
+	$isHalf?: boolean;
+	$hasRightBorderRadius?: boolean;
+}>`
 	flex: 1;
 	display: flex;
 	flex-direction: column;
 	min-height: 0;
 	min-width: 0;
 	overflow: hidden;
+
+	border-top-right-radius: ${(props) => {
+		if (props.$isHalf) return "10px";
+		if (props.$hasRightBorderRadius === true) return "10px";
+		return "0";
+	}};
+
+	border-bottom-right-radius: ${(props) => {
+		if (props.$isHalf) return "10px";
+		if (props.$hasRightBorderRadius === true) return "10px";
+		return "0";
+	}};
 `;
 
 export const OutletContainer = styled.div`
@@ -67,4 +82,13 @@ export const BottomSpacer = styled.div`
 	@media (min-width: 1440px) {
 		height: var(--titlebar-height, 2.5rem);
 	}
+`;
+
+export const RightPanelWrapper = styled.div<{ $fullWidth?: boolean }>`
+	${(props) =>
+		props.$fullWidth &&
+		`
+		flex: 1;
+		width: 100%;
+	`}
 `;

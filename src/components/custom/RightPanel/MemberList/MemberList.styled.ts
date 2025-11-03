@@ -10,6 +10,11 @@ export const PageWrapper = styled.div`
 	margin-right: 18px;
 	background: ${theme.color.grey30};
 	border-radius: 0px 10px 10px 0px;
+
+	@media (max-width: 1220px) {
+		width: 100%;
+		margin-right: 0;
+	}
 `;
 
 export const CPHeader = styled.div`
@@ -101,4 +106,24 @@ export const MembersList = styled.div`
 	display: flex;
 	flex-direction: column;
 	gap: 8px;
+`;
+
+export const CloseButton = styled.button`
+	background: none;
+	border: none;
+	cursor: pointer;
+	padding: 8px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	color: #888;
+	transition: color 0.2s;
+
+	&:hover {
+		color: #fff;
+	}
+
+	&:focus {
+		outline: none;
+	}
 `;

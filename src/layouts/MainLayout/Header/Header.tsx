@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import {
-	Bell,
-	Folder,
+	// Bell,
 	MessageSquarePlus,
+	NotebookPenIcon,
 	Spool,
 	SquareCode,
 	UserPlus2,
@@ -186,10 +186,10 @@ const Header = ({
 							onKeyDown={(e) => onIconKeyDown(e, "tasks")}
 							disabled={loading}
 						>
-							<Folder size={20} />
+							<NotebookPenIcon size={20} />
 							<Tooltip visible={hoveredIcon === "tasks"}>Tasks</Tooltip>
 						</IconBtn>
-						<IconBtn
+						{/* <IconBtn
 							aria-label="notifications"
 							onMouseEnter={() => setHoveredIcon("notifications")}
 							onMouseLeave={() =>
@@ -203,7 +203,7 @@ const Header = ({
 							<Tooltip visible={hoveredIcon === "notifications"}>
 								Notifications
 							</Tooltip>
-						</IconBtn>
+						</IconBtn> */}
 
 						<IconBtn
 							aria-label="spool"
