@@ -55,6 +55,31 @@ const GlobalStyles = createGlobalStyle`
     button:focus-visible {
         outline: 4px auto -webkit-focus-ring-color;
     }
+
+    /* Custom Scrollbar - Thon và nhạt màu hơn */
+    * {
+        scrollbar-width: thin;
+        scrollbar-color: rgba(155, 155, 155, 0.3) transparent;
+    }
+
+    *::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+    }
+
+    *::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    *::-webkit-scrollbar-thumb {
+        background-color: rgba(155, 155, 155, 0.3);
+        border-radius: 10px;
+        border: none;
+    }
+
+    *::-webkit-scrollbar-thumb:hover {
+        background-color: rgba(155, 155, 155, 0.5);
+    }
 `;
 
 export default GlobalStyles;
