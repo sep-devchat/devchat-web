@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import { X, Search, Layers, Trash2, Edit } from "lucide-react";
 import {
 	DropdownOverlay,
@@ -34,14 +35,21 @@ import {
 } from "./ThreadList.styled";
 import {
 	listThreads,
-	deleteThread,
-	updateThread,
+	deleteThread as deleteThreadAPI,
+	updateThread as updateThreadAPI,
 	ThreadResponse,
 	ThreadPutRequest,
 } from "@/services/threadAPI";
 import { detailUser, UserResponse } from "@/services/userAPI";
 import ConfirmModal from "@/components/custom/ConfirmModal/ConfirmModal";
 import ThreadEditModal from "@/components/custom/ThreadEditModal/ThreadEditModal";
+import { RootState } from "@/store";
+import {
+	setThreadsLoading,
+	setThreads,
+	deleteThread as deleteThreadAction,
+	updateThread as updateThreadAction,
+} from "@/store/thread.slice";
 
 interface ThreadListProps {
 	groupId: string;
@@ -58,12 +66,19 @@ const ThreadList: React.FC<ThreadListProps> = ({
 	onCreateThread,
 	onThreadSelect,
 }) => {
-	const [threads, setThreads] = useState<ThreadResponse[]>([]);
-	const [threadCreators, setThreadCreators] = useState<
-		Map<string, UserResponse>
-	>(new Map());
+	const dispatch = useDispatch();
+	const channelKey = `${groupId}-${channelId}`;
+
+	const channelData = useSelector(
+		(state: RootState) => state.thread.threadsByChannel[channelKey],
+	);
+
+	const threads = channelData?.threads || [];
+	const threadCreators = channelData?.creators || {};
+	const isLoading = channelData?.isLoading || false;
+	const lastFetched = channelData?.lastFetched || 0;
+
 	const [searchTerm, setSearchTerm] = useState<string>("");
-	const [isLoading, setIsLoading] = useState<boolean>(false);
 	const [selectedThreadId, setSelectedThreadId] = useState<string>("");
 	const [showDeleteModal, setShowDeleteModal] = useState<boolean>(false);
 	const [threadToDelete, setThreadToDelete] = useState<string>("");
@@ -76,14 +91,18 @@ const ThreadList: React.FC<ThreadListProps> = ({
 	} | null>(null);
 
 	useEffect(() => {
-		if (groupId && channelId) {
+		if (groupId && channelId && lastFetched === 0) {
 			fetchThreads();
 		}
 	}, [groupId, channelId]);
 
 	useEffect(() => {
-		const handleThreadCreated = () => {
-			fetchThreads();
+		const handleThreadCreated = (event: CustomEvent) => {
+			const { groupId: eventGroupId, channelId: eventChannelId } =
+				event.detail || {};
+			if (eventGroupId === groupId && eventChannelId === channelId) {
+				fetchThreads();
+			}
 		};
 
 		window.addEventListener(
@@ -100,20 +119,20 @@ const ThreadList: React.FC<ThreadListProps> = ({
 	const fetchThreads = async () => {
 		if (!groupId || !channelId) return;
 
-		setIsLoading(true);
+		dispatch(setThreadsLoading({ channelKey, isLoading: true }));
+
 		try {
 			const response = await listThreads(groupId, channelId);
 			const threadData = response?.data?.data || response?.data || [];
-			setThreads(threadData);
 
-			const creatorsMap = new Map<string, UserResponse>();
+			const creatorsMap: { [key: string]: UserResponse } = {};
 			const fetchPromises = threadData.map(async (thread: ThreadResponse) => {
 				if (thread.createdBy && typeof thread.createdBy === "string") {
 					try {
 						const userResponse = await detailUser(thread.createdBy);
 						const userData = userResponse?.data || userResponse;
 						if (userData) {
-							creatorsMap.set(thread.createdBy, userData);
+							creatorsMap[thread.createdBy] = userData;
 						}
 					} catch (error) {
 						console.error(`Failed to fetch user ${thread.createdBy}:`, error);
@@ -122,12 +141,23 @@ const ThreadList: React.FC<ThreadListProps> = ({
 			});
 
 			await Promise.all(fetchPromises);
-			setThreadCreators(creatorsMap);
+
+			dispatch(
+				setThreads({
+					channelKey,
+					threads: threadData,
+					creators: creatorsMap,
+				}),
+			);
 		} catch (error) {
 			console.error("Failed to fetch threads:", error);
-			setThreads([]);
-		} finally {
-			setIsLoading(false);
+			dispatch(
+				setThreads({
+					channelKey,
+					threads: [],
+					creators: {},
+				}),
+			);
 		}
 	};
 
@@ -142,8 +172,9 @@ const ThreadList: React.FC<ThreadListProps> = ({
 
 		setIsDeleting(true);
 		try {
-			await deleteThread(groupId, channelId, threadToDelete);
-			setThreads((prev) => prev.filter((t) => t.id !== threadToDelete));
+			await deleteThreadAPI(groupId, channelId, threadToDelete);
+
+			dispatch(deleteThreadAction({ channelKey, threadId: threadToDelete }));
 
 			if (selectedThreadId === threadToDelete) {
 				setSelectedThreadId("");
@@ -186,18 +217,14 @@ const ThreadList: React.FC<ThreadListProps> = ({
 				description: data.description,
 			};
 
-			await updateThread(groupId, channelId, threadToEdit.id, updateData);
+			await updateThreadAPI(groupId, channelId, threadToEdit.id, updateData);
 
-			setThreads((prev) =>
-				prev.map((t) =>
-					t.id === threadToEdit.id
-						? {
-								...t,
-								name: data.name,
-								description: data.description,
-							}
-						: t,
-				),
+			dispatch(
+				updateThreadAction({
+					channelKey,
+					threadId: threadToEdit.id,
+					updates: updateData,
+				}),
 			);
 
 			setShowEditModal(false);
@@ -235,7 +262,7 @@ const ThreadList: React.FC<ThreadListProps> = ({
 		if (!thread.createdBy) return "Unknown User";
 
 		if (typeof thread.createdBy === "string") {
-			const creator = threadCreators.get(thread.createdBy);
+			const creator = threadCreators[thread.createdBy];
 			if (creator) {
 				if (creator.firstName && creator.lastName) {
 					return `${creator.firstName} ${creator.lastName}`;
@@ -256,7 +283,7 @@ const ThreadList: React.FC<ThreadListProps> = ({
 		if (!thread.createdBy) return null;
 
 		if (typeof thread.createdBy === "string") {
-			const creator = threadCreators.get(thread.createdBy);
+			const creator = threadCreators[thread.createdBy];
 			return creator?.avatarUrl || null;
 		}
 

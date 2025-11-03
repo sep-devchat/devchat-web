@@ -1,5 +1,5 @@
 import React, { useState, useRef, useCallback, useEffect } from "react";
-import { useSelector } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
 import { X, Hash, Plus, Smile, Send, Lock, Folder } from "lucide-react";
 import {
 	PageWrapper,
@@ -36,6 +36,7 @@ import MentionModal from "@/components/custom/MentionModal/MentionModal";
 import { createThread, detailThread } from "@/services/threadAPI";
 import { RootState } from "@/store";
 import { detailUser } from "@/services/userAPI";
+import { addThread, invalidateThreadCache } from "@/store/thread.slice";
 
 interface ChatMessage {
 	id: string;
@@ -173,6 +174,9 @@ const ThreadPanel: React.FC<ThreadPanelProps> = ({
 	onClose,
 	onThreadCreated,
 }) => {
+	const dispatch = useDispatch();
+	const channelKey = `${groupId}-${channelId}`;
+
 	const [threadName, setThreadName] = useState<string>("New Thread");
 	const [isPrivate, setIsPrivate] = useState<boolean>(false);
 	const [message, setMessage] = useState<string>("");
@@ -180,12 +184,16 @@ const ThreadPanel: React.FC<ThreadPanelProps> = ({
 	const [messages, setMessages] = useState<ChatMessage[]>([]);
 	const [isCreating, setIsCreating] = useState<boolean>(false);
 	const [isLoading, setIsLoading] = useState<boolean>(false);
+
 	const [threadCreatorInfo, setThreadCreatorInfo] = useState<{
 		name: string;
 		avatarUrl?: string;
 	} | null>(null);
 
-	console.log("Thread created by:", threadCreatorInfo?.name);
+	useEffect(() => {
+		console.log("threadCreatorInfo:", threadCreatorInfo);
+	}, [threadCreatorInfo]);
+
 	const profile = useSelector((state: RootState) => state.user.profile);
 
 	const messageInputRef = useRef<HTMLInputElement>(null);
@@ -311,7 +319,22 @@ const ThreadPanel: React.FC<ThreadPanelProps> = ({
 					description: message.trim(),
 				});
 
-				console.log("Thread created successfully:", response);
+				const createdThread = response?.data;
+
+				dispatch(
+					invalidateThreadCache({
+						channelKey,
+					}),
+				);
+
+				if (createdThread) {
+					dispatch(
+						addThread({
+							channelKey,
+							thread: createdThread,
+						}),
+					);
+				}
 
 				const currentUserName = getDisplayName(profile);
 				const currentUserAvatar =
@@ -341,8 +364,14 @@ const ThreadPanel: React.FC<ThreadPanelProps> = ({
 				});
 
 				if (onThreadCreated) {
-					onThreadCreated(response?.data?.id || "");
+					onThreadCreated(createdThread?.id || "");
 				}
+
+				window.dispatchEvent(
+					new CustomEvent("app:threadCreated", {
+						detail: { groupId, channelId },
+					}),
+				);
 			} catch (error: any) {
 				console.error("Error creating thread:", error);
 				const errorMessage =
