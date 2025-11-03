@@ -28,8 +28,8 @@ export const IconBtn = styled.button`
 	}
 
 	&:focus {
-	background: #eff6ff;
-	color: #6366f1;
+		background: #eff6ff;
+		color: #6366f1;
 		outline: none;
 	}
 `;
@@ -53,8 +53,8 @@ export const Tooltip = styled.span<{ visible?: boolean }>`
 	z-index: 30;
 
 	&:focus {
-	background: #eff6ff;
-	color: #6366f1;
+		background: #eff6ff;
+		color: #6366f1;
 		outline: none;
 	}
 `;

@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
+import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import {
 	Calendar,
 	Edit3,
@@ -35,6 +36,8 @@ import {
 	DropdownItem,
 	DragHandle,
 } from "../PersonalTodo/PersonalTodo.styled";
+import { taskAPI, GroupTodoUpdateRequest } from "@/services/taskAPI";
+import { Task as ApiTask, TaskStatus } from "@/types/task";
 
 /* ---------- types ---------- */
 type Task = {
@@ -51,9 +54,36 @@ type Task = {
 type Props = { groupId?: string; groupName?: string };
 
 /* ---------- utils ---------- */
-function getGroupKey(groupId: string) {
-	return `devchat_group_tasks_${groupId}`;
+function convertApiTaskToLocalTask(apiTask: ApiTask): Task {
+	try {
+		return {
+			id: apiTask.id,
+			name: apiTask.name,
+			description: apiTask.description || undefined,
+			priority: apiTask.priority,
+			status: apiTask.status,
+			dueDate: apiTask.dueDate || undefined,
+			createdAt: new Date(apiTask.createdAt).getTime(),
+			done: apiTask.status === TaskStatus.DONE,
+		};
+	} catch (error) {
+		console.warn("Error converting API task:", error, apiTask);
+		// Fallback with safe defaults
+		return {
+			id: apiTask.id || "unknown",
+			name: apiTask.name || "Untitled Task",
+			description: apiTask.description || undefined,
+			priority: apiTask.priority || 3,
+			status: apiTask.status || TaskStatus.TODO,
+			dueDate: apiTask.dueDate || undefined,
+			createdAt: apiTask.createdAt
+				? new Date(apiTask.createdAt).getTime()
+				: Date.now(),
+			done: apiTask.status === TaskStatus.DONE,
+		};
+	}
 }
+
 function isoToDatetimeLocal(iso?: string) {
 	if (!iso) return "";
 	const d = new Date(iso);
@@ -76,8 +106,46 @@ function daysDiffFromNow(iso?: string) {
 export default function GroupTodo({ groupId, groupName }: Props) {
 	const gid = groupId ?? "unknown";
 	const gname = groupName ?? "Group";
+	const queryClient = useQueryClient();
 
-	const STORAGE_KEY = getGroupKey(gid);
+	// Fetch tasks from API
+	const {
+		data: apiTasksData,
+		isLoading,
+		isError,
+		error,
+	} = useQuery({
+		queryKey: ["userTasks", gid],
+		queryFn: () => taskAPI.getUserTasksByGroup(gid),
+		enabled: !!groupId && groupId !== "unknown",
+		refetchOnWindowFocus: false,
+	});
+
+	// Convert API tasks to local task format
+	const apiTasks = Array.isArray(apiTasksData?.data)
+		? apiTasksData.data
+		: Array.isArray(apiTasksData)
+			? apiTasksData
+			: [];
+	const convertedTasks = apiTasks.map(convertApiTaskToLocalTask);
+
+	// Mutations for task operations
+	const updateTaskMutation = useMutation({
+		mutationFn: ({ taskId, data }: { taskId: string; data: any }) =>
+			taskAPI.updateTask(gid, taskId, data),
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ["userTasks", gid] });
+		},
+	});
+
+	const deleteTaskMutation = useMutation({
+		mutationFn: (taskId: string) => taskAPI.deleteTask(gid, taskId),
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ["userTasks", gid] });
+		},
+	});
+
+	// Fallback sample tasks for when no groupId or API fails
 	const SAMPLE_TASKS: Task[] = [
 		{
 			id: `g-${gid}-1`,
@@ -101,26 +169,20 @@ export default function GroupTodo({ groupId, groupName }: Props) {
 		},
 	];
 
-	const [tasks, setTasks] = useState<Task[]>(() => {
-		try {
-			const raw =
-				typeof window !== "undefined"
-					? localStorage.getItem(STORAGE_KEY)
-					: null;
-			return raw ? JSON.parse(raw) : SAMPLE_TASKS;
-		} catch (e) {
-			console.warn("Failed to parse group tasks", e);
-			return SAMPLE_TASKS;
+	// Local state for sample tasks when API is not available
+	const [sampleTasks, setSampleTasks] = useState<Task[]>(() => {
+		if (groupId && groupId !== "unknown") {
+			// For real groups, start with empty array and let API load
+			return [];
 		}
+		// For sample/unknown groups, use sample data
+		return SAMPLE_TASKS;
 	});
 
-	useEffect(() => {
-		try {
-			if (groupId) localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
-		} catch (e) {
-			console.log("Failed to save group tasks", e);
-		}
-	}, [tasks, STORAGE_KEY, groupId]);
+	// Use API data if available, otherwise use sample data
+	const isUsingApiData =
+		!isError && apiTasks.length > 0 && groupId !== "unknown";
+	const tasks = isUsingApiData ? convertedTasks : sampleTasks;
 
 	/* ---------- inline edit ---------- */
 	const [editingId, setEditingId] = useState<string | null>(null);
@@ -139,21 +201,80 @@ export default function GroupTodo({ groupId, groupName }: Props) {
 	function saveInlineEdit(id: string) {
 		const text = (editFields.name ?? "").trim();
 		if (!text) return;
-		setTasks((s) =>
-			s.map((x) => (x.id === id ? { ...x, ...(editFields as Task) } : x)),
-		);
+
+		if (isUsingApiData) {
+			// Update via API - use correct field names
+			const updateData: GroupTodoUpdateRequest = {};
+			if (editFields.name !== undefined) updateData.name = editFields.name;
+			if (editFields.description !== undefined)
+				updateData.description = editFields.description || "";
+			if (editFields.status !== undefined)
+				updateData.status = editFields.status;
+			if (editFields.priority !== undefined)
+				updateData.priority = editFields.priority;
+			if (editFields.dueDate !== undefined)
+				updateData.dueDate = editFields.dueDate;
+
+			updateTaskMutation.mutate(
+				{ taskId: id, data: updateData },
+				{
+					onError: (error) => {
+						console.error("Failed to update task:", error);
+						alert("Failed to update task. Please try again.");
+					},
+				},
+			);
+		} else {
+			// Update local state for sample data
+			setSampleTasks((s) =>
+				s.map((x) => (x.id === id ? { ...x, ...(editFields as Task) } : x)),
+			);
+		}
+
 		setEditingId(null);
 		setEditFields({});
 	}
 
 	/* ---------- toggle / delete ---------- */
 	function toggleDone(id: string) {
-		setTasks((s) => s.map((x) => (x.id === id ? { ...x, done: !x.done } : x)));
+		if (isUsingApiData) {
+			const currentTask = tasks.find((t) => t.id === id);
+			if (currentTask) {
+				const newStatus = currentTask.done ? TaskStatus.TODO : TaskStatus.DONE;
+				updateTaskMutation.mutate(
+					{
+						taskId: id,
+						data: { status: newStatus },
+					},
+					{
+						onError: (error) => {
+							console.error("Failed to toggle task status:", error);
+							alert("Failed to update task status. Please try again.");
+						},
+					},
+				);
+			}
+		} else {
+			setSampleTasks((s) =>
+				s.map((x) => (x.id === id ? { ...x, done: !x.done } : x)),
+			);
+		}
 	}
+
 	function deleteTask(id: string) {
 		const ok = window.confirm("Are you sure you want to delete this task?");
 		if (!ok) return;
-		setTasks((s) => s.filter((x) => x.id !== id));
+
+		if (isUsingApiData) {
+			deleteTaskMutation.mutate(id, {
+				onError: (error) => {
+					console.error("Failed to delete task:", error);
+					alert("Failed to delete task. Please try again.");
+				},
+			});
+		} else {
+			setSampleTasks((s) => s.filter((x) => x.id !== id));
+		}
 	}
 
 	/* ---------- drag & drop reorder (match PersonalTodo behavior) ---------- */
@@ -191,18 +312,21 @@ export default function GroupTodo({ groupId, groupName }: Props) {
 			return;
 		}
 
-		setTasks((s) => {
-			const arr = s.slice();
-			const fromIndex = arr.findIndex((x) => x.id === fromId);
-			let toIndex = arr.findIndex((x) => x.id === toId);
-			if (fromIndex === -1 || toIndex === -1) return s;
+		if (!isUsingApiData) {
+			// Only allow reordering for sample data
+			setSampleTasks((s) => {
+				const arr = s.slice();
+				const fromIndex = arr.findIndex((x) => x.id === fromId);
+				let toIndex = arr.findIndex((x) => x.id === toId);
+				if (fromIndex === -1 || toIndex === -1) return s;
 
-			const [item] = arr.splice(fromIndex, 1);
-			// Adjust toIndex when moving downward
-			if (fromIndex < toIndex) toIndex = toIndex - 1;
-			arr.splice(toIndex, 0, item);
-			return arr;
-		});
+				const [item] = arr.splice(fromIndex, 1);
+				// Adjust toIndex when moving downward
+				if (fromIndex < toIndex) toIndex = toIndex - 1;
+				arr.splice(toIndex, 0, item);
+				return arr;
+			});
+		}
 
 		cleanupDrag();
 	}
@@ -225,12 +349,35 @@ export default function GroupTodo({ groupId, groupName }: Props) {
 				<div style={{ fontSize: 14 }}>
 					Tasks for group <strong>{gname}</strong>
 				</div>
-				<Note>Edit / reorder / delete only (no create)</Note>
+				<Note>
+					{groupId === "unknown" || !groupId
+						? "No group selected - showing sample tasks"
+						: isLoading
+							? "Loading tasks..."
+							: isError
+								? `Error loading tasks: ${error?.message || "Unknown error"}`
+								: isUsingApiData
+									? `Loaded from API - changes will sync with server ${
+											updateTaskMutation.isPending ||
+											deleteTaskMutation.isPending
+												? "(Saving...)"
+												: ""
+										}`
+									: "Edit / reorder / delete only (no create)"}
+				</Note>
 			</Header>
 
 			<TaskList>
-				{tasks.length === 0 ? (
-					<div style={{ color: "#64748b" }}>No tasks in this group.</div>
+				{isLoading ? (
+					<div
+						style={{ color: "#64748b", textAlign: "center", padding: "20px" }}
+					>
+						Loading tasks...
+					</div>
+				) : tasks.length === 0 ? (
+					<div style={{ color: "#64748b" }}>
+						{isError ? "Failed to load tasks." : "No tasks in this group."}
+					</div>
 				) : (
 					tasks
 						.slice()
@@ -288,6 +435,11 @@ export default function GroupTodo({ groupId, groupName }: Props) {
 												display: "flex",
 												justifyContent: "space-between",
 												gap: 12,
+												opacity:
+													updateTaskMutation.isPending ||
+													deleteTaskMutation.isPending
+														? 0.6
+														: 1,
 											}}
 										>
 											<div style={{ flex: 1 }}>
@@ -456,19 +608,28 @@ export default function GroupTodo({ groupId, groupName }: Props) {
 												<div style={{ marginTop: 10, display: "flex", gap: 8 }}>
 													<button
 														onClick={() => saveInlineEdit(t.id)}
+														disabled={updateTaskMutation.isPending}
 														style={{
-															background: "#16a34a",
+															background: updateTaskMutation.isPending
+																? "#94a3b8"
+																: "#16a34a",
 															color: "white",
 															padding: 8,
 															borderRadius: 8,
 															border: "none",
-															cursor: "pointer",
+															cursor: updateTaskMutation.isPending
+																? "not-allowed"
+																: "pointer",
 															display: "flex",
 															gap: 8,
 															alignItems: "center",
+															opacity: updateTaskMutation.isPending ? 0.6 : 1,
 														}}
 													>
-														<Check size={14} /> Save
+														<Check size={14} />
+														{updateTaskMutation.isPending
+															? "Saving..."
+															: "Save"}
 													</button>
 													<button
 														onClick={cancelInlineEdit}
@@ -518,8 +679,17 @@ export default function GroupTodo({ groupId, groupName }: Props) {
 															setOpenDropdownFor(null);
 															deleteTask(t.id);
 														}}
+														style={{
+															opacity: deleteTaskMutation.isPending ? 0.6 : 1,
+															pointerEvents: deleteTaskMutation.isPending
+																? "none"
+																: "auto",
+														}}
 													>
-														<Trash2 size={14} /> Delete
+														<Trash2 size={14} />
+														{deleteTaskMutation.isPending
+															? "Deleting..."
+															: "Delete"}
 													</DropdownItem>
 												</Dropdown>
 											)}

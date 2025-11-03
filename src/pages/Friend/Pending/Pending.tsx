@@ -101,7 +101,7 @@ const Pending: React.FC<Props> = ({
 		filteredFriendReceived.length > 0 ||
 		filteredFriendSent.length > 0 ||
 		filteredGroupReceived.length > 0;
-		// filteredGroupSent.length > 0;
+	// filteredGroupSent.length > 0;
 
 	return (
 		<>
