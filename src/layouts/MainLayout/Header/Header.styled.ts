@@ -1,7 +1,7 @@
 import styled from "styled-components";
 
 export const HeaderContainer = styled.header`
-	height: 55px;
+	height: 52px;
 	background: #e2e8f0;
 	display: flex;
 	align-items: center;
@@ -24,11 +24,13 @@ export const IconBtn = styled.button`
 
 	&:hover {
 		background: #f3f4f6;
+		outline: none;
 	}
 
 	&:focus {
-		outline: 2px solid rgba(79, 70, 229, 0.15);
-		outline-offset: 2px;
+	background: #eff6ff;
+	color: #6366f1;
+		outline: none;
 	}
 `;
 
@@ -37,7 +39,6 @@ export const Tooltip = styled.span<{ visible?: boolean }>`
 	bottom: calc(100% + 8px);
 	left: 50%;
 	transform: translateX(-50%);
-	background: #111827;
 	color: white;
 	padding: 6px 8px;
 	border-radius: 6px;
@@ -50,6 +51,12 @@ export const Tooltip = styled.span<{ visible?: boolean }>`
 		opacity 0.12s ease,
 		visibility 0.12s ease;
 	z-index: 30;
+
+	&:focus {
+	background: #eff6ff;
+	color: #6366f1;
+		outline: none;
+	}
 `;
 
 export const NavTabTitle = styled.div`

@@ -7,6 +7,7 @@ import {
 	Settings as SettingsIcon,
 	CircleX,
 	Trash,
+	ExternalLink,
 } from "lucide-react";
 import {
 	Header,
@@ -24,6 +25,7 @@ import {
 	SettingsContainer,
 	Title,
 	LogoSection,
+	MenuLabel,
 } from "./GroupSetting.styled";
 import bgImage from "@/assets/image/loginBackground.png";
 import ProfileSection from "./Sections/ProfileSection";
@@ -31,6 +33,7 @@ import { DeleteSection } from "./Sections/DeleteSection";
 import InviteSection from "./Sections/InviteSection/InviteSection";
 import ActivitySection from "./Sections/ActivitySection/ActivitySection";
 import MemberSection from "./MemberSection/MemberSection";
+import { OutGroupSection } from "./Sections/OutGroupSection";
 
 /* 1) Định nghĩa lại kiểu section hợp lệ */
 type SettingsSection = "profile" | "invite" | "member" | "activity" | "delete";
@@ -41,21 +44,23 @@ interface MenuItemType {
 	icon: React.ComponentType<any>;
 }
 
-const menuItems: MenuItemType[] = [
-	{ id: "profile", label: "Server Profile", icon: SettingsIcon },
-	{ id: "invite", label: "Invites", icon: Palette },
-	{ id: "member", label: "Member", icon: Bell },
-	// { id: "activity", label: "Activity", icon: User },
-	{ id: "delete", label: "Delete Server", icon: Trash },
-];
+// const menuItems: MenuItemType[] = [
+// 	{ id: "profile", label: "Server Profile", icon: SettingsIcon },
+// 	{ id: "invite", label: "Invites", icon: Palette },
+// 	{ id: "member", label: "Member", icon: Bell },
+// 	// { id: "activity", label: "Activity", icon: User },
+// 	{ id: "delete", label: "Delete Server", icon: Trash },
+// ];
 
 // export const GroupSetting: React.FC = () => {
 interface GroupSettingProps {
 	setSettingSelect: (value: boolean) => void;
+	isAdmin: boolean;
 }
 
 export const GroupSetting: React.FC<GroupSettingProps> = ({
 	setSettingSelect,
+	isAdmin,
 }) => {
 	const [activeSection, setActiveSection] =
 		useState<SettingsSection>("profile");
@@ -65,6 +70,19 @@ export const GroupSetting: React.FC<GroupSettingProps> = ({
 	useEffect(() => {
 		if (contentWrapperRef.current) contentWrapperRef.current.scrollTop = 0;
 	}, [activeSection]);
+
+	const menuItems: MenuItemType[] = [
+		{ id: "profile", label: "Group Profile", icon: SettingsIcon },
+		{ id: "invite", label: "Invites", icon: Palette },
+		{ id: "member", label: "Member", icon: Bell },
+		// { id: "activity", label: "Activity", icon: User },
+		{
+			id: "delete",
+			label: isAdmin ? "Delete Group" : "Out group",
+			icon: isAdmin ? Trash : ExternalLink,
+		},
+	];
+
 
 	const renderActiveSection = () => {
 		switch (activeSection) {
@@ -77,7 +95,12 @@ export const GroupSetting: React.FC<GroupSettingProps> = ({
 			case "activity":
 				return <ActivitySection />;
 			case "delete":
-				return <DeleteSection setSettingSelect={setSettingSelect} />;
+				// Nếu là admin thì show DeleteSection, không thì fallback về ActivitySection
+				return isAdmin ? (
+					<DeleteSection setSettingSelect={setSettingSelect} />
+				) : (
+					<OutGroupSection setSettingSelect={setSettingSelect} />
+				);
 			default:
 				return null;
 		}
@@ -102,6 +125,7 @@ export const GroupSetting: React.FC<GroupSettingProps> = ({
 						<MenuNav>
 							{menuItems.map((item) => {
 								const Icon = item.icon;
+																const isDeleteTab = item.id === "delete";
 								return (
 									<MenuItem
 										key={item.id}
@@ -114,10 +138,10 @@ export const GroupSetting: React.FC<GroupSettingProps> = ({
 												setActiveSection(item.id);
 										}}
 									>
-										<MenuIcon>
+										<MenuIcon $isDelete={isDeleteTab}>
 											<Icon size={20} />
 										</MenuIcon>
-										{item.label}
+										<MenuLabel $isDelete={isDeleteTab}>{item.label}</MenuLabel>
 									</MenuItem>
 								);
 							})}

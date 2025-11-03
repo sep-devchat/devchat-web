@@ -30,6 +30,7 @@ import {
 import { listInvitationGr, updateInvitation } from "@/services/userGroupAPI";
 import { showGlobalAlert } from "@/components/custom/AlertCustom/Alert";
 import ConfirmModal from "@/components/custom/ConfirmModal/ConfirmModal";
+import { toast } from "sonner";
 
 const Friend: React.FC = () => {
 	const search = useSearch({ from: "/chat/friend" });
@@ -240,21 +241,20 @@ const Friend: React.FC = () => {
 				if (groupResp.status === "fulfilled" && groupResp.value?.data) {
 					const normalizedGroup = groupResp.value.data.map((inv: any) => {
 						const inviter =
-							inv.inviterName ||
-							inv.fromName ||
-							`${inv.inviterFirstName ?? ""} ${inv.inviterLastName ?? ""}`.trim() ||
+							`${inv.addedBy.firstName ?? ""} ${inv.addedBy.lastName ?? ""}`.trim() ||
 							"";
 						return {
 							id: inv.id,
 							groupId: inv.groupId,
-							groupName: inv.groupName ?? inv.name ?? "Group",
-							inviterName: inviter || inv.username || "",
-							inviterAvatar: inv.inviterAvatarUrl || inv.avatarUrl || "",
-							direction:
-								inv.type === "sent" || inv.direction === "sent"
-									? "sent"
-									: "received",
-							raw: inv,
+							groupAvatar: inv?.group?.avatar,
+							groupName: inv.group.name ?? "Group",
+							inviterName: inviter || "",
+							inviterAvatar: inv.addedBy.avatarUrl || "",
+							// direction:
+							// 	inv.type === "sent" || inv.direction === "sent"
+							// 		? "sent"
+							// 		: "received",
+							// raw: inv,
 						};
 					});
 					setPendingGroupInvites(normalizedGroup);
@@ -453,6 +453,9 @@ const Friend: React.FC = () => {
 	// Group invite actions
 	const handleAcceptGroup = async (inviteId: string) => {
 		try {
+			setPendingGroupInvites((prev) => prev.filter((r) => r.id !== inviteId));
+
+			// tìm item để lấy groupId
 			const item = pendingGroupInvites.find((r) => r.id === inviteId);
 			const raw = item?.raw;
 			const groupId =
@@ -462,21 +465,19 @@ const Friend: React.FC = () => {
 				raw?.targetId ??
 				inviteId;
 
-			await updateInvitation(groupId, {
-				userIdOrEmail: currentUserId,
-				status: 1,
-			});
-
-			setPendingGroupInvites((prev) => prev.filter((r) => r.id !== inviteId));
-			showGlobalAlert({ type: "success", message: "Group invite accepted!" });
+			const acceptRequest = { userIdOrEmail: currentUserId, status: 1 };
+			await updateInvitation(groupId, acceptRequest);
+			toast.success("Accepted successfully!");
 		} catch (err) {
-			showGlobalAlert({ type: "error", message: "Failed to accept invite!" });
-			console.error("accept group invite failed", err);
+			toast.error(`Accepted fail: ${err}`);
 		}
 	};
+
 
 	const handleDeclineGroup = async (inviteId: string) => {
 		try {
+			setPendingGroupInvites((prev) => prev.filter((r) => r.id !== inviteId));
+
 			const item = pendingGroupInvites.find((r) => r.id === inviteId);
 			const raw = item?.raw;
 			const groupId =
@@ -486,18 +487,14 @@ const Friend: React.FC = () => {
 				raw?.targetId ??
 				inviteId;
 
-			await updateInvitation(groupId, {
-				userIdOrEmail: currentUserId,
-				status: 0,
-			});
-
-			setPendingGroupInvites((prev) => prev.filter((r) => r.id !== inviteId));
-			showGlobalAlert({ type: "success", message: "Group invite declined!" });
+			const declineRequest = { userIdOrEmail: currentUserId, status: 2 };
+			await updateInvitation(groupId, declineRequest);
+			toast.success("Declined successfully!");
 		} catch (err) {
-			showGlobalAlert({ type: "error", message: "Failed to decline invite!" });
-			console.error("decline group invite failed", err);
+			toast.error(`Declined fail: ${err}`);
 		}
 	};
+
 
 	const handleMenuToggle = (friendId: string, e: React.MouseEvent) => {
 		e.stopPropagation();

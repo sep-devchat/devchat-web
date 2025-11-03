@@ -33,8 +33,6 @@ interface PendingGroup {
 	groupName: string;
 	inviterName?: string;
 	inviterAvatar?: string;
-	direction?: "received" | "sent";
-	raw?: any;
 }
 
 interface Props {
@@ -83,27 +81,27 @@ const Pending: React.FC<Props> = ({
 	);
 
 	// Group invites
-	const groupReceived = pendingGroupInvites.filter(
-		(r) => r.direction === "received",
-	);
-	const groupSent = pendingGroupInvites.filter((r) => r.direction === "sent");
+	// const groupReceived = pendingGroupInvites.filter(
+	// 	(r) => r.direction === "received",
+	// );
+	// const groupSent = pendingGroupInvites.filter((r) => r.direction === "sent");
 
-	const filteredGroupReceived = groupReceived.filter(
+	const filteredGroupReceived = pendingGroupInvites.filter(
 		(inv) =>
 			safeLower(inv.groupName).includes(q) ||
 			safeLower(inv.inviterName).includes(q),
 	);
-	const filteredGroupSent = groupSent.filter(
-		(inv) =>
-			safeLower(inv.groupName).includes(q) ||
-			safeLower(inv.inviterName).includes(q),
-	);
+	// const filteredGroupSent = groupSent.filter(
+	// 	(inv) =>
+	// 		safeLower(inv.groupName).includes(q) ||
+	// 		safeLower(inv.inviterName).includes(q),
+	// );
 
 	const hasAnyResults =
 		filteredFriendReceived.length > 0 ||
 		filteredFriendSent.length > 0 ||
-		filteredGroupReceived.length > 0 ||
-		filteredGroupSent.length > 0;
+		filteredGroupReceived.length > 0;
+		// filteredGroupSent.length > 0;
 
 	return (
 		<>
@@ -193,10 +191,7 @@ const Pending: React.FC<Props> = ({
 					<ResultsList style={{ marginBottom: 16 }}>
 						{filteredGroupReceived.map((inv) => (
 							<ResultItem key={inv.id}>
-								<Avatar
-									src={inv.inviterAvatar}
-									alt={inv.inviterName || inv.groupName}
-								/>
+								<Avatar src={inv.inviterAvatar} alt={inv.groupName} />
 								<UserInfo>
 									<UserName>{inv.groupName}</UserName>
 									<UserHandle>
@@ -224,7 +219,7 @@ const Pending: React.FC<Props> = ({
 			)}
 
 			{/* GROUP INVITES - SENT */}
-			{filteredGroupSent.length > 0 && (
+			{/* {filteredGroupSent.length > 0 && (
 				<>
 					<SectionHeader>
 						Group Invites — Sent ({filteredGroupSent.length})
@@ -249,7 +244,7 @@ const Pending: React.FC<Props> = ({
 						))}
 					</ResultsList>
 				</>
-			)}
+			)} */}
 
 			{/* Empty state */}
 			{!hasAnyResults && !isLoadingPending && (

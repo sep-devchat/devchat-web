@@ -16,7 +16,6 @@ import {
 } from "./Header.styled";
 import { useNavigate, useParams, useSearch } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { useState, useEffect } from "react";
 import { ChannelResponse, detailChannel } from "@/services/channelAPI";
 import ThreadList from "@/components/custom/ThreadList/ThreadList";
@@ -185,6 +184,10 @@ const Header = ({
 							onClick={() => onIconClick("tasks")}
 							onKeyDown={(e) => onIconKeyDown(e, "tasks")}
 							disabled={loading}
+							style={{
+								background: iconSelected === "tasks" ? "#eff6ff" : undefined,
+								color: iconSelected === "tasks" ? "#6366f1" : undefined,
+							}}
 						>
 							<NotebookPenIcon size={20} />
 							<Tooltip visible={hoveredIcon === "tasks"}>Tasks</Tooltip>
@@ -232,6 +235,10 @@ const Header = ({
 							onClick={() => onIconClick("code")}
 							onKeyDown={(e) => onIconKeyDown(e, "code")}
 							disabled={loading}
+							style={{
+								background: iconSelected === "code" ? "#eff6ff" : undefined,
+								color: iconSelected === "code" ? "#6366f1" : undefined,
+							}}
 						>
 							<SquareCode size={20} />
 							<Tooltip visible={hoveredIcon === "code"}>Code</Tooltip>
@@ -251,11 +258,11 @@ const Header = ({
 							<Tooltip visible={hoveredIcon === "users"}>Members</Tooltip>
 						</IconBtn>
 
-						<Input
+						{/* <Input
 							className="shadow-none"
 							placeholder="Search"
 							disabled={loading}
-						/>
+						/> */}
 
 						{showThreadDropdown && groupId && channelId && (
 							<ThreadList
