@@ -16,7 +16,6 @@ import {
 	directUploadWithSignature,
 	getUploadSignature,
 } from "@/services/upload/upload.api";
-import { markdownToHtml } from "../ChatInputComponent/Markdown/Markdown";
 import ReplyPreview from "../ChatInputComponent/ReplyPreview/ReplyPreview";
 import ChatTypeDropdown from "../ChatInputComponent/ChatTypeModal/ChatTypeModal";
 import Toolbar, {
@@ -386,22 +385,9 @@ export default function ChatInput({
 	const handleEditorInput = useCallback(
 		(ev: React.FormEvent<HTMLDivElement>) => {
 			const el = ev.currentTarget as HTMLDivElement;
-			// Keep raw markdown text, and also render HTML preview
+			// Keep the original user input as-is (raw markdown/plain text)
 			const text = el.innerText || "";
 			setMdText(text);
-			const converted = markdownToHtml(text);
-			if (converted !== el.innerHTML) {
-				// Replace content and place caret at end (simple, reliable)
-				el.innerHTML = converted;
-				// place caret at end
-				const range = document.createRange();
-				range.selectNodeContents(el);
-				range.collapse(false);
-				const sel = window.getSelection();
-				sel?.removeAllRanges();
-				sel?.addRange(range);
-			}
-			setHtml(el.innerHTML);
 		},
 		[],
 	);
