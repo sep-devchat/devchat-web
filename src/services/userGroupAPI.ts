@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { get, post, put, remove } from "./apiCaller";
 
 export interface InviteRequest {
@@ -38,7 +37,7 @@ export const updateInvitation = (
 };
 
 export const membersGroup = (groupId: string, page: number, limit: number) => {
-	return get(`/api/group/${groupId}/member?page=${page}&limit=${limit}`);
+	return get(`/api/group/${groupId}/member`, { page, limit });
 };
 
 export const deleteMemberGroup = (groupId: string, data: RemoveGrRequest) => {

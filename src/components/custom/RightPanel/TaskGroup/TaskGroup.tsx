@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
+import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import {
 	SquareCheckBig,
 	X,
@@ -18,6 +19,13 @@ import {
 	Loader,
 } from "lucide-react";
 import * as S from "./TaskGroup.styled";
+import {
+	taskAPI,
+	CreateTaskRequest,
+	UpdateTaskRequest,
+} from "@/services/taskAPI";
+import { Task as ApiTask, TaskStatus, TaskPriority } from "@/types/task";
+import { membersGroup } from "@/services/userGroupAPI";
 
 type Task = {
 	id: string;
@@ -27,7 +35,98 @@ type Task = {
 	priority: "Low" | "Medium" | "High";
 	dueDate: string;
 	assignedTo: string;
-	createdBy: string;
+};
+
+type GroupMember = {
+	id: string;
+	username: string;
+	email: string;
+	role?: string;
+	joined_at?: string;
+};
+
+// Conversion functions between API and local Task types
+const convertApiTaskToLocal = (apiTask: ApiTask): Task => {
+	const statusMap: Record<TaskStatus, Task["status"]> = {
+		[TaskStatus.TODO]: "To Do",
+		[TaskStatus.IN_PROGRESS]: "In Progress",
+		[TaskStatus.DONE]: "Done",
+	};
+
+	const priorityMap: Record<TaskPriority, Task["priority"]> = {
+		[TaskPriority.LOW]: "Low",
+		[TaskPriority.MEDIUM]: "Medium",
+		[TaskPriority.HIGH]: "High",
+	};
+
+	return {
+		id: apiTask.id,
+		name: apiTask.name,
+		description: apiTask.description || "",
+		status: statusMap[apiTask.status] || "To Do",
+		priority: priorityMap[apiTask.priority] || "Medium",
+		dueDate: apiTask.dueDate || new Date().toISOString().split("T")[0],
+		assignedTo: apiTask.assignee?.id || "",
+	};
+};
+
+const convertLocalToApiCreate = (
+	localTask: Omit<Task, "id">,
+): CreateTaskRequest => {
+	const statusMap: Record<Task["status"], TaskStatus> = {
+		Open: TaskStatus.TODO,
+		"To Do": TaskStatus.TODO,
+		"In Progress": TaskStatus.IN_PROGRESS,
+		Done: TaskStatus.DONE,
+	};
+
+	const priorityMap: Record<Task["priority"], TaskPriority> = {
+		Low: TaskPriority.LOW,
+		Medium: TaskPriority.MEDIUM,
+		High: TaskPriority.HIGH,
+	};
+
+	return {
+		name: localTask.name,
+		description: localTask.description,
+		status: statusMap[localTask.status],
+		priority: priorityMap[localTask.priority],
+		dueDate: localTask.dueDate
+			? new Date(localTask.dueDate).toISOString()
+			: undefined,
+		assigneeId:
+			localTask.assignedTo && localTask.assignedTo.trim() !== ""
+				? localTask.assignedTo
+				: undefined,
+	};
+};
+
+const convertLocalToApiUpdate = (
+	localTask: Partial<Task>,
+): UpdateTaskRequest => {
+	const statusMap: Record<Task["status"], TaskStatus> = {
+		Open: TaskStatus.TODO,
+		"To Do": TaskStatus.TODO,
+		"In Progress": TaskStatus.IN_PROGRESS,
+		Done: TaskStatus.DONE,
+	};
+
+	const priorityMap: Record<Task["priority"], TaskPriority> = {
+		Low: TaskPriority.LOW,
+		Medium: TaskPriority.MEDIUM,
+		High: TaskPriority.HIGH,
+	};
+
+	return {
+		name: localTask.name,
+		description: localTask.description,
+		status: localTask.status ? statusMap[localTask.status] : undefined,
+		priority: localTask.priority ? priorityMap[localTask.priority] : undefined,
+		dueDate: localTask.dueDate
+			? new Date(localTask.dueDate).toISOString()
+			: undefined,
+		assigneeId: localTask.assignedTo || undefined,
+	};
 };
 
 type AlertType = "success" | "warning" | "error";
@@ -407,53 +506,85 @@ const Dialog: React.FC<{
 		</S.DialogOverlay>
 	);
 };
-type TaskGroupProps = {
+export type TaskGroupProps = {
 	onClose?: () => void;
+	groupId?: string;
 };
 
-export default function TaskGroup({ onClose }: TaskGroupProps) {
-	const [tasks, setTasks] = useState<Task[]>([
-		{
-			id: "1",
-			name: "Implement user authentication",
-			description: "Create login/register functionality with JWT tokens",
-			status: "Open",
-			priority: "Low",
-			dueDate: "2026-01-01",
-			assignedTo: "John Doe",
-			createdBy: "Alice Johnson",
+export default function TaskGroup({ onClose, groupId }: TaskGroupProps) {
+	const queryClient = useQueryClient();
+
+	// Fetch tasks from API
+	const {
+		data: apiTasksData,
+		isLoading,
+		isError,
+		error,
+	} = useQuery({
+		queryKey: ["tasks", groupId],
+		queryFn: () => taskAPI.getTasks(groupId!, { page: 1, limit: 100 }),
+		enabled: !!groupId,
+		refetchOnWindowFocus: false,
+	});
+
+	// Fetch group members for assignee options
+	const { data: membersData, isLoading: membersLoading } = useQuery({
+		queryKey: ["groupMembers", groupId],
+		queryFn: () => membersGroup(groupId!, 1, 100),
+		enabled: !!groupId,
+		refetchOnWindowFocus: false,
+	});
+
+	const groupMembers = membersData?.data || [];
+
+	// Convert API tasks to local format
+	const apiTasks = apiTasksData?.data || [];
+	const tasks = apiTasks.map(convertApiTaskToLocal);
+
+	const displayTasks = tasks;
+
+	// Mutations for CRUD operations
+	const createTaskMutation = useMutation({
+		mutationFn: (data: CreateTaskRequest) => taskAPI.createTask(groupId!, data),
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ["tasks", groupId] });
+			fireAlert("success", "Task created successfully");
 		},
-		{
-			id: "2",
-			name: "Design database schema",
-			description: "Create ERD and define relationships between entities",
-			status: "To Do",
-			priority: "Medium",
-			dueDate: "2025-11-16",
-			assignedTo: "Alice Johnson",
-			createdBy: "John Doe",
+		onError: (error) => {
+			console.error("Failed to create task:", error);
+			fireAlert("error", "Failed to create task. Please try again.");
 		},
-		{
-			id: "3",
-			name: "Implement user authentication",
-			description: "Create login/register functionality with JWT tokens",
-			status: "In Progress",
-			priority: "High",
-			dueDate: "2026-01-01",
-			assignedTo: "John Doe",
-			createdBy: "Alice Johnson",
+	});
+
+	const updateTaskMutation = useMutation({
+		mutationFn: ({
+			taskId,
+			data,
+		}: {
+			taskId: string;
+			data: UpdateTaskRequest;
+		}) => taskAPI.updateTask(groupId!, taskId, data),
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ["tasks", groupId] });
+			fireAlert("success", "Task updated successfully");
 		},
-		{
-			id: "4",
-			name: "Design database schema",
-			description: "Create ERD and define relationships between entities",
-			status: "Done",
-			priority: "Medium",
-			dueDate: "2025-11-16",
-			assignedTo: "Alice Johnson",
-			createdBy: "John Doe",
+		onError: (error) => {
+			console.error("Failed to update task:", error);
+			fireAlert("error", "Failed to update task. Please try again.");
 		},
-	]);
+	});
+
+	const deleteTaskMutation = useMutation({
+		mutationFn: (taskId: string) => taskAPI.deleteTask(groupId!, taskId),
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ["tasks", groupId] });
+			fireAlert("success", "Task deleted successfully");
+		},
+		onError: (error) => {
+			console.error("Failed to delete task:", error);
+			fireAlert("error", "Failed to delete task. Please try again.");
+		},
+	});
 
 	const [isCreateOpen, setIsCreateOpen] = useState(false);
 	const [isUpdateOpen, setIsUpdateOpen] = useState(false);
@@ -467,7 +598,6 @@ export default function TaskGroup({ onClose }: TaskGroupProps) {
 		priority: "Medium" as Task["priority"],
 		dueDate: "",
 		assignedTo: "",
-		createdBy: "John Doe",
 	});
 
 	const statusOptions = [
@@ -483,17 +613,10 @@ export default function TaskGroup({ onClose }: TaskGroupProps) {
 		{ value: "High", label: "High" },
 	];
 
-	const assigneeOptions = [
-		{ value: "John Doe", label: "John Doe" },
-		{ value: "Alice Johnson", label: "Alice Johnson" },
-		{ value: "Bob Smith", label: "Bob Smith" },
-	];
-
-	const createdByOptions = [
-		{ value: "John Doe", label: "John Doe (john.doe@example.com)" },
-		{ value: "Alice Johnson", label: "Alice Johnson" },
-		{ value: "Bob Smith", label: "Bob Smith" },
-	];
+	const assigneeOptions = groupMembers.map((member: GroupMember) => ({
+		value: member.id,
+		label: `${member.username} (${member.email})`,
+	}));
 
 	const resetForm = () => {
 		setFormData({
@@ -503,51 +626,64 @@ export default function TaskGroup({ onClose }: TaskGroupProps) {
 			priority: "Medium",
 			dueDate: "",
 			assignedTo: "",
-			createdBy: "John Doe",
 		});
 	};
 
 	const handleCreate = () => {
+		if (!groupId) {
+			fireAlert("error", "No group selected");
+			return;
+		}
 		if (!formData.name.trim()) {
 			fireAlert("warning", "Task name is required");
 			return;
 		}
 
-		const newTask: Task = {
-			id: Date.now().toString(),
-			...formData,
-		};
-
-		setTasks([...tasks, newTask]);
-		fireAlert("success", "Task created successfully");
-		setIsCreateOpen(false);
-		resetForm();
+		const createData = convertLocalToApiCreate(formData);
+		createTaskMutation.mutate(createData, {
+			onSuccess: () => {
+				setIsCreateOpen(false);
+				resetForm();
+			},
+		});
 	};
 
 	const handleUpdate = () => {
 		if (!selectedTask) return;
+		if (!groupId) {
+			fireAlert("error", "No group selected");
+			return;
+		}
 		if (!formData.name.trim()) {
 			fireAlert("warning", "Task name is required");
 			return;
 		}
 
-		setTasks(
-			tasks.map((task) =>
-				task.id === selectedTask.id ? { ...task, ...formData } : task,
-			),
+		const updateData = convertLocalToApiUpdate(formData);
+		updateTaskMutation.mutate(
+			{ taskId: selectedTask.id, data: updateData },
+			{
+				onSuccess: () => {
+					setIsUpdateOpen(false);
+					setSelectedTask(null);
+					resetForm();
+				},
+			},
 		);
-		fireAlert("success", "Task updated successfully");
-		setIsUpdateOpen(false);
-		setSelectedTask(null);
-		resetForm();
 	};
 
 	const handleDelete = () => {
 		if (!selectedTask) return;
-		setTasks(tasks.filter((task) => task.id !== selectedTask.id));
-		fireAlert("success", "Task deleted successfully");
-		setIsDeleteOpen(false);
-		setSelectedTask(null);
+		if (!groupId) {
+			fireAlert("error", "No group selected");
+			return;
+		}
+		deleteTaskMutation.mutate(selectedTask.id, {
+			onSuccess: () => {
+				setIsDeleteOpen(false);
+				setSelectedTask(null);
+			},
+		});
 	};
 
 	const openUpdateDialog = (task: Task) => {
@@ -559,7 +695,6 @@ export default function TaskGroup({ onClose }: TaskGroupProps) {
 			priority: task.priority,
 			dueDate: task.dueDate,
 			assignedTo: task.assignedTo,
-			createdBy: task.createdBy,
 		});
 		setIsUpdateOpen(true);
 	};
@@ -567,6 +702,12 @@ export default function TaskGroup({ onClose }: TaskGroupProps) {
 	const openDeleteDialog = (task: Task) => {
 		setSelectedTask(task);
 		setIsDeleteOpen(true);
+	};
+
+	const getAssigneeDisplayName = (assigneeId: string) => {
+		if (!assigneeId) return "Unassigned";
+		const member = groupMembers.find((m: GroupMember) => m.id === assigneeId);
+		return member ? member.username : "Unknown User";
 	};
 
 	const getPriorityColor = (priority: string) => {
@@ -657,55 +798,103 @@ export default function TaskGroup({ onClose }: TaskGroupProps) {
 						<Plus size={16} /> Create Task{" "}
 					</S.Button>
 				</S.HeaderWrapper>
-				{tasks.map((task) => {
-					const statusColors = getStatusColor(task.status);
-					const priorityColors = getPriorityColor(task.priority);
+				{isLoading && (
+					<S.TaskCard>
+						<div style={{ textAlign: "center", padding: "20px" }}>
+							<Loader
+								size={20}
+								style={{ animation: "spin 1s linear infinite" }}
+							/>
+							<div style={{ marginTop: "10px" }}>Loading tasks...</div>
+						</div>
+					</S.TaskCard>
+				)}
+				{isError && (
+					<S.TaskCard>
+						<div
+							style={{ textAlign: "center", padding: "20px", color: "#D83232" }}
+						>
+							Error loading tasks: {error?.message || "Unknown error"}
+						</div>
+					</S.TaskCard>
+				)}
+				{!groupId && (
+					<S.TaskCard>
+						<div
+							style={{ textAlign: "center", padding: "40px", color: "#6b7280" }}
+						>
+							<div style={{ fontSize: "18px", marginBottom: "8px" }}>
+								No group selected
+							</div>
+							<div style={{ fontSize: "14px" }}>
+								Please select a group to view tasks
+							</div>
+						</div>
+					</S.TaskCard>
+				)}
+				{groupId && !isLoading && displayTasks.length === 0 && !isError && (
+					<S.TaskCard>
+						<div
+							style={{ textAlign: "center", padding: "40px", color: "#6b7280" }}
+						>
+							<div style={{ fontSize: "18px", marginBottom: "8px" }}>
+								No tasks yet
+							</div>
+							<div style={{ fontSize: "14px" }}>
+								Create your first task to get started
+							</div>
+						</div>
+					</S.TaskCard>
+				)}
+				{groupId &&
+					!isLoading &&
+					displayTasks.length > 0 &&
+					displayTasks.map((task) => {
+						const statusColors = getStatusColor(task.status);
+						const priorityColors = getPriorityColor(task.priority);
 
-					return (
-						<S.TaskCard key={task.id}>
-							<S.TaskHeader>
-								<S.TaskTitle>{task.name}</S.TaskTitle>
-								<S.TaskActions>
-									<Edit2
-										size={18}
-										style={{ cursor: "pointer", color: "#608BC1" }}
-										onClick={() => openUpdateDialog(task)}
-									/>
-									<Trash2
-										size={18}
-										style={{ cursor: "pointer", color: "#D83232" }}
-										onClick={() => openDeleteDialog(task)}
-									/>
-								</S.TaskActions>
-							</S.TaskHeader>
+						return (
+							<S.TaskCard key={task.id}>
+								<S.TaskHeader>
+									<S.TaskTitle>{task.name}</S.TaskTitle>
+									<S.TaskActions>
+										<Edit2
+											size={18}
+											style={{ cursor: "pointer", color: "#608BC1" }}
+											onClick={() => openUpdateDialog(task)}
+										/>
+										<Trash2
+											size={18}
+											style={{ cursor: "pointer", color: "#D83232" }}
+											onClick={() => openDeleteDialog(task)}
+										/>
+									</S.TaskActions>
+								</S.TaskHeader>
 
-							<S.TaskDescription>{task.description}</S.TaskDescription>
+								<S.TaskDescription>{task.description}</S.TaskDescription>
 
-							<S.TaskBadges>
-								<S.Badge bg={statusColors.bg} color={statusColors.text}>
-									{getStatusIcon(task.status)}
-									{task.status}
-								</S.Badge>
-								<S.Badge bg={priorityColors.bg} color={priorityColors.text}>
-									{getPriorityIcon(task.priority)}
-									{task.priority}
-								</S.Badge>
-							</S.TaskBadges>
+								<S.TaskBadges>
+									<S.Badge bg={statusColors.bg} color={statusColors.text}>
+										{getStatusIcon(task.status)}
+										{task.status}
+									</S.Badge>
+									<S.Badge bg={priorityColors.bg} color={priorityColors.text}>
+										{getPriorityIcon(task.priority)}
+										{task.priority}
+									</S.Badge>
+								</S.TaskBadges>
 
-							<S.TaskMeta>
-								<S.MetaItem>
-									<User size={14} /> {task.assignedTo}
-								</S.MetaItem>
-								<S.MetaItem>
-									<User size={14} /> Created by {task.createdBy}
-								</S.MetaItem>
-								<S.MetaItem>
-									<Calendar size={14} /> {formatDate(task.dueDate)}
-								</S.MetaItem>
-							</S.TaskMeta>
-						</S.TaskCard>
-					);
-				})}
+								<S.TaskMeta>
+									<S.MetaItem>
+										<User size={14} /> {getAssigneeDisplayName(task.assignedTo)}
+									</S.MetaItem>
+									<S.MetaItem>
+										<Calendar size={14} /> {formatDate(task.dueDate)}
+									</S.MetaItem>
+								</S.TaskMeta>
+							</S.TaskCard>
+						);
+					})}
 			</S.ContentArea>
 
 			<Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
@@ -774,19 +963,6 @@ export default function TaskGroup({ onClose }: TaskGroupProps) {
 						</S.FormGroup>
 
 						<S.FormGroup>
-							<S.Label>
-								Created By <span style={{ color: "#D83232" }}>*</span>
-							</S.Label>
-							<CustomSelect
-								value={formData.createdBy}
-								onChange={(value) =>
-									setFormData({ ...formData, createdBy: value })
-								}
-								options={createdByOptions}
-							/>
-						</S.FormGroup>
-
-						<S.FormGroup>
 							<S.Label>Assign To</S.Label>
 							<CustomSelect
 								value={formData.assignedTo}
@@ -794,17 +970,28 @@ export default function TaskGroup({ onClose }: TaskGroupProps) {
 									setFormData({ ...formData, assignedTo: value })
 								}
 								options={assigneeOptions}
-								placeholder="Select assignee..."
+								placeholder={
+									membersLoading ? "Loading members..." : "Select assignee..."
+								}
+								disabled={membersLoading}
 							/>
 						</S.FormGroup>
 					</S.DialogBody>
 
 					<S.DialogFooter>
-						<S.Button variant="ghost" onClick={() => setIsCreateOpen(false)}>
+						<S.Button
+							variant="ghost"
+							onClick={() => setIsCreateOpen(false)}
+							disabled={createTaskMutation.isPending}
+						>
 							Cancel
 						</S.Button>
-						<S.Button variant="primary" onClick={handleCreate}>
-							Create Task
+						<S.Button
+							variant="primary"
+							onClick={handleCreate}
+							disabled={createTaskMutation.isPending}
+						>
+							{createTaskMutation.isPending ? "Creating..." : "Create Task"}
 						</S.Button>
 					</S.DialogFooter>
 				</S.DialogContent>
@@ -857,7 +1044,6 @@ export default function TaskGroup({ onClose }: TaskGroupProps) {
 											})
 										}
 										options={statusOptions}
-										disabled
 									/>
 								</S.FormGroup>
 							</S.FormColumn>
@@ -894,11 +1080,6 @@ export default function TaskGroup({ onClose }: TaskGroupProps) {
 						</S.FormGroup>
 
 						<S.FormGroup>
-							<S.Label>Created By</S.Label>
-							<S.Input value={formData.createdBy} disabled />
-						</S.FormGroup>
-
-						<S.FormGroup>
 							<S.Label>
 								Assign To <span style={{ color: "#D83232" }}>*</span>
 							</S.Label>
@@ -908,17 +1089,28 @@ export default function TaskGroup({ onClose }: TaskGroupProps) {
 									setFormData({ ...formData, assignedTo: value })
 								}
 								options={assigneeOptions}
-								placeholder="Select assignee..."
+								placeholder={
+									membersLoading ? "Loading members..." : "Select assignee..."
+								}
+								disabled={membersLoading}
 							/>
 						</S.FormGroup>
 					</S.DialogBody>
 
 					<S.DialogFooter>
-						<S.Button variant="ghost" onClick={() => setIsUpdateOpen(false)}>
+						<S.Button
+							variant="ghost"
+							onClick={() => setIsUpdateOpen(false)}
+							disabled={updateTaskMutation.isPending}
+						>
 							Cancel
 						</S.Button>
-						<S.Button variant="primary" onClick={handleUpdate}>
-							Update Task
+						<S.Button
+							variant="primary"
+							onClick={handleUpdate}
+							disabled={updateTaskMutation.isPending}
+						>
+							{updateTaskMutation.isPending ? "Updating..." : "Update Task"}
 						</S.Button>
 					</S.DialogFooter>
 				</S.DialogContent>
@@ -939,11 +1131,20 @@ export default function TaskGroup({ onClose }: TaskGroupProps) {
 					</S.DialogBody>
 
 					<S.DialogFooter>
-						<S.Button variant="ghost" onClick={() => setIsDeleteOpen(false)}>
+						<S.Button
+							variant="ghost"
+							onClick={() => setIsDeleteOpen(false)}
+							disabled={deleteTaskMutation.isPending}
+						>
 							Cancel
 						</S.Button>
-						<S.Button variant="destructive" onClick={handleDelete}>
-							<Trash size={16} /> Delete Task
+						<S.Button
+							variant="destructive"
+							onClick={handleDelete}
+							disabled={deleteTaskMutation.isPending}
+						>
+							<Trash size={16} />{" "}
+							{deleteTaskMutation.isPending ? "Deleting..." : "Delete Task"}
 						</S.Button>
 					</S.DialogFooter>
 				</S.DialogContent>
