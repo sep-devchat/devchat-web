@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import MemberItem from "../../MemberItem/MemberItem";
 import {
 	CPHeader,
@@ -11,47 +12,44 @@ import {
 	SectionHeader,
 	SectionTitle,
 } from "./FriendList.styled";
+import { listFriends } from "@/services/friendAPI";
 
-const mockMembers = {
-	status: [
-		{
-			id: 1,
-			name: "Nguyen Van A",
-			avatar:
-				"https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face",
-			isOnline: true,
-		},
-		{
-			id: 2,
-			name: "Nguyen Van B",
-			avatar:
-				"https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face",
-			isOnline: false,
-		},
-		{
-			id: 3,
-			name: "Nguyen Van C",
-			avatar:
-				"https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face",
-			isOnline: true,
-		},
-		{
-			id: 4,
-			name: "Nguyen Van D",
-			avatar:
-				"https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face",
-			isOnline: false,
-		},
-	],
-};
+interface Member {
+	id: string;
+	name: string;
+	avatar: string;
+	isOnline: boolean;
+}
 
 export default function FriendList() {
-	const onlineMembers = mockMembers.status.filter(
-		(member) => member.isOnline === true,
-	);
-	const offlineMembers = mockMembers.status.filter(
-		(member) => member.isOnline === false,
-	);
+	const [friends, setFriends] = useState<Member[]>([]);
+	const [loading, setLoading] = useState(true);
+
+	useEffect(() => {
+		const fetchFriends = async () => {
+			try {
+				const response = await listFriends(1, 100);
+				const friendsData = response.data || [];
+
+				const friendsWithStatus: Member[] = friendsData.map((friend: any) => ({
+					id: friend.id,
+					name: `${friend.firstName} ${friend.lastName}`,
+					avatar:
+						friend.avatarUrl ||
+						"https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face",
+					isOnline: Math.random() > 0.5,
+				}));
+
+				setFriends(friendsWithStatus);
+			} catch (error) {
+				console.error("Error fetching friends:", error);
+			} finally {
+				setLoading(false);
+			}
+		};
+
+		fetchFriends();
+	}, []);
 
 	const handleMessageSend = (memberId: number | string, message: string) => {
 		console.log(`Send message to member ${memberId}:`, message);
@@ -60,6 +58,21 @@ export default function FriendList() {
 	const handleButtonClick = (memberId: number | string) => {
 		console.log(`Button clicked for member ${memberId}`);
 	};
+
+	if (loading) {
+		return (
+			<PageWrapper>
+				<CPHeader>
+					<CPHeaderLeft>
+						<CPTitle>Friend List</CPTitle>
+					</CPHeaderLeft>
+				</CPHeader>
+				<MemberContent>
+					<div style={{ padding: "20px", textAlign: "center" }}>Loading...</div>
+				</MemberContent>
+			</PageWrapper>
+		);
+	}
 
 	return (
 		<PageWrapper>
@@ -71,38 +84,28 @@ export default function FriendList() {
 			<MemberContent>
 				<MemberSection>
 					<SectionHeader>
-						<SectionTitle>Online</SectionTitle>
-						<MemberCount>{onlineMembers.length}</MemberCount>
+						<SectionTitle>All Friends</SectionTitle>
+						<MemberCount>{friends.length}</MemberCount>
 					</SectionHeader>
 					<MembersList>
-						{onlineMembers.map((member) => (
-							<MemberItem
-								key={member.id}
-								member={member}
-								showTooltip={true}
-								buttonType="more"
-								onButtonClick={handleButtonClick}
-								onMessageSend={handleMessageSend}
-							/>
-						))}
-					</MembersList>
-				</MemberSection>
-				<MemberSection>
-					<SectionHeader>
-						<SectionTitle>Offline</SectionTitle>
-						<MemberCount>{offlineMembers.length}</MemberCount>
-					</SectionHeader>
-					<MembersList>
-						{offlineMembers.map((member) => (
-							<MemberItem
-								key={member.id}
-								member={member}
-								showTooltip={true}
-								buttonType="close"
-								onButtonClick={handleButtonClick}
-								onMessageSend={handleMessageSend}
-							/>
-						))}
+						{friends.length === 0 ? (
+							<div
+								style={{ padding: "20px", textAlign: "center", color: "#888" }}
+							>
+								No friends yet
+							</div>
+						) : (
+							friends.map((friend) => (
+								<MemberItem
+									key={friend.id}
+									member={friend}
+									showTooltip={true}
+									buttonType="more"
+									onButtonClick={handleButtonClick}
+									onMessageSend={handleMessageSend}
+								/>
+							))
+						)}
 					</MembersList>
 				</MemberSection>
 			</MemberContent>

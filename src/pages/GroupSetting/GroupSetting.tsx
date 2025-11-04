@@ -83,7 +83,6 @@ export const GroupSetting: React.FC<GroupSettingProps> = ({
 		},
 	];
 
-
 	const renderActiveSection = () => {
 		switch (activeSection) {
 			case "profile":
@@ -125,7 +124,7 @@ export const GroupSetting: React.FC<GroupSettingProps> = ({
 						<MenuNav>
 							{menuItems.map((item) => {
 								const Icon = item.icon;
-																const isDeleteTab = item.id === "delete";
+								const isDeleteTab = item.id === "delete";
 								return (
 									<MenuItem
 										key={item.id}
