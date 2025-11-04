@@ -473,7 +473,6 @@ const Friend: React.FC = () => {
 		}
 	};
 
-
 	const handleDeclineGroup = async (inviteId: string) => {
 		try {
 			setPendingGroupInvites((prev) => prev.filter((r) => r.id !== inviteId));
@@ -494,7 +493,6 @@ const Friend: React.FC = () => {
 			toast.error(`Declined fail: ${err}`);
 		}
 	};
-
 
 	const handleMenuToggle = (friendId: string, e: React.MouseEvent) => {
 		e.stopPropagation();

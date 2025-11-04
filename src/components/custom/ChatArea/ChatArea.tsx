@@ -26,7 +26,6 @@ import ChatInput from "../ChatInput/ChatInput";
 import { detailThread } from "@/services/threadAPI";
 import MessageActions from "../MessageActions/MessageActions";
 import { useParams, useSearch } from "@tanstack/react-router";
-import { ImageWithModal } from "../ImageWithModal/ImageWithModal";
 import ThreadPreview from "./ThreadPreview";
 import ThreadHeader from "./ThreadHeader";
 import {
@@ -47,10 +46,8 @@ import {
 	ChatInputPayload,
 	InboxType,
 } from "../ChatInputComponent/ChatTypeModal/InboxType";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
-import rehypeRaw from "rehype-raw";
-import rehypeSanitize from "rehype-sanitize";
+import MarkdownPreview from "../MarkdownPreview";
+import ChatAreaLoading from "./ChatAreaLoading";
 
 type Thread = {
 	id: string;
@@ -60,6 +57,119 @@ type Thread = {
 	createdAt?: string;
 	createdBy?: any;
 };
+
+// Memoized MarkdownPreview so row hover or unrelated re-renders don't re-render it
+const MarkdownPreviewMemo = React.memo(MarkdownPreview);
+
+// Memoized row component so parent state updates don't re-render all messages
+type MessageRowProps = {
+	m: MessageResponse;
+	name: string;
+	initials: string;
+	isCurrentUser: boolean;
+	positionClassName: string;
+	showAvatarAndHeader: boolean;
+	// Handlers (memoized in parent)
+	handleEdit: (m: MessageResponse) => void;
+	handleCopy: (m: MessageResponse) => void;
+	handleReport: (m: MessageResponse) => void;
+	handleDelete: (m: MessageResponse) => void;
+	handleReply: (m: MessageResponse) => void;
+	handleReact: (messageId: string, reaction: string) => void;
+	// Reaction picker (lifted state in parent)
+	reactionPickerFor: string | null;
+	setReactionPickerFor: (v: string | null) => void;
+};
+
+const MessageRow: React.FC<MessageRowProps> = React.memo(
+	({
+		m,
+		name,
+		initials,
+		isCurrentUser,
+		positionClassName,
+		showAvatarAndHeader,
+		handleEdit,
+		handleCopy,
+		handleReport,
+		handleDelete,
+		handleReply,
+		handleReact,
+		reactionPickerFor,
+		setReactionPickerFor,
+	}) => {
+		const [hovered, setHovered] = useState(false);
+
+		return (
+			<div
+				className={`group relative w-full`}
+				onMouseEnter={() => setHovered(true)}
+				onMouseLeave={() => setHovered(false)}
+			>
+				<MessageItem className={`flex items-start gap-2 ${positionClassName}`}>
+					{showAvatarAndHeader ? (
+						m.sender?.avatarUrl ? (
+							<img
+								src={m.sender.avatarUrl}
+								alt={name}
+								className="h-8 w-8 rounded-full"
+							/>
+						) : (
+							<div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center text-xs font-medium select-none">
+								{initials || (name[0] ?? "?")}
+							</div>
+						)
+					) : (
+						// spacer to keep alignment when avatar/name are hidden for grouped messages
+						<div className="h-8 w-8" />
+					)}
+
+					<div
+						className={`flex flex-col max-w-[70%]  ${isCurrentUser ? "items-end" : ""}`}
+					>
+						{showAvatarAndHeader && (
+							<div
+								className={`flex gap-4 items-center text-xs text-muted-foreground mb-1 ${isCurrentUser ? "flex-row-reverse" : ""}`}
+							>
+								<span className="font-bold text-sm">{name}</span>
+								<span>{formatMessageTime(m.createdAt)}</span>
+							</div>
+						)}
+						<div
+							className={`flex w-full items-end gap-2 ${isCurrentUser ? "flex-row-reverse" : ""}`}
+						>
+							<MessageBubbleStyle
+								className={`message-bubble w-fit max-w-full rounded-lg px-3 py-2 text-sm shadow-none ${isCurrentUser ? "me" : "other"} ${(m as any).pending ? "opacity-50" : ""}`}
+								// giữ lại whitespace cho text
+								style={{ whiteSpace: "pre-wrap" }}
+							>
+								<MarkdownPreviewMemo content={m.content || ""} />
+							</MessageBubbleStyle>
+
+							<div className="flex items-end">
+								<MessageActions
+									m={m}
+									// localize hovered state to this row to avoid parent re-render
+									hoveredMessageId={hovered ? m.id : null}
+									setHoveredMessageId={(v) => setHovered(v === m.id)}
+									handleEdit={handleEdit}
+									handleCopy={handleCopy}
+									handleReport={handleReport}
+									handleDelete={handleDelete}
+									handleReply={handleReply}
+									// only the active row sees its id; others get null (stable), minimizing re-renders
+									reactionPickerFor={reactionPickerFor === m.id ? m.id : null}
+									setReactionPickerFor={setReactionPickerFor}
+									handleReact={handleReact}
+								/>
+							</div>
+						</div>
+					</div>
+				</MessageItem>
+			</div>
+		);
+	},
+);
 
 const ChatArea: React.FC = () => {
 	const params = useParams({ strict: false }) as {
@@ -85,9 +195,10 @@ const ChatArea: React.FC = () => {
 	const [inboxTypeSelected, setInboxTypeSelected] = useState<InboxType>(null);
 	const viewportVariant = inboxTypeSelected ?? undefined;
 	const [emitQueue, setEmitQueue] = useState<any[]>([]);
+	const [socketLoading, setSocketLoading] = useState<boolean>(false);
 	// track the last room we attempted to join to avoid redundant joins
 	const lastJoinKeyRef = useRef<string | null>(null);
-	const [hoveredMessageId, setHoveredMessageId] = useState<string | null>(null);
+	// moved hovered state to per-row component to avoid whole list re-renders on hover
 	const [editingMessage, setEditingMessage] = useState<MessageResponse | null>(
 		null,
 	);
@@ -338,6 +449,7 @@ const ChatArea: React.FC = () => {
 
 		try {
 			if (!socket || !socket.connected) throw new Error("socket-not-ready");
+			setSocketLoading(true);
 			socket.emit(SocketEvents.JOIN_ROOM, payload);
 			console.debug("[ChatArea] emitted JOIN_ROOM", payload);
 			// Fallback: request messages immediately as well (in case JOINED_ROOM isn't fired)
@@ -349,6 +461,7 @@ const ChatArea: React.FC = () => {
 							"[ChatArea] FETCH_MESSAGES ack error (fallback)",
 							resp,
 						);
+						setSocketLoading(false);
 						return;
 					}
 					const itemsRaw = Array.isArray(resp)
@@ -373,8 +486,10 @@ const ChatArea: React.FC = () => {
 						"[ChatArea] FETCH_MESSAGES fallback -> set messages",
 						items.length,
 					);
+					setSocketLoading(false);
 				} catch (e) {
 					console.error("[ChatArea] error handling FETCH_MESSAGES fallback", e);
+					setSocketLoading(false);
 				}
 			});
 		} catch (err) {
@@ -387,8 +502,9 @@ const ChatArea: React.FC = () => {
 					payload: { groupId, channelId: channelIdParam },
 				},
 			]);
+			setSocketLoading(true);
 		}
-	}, [groupId, channelIdParam, socket]);
+	}, [groupId, channelIdParam, socket, queryClient]);
 
 	// Reset optimistics when switching room
 	useEffect(() => {
@@ -396,63 +512,65 @@ const ChatArea: React.FC = () => {
 	}, [groupId, channelIdParam]);
 
 	// After JOINED_ROOM, ask server for messages via FETCH_MESSAGES (ack)
-	const onJoinedRoom = useCallback(
-		(_evtPayload?: any) => {
-			if (!groupId || !channelIdParam) return;
-			const req = { groupId, channelId: channelIdParam };
-			try {
-				if (!socket) throw new Error("socket-not-ready");
-				socket.emit(SocketEvents.FETCH_MESSAGES, req, (resp: any) => {
-					try {
-						if (resp && (resp.error || resp.code)) {
-							console.error("[ChatArea] FETCH_MESSAGES ack error", resp);
-							return;
-						}
-
-						const itemsRaw = Array.isArray(resp)
-							? resp
-							: Array.isArray(resp?.data)
-								? resp.data
-								: Array.isArray(resp?.messages)
-									? resp.messages
-									: [];
-
-						// sort chronologically (oldest -> newest), matching existing logic
-						const items = itemsRaw.slice().sort((a: any, b: any) => {
-							const ta = new Date(a.createdAt).getTime();
-							const tb = new Date(b.createdAt).getTime();
-							return ta - tb;
-						});
-
-						queryClient.setQueryData(
-							["messages", groupId, channelIdParam],
-							items,
-						);
-						console.debug(
-							"[ChatArea] FETCH_MESSAGES ack -> set messages in cache",
-							items.length,
-						);
-					} catch (innerErr) {
-						console.error(
-							"[ChatArea] error handling FETCH_MESSAGES ack",
-							innerErr,
-						);
+	const onJoinedRoom = useCallback(() => {
+		if (!groupId || !channelIdParam) return;
+		const req = { groupId, channelId: channelIdParam };
+		try {
+			if (!socket) throw new Error("socket-not-ready");
+			setSocketLoading(true);
+			socket.emit(SocketEvents.FETCH_MESSAGES, req, (resp: any) => {
+				try {
+					if (resp && (resp.error || resp.code)) {
+						console.error("[ChatArea] FETCH_MESSAGES ack error", resp);
+						setSocketLoading(false);
+						return;
 					}
-				});
-			} catch (err) {
-				console.debug("[ChatArea] queue FETCH_MESSAGES due to", err);
-				setEmitQueue((q) => [
-					...q,
-					{ event: SocketEvents.FETCH_MESSAGES, payload: req },
-				]);
-			}
-		},
-		[socket, groupId, channelIdParam, queryClient],
-	);
+
+					const itemsRaw = Array.isArray(resp)
+						? resp
+						: Array.isArray(resp?.data)
+							? resp.data
+							: Array.isArray(resp?.messages)
+								? resp.messages
+								: [];
+
+					// sort chronologically (oldest -> newest), matching existing logic
+					const items = itemsRaw.slice().sort((a: any, b: any) => {
+						const ta = new Date(a.createdAt).getTime();
+						const tb = new Date(b.createdAt).getTime();
+						return ta - tb;
+					});
+
+					queryClient.setQueryData(
+						["messages", groupId, channelIdParam],
+						items,
+					);
+					console.debug(
+						"[ChatArea] FETCH_MESSAGES ack -> set messages in cache",
+						items.length,
+					);
+					setSocketLoading(false);
+				} catch (innerErr) {
+					console.error(
+						"[ChatArea] error handling FETCH_MESSAGES ack",
+						innerErr,
+					);
+					setSocketLoading(false);
+				}
+			});
+		} catch (err) {
+			console.debug("[ChatArea] queue FETCH_MESSAGES due to", err);
+			setEmitQueue((q) => [
+				...q,
+				{ event: SocketEvents.FETCH_MESSAGES, payload: req },
+			]);
+			setSocketLoading(true);
+		}
+	}, [socket, groupId, channelIdParam, queryClient]);
 
 	useSocketEvent(SocketEvents.JOINED_ROOM, onJoinedRoom);
 
-	// Queue flush & connect handling (unchanged)
+	// Queue flush & connect handling
 	useEffect(() => {
 		if (!socket) {
 			console.debug(
@@ -467,7 +585,50 @@ const ChatArea: React.FC = () => {
 			queued.forEach((item) => {
 				try {
 					socket.emit(item.event, item.payload, (ack: any) => {
-						console.debug("[ChatArea] flush ack", item.event, ack);
+						// Special handling for FETCH_MESSAGES queued while offline
+						if (item.event === SocketEvents.FETCH_MESSAGES) {
+							try {
+								if (ack && (ack.error || ack.code)) {
+									console.error(
+										"[ChatArea] flush FETCH_MESSAGES ack error",
+										ack,
+									);
+									setSocketLoading(false);
+									return;
+								}
+								const itemsRaw = Array.isArray(ack)
+									? ack
+									: Array.isArray(ack?.data)
+										? ack.data
+										: Array.isArray(ack?.messages)
+											? ack.messages
+											: [];
+								const items = itemsRaw.slice().sort((a: any, b: any) => {
+									const ta = new Date(a.createdAt).getTime();
+									const tb = new Date(b.createdAt).getTime();
+									return ta - tb;
+								});
+								if (groupId && channelIdParam) {
+									queryClient.setQueryData(
+										["messages", groupId, channelIdParam],
+										items,
+									);
+								}
+								console.debug(
+									"[ChatArea] flush FETCH_MESSAGES -> set messages",
+									items.length,
+								);
+								setSocketLoading(false);
+							} catch (e) {
+								console.error(
+									"[ChatArea] flush FETCH_MESSAGES handling error",
+									e,
+								);
+								setSocketLoading(false);
+							}
+						} else {
+							console.debug("[ChatArea] flush ack", item.event, ack);
+						}
 					});
 				} catch (err) {
 					console.error("[ChatArea] flush emit error", err);
@@ -484,7 +645,49 @@ const ChatArea: React.FC = () => {
 				queued.forEach((item) => {
 					try {
 						socket.emit(item.event, item.payload, (ack: any) => {
-							console.debug("[ChatArea] flush ack", item.event, ack);
+							if (item.event === SocketEvents.FETCH_MESSAGES) {
+								try {
+									if (ack && (ack.error || ack.code)) {
+										console.error(
+											"[ChatArea] flush FETCH_MESSAGES ack error",
+											ack,
+										);
+										setSocketLoading(false);
+										return;
+									}
+									const itemsRaw = Array.isArray(ack)
+										? ack
+										: Array.isArray(ack?.data)
+											? ack.data
+											: Array.isArray(ack?.messages)
+												? ack.messages
+												: [];
+									const items = itemsRaw.slice().sort((a: any, b: any) => {
+										const ta = new Date(a.createdAt).getTime();
+										const tb = new Date(b.createdAt).getTime();
+										return ta - tb;
+									});
+									if (groupId && channelIdParam) {
+										queryClient.setQueryData(
+											["messages", groupId, channelIdParam],
+											items,
+										);
+									}
+									console.debug(
+										"[ChatArea] flush(onConnect) FETCH_MESSAGES -> set messages",
+										items.length,
+									);
+									setSocketLoading(false);
+								} catch (e) {
+									console.error(
+										"[ChatArea] flush(onConnect) FETCH_MESSAGES handling error",
+										e,
+									);
+									setSocketLoading(false);
+								}
+							} else {
+								console.debug("[ChatArea] flush ack", item.event, ack);
+							}
 						});
 					} catch (err) {
 						console.error("[ChatArea] emit flush error", err);
@@ -500,6 +703,48 @@ const ChatArea: React.FC = () => {
 					socket.emit(SocketEvents.JOIN_ROOM, payload);
 					console.debug("[ChatArea] re-joined room after connect", payload);
 					lastJoinKeyRef.current = `${groupId}:${channelIdParam}`;
+					// Proactively fetch messages in case server doesn't emit JOINED_ROOM
+					setSocketLoading(true);
+					const req = { groupId, channelId: channelIdParam };
+					socket.emit(SocketEvents.FETCH_MESSAGES, req, (resp: any) => {
+						try {
+							if (resp && (resp.error || resp.code)) {
+								console.error(
+									"[ChatArea] FETCH_MESSAGES ack error (onConnect)",
+									resp,
+								);
+								setSocketLoading(false);
+								return;
+							}
+							const itemsRaw = Array.isArray(resp)
+								? resp
+								: Array.isArray(resp?.data)
+									? resp.data
+									: Array.isArray(resp?.messages)
+										? resp.messages
+										: [];
+							const items = itemsRaw.slice().sort((a: any, b: any) => {
+								const ta = new Date(a.createdAt).getTime();
+								const tb = new Date(b.createdAt).getTime();
+								return ta - tb;
+							});
+							queryClient.setQueryData(
+								["messages", groupId, channelIdParam],
+								items,
+							);
+							console.debug(
+								"[ChatArea] FETCH_MESSAGES (onConnect) -> set messages",
+								items.length,
+							);
+							setSocketLoading(false);
+						} catch (e) {
+							console.error(
+								"[ChatArea] error handling FETCH_MESSAGES (onConnect)",
+								e,
+							);
+							setSocketLoading(false);
+						}
+					});
 				} catch (err) {
 					console.debug("[ChatArea] queue re-join due to", err);
 					setEmitQueue((q) => [
@@ -515,7 +760,7 @@ const ChatArea: React.FC = () => {
 		return () => {
 			socket.off?.("connect", onConnect);
 		};
-	}, [socket, emitQueue, groupId, channelIdParam]);
+	}, [socket, emitQueue, groupId, channelIdParam, queryClient]);
 
 	const send = useCallback(
 		async (payload?: ChatInputPayload) => {
@@ -954,8 +1199,9 @@ const ChatArea: React.FC = () => {
 				variant={viewportVariant}
 				className={inboxTypeSelected ? "items-end" : ""}
 			>
-				{messagesLoading || threadLoading ? null : messagesError ||
-				  threadError ? (
+				{messagesLoading || threadLoading || socketLoading ? (
+					<ChatAreaLoading rows={8} />
+				) : messagesError || threadError ? (
 					<p className="text-sm text-red-500">Failed to load messages.</p>
 				) : displayItems.length === 0 ? (
 					<p className="text-sm text-muted-foreground">
@@ -1031,7 +1277,7 @@ const ChatArea: React.FC = () => {
 							: "";
 
 						return (
-							<div key={`${m.id}-${idx}`} className="w-full">
+							<div key={m.id} className="w-full">
 								{showDateHeader && (
 									<DividerWrapper>
 										<Line />
@@ -1039,102 +1285,22 @@ const ChatArea: React.FC = () => {
 										<Line />
 									</DividerWrapper>
 								)}
-								<div
-									className={`group relative w-full`}
-									onMouseEnter={() => setHoveredMessageId(m.id)}
-									onMouseLeave={() =>
-										setHoveredMessageId((id) => (id === m.id ? null : id))
-									}
-								>
-									<MessageItem
-										className={`flex items-start gap-2 ${positionClassName}`}
-									>
-										{showAvatarAndHeader ? (
-											m.sender?.avatarUrl ? (
-												<img
-													src={m.sender.avatarUrl}
-													alt={name}
-													className="h-8 w-8 rounded-full"
-												/>
-											) : (
-												<div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center text-xs font-medium select-none">
-													{initials || (name[0] ?? "?")}
-												</div>
-											)
-										) : (
-											// spacer to keep alignment when avatar/name are hidden for grouped messages
-											<div className="h-8 w-8" />
-										)}
-
-										<div
-											className={`flex flex-col max-w-[70%]  ${isCurrentUser ? "items-end" : ""}`}
-										>
-											{showAvatarAndHeader && (
-												<div
-													className={`flex gap-4 items-center text-xs text-muted-foreground mb-1 ${isCurrentUser ? "flex-row-reverse" : ""}`}
-												>
-													<span className="font-bold text-sm">{name}</span>
-													<span>{formatMessageTime(m.createdAt)}</span>
-												</div>
-											)}
-											<div
-												className={`flex w-full items-end gap-2 ${isCurrentUser ? "flex-row-reverse" : ""}`}
-											>
-												<MessageBubbleStyle
-													className={`message-bubble w-fit max-w-full rounded-lg px-3 py-2 text-sm shadow-none ${isCurrentUser ? "me" : "other"} ${(m as any).pending ? "opacity-50" : ""}`}
-													// giữ lại whitespace cho text
-													style={{ whiteSpace: "pre-wrap" }}
-												>
-													<ReactMarkdown
-														remarkPlugins={[remarkGfm]}
-														rehypePlugins={[rehypeRaw, rehypeSanitize]}
-														components={{
-															img: ({ src, alt }) =>
-																src ? (
-																	<ImageWithModal
-																		src={src}
-																		alt={alt || "image"}
-																		maxWidthPx={420}
-																		maxHeightPx={520}
-																	/>
-																) : null,
-															a: ({ href, children }) => (
-																<a
-																	href={href}
-																	target="_blank"
-																	rel="noreferrer noopener"
-																	className="underline"
-																>
-																	{children}
-																</a>
-															),
-														}}
-													>
-														{m.content || ""}
-													</ReactMarkdown>
-												</MessageBubbleStyle>
-
-												<div className="flex items-end">
-													<MessageActions
-														m={m}
-														hoveredMessageId={hoveredMessageId}
-														setHoveredMessageId={(v) => setHoveredMessageId(v)}
-														handleEdit={handleEdit}
-														handleCopy={handleCopy}
-														handleReport={handleReport}
-														handleDelete={handleDelete}
-														handleReply={handleReply}
-														reactionPickerFor={reactionPickerFor}
-														setReactionPickerFor={(v) =>
-															setReactionPickerFor(v)
-														}
-														handleReact={handleReact}
-													/>
-												</div>
-											</div>
-										</div>
-									</MessageItem>
-								</div>
+								<MessageRow
+									m={m}
+									name={name}
+									initials={initials}
+									isCurrentUser={isCurrentUser}
+									positionClassName={positionClassName}
+									showAvatarAndHeader={showAvatarAndHeader}
+									handleEdit={handleEdit}
+									handleCopy={handleCopy}
+									handleReport={handleReport}
+									handleDelete={handleDelete}
+									handleReply={handleReply}
+									handleReact={handleReact}
+									reactionPickerFor={reactionPickerFor}
+									setReactionPickerFor={(v) => setReactionPickerFor(v)}
+								/>
 							</div>
 						);
 					})

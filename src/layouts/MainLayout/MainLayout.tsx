@@ -44,7 +44,7 @@ const MainLayout = () => {
 	const [localGroups, setLocalGroups] = useState<any[]>([]);
 	const [isAdmin, setIsAdmin] = useState<boolean>(false);
 	const [showCodeListPanel, setShowCodeListPanel] = useState<boolean>(false);
-const currentUserProfile = useSelector(
+	const currentUserProfile = useSelector(
 		(state: RootState) => state.user.profile,
 	);
 	const currentUserId = currentUserProfile?.id || "";
@@ -143,7 +143,6 @@ const currentUserProfile = useSelector(
 		}
 	}, [showThreadPanel]);
 
-
 	const handleCreateThread = () => {
 		setSelectedThreadId("");
 		setShowThreadPanel(true);
@@ -172,7 +171,6 @@ const currentUserProfile = useSelector(
 		setShowCodeListPanel(false);
 		setIconSelected("");
 	};
-
 
 	const renderRightPanel = () => {
 		// Give priority to code panel when it's active so it won't be hidden by thread
@@ -207,7 +205,6 @@ const currentUserProfile = useSelector(
 				return isHalf ? null : <FriendList />;
 		}
 	};
-
 
 	return (
 		<>
@@ -258,7 +255,7 @@ const currentUserProfile = useSelector(
 						<BottomSpacer />
 					</MainLayoutContainer>
 				) : (
-					<GroupSetting setSettingSelect={setSettingSelect} isAdmin={isAdmin}/>
+					<GroupSetting setSettingSelect={setSettingSelect} isAdmin={isAdmin} />
 				)}
 			</AuthLayout>
 		</>

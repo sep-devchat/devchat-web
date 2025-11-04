@@ -31,6 +31,7 @@
 		"class-variance-authority": "^0.7.1",
 		"clsx": "^2.1.1",
 		"electron": "^38.3.0",
+		"highlight.js": "^11.11.1",
 		"husky": "^9.1.7",
 		"i18n-js": "^4.5.0",
 		"input-otp": "^1.4.2",
