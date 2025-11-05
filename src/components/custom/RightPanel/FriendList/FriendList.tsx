@@ -25,30 +25,44 @@ export default function FriendList() {
 	const [friends, setFriends] = useState<Member[]>([]);
 	const [loading, setLoading] = useState(true);
 
+	const fetchFriends = async () => {
+		try {
+			setLoading(true);
+			const response = await listFriends(1, 100);
+			const friendsData = response.data || [];
+
+			const friendsWithStatus: Member[] = friendsData.map((friend: any) => ({
+				id: friend.id,
+				name: `${friend.firstName} ${friend.lastName}`,
+				avatar:
+					friend.avatarUrl ||
+					"https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face",
+				isOnline: Math.random() > 0.5,
+			}));
+
+			setFriends(friendsWithStatus);
+		} catch (error) {
+			console.error("Error fetching friends:", error);
+		} finally {
+			setLoading(false);
+		}
+	};
+
 	useEffect(() => {
-		const fetchFriends = async () => {
-			try {
-				const response = await listFriends(1, 100);
-				const friendsData = response.data || [];
+		fetchFriends();
+	}, []);
 
-				const friendsWithStatus: Member[] = friendsData.map((friend: any) => ({
-					id: friend.id,
-					name: `${friend.firstName} ${friend.lastName}`,
-					avatar:
-						friend.avatarUrl ||
-						"https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face",
-					isOnline: Math.random() > 0.5,
-				}));
-
-				setFriends(friendsWithStatus);
-			} catch (error) {
-				console.error("Error fetching friends:", error);
-			} finally {
-				setLoading(false);
-			}
+	useEffect(() => {
+		const handleFriendListUpdate = () => {
+			console.log("Friend list update event received, refetching...");
+			fetchFriends();
 		};
 
-		fetchFriends();
+		window.addEventListener("friendListUpdated", handleFriendListUpdate);
+
+		return () => {
+			window.removeEventListener("friendListUpdated", handleFriendListUpdate);
+		};
 	}, []);
 
 	const handleMessageSend = (memberId: number | string, message: string) => {
