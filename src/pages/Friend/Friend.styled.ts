@@ -436,7 +436,7 @@ export const FriendInfo = styled.div`
 export const FriendName = styled.h3`
 	font-weight: 600;
 	color: #111827;
-	font-size: 1rem;
+	font-size: 0.875rem;
 `;
 
 export const NoResults = styled.div`
