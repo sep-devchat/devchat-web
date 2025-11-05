@@ -6,7 +6,7 @@ import {
 	Input,
 	InputContainer,
 } from "./ChatInput.styled"; // adjust path
-import { Plus, Send, Smile, CornerUpLeft } from "lucide-react";
+import { Plus, Send, Smile, CornerUpLeft, Code2 } from "lucide-react";
 import Editor, { EditorHandle } from "../ChatInputComponent/Editor/Editor";
 import {
 	ChatInputProps,
@@ -23,6 +23,7 @@ import Toolbar, {
 } from "../ChatInputComponent/MarkdownToolbar/Toolbar";
 import EmojiPicker from "../ChatInputComponent/EmojiPicker/EmojiPicker";
 import FilePreview from "../ChatInputComponent/FilePreview/FilePreview";
+import CodeEditor from "../CodeEditor";
 
 export default function ChatInput({
 	setInboxTypeSelected,
@@ -50,6 +51,27 @@ export default function ChatInput({
 	const [toolbarVisible, setToolbarVisible] = useState(false);
 	const [toolbarPos, setToolbarPos] = useState({ top: 0, left: 0 });
 	const [emojiPickerVisible, setEmojiPickerVisible] = useState(false);
+
+	// Preserve caret/selection when opening code editor
+	const savedRangeRef = useRef<Range | null>(null);
+
+	// --- Code editor integration ---
+	const [showCodeEditor, setShowCodeEditor] = useState(false);
+	const [codeValue, setCodeValue] = useState("");
+	const [codeLang, setCodeLang] = useState<string>("typescript");
+
+	const textToHtml = useCallback((text: string) => {
+		return text
+			.replace(/&/g, "&amp;")
+			.replace(/</g, "&lt;")
+			.replace(/>/g, "&gt;")
+			.replace(/\n/g, "<br/>");
+	}, []);
+
+	const buildCodeFence = useCallback((lang: string, code: string) => {
+		const langId = lang ? lang : "";
+		return "```" + langId + "\n" + code.replace(/\r?\n/g, "\n") + "\n```";
+	}, []);
 
 	useEffect(() => setInboxType(propInboxType ?? null), [propInboxType]);
 	useEffect(
@@ -149,7 +171,14 @@ export default function ChatInput({
 			if (disabled) return;
 
 			// Capture current typed markdown content first
-			const typedMd = (mdText || "").trim();
+			let typedMd = (mdText || "").trim();
+			// If code editor is open and has content, append as fenced block
+			if (showCodeEditor && codeValue.trim().length > 0) {
+				const block = buildCodeFence(codeLang, codeValue);
+				typedMd = [typedMd, block].filter(Boolean).join("\n");
+				setShowCodeEditor(false);
+				setCodeValue("");
+			}
 			// Snapshot current files and inboxType, then immediately clear UI for optimistic UX
 			const snapshotFiles = files.slice();
 			const snapshotInboxType = inboxType;
@@ -201,7 +230,17 @@ export default function ChatInput({
 			if (typedMd.length === 0) return;
 			await onSend?.({ type: "text", text: typedMd });
 		},
-		[disabled, files, inboxType, onSend, mdText],
+		[
+			disabled,
+			files,
+			inboxType,
+			onSend,
+			mdText,
+			showCodeEditor,
+			codeValue,
+			codeLang,
+			buildCodeFence,
+		],
 	);
 
 	// selection/toolbar logic (kept simple)
@@ -263,15 +302,24 @@ export default function ChatInput({
 		setHtml(editorRef.current?.getHtml?.() ?? container.innerHTML);
 	};
 
-	const insertBlock = (blockText: string) => {
+	const insertBlock = (blockText: string, atRange?: Range | null) => {
 		const container = document.querySelector(
 			"[contenteditable]",
 		) as HTMLElement | null;
 		if (!container) return;
 		container.focus();
 		const sel = window.getSelection();
-		if (!sel || sel.rangeCount === 0) return;
-		const range = sel.getRangeAt(0);
+		if (!sel) return;
+		let range: Range;
+		if (atRange) {
+			// Use provided range
+			sel.removeAllRanges();
+			sel.addRange(atRange);
+			range = atRange.cloneRange();
+		} else {
+			if (sel.rangeCount === 0) return;
+			range = sel.getRangeAt(0);
+		}
 		range.collapse(false);
 		const node = document.createTextNode(blockText);
 		range.insertNode(node);
@@ -387,9 +435,17 @@ export default function ChatInput({
 			const el = ev.currentTarget as HTMLDivElement;
 			// Keep the original user input as-is (raw markdown/plain text)
 			const text = el.innerText || "";
+			if (!showCodeEditor && text.endsWith("```")) {
+				const trimmed = text.slice(0, -3);
+				setMdText(trimmed);
+				editorRef.current?.setHtml(textToHtml(trimmed));
+				setShowCodeEditor(true);
+				setCodeValue("");
+				return;
+			}
 			setMdText(text);
 		},
-		[],
+		[showCodeEditor, textToHtml],
 	);
 
 	const handleEditorKeyDown = useCallback(
@@ -402,6 +458,31 @@ export default function ChatInput({
 					return;
 				}
 			}
+			// Open code editor: Ctrl/Cmd + Shift + C
+			if (
+				(e.ctrlKey || e.metaKey) &&
+				e.shiftKey &&
+				e.key.toLowerCase() === "c"
+			) {
+				e.preventDefault();
+				// Save selection range inside editor to insert code back later
+				const sel = window.getSelection();
+				const container = document.querySelector(
+					"[contenteditable]",
+				) as HTMLElement | null;
+				if (sel && sel.rangeCount > 0 && container) {
+					const r = sel.getRangeAt(0);
+					if (container.contains(r.commonAncestorContainer)) {
+						savedRangeRef.current = r.cloneRange();
+						setCodeValue(sel.toString() || "");
+						setShowCodeEditor(true);
+						return;
+					}
+				}
+				// Fallback: just open empty editor
+				setCodeValue("");
+				setShowCodeEditor(true);
+			}
 			if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "b") {
 				e.preventDefault();
 				onToolbarAction("bold");
@@ -411,7 +492,7 @@ export default function ChatInput({
 				onToolbarAction("italic");
 			}
 		},
-		[handleSubmit],
+		[handleSubmit, onToolbarAction],
 	);
 
 	const handleEditorPaste = useCallback(
@@ -451,6 +532,25 @@ export default function ChatInput({
 
 	const handleEmojiClose = useCallback(() => setEmojiPickerVisible(false), []);
 
+	const handleOpenCodeEditorClick = useCallback(() => {
+		// Grab current selection if inside editor
+		const sel = window.getSelection();
+		const container = document.querySelector(
+			"[contenteditable]",
+		) as HTMLElement | null;
+		if (sel && sel.rangeCount > 0 && container) {
+			const r = sel.getRangeAt(0);
+			if (container.contains(r.commonAncestorContainer)) {
+				savedRangeRef.current = r.cloneRange();
+				setCodeValue(sel.toString() || "");
+				setShowCodeEditor(true);
+				return;
+			}
+		}
+		setCodeValue("");
+		setShowCodeEditor(true);
+	}, []);
+
 	const handleCancelEditClick = useCallback(() => {
 		onCancelEdit?.();
 		setHtml("");
@@ -467,21 +567,12 @@ export default function ChatInput({
 					editingMode
 						? {
 								border: "2px solid rgba(59,130,246,0.5)",
-								borderRadius: 8,
+								borderRadius: 2,
 								position: "relative",
 							}
 						: { position: "relative" }
 				}
 			>
-				<ChatTypeDropdown
-					trigger={
-						<IconButton type="button" title="Attach">
-							<Plus size={20} />
-						</IconButton>
-					}
-					onChoose={handleChatTypeChoose}
-				/>
-
 				<Input
 					ref={fileInputRef}
 					style={{ display: "none" }}
@@ -491,75 +582,117 @@ export default function ChatInput({
 					accept={inboxType === "image" ? "image/*" : undefined}
 				/>
 
-				{/* Group: uploaded images + chat input, stacked in a column */}
+				{/* Input area and Actions: actions pinned at bottom, content grows upward and scrolls */}
 				<div
-					className="flex flex-col gap-2 w-full"
-					style={{ position: "relative", minWidth: 0, flex: 1 }}
+					className="flex w-full flex-col gap-2"
+					style={{ minWidth: 0, flex: 1 }}
 				>
-					{/* Staged file previews (above editor) */}
-					{files.length > 0 && (
-						<FilePreview
-							files={files}
-							imagePreviews={imagePreviews}
-							onRemove={handleRemoveFile}
+					{/* Scrollable content area rendered bottom-to-top */}
+					<div
+						className={`flex max-h-96 ${showCodeEditor ? "flex-col" : "flex-col-reverse"} gap-2 overflow-y-auto min-h-0`}
+						style={{ position: "relative" }}
+					>
+						{/* Editor (at bottom) */}
+						{showCodeEditor ? (
+							<div className="w-full rounded-md border border-neutral-300 p-2 dark:border-neutral-700">
+								<CodeEditor
+									value={codeValue}
+									onChange={setCodeValue}
+									language={codeLang}
+									onLanguageChange={setCodeLang}
+									minLines={5}
+									maxLines={10}
+									closeButtonWhenFocused
+									onClose={() => {
+										setShowCodeEditor(false);
+										setTimeout(() => editorRef.current?.focus(), 50);
+									}}
+								/>
+							</div>
+						) : (
+							<Editor
+								ref={editorRef}
+								placeholder={placeholder}
+								onInput={handleEditorInput}
+								onKeyDown={handleEditorKeyDown}
+								onPaste={handleEditorPaste}
+							/>
+						)}
+
+						{/* File previews (above editor due to flex-col-reverse) */}
+						{files.length > 0 && (
+							<FilePreview
+								files={files}
+								imagePreviews={imagePreviews}
+								onRemove={handleRemoveFile}
+							/>
+						)}
+
+						<Toolbar
+							visible={toolbarVisible}
+							pos={toolbarPos}
+							onAction={onToolbarAction}
 						/>
-					)}
+					</div>
 
-					{/* Editor */}
-					<Editor
-						ref={editorRef}
-						placeholder={placeholder}
-						onInput={handleEditorInput}
-						onKeyDown={handleEditorKeyDown}
-						onPaste={handleEditorPaste}
-					/>
-
-					<Toolbar
-						visible={toolbarVisible}
-						pos={toolbarPos}
-						onAction={onToolbarAction}
-					/>
+					{/* Actions bar at the bottom, wraps on small widths */}
+					<div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+						<div className="flex flex-wrap items-center gap-2">
+							<ChatTypeDropdown
+								trigger={
+									<IconButton type="button" title="Attach">
+										<Plus size={20} />
+									</IconButton>
+								}
+								onChoose={handleChatTypeChoose}
+							/>
+							<IconButton
+								type="button"
+								title="Insert code block (Ctrl+Shift+C)"
+								onClick={handleOpenCodeEditorClick}
+							>
+								<Code2 size={20} />
+							</IconButton>
+							<div style={{ position: "relative" }}>
+								<IconButton
+									type="button"
+									title="Emoji"
+									className="emoji-toggle"
+									onClick={handleEmojiToggle}
+								>
+									<Smile size={20} />
+								</IconButton>
+								<EmojiPicker
+									visible={emojiPickerVisible}
+									onPick={handleEmojiPick}
+									onClose={handleEmojiClose}
+								/>
+							</div>
+							{editingMode && onCancelEdit && (
+								<IconButton
+									type="button"
+									title="Cancel edit"
+									onClick={handleCancelEditClick}
+								>
+									<CornerUpLeft size={18} />
+								</IconButton>
+							)}
+						</div>
+						<IconButton
+							type="submit"
+							disabled={
+								disabled ||
+								(inboxType === "image" || inboxType === "file"
+									? files.length === 0 && mdText.trim().length === 0
+									: mdText.trim().length === 0)
+							}
+							title={editingMode ? "Update message" : "Send message"}
+							style={{ marginLeft: 8 }}
+						>
+							<Send size={20} />
+						</IconButton>
+					</div>
 				</div>
-
-				<div style={{ position: "relative" }}>
-					<IconButton
-						type="button"
-						title="Emoji"
-						className="emoji-toggle"
-						onClick={handleEmojiToggle}
-					>
-						<Smile size={20} />
-					</IconButton>
-					<EmojiPicker
-						visible={emojiPickerVisible}
-						onPick={handleEmojiPick}
-						onClose={handleEmojiClose}
-					/>
-				</div>
-
-				{editingMode && onCancelEdit && (
-					<IconButton
-						type="button"
-						title="Cancel edit"
-						onClick={handleCancelEditClick}
-					>
-						<CornerUpLeft size={18} />
-					</IconButton>
-				)}
-
-				<IconButton
-					type="submit"
-					disabled={
-						disabled ||
-						(inboxType === "image" || inboxType === "file"
-							? files.length === 0 && mdText.trim().length === 0
-							: mdText.trim().length === 0)
-					}
-					title={editingMode ? "Update message" : "Send message"}
-					style={{ marginLeft: 8 }}
-				>
-					<Send size={20} />
-				</IconButton>
 
 				{/* Note: FilePreview is rendered above the editor when files are staged */}
 			</InputContainer>
