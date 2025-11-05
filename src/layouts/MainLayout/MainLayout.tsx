@@ -116,28 +116,23 @@ const MainLayout = () => {
 				}
 			} catch (err) {
 				console.error("Failed to fetch channel detail:", err);
-				// don't block UI with alert in layout
 			}
 		};
 		fetchGroupDetail();
 	}, [groupId, currentUserId]);
 
-	// Ensure opening one panel hides the other
 	useEffect(() => {
 		if (iconSelected === "code") {
-			// when code icon is selected, close thread panel
 			setShowThreadPanel(false);
 			setSelectedThreadId("");
 			setShowCodeListPanel(true);
 		} else {
-			// when selecting anything else, we don't force code panel open
 			setShowCodeListPanel(false);
 		}
 	}, [iconSelected]);
 
 	useEffect(() => {
 		if (showThreadPanel) {
-			// when thread panel opens, hide code list & clear icon selection
 			setShowCodeListPanel(false);
 			setIconSelected("");
 		}
@@ -172,13 +167,25 @@ const MainLayout = () => {
 		setIconSelected("");
 	};
 
+	useEffect(() => {
+		if (
+			groupId &&
+			iconSelected === "" &&
+			!showThreadPanel &&
+			!showCodeListPanel
+		) {
+			setIconSelected("users");
+		}
+		if (!groupId && iconSelected === "users") {
+			setIconSelected("");
+		}
+	}, [groupId]);
+
 	const renderRightPanel = () => {
-		// Give priority to code panel when it's active so it won't be hidden by thread
 		if ((showCodeListPanel || iconSelected === "code") && !showThreadPanel) {
 			return <CodeList onClose={handleCloseCodePanel} />;
 		}
 
-		// Thread panel should only show when explicitly opened and not blocked by code panel
 		if (showThreadPanel && groupId && channelId && !showCodeListPanel) {
 			return (
 				<ThreadPanel
@@ -198,10 +205,15 @@ const MainLayout = () => {
 			case "code":
 				return <CodeList onClose={handleCloseCodePanel} />;
 			case "users":
-				return <MemberList onClose={handleClosePanel} />;
-			// case "notifications":
-			// 	return null;
+				return groupId ? (
+					<MemberList onClose={handleClosePanel} />
+				) : (
+					<FriendList />
+				);
 			default:
+				if (groupId && !isHalf) {
+					return <MemberList onClose={handleClosePanel} />;
+				}
 				return isHalf ? null : <FriendList />;
 		}
 	};
