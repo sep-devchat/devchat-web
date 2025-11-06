@@ -7,7 +7,7 @@ export const ChatAreaContainer = styled.div`
 	border-radius: 10px;
 	display: flex;
 	flex-direction: column;
-	justify-content: space-between;
+	justify-content: flex-end;
 	min-height: 0; /* allow the scrolling child to shrink inside flex parents */
 	max-height: 100%;
 	overflow: hidden; /* keep rounded corners clean */
@@ -184,7 +184,7 @@ export const MessageBubbleStyle = styled.div`
 		/* common bubble */
 		border-radius: 25px;
 		padding: 0.5rem 0.75rem;
-		max-width: 70%;
+		max-width: max-content;
 		word-break: break-word;
 		/* shadow-none already applied by className in JSX, but you can add here if needed */
 	}

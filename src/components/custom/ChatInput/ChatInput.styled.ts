@@ -58,7 +58,7 @@ export const InputContainer = styled.div`
 	gap: 8px;
 	background: ${theme.color.white};
 	border: 1px solid ${theme.color.grey300};
-	border-radius: 24px;
+	border-radius: 10px;
 	padding: 8px 16px;
 	width: 100%;
 
