@@ -58,7 +58,11 @@ export default function ChatInput({
 	// --- Code editor integration ---
 	const [showCodeEditor, setShowCodeEditor] = useState(false);
 	const [codeValue, setCodeValue] = useState("");
-	const [codeLang, setCodeLang] = useState<string>("typescript");
+	const [codeLang, setCodeLang] = useState<string>("javascript");
+	const codeLangRef = useRef<string>("javascript");
+	useEffect(() => {
+		codeLangRef.current = codeLang;
+	}, [codeLang]);
 
 	const textToHtml = useCallback((text: string) => {
 		return text
@@ -174,7 +178,7 @@ export default function ChatInput({
 			let typedMd = (mdText || "").trim();
 			// If code editor is open and has content, append as fenced block
 			if (showCodeEditor && codeValue.trim().length > 0) {
-				const block = buildCodeFence(codeLang, codeValue);
+				const block = buildCodeFence(codeLangRef.current, codeValue);
 				typedMd = [typedMd, block].filter(Boolean).join("\n");
 				setShowCodeEditor(false);
 				setCodeValue("");
@@ -589,7 +593,7 @@ export default function ChatInput({
 				>
 					{/* Scrollable content area rendered bottom-to-top */}
 					<div
-						className={`flex max-h-96 ${showCodeEditor ? "flex-col" : "flex-col-reverse"} gap-2 overflow-y-auto min-h-0`}
+						className={`flex max-h-96 ${showCodeEditor ? "flex-col" : "flex-col-reverse"} gap-2 min-h-0`}
 						style={{ position: "relative" }}
 					>
 						{/* Editor (at bottom) */}
@@ -602,7 +606,14 @@ export default function ChatInput({
 									onLanguageChange={setCodeLang}
 									minLines={5}
 									maxLines={10}
-									closeButtonWhenFocused
+									onCtrlEnter={() => {
+										// Send message with the current code block
+										void (async () => {
+											await handleSubmit();
+											// Return focus to the plain editor after sending
+											setTimeout(() => editorRef.current?.focus(), 60);
+										})();
+									}}
 									onClose={() => {
 										setShowCodeEditor(false);
 										setTimeout(() => editorRef.current?.focus(), 50);
@@ -683,8 +694,11 @@ export default function ChatInput({
 							disabled={
 								disabled ||
 								(inboxType === "image" || inboxType === "file"
-									? files.length === 0 && mdText.trim().length === 0
-									: mdText.trim().length === 0)
+									? files.length === 0 &&
+										mdText.trim().length === 0 &&
+										!(showCodeEditor && codeValue.trim().length > 0)
+									: mdText.trim().length === 0 &&
+										!(showCodeEditor && codeValue.trim().length > 0))
 							}
 							title={editingMode ? "Update message" : "Send message"}
 							style={{ marginLeft: 8 }}

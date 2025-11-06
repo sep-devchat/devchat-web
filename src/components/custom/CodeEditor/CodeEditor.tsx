@@ -8,6 +8,7 @@ import React, {
 } from "react";
 import Editor, { type Monaco, type OnMount } from "@monaco-editor/react";
 import type { editor as MonacoEditorNS } from "monaco-editor";
+import { X } from "lucide-react";
 
 export type CodeEditorRef = {
 	/** Get current editor text value */
@@ -57,6 +58,10 @@ export type CodeEditorProps = {
 	/** Auto-size editor height between min/max lines (ignored when fitParent=true) */
 	minLines?: number;
 	maxLines?: number;
+	/** If true, pressing Backspace on an empty editor triggers onClose (when provided). */
+	closeOnEmptyBackspace?: boolean;
+	/** Called when user presses Ctrl/Cmd + Enter inside the editor (e.g., to send). */
+	onCtrlEnter?: () => void;
 };
 
 const DEFAULT_LANGUAGES: LanguageOption[] = [
@@ -109,6 +114,8 @@ const CodeEditor = React.forwardRef<CodeEditorRef, CodeEditorProps>(
 			fitParent = false,
 			minLines = 3,
 			maxLines,
+			closeOnEmptyBackspace = true,
+			onCtrlEnter,
 		},
 		ref,
 	) => {
@@ -223,8 +230,90 @@ const CodeEditor = React.forwardRef<CodeEditorRef, CodeEditorProps>(
 				const d3 = ed.onDidContentSizeChange?.(() => recompute());
 				if (d3)
 					disposablesRef.current.push(d3 as unknown as { dispose: () => void });
+
+				// Close editor on Backspace when empty (conditional)
+				if (closeOnEmptyBackspace && onClose) {
+					const dBackspace = ed.onKeyDown?.((ev) => {
+						try {
+							// eslint-disable-next-line @typescript-eslint/no-explicit-any
+							const KeyCode = (m as any).KeyCode;
+							const isBackspace =
+								(KeyCode && ev.keyCode === KeyCode.Backspace) ||
+								ev.browserEvent?.key === "Backspace";
+							if (isBackspace) {
+								const current = (ed.getValue() || "").trim();
+								if (current.length === 0) {
+									ev.preventDefault();
+									ev.stopPropagation?.();
+									onClose();
+								}
+							}
+						} catch {
+							/* noop */
+						}
+					});
+					if (dBackspace)
+						disposablesRef.current.push(
+							dBackspace as unknown as { dispose: () => void },
+						);
+				}
+
+				// Ctrl/Cmd + Enter to submit (always bind when provided)
+				if (onCtrlEnter) {
+					// Robust keybinding via Monaco command API
+					try {
+						// eslint-disable-next-line @typescript-eslint/no-explicit-any
+						const KeyMod = (m as any).KeyMod;
+						// eslint-disable-next-line @typescript-eslint/no-explicit-any
+						const KeyCode = (m as any).KeyCode;
+						if (KeyMod && KeyCode && typeof ed.addCommand === "function") {
+							ed.addCommand(KeyMod.CtrlCmd | KeyCode.Enter, () => {
+								try {
+									onCtrlEnter();
+								} catch {
+									/* noop */
+								}
+							});
+						}
+					} catch {
+						/* noop */
+					}
+					// Also handle NumpadEnter + Ctrl as a fallback via keydown listener
+					const dCtrlEnter = ed.onKeyDown?.((ev) => {
+						try {
+							const hasCmdCtrl = ev.ctrlKey || ev.metaKey;
+							const isEnterKey = ev.browserEvent?.key === "Enter";
+							const isNumpadEnter = ev.browserEvent?.code === "NumpadEnter";
+							// eslint-disable-next-line @typescript-eslint/no-explicit-any
+							const KeyCode = (m as any).KeyCode;
+							const isMonacoEnter = KeyCode && ev.keyCode === KeyCode.Enter;
+							if (
+								hasCmdCtrl &&
+								(isEnterKey || isNumpadEnter || isMonacoEnter)
+							) {
+								ev.preventDefault();
+								ev.stopPropagation?.();
+								onCtrlEnter();
+							}
+						} catch {
+							/* noop */
+						}
+					});
+					if (dCtrlEnter)
+						disposablesRef.current.push(
+							dCtrlEnter as unknown as { dispose: () => void },
+						);
+				}
 			},
-			[defaultValue, fitParent, minLines, maxLines],
+			[
+				defaultValue,
+				fitParent,
+				minLines,
+				maxLines,
+				closeOnEmptyBackspace,
+				onClose,
+				onCtrlEnter,
+			],
 		);
 
 		const handleChange = useCallback(
@@ -335,7 +424,7 @@ const CodeEditor = React.forwardRef<CodeEditorRef, CodeEditorProps>(
 										onClose?.();
 									}}
 								>
-									×
+									<X size={20} />
 								</button>
 							) : null}
 						</div>

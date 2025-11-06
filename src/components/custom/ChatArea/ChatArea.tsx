@@ -5,6 +5,7 @@ import React, {
 	useMemo,
 	useRef,
 	useState,
+	useLayoutEffect,
 } from "react";
 import {
 	ChatAreaContainer,
@@ -125,7 +126,7 @@ const MessageRow: React.FC<MessageRowProps> = React.memo(
 					)}
 
 					<div
-						className={`flex flex-col max-w-[70%]  ${isCurrentUser ? "items-end" : ""}`}
+						className={`flex flex-col max-w-[80%]  ${isCurrentUser ? "items-end" : ""}`}
 					>
 						{showAvatarAndHeader && (
 							<div
@@ -139,7 +140,7 @@ const MessageRow: React.FC<MessageRowProps> = React.memo(
 							className={`flex w-full items-end gap-2 ${isCurrentUser ? "flex-row-reverse" : ""}`}
 						>
 							<MessageBubbleStyle
-								className={`message-bubble w-fit max-w-full rounded-lg px-3 py-2 text-sm shadow-none ${isCurrentUser ? "me" : "other"} ${(m as any).pending ? "opacity-50" : ""}`}
+								className={`message-bubble w-fit rounded-lg px-3 py-2 text-sm shadow-none ${isCurrentUser ? "me" : "other"} ${(m as any).pending ? "opacity-50" : ""}`}
 								// giữ lại whitespace cho text
 								style={{ whiteSpace: "pre-wrap" }}
 							>
@@ -188,6 +189,7 @@ const ChatArea: React.FC = () => {
 	);
 
 	const listRef = useRef<HTMLDivElement | null>(null);
+	const bottomRef = useRef<HTMLDivElement | null>(null);
 	const { socket } = useSocket();
 	const [filesFromModal, setFilesFromModal] = useState<File[] | undefined>(
 		undefined,
@@ -1081,12 +1083,52 @@ const ChatArea: React.FC = () => {
 		return items;
 	}, [messages, threadIdParam, latestMessagePerThread, threadDetailsMap]);
 
-	// Auto-scroll on messages change
+	// Compute a stable room key (group/channel/thread) to detect hard switches
+	const roomKey = `${groupId ?? ""}:${channelIdParam ?? ""}:${threadIdParam ?? ""}`;
+
+	const scrollToBottomInstant = useCallback(() => {
+		const container = listRef.current;
+		try {
+			if (container) {
+				container.scrollTop = container.scrollHeight;
+			}
+			// Anchor-based fallback for cases where direct scrollTop is ignored due to layout timing
+			bottomRef.current?.scrollIntoView({ behavior: "auto", block: "end" });
+		} catch {
+			/* noop */
+		}
+	}, []);
+
+	// Ensure we start at the bottom immediately on room change (avoid top flash)
+	useLayoutEffect(() => {
+		// Run across frames in case content height changes after first paint
+		scrollToBottomInstant();
+		const id = requestAnimationFrame(scrollToBottomInstant);
+		return () => cancelAnimationFrame(id);
+	}, [roomKey, scrollToBottomInstant]);
+
+	// Keep anchored to bottom when new messages arrive or input type changes
+	useLayoutEffect(() => {
+		scrollToBottomInstant();
+	}, [messages, inboxTypeSelected, scrollToBottomInstant]);
+
+	// Also scroll after data loads finish for this room
 	useEffect(() => {
-		const el = listRef.current;
-		if (!el) return;
-		el.scrollTop = el.scrollHeight;
-	}, [messages, inboxTypeSelected]);
+		if (!messagesLoading && !threadLoading && !socketLoading) {
+			const id1 = requestAnimationFrame(scrollToBottomInstant);
+			const id2 = requestAnimationFrame(scrollToBottomInstant);
+			return () => {
+				cancelAnimationFrame(id1);
+				cancelAnimationFrame(id2);
+			};
+		}
+	}, [
+		messagesLoading,
+		threadLoading,
+		socketLoading,
+		roomKey,
+		scrollToBottomInstant,
+	]);
 
 	const handleCopy = useCallback((m: MessageResponse) => {
 		if (!m.content) return;
@@ -1305,6 +1347,8 @@ const ChatArea: React.FC = () => {
 						);
 					})
 				)}
+				{/* Keep an anchor at the very end for reliable bottom scrolling */}
+				{/* <div ref={bottomRef} /> */}
 			</MessagesViewport>
 
 			{/* Delete confirmation dialog */}
