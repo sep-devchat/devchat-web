@@ -269,7 +269,6 @@ const Friend: React.FC = () => {
 		fetchPendings();
 	}, [currentUserId]);
 
-	// --- Actions ---
 	const handleSearchAdd = (query: string) => {
 		setSearchAdd(query);
 
@@ -343,7 +342,6 @@ const Friend: React.FC = () => {
 			setModalMessage(`Your friend request to ${selectedUser.name} was sent!`);
 			setShowModal(true);
 
-			// Add to pendingFriendRequests as 'sent'
 			setPendingFriendRequests((prev) => [
 				...prev,
 				{
@@ -401,7 +399,6 @@ const Friend: React.FC = () => {
 		}
 	};
 
-	// Friend pending actions
 	const handleAcceptFriend = async (requestId: string) => {
 		try {
 			await updateFriendRequestStatus(requestId, { status: 1 });
@@ -411,11 +408,56 @@ const Friend: React.FC = () => {
 			);
 
 			showGlobalAlert({ type: "success", message: "Friend request accepted!" });
+
+			window.dispatchEvent(new CustomEvent("friendListUpdated"));
+
+			fetchFriendsData();
 		} catch (err) {
 			showGlobalAlert({ type: "error", message: "Failed to accept request!" });
 			console.error("accept friend failed", err);
 		}
 	};
+
+	const fetchFriendsData = async () => {
+		setIsLoadingUsers(true);
+		try {
+			const response = await listFriends(1, 100);
+			console.log("Friends API Response:", response);
+
+			if (response && response.data) {
+				const normalized = response.data.map((u: any) => ({
+					id: u.id,
+					name:
+						`${u.firstName ?? ""} ${u.lastName ?? ""}`.trim() ||
+						u.username ||
+						"User",
+					firstName: u.firstName,
+					lastName: u.lastName,
+					handle: u.username ? `@${u.username}` : "",
+					avatarUrl:
+						u.avatarUrl ||
+						"https://images.unsplash.com/photo-1494790108755-2616b332c-c3?w=100&h=100&fit=crop&crop=face",
+					mutualFriends: 0,
+				}));
+
+				console.log("Normalized friends:", normalized);
+				setAllFriends(normalized);
+			}
+		} catch (err) {
+			console.error("Failed to fetch friends", err);
+			showGlobalAlert({
+				type: "error",
+				message: "Failed to load friends list",
+			});
+		} finally {
+			setIsLoadingUsers(false);
+		}
+	};
+
+	// Update useEffect để dùng function này
+	useEffect(() => {
+		fetchFriendsData();
+	}, []);
 
 	const handleDeclineFriend = async (requestId: string) => {
 		try {
