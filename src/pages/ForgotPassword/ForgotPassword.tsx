@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import ConfirmBg from "@/components/custom/ConfirmBackground/ConfirmBg";
 import React, { useState } from "react";
+import { Link } from "@tanstack/react-router";
 import {
 	BackArrow,
 	BackText,
@@ -16,6 +17,12 @@ import {
 } from "./ForgotPassword.styled";
 import OTPInput from "@/components/custom/OTPInput/OTPInput";
 import { IoCaretBackOutline } from "react-icons/io5";
+import {
+	forgotPassword,
+	confirmResetCode,
+	resetPassword,
+	sendResetCode,
+} from "@/services/auth/authAPI";
 
 export const ForgotPassword: React.FC = () => {
 	const [step, setStep] = useState<number>(0);
@@ -29,14 +36,17 @@ export const ForgotPassword: React.FC = () => {
 	const [newPassword, setNewPassword] = useState<string>("");
 	const [confirmPassword, setConfirmPassword] = useState<string>("");
 	const [passwordError, setPasswordError] = useState<string>("");
+	const [generalError, setGeneralError] = useState<string>("");
+	const [loading, setLoading] = useState<boolean>(false);
 
 	// basic email regex (simple)
 	const isValidEmail = (v: string) =>
 		/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim());
 
 	// Handlers
-	const handleSendEmail = () => {
+	const handleSendEmail = async () => {
 		setEmailError("");
+		setGeneralError("");
 		if (!email.trim()) {
 			setEmailError("Email is required.");
 			return;
@@ -46,29 +56,47 @@ export const ForgotPassword: React.FC = () => {
 			return;
 		}
 
-		// TODO: call API to request OTP/send mail here
-		// assume success -> go to verification
-		setStep(1);
-		setOtp("");
-		setOtpError("");
+		try {
+			setLoading(true);
+			await forgotPassword({ email });
+			setStep(1);
+			setOtp("");
+			setOtpError("");
+		} catch (err: any) {
+			setGeneralError(
+				err?.response?.data?.message || "Failed to send reset code",
+			);
+		} finally {
+			setLoading(false);
+		}
 	};
 
-	const handleVerifyOtp = () => {
+	const handleVerifyOtp = async () => {
 		setOtpError("");
-		if (!/^\d{4}$/.test(otp)) {
-			setOtpError("Please enter the 4-digit code.");
+		setGeneralError("");
+		if (!/^\d{6}$/.test(otp)) {
+			setOtpError("Please enter the 6-digit code.");
 			return;
 		}
-
-		// TODO: call API to verify OTP. On success:
-		setStep(2);
-		setNewPassword("");
-		setConfirmPassword("");
-		setPasswordError("");
+		try {
+			setLoading(true);
+			await confirmResetCode({ email, code: otp });
+			setStep(2);
+			setNewPassword("");
+			setConfirmPassword("");
+			setPasswordError("");
+		} catch (err: any) {
+			setGeneralError(
+				err?.response?.data?.message || "Code verification failed",
+			);
+		} finally {
+			setLoading(false);
+		}
 	};
 
-	const handleSetNewPassword = () => {
+	const handleSetNewPassword = async () => {
 		setPasswordError("");
+		setGeneralError("");
 		if (!newPassword || newPassword.length < 6) {
 			setPasswordError("Password must be at least 6 characters.");
 			return;
@@ -78,25 +106,53 @@ export const ForgotPassword: React.FC = () => {
 			return;
 		}
 
-		// TODO: call API to set password. On success redirect to /auth/confirm-mail
-		window.location.href = "/auth/confirm-mail";
+		try {
+			setLoading(true);
+			await resetPassword({ email, code: otp, newPassword });
+			window.location.href = "/auth/confirm-mail"; // success redirect
+		} catch (err: any) {
+			setGeneralError(
+				err?.response?.data?.message || "Failed to reset password",
+			);
+		} finally {
+			setLoading(false);
+		}
 	};
 
 	const goBack = () => {
 		if (step > 0) setStep((s) => s - 1);
 	};
 
-	const goToLogin = () => {
-		window.location.href = "/auth/login";
-	};
+	// Deprecated manual navigation kept for reference; using router Link instead.
+	// const goToLogin = () => {
+	// 	window.location.href = "/auth/login";
+	// };
 
 	return (
 		<>
 			<ConfirmBg />
-			<PageWrapper>
+			{/* Center the content in the middle of the viewport */}
+			<PageWrapper
+				style={{
+					minHeight: "100vh",
+					display: "flex",
+					alignItems: "center",
+					justifyContent: "center",
+					padding: "24px",
+				}}
+			>
 				{/* Step 0: enter email */}
-				<ContentCard style={{ display: step === 0 ? undefined : "none" }}>
+				<ContentCard
+					style={{
+						display: step === 0 ? undefined : "none",
+						maxWidth: 720,
+						width: "100%",
+					}}
+				>
 					<TitleCard>Forgot password?</TitleCard>
+					{generalError && step === 0 && (
+						<div style={{ color: "red", marginTop: 8 }}>{generalError}</div>
+					)}
 
 					{/* Assume EmailInput accepts value/onChange. 
               If not, replace with <input ... /> or adapt to your component API */}
@@ -117,29 +173,38 @@ export const ForgotPassword: React.FC = () => {
 					<SubmitButton
 						variant="default"
 						onClick={handleSendEmail}
-						aria-disabled={!email || !!emailError}
+						aria-disabled={!email || !!emailError || loading}
 					>
-						Send
+						{loading ? "Sending..." : "Send"}
 					</SubmitButton>
 
-					<BackText onClick={goToLogin} style={{ cursor: "pointer" }}>
+					<BackText as={Link} to="/auth/login" style={{ cursor: "pointer" }}>
 						Back to login
 					</BackText>
 				</ContentCard>
 
 				{/* Step 1: verification */}
-				<ContentCard style={{ display: step === 1 ? undefined : "none" }}>
+				<ContentCard
+					style={{
+						display: step === 1 ? undefined : "none",
+						maxWidth: 720,
+						width: "100%",
+					}}
+				>
 					<BackArrow onClick={goBack} style={{ cursor: "pointer" }}>
 						<IoCaretBackOutline />
 					</BackArrow>
 
 					<TitleGr>
 						<TitleCard>Verification</TitleCard>
+						{generalError && step === 1 && (
+							<div style={{ color: "red", marginTop: 8 }}>{generalError}</div>
+						)}
 						<Text>Enter Verification Code</Text>
 					</TitleGr>
 
 					{/* Use local SimpleOTP for reliable behavior */}
-					<OTPInput value={otp} onChange={(val) => setOtp(val)} />
+					<OTPInput length={6} value={otp} onChange={(val) => setOtp(val)} />
 
 					{otpError && (
 						<div style={{ color: "red", marginTop: 6 }}>{otpError}</div>
@@ -148,34 +213,56 @@ export const ForgotPassword: React.FC = () => {
 					<SubmitButton
 						variant="default"
 						onClick={handleVerifyOtp}
-						aria-disabled={!otp}
+						aria-disabled={!otp || loading}
 					>
-						Send
+						{loading ? "Verifying..." : "Verify"}
 					</SubmitButton>
 
 					<ResendGr style={{ marginTop: 8 }}>
 						<Text>If you didn’t receive a code,</Text>
 						<ResendText
-							onClick={() => {
-								// TODO: call resend API
-								// show small feedback (simple alert for now)
-								alert("A new code has been sent to your email.");
+							onClick={async () => {
+								if (loading) return;
+								setGeneralError("");
+								try {
+									setLoading(true);
+									await sendResetCode({ email });
+									alert("A new code has been sent to your email.");
+								} catch (err: any) {
+									setGeneralError(
+										err?.response?.data?.message || "Failed to resend code",
+									);
+								} finally {
+									setLoading(false);
+								}
 							}}
-							style={{ cursor: "pointer" }}
+							style={{
+								cursor: loading ? "not-allowed" : "pointer",
+								opacity: loading ? 0.6 : 1,
+							}}
 						>
-							Resend
+							{loading ? "Sending..." : "Resend"}
 						</ResendText>
 					</ResendGr>
 				</ContentCard>
 
 				{/* Step 2: new password */}
-				<ContentCard style={{ display: step === 2 ? undefined : "none" }}>
+				<ContentCard
+					style={{
+						display: step === 2 ? undefined : "none",
+						maxWidth: 720,
+						width: "100%",
+					}}
+				>
 					<BackArrow onClick={goBack} style={{ cursor: "pointer" }}>
 						<IoCaretBackOutline />
 					</BackArrow>
 
 					<TitleGr>
 						<TitleCard>New password</TitleCard>
+						{generalError && step === 2 && (
+							<div style={{ color: "red", marginTop: 8 }}>{generalError}</div>
+						)}
 					</TitleGr>
 
 					{/* Re-using EmailInput for password fields only if it supports type prop.
@@ -203,11 +290,15 @@ export const ForgotPassword: React.FC = () => {
 						<div style={{ color: "red", marginTop: 6 }}>{passwordError}</div>
 					)}
 
-					<SubmitButton variant="default" onClick={handleSetNewPassword}>
-						Send
+					<SubmitButton
+						variant="default"
+						onClick={handleSetNewPassword}
+						aria-disabled={loading}
+					>
+						{loading ? "Updating..." : "Update"}
 					</SubmitButton>
 
-					<BackText onClick={goToLogin} style={{ cursor: "pointer" }}>
+					<BackText as={Link} to="/auth/login" style={{ cursor: "pointer" }}>
 						Back to login
 					</BackText>
 				</ContentCard>

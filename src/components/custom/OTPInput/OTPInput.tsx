@@ -185,7 +185,7 @@ const OTPInput = forwardRef<OTPRef, OTPInputProps>(
 						onKeyDown={handleKeyDown(idx)}
 						className={inputClassName}
 						style={{
-							width: 56,
+							width: 48,
 							height: 56,
 							textAlign: "center",
 							fontSize: 20,
