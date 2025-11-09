@@ -356,7 +356,7 @@ const LoginPage: React.FC<LoginPageProps> = ({
 								{errors.password}
 							</div>
 						)}
-						<ForgotPasswordLink href="#forgot">
+						<ForgotPasswordLink as={Link} to="/auth/forgot-password">
 							Forgot Password?
 						</ForgotPasswordLink>
 					</FormGroup>
