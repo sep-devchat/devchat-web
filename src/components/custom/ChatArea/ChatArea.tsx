@@ -799,8 +799,8 @@ const ChatArea: React.FC = () => {
 				avatarUrl: profile?.avatarUrl ?? null,
 			};
 
-			// helper to actually emit safely with logging & ack handling
-			const safeEmit = (ev: string, p: any) => {
+			// helper to actually emit safely with logging & ack handling; returns a promise resolving ack
+			const safeEmit = (ev: string, p: any): Promise<any> => {
 				console.debug("[ChatArea] safeEmit prepared", ev, p, {
 					socketConnected: socket?.connected,
 				});
@@ -811,23 +811,26 @@ const ChatArea: React.FC = () => {
 						{ groupId: p.groupId, channelId: p.channelId },
 					);
 					queueEmit(ev, p);
-					return;
+					return Promise.resolve({ queued: true });
 				}
 
-				try {
-					if (!socket) throw new Error("socket-not-ready");
-					socket.emit(ev, p, (ack: any) => {
-						console.debug("[ChatArea] emit ack", ev, ack);
-						if (ack && (ack.error || ack.code)) {
-							console.error("[ChatArea] server ack error", ack);
-							// optional: mark optimistic message failed or remove
-						}
-					});
-					console.debug("[ChatArea] emitted", ev);
-				} catch (err) {
-					console.warn("[ChatArea] emit failed, queueing", err);
-					queueEmit(ev, p);
-				}
+				return new Promise((resolve) => {
+					try {
+						if (!socket) throw new Error("socket-not-ready");
+						socket.emit(ev, p, (ack: any) => {
+							console.debug("[ChatArea] emit ack", ev, ack);
+							if (ack && (ack.error || ack.code)) {
+								console.error("[ChatArea] server ack error", ack);
+							}
+							resolve(ack);
+						});
+						console.debug("[ChatArea] emitted", ev);
+					} catch (err) {
+						console.warn("[ChatArea] emit failed, queueing", err);
+						queueEmit(ev, p);
+						resolve({ queued: true, error: String(err) });
+					}
+				});
 			};
 
 			if (payload.type === "preview") {
@@ -905,7 +908,8 @@ const ChatArea: React.FC = () => {
 
 				// log payload before emit (very important for debugging)
 				console.debug("[ChatArea] about to emit message", ev, p);
-				safeEmit(ev, p);
+				const ack = await safeEmit(ev, p);
+				return ack; // allow caller (ChatInput) to access server-assigned messageId for AI ask
 
 				setReplyToMessage(null);
 				return;

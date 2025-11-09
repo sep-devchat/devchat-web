@@ -1,5 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, {
+	useCallback,
+	useEffect,
+	useMemo,
+	useRef,
+	useState,
+} from "react";
 import {
 	Composer,
 	IconButton,
@@ -24,6 +30,18 @@ import Toolbar, {
 import EmojiPicker from "../ChatInputComponent/EmojiPicker/EmojiPicker";
 import FilePreview from "../ChatInputComponent/FilePreview/FilePreview";
 import CodeEditor from "../CodeEditor";
+import { useSelector } from "react-redux";
+import { type RootState } from "@/store";
+import aiAPI from "@/services/ai/ai.api";
+
+type MentionCandidate = {
+	id: string;
+	name: string;
+	username?: string;
+	avatar?: string;
+	typeKind: "member" | "ai";
+	providerKey?: string; // for AI items, lowercase key e.g. 'openai', 'gemini'
+};
 
 export default function ChatInput({
 	setInboxTypeSelected,
@@ -63,6 +81,84 @@ export default function ChatInput({
 	useEffect(() => {
 		codeLangRef.current = codeLang;
 	}, [codeLang]);
+
+	// --- Mentions state ---
+	const [mentionVisible, setMentionVisible] = useState(false);
+	const [mentionQuery, setMentionQuery] = useState("");
+	const [mentionPos, setMentionPos] = useState<{ top: number; left: number }>({
+		top: 0,
+		left: 0,
+	});
+	const [mentionActiveIndex, setMentionActiveIndex] = useState(0);
+
+	const currentGroupId = useSelector(
+		(s: RootState) => s.groupMembers.currentGroupId,
+	);
+	const groupMembers = useSelector((s: RootState) =>
+		currentGroupId
+			? s.groupMembers.byGroupId[currentGroupId]?.members || []
+			: [],
+	);
+	const aiProviders = useSelector((s: RootState) => s.ai?.providers || []);
+
+	// --- Request type picker state (for AI mentions) ---
+	const [reqTypeVisible, setReqTypeVisible] = useState(false);
+	const [reqTypeProvider, setReqTypeProvider] = useState<string | null>(null); // 'openai' | 'gemini'
+	const [reqTypeQuery, setReqTypeQuery] = useState("");
+	const [reqTypeActiveIndex, setReqTypeActiveIndex] = useState(0);
+	const requestTypes = useMemo(
+		() => ["chat", "suggest", "explain", "refactor"],
+		[],
+	);
+	const mentionOptions: MentionCandidate[] = useMemo(() => {
+		if (!mentionVisible) return [];
+		const q = mentionQuery.trim().toLowerCase();
+		const memberList = (groupMembers || []) as Array<{
+			id: string;
+			name: string;
+			username?: string;
+			avatar?: string;
+		}>;
+
+		// Map members to candidates
+		const memberCandidates: MentionCandidate[] = memberList.map((m) => ({
+			id: String(m.id),
+			name: m.name,
+			username: m.username,
+			avatar: m.avatar,
+			typeKind: "member",
+		}));
+
+		// Map AI providers to candidates (available ones)
+		const providerCandidates: MentionCandidate[] = (aiProviders || [])
+			.filter((p: any) => p?.available)
+			.map((p: any) => {
+				const key = String(p.provider || "").toLowerCase(); // OPENAI|GEMINI -> openai|gemini
+				const label = p.label || key;
+				return {
+					id: `ai:${key}`,
+					name: label,
+					username: key, // for filtering/rendering
+					typeKind: "ai" as const,
+					providerKey: key,
+				} as MentionCandidate;
+			});
+
+		const merged = [...providerCandidates, ...memberCandidates];
+
+		const filtered = q
+			? merged.filter((m) => {
+					const uname = (m.username || "").toLowerCase();
+					return (
+						m.name?.toLowerCase().includes(q) ||
+						uname.includes(q) ||
+						String(m.id).toLowerCase().includes(q)
+					);
+				})
+			: merged;
+		// Limit results: 5 for initial (empty query), 8 while searching
+		return q ? filtered.slice(0, 8) : filtered.slice(0, 5);
+	}, [groupMembers, aiProviders, mentionQuery, mentionVisible]);
 
 	const textToHtml = useCallback((text: string) => {
 		return text
@@ -227,12 +323,60 @@ export default function ChatInput({
 						);
 				}
 				const combined = mdParts.join("\n");
-				await onSend?.({ type: "text", text: combined, clientTempId });
+				const sent = await onSend?.({
+					type: "text",
+					text: combined,
+					clientTempId,
+				});
+				// If message begins with @provider/requestType, trigger AI ask using created message id
+				try {
+					const aiCmd = combined.trim();
+					if (/^@([a-zA-Z0-9_-]+)\/(\w+)(?:\s|$)/.test(aiCmd)) {
+						const msgId =
+							(sent as any)?.data?.id ||
+							(sent as any)?.id ||
+							(sent as any)?.data?.messageId ||
+							(sent as any)?.messageId;
+						if (msgId) {
+							console.debug(
+								"[ChatInput] AI directive detected, calling askAi for messageId",
+								msgId,
+							);
+							void aiAPI.askAi({ messageId: msgId });
+						} else {
+							console.warn(
+								"[ChatInput] AI directive detected but no messageId returned from onSend; askAi skipped. Ensure onSend resolves with created message id.",
+							);
+						}
+					}
+				} catch {}
 				return;
 			}
 
 			if (typedMd.length === 0) return;
-			await onSend?.({ type: "text", text: typedMd });
+			const sent = await onSend?.({ type: "text", text: typedMd });
+			// Trigger AI ask if command prefix detected at start
+			try {
+				const aiCmd = typedMd.trim();
+				if (/^@([a-zA-Z0-9_-]+)\/(\w+)(?:\s|$)/.test(aiCmd)) {
+					const msgId =
+						(sent as any)?.data?.id ||
+						(sent as any)?.id ||
+						(sent as any)?.data?.messageId ||
+						(sent as any)?.messageId;
+					if (msgId) {
+						console.debug(
+							"[ChatInput] AI directive detected, calling askAi for messageId",
+							msgId,
+						);
+						void aiAPI.askAi({ messageId: msgId });
+					} else {
+						console.warn(
+							"[ChatInput] AI directive detected but no messageId returned from onSend; askAi skipped. Ensure onSend resolves with created message id.",
+						);
+					}
+				}
+			} catch {}
 		},
 		[
 			disabled,
@@ -335,6 +479,92 @@ export default function ChatInput({
 		setHtml(editorRef.current?.getHtml?.() ?? container.innerHTML);
 	};
 
+	const updateMentionStateFromSelection = useCallback(() => {
+		// Detect if caret is after an @mention token and update dropdown state/position
+		const container = document.querySelector(
+			"[contenteditable]",
+		) as HTMLElement | null;
+		if (!container || showCodeEditor) {
+			setMentionVisible(false);
+			setReqTypeVisible(false);
+			return;
+		}
+		const sel = window.getSelection();
+		if (!sel || sel.rangeCount === 0) {
+			setMentionVisible(false);
+			setReqTypeVisible(false);
+			return;
+		}
+		const range = sel.getRangeAt(0);
+		// Ensure selection is within our editor container
+		let node: Node | null = range.commonAncestorContainer;
+		let inside = false;
+		while (node) {
+			if (node === container) {
+				inside = true;
+				break;
+			}
+			node = (node as any).parentNode;
+		}
+		if (!inside) {
+			setMentionVisible(false);
+			setReqTypeVisible(false);
+			return;
+		}
+		// Only care about caret positions
+		if (!range.collapsed) {
+			setMentionVisible(false);
+			setReqTypeVisible(false);
+			return;
+		}
+		// Try to examine text content just before caret
+		let textNode = range.startContainer as Text;
+		if (textNode.nodeType !== Node.TEXT_NODE) {
+			const candidate = textNode.childNodes[range.startOffset - 1] as
+				| Node
+				| undefined;
+			if (candidate && candidate.nodeType === Node.TEXT_NODE) {
+				textNode = candidate as Text;
+			} else {
+				setMentionVisible(false);
+				setReqTypeVisible(false);
+				return;
+			}
+		}
+		const caretOffset = range.startOffset;
+		const before = textNode.data.slice(0, caretOffset);
+
+		// First, detect provider/type pattern: @provider/<typeQuery>
+		const providerTypeMatch = /@([a-zA-Z0-9_]{1,30})\/([a-zA-Z0-9_]*)$/.exec(
+			before,
+		);
+		if (providerTypeMatch) {
+			const prov = (providerTypeMatch[1] || "").toLowerCase();
+			setReqTypeProvider(prov);
+			setReqTypeQuery((providerTypeMatch[2] || "").toLowerCase());
+			setReqTypeVisible(true);
+			setReqTypeActiveIndex(0);
+			// Hide member/provider dropdown while choosing type
+			setMentionVisible(false);
+			return;
+		}
+
+		// Otherwise, detect basic @query mention
+		const match = /(^|\s)@([a-zA-Z0-9_]{0,30})$/.exec(before);
+		if (!match) {
+			setMentionVisible(false);
+			setReqTypeVisible(false);
+			return;
+		}
+		const query = match[2] || "";
+		setReqTypeVisible(false);
+		// Position dropdown from the top-left of the editor container
+		setMentionQuery(query);
+		setMentionPos({ top: 0, left: 0 });
+		setMentionVisible(true);
+		setMentionActiveIndex(0);
+	}, [showCodeEditor]);
+
 	const onToolbarAction = (action: ToolbarAction) => {
 		switch (action) {
 			case "bold":
@@ -410,6 +640,153 @@ export default function ChatInput({
 		container.dispatchEvent(new Event("input", { bubbles: true }));
 	};
 
+	const applyMention = useCallback(
+		(candidate: MentionCandidate) => {
+			const container = document.querySelector(
+				"[contenteditable]",
+			) as HTMLElement | null;
+			if (!container) return;
+			const sel = window.getSelection();
+			if (!sel || sel.rangeCount === 0) return;
+			const range = sel.getRangeAt(0);
+			let textNode = range.startContainer as Text;
+			if (textNode.nodeType !== Node.TEXT_NODE) {
+				const candidateNode = textNode.childNodes[range.startOffset - 1] as
+					| Node
+					| undefined;
+				if (candidateNode && candidateNode.nodeType === Node.TEXT_NODE) {
+					textNode = candidateNode as Text;
+				} else {
+					// Fallback: just insert at caret
+					if (candidate.typeKind === "ai" && candidate.providerKey) {
+						insertTextAtCaret(`@${candidate.providerKey}/`);
+						setReqTypeProvider(candidate.providerKey);
+						setReqTypeQuery("");
+						setReqTypeVisible(true);
+						setMentionVisible(false);
+						return;
+					}
+					const uname = (candidate.username || candidate.name || "").replace(
+						/\s+/g,
+						"_",
+					);
+					insertTextAtCaret(`@${uname} `);
+					setMentionVisible(false);
+					return;
+				}
+			}
+			const caretOffset = range.startOffset;
+			const before = textNode.data.slice(0, caretOffset);
+			const after = textNode.data.slice(caretOffset);
+			const m = /(^|\s)@([a-zA-Z0-9_]{0,30})$/.exec(before);
+			if (m) {
+				const startPos = m.index + m[1].length; // index of '@'
+				const newBefore = before.slice(0, startPos);
+				if (candidate.typeKind === "ai" && candidate.providerKey) {
+					const token = `@${candidate.providerKey}/`;
+					textNode.data = newBefore + token + after;
+					const newCaret = newBefore.length + token.length;
+					const newRange = document.createRange();
+					newRange.setStart(textNode, newCaret);
+					newRange.collapse(true);
+					sel.removeAllRanges();
+					sel.addRange(newRange);
+					container.dispatchEvent(new Event("input", { bubbles: true }));
+					setMdText(container.innerText || "");
+					setHtml(editorRef.current?.getHtml?.() ?? container.innerHTML);
+					setMentionVisible(false);
+					setReqTypeProvider(candidate.providerKey);
+					setReqTypeQuery("");
+					setReqTypeVisible(true);
+					return;
+				}
+				const uname = (candidate.username || candidate.name || "").replace(
+					/\s+/g,
+					"_",
+				);
+				const mentionText = `@${uname}`;
+				textNode.data = newBefore + mentionText + " " + after;
+				const newCaret = newBefore.length + mentionText.length + 1;
+				const newRange = document.createRange();
+				newRange.setStart(textNode, newCaret);
+				newRange.collapse(true);
+				sel.removeAllRanges();
+				sel.addRange(newRange);
+				container.dispatchEvent(new Event("input", { bubbles: true }));
+				setMdText(container.innerText || "");
+				setHtml(editorRef.current?.getHtml?.() ?? container.innerHTML);
+			} else {
+				if (candidate.typeKind === "ai" && candidate.providerKey) {
+					insertTextAtCaret(`@${candidate.providerKey}/`);
+					setReqTypeProvider(candidate.providerKey);
+					setReqTypeQuery("");
+					setReqTypeVisible(true);
+					setMentionVisible(false);
+				} else {
+					const uname = (candidate.username || candidate.name || "").replace(
+						/\s+/g,
+						"_",
+					);
+					insertTextAtCaret(`@${uname} `);
+				}
+			}
+			setMentionVisible(false);
+		},
+		[insertTextAtCaret],
+	);
+
+	// Apply a request type after '@provider/'
+	const applyRequestType = useCallback(
+		(type: string) => {
+			const container = document.querySelector(
+				"[contenteditable]",
+			) as HTMLElement | null;
+			if (!container) return;
+			const sel = window.getSelection();
+			if (!sel || sel.rangeCount === 0) return;
+			const range = sel.getRangeAt(0);
+			let textNode = range.startContainer as Text;
+			if (textNode.nodeType !== Node.TEXT_NODE) {
+				const candidateNode = textNode.childNodes[range.startOffset - 1] as
+					| Node
+					| undefined;
+				if (candidateNode && candidateNode.nodeType === Node.TEXT_NODE) {
+					textNode = candidateNode as Text;
+				} else {
+					insertTextAtCaret(`${type} `);
+					setReqTypeVisible(false);
+					return;
+				}
+			}
+			const caretOffset = range.startOffset;
+			const before = textNode.data.slice(0, caretOffset);
+			const after = textNode.data.slice(caretOffset);
+			const m = /(@[a-zA-Z0-9_]{1,30})\/([a-zA-Z0-9_]*)$/.exec(before);
+			if (m) {
+				const start = m.index;
+				const prefix = before.slice(0, start);
+				const fullToken = `${m[1]}/${type}`; // @provider/type
+				textNode.data = prefix + fullToken + " " + after;
+				const newCaret = (prefix + fullToken + " ").length;
+				const newRange = document.createRange();
+				newRange.setStart(textNode, newCaret);
+				newRange.collapse(true);
+				sel.removeAllRanges();
+				sel.addRange(newRange);
+				container.dispatchEvent(new Event("input", { bubbles: true }));
+				setMdText(container.innerText || "");
+				setHtml(editorRef.current?.getHtml?.() ?? container.innerHTML);
+			} else {
+				insertTextAtCaret(`${type} `);
+			}
+			setReqTypeVisible(false);
+			setReqTypeProvider(null);
+			setReqTypeQuery("");
+			setReqTypeActiveIndex(0);
+		},
+		[insertTextAtCaret],
+	);
+
 	// ===== Handlers moved out of JSX =====
 	const handleChatTypeChoose = useCallback(
 		(type: InboxType | null, chosenFiles?: File[]) => {
@@ -448,17 +825,89 @@ export default function ChatInput({
 				return;
 			}
 			setMdText(text);
+			updateMentionStateFromSelection();
 		},
-		[showCodeEditor, textToHtml],
+		[showCodeEditor, textToHtml, updateMentionStateFromSelection],
 	);
 
 	const handleEditorKeyDown = useCallback(
 		(e: React.KeyboardEvent<HTMLDivElement>) => {
 			const isComposing = (e as any).nativeEvent?.isComposing;
 			if (!isComposing && e.key === "Enter") {
+				if (mentionVisible && mentionOptions.length > 0) {
+					e.preventDefault();
+					const cand = mentionOptions[mentionActiveIndex] || mentionOptions[0];
+					if (cand) applyMention(cand);
+					return;
+				}
 				if (!e.shiftKey) {
 					e.preventDefault();
 					void handleSubmit();
+					return;
+				}
+			}
+			if (reqTypeVisible) {
+				if (e.key === "ArrowDown") {
+					e.preventDefault();
+					setReqTypeActiveIndex((i) => {
+						const opts = requestTypes.filter((t) => t.startsWith(reqTypeQuery));
+						return opts.length ? (i + 1) % opts.length : 0;
+					});
+					return;
+				}
+				if (e.key === "ArrowUp") {
+					e.preventDefault();
+					setReqTypeActiveIndex((i) => {
+						const opts = requestTypes.filter((t) => t.startsWith(reqTypeQuery));
+						return opts.length ? (i - 1 + opts.length) % opts.length : 0;
+					});
+					return;
+				}
+				if (e.key === "Enter" || e.key === "Tab") {
+					e.preventDefault();
+					const opts = requestTypes.filter((t) => t.startsWith(reqTypeQuery));
+					const pick = opts[reqTypeActiveIndex] || opts[0] || requestTypes[0];
+					if (pick) applyRequestType(pick);
+					return;
+				}
+				if (e.key === "Escape") {
+					setReqTypeVisible(false);
+					return;
+				}
+				// update query on normal character keys
+				if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+					// Allow default insertion, will be processed by onInput -> updateMentionStateFromSelection
+					setTimeout(() => {
+						const sel = window.getSelection();
+						if (sel && sel.rangeCount > 0) updateMentionStateFromSelection();
+					}, 0);
+				}
+			}
+			if (mentionVisible) {
+				if (e.key === "ArrowDown") {
+					e.preventDefault();
+					setMentionActiveIndex((i) =>
+						mentionOptions.length ? (i + 1) % mentionOptions.length : 0,
+					);
+					return;
+				}
+				if (e.key === "ArrowUp") {
+					e.preventDefault();
+					setMentionActiveIndex((i) =>
+						mentionOptions.length
+							? (i - 1 + mentionOptions.length) % mentionOptions.length
+							: 0,
+					);
+					return;
+				}
+				if (e.key === "Tab") {
+					e.preventDefault();
+					const cand = mentionOptions[mentionActiveIndex] || mentionOptions[0];
+					if (cand) applyMention(cand);
+					return;
+				}
+				if (e.key === "Escape") {
+					setMentionVisible(false);
 					return;
 				}
 			}
@@ -496,7 +945,14 @@ export default function ChatInput({
 				onToolbarAction("italic");
 			}
 		},
-		[handleSubmit, onToolbarAction],
+		[
+			handleSubmit,
+			onToolbarAction,
+			mentionVisible,
+			mentionOptions,
+			mentionActiveIndex,
+			applyMention,
+		],
 	);
 
 	const handleEditorPaste = useCallback(
@@ -628,6 +1084,82 @@ export default function ChatInput({
 								onKeyDown={handleEditorKeyDown}
 								onPaste={handleEditorPaste}
 							/>
+						)}
+
+						{/* Mentions dropdown */}
+						{mentionVisible && mentionOptions.length > 0 && (
+							<div
+								className="absolute z-[10000] w-72 max-w-full overflow-hidden rounded-md border border-neutral-300 bg-white shadow-md"
+								style={{ bottom: 25, left: mentionPos.left }}
+							>
+								<div className="max-h-64 overflow-auto py-1 flex flex-col">
+									{mentionOptions.map((m, idx) => (
+										<button
+											key={m.id}
+											type="button"
+											className={`flex w-full items-center gap-2 px-3 py-2 text-left text-sm ${idx === mentionActiveIndex ? "bg-neutral-100" : ""}`}
+											onMouseDown={(ev) => {
+												// prevent editor blur
+												ev.preventDefault();
+												applyMention(m);
+											}}
+										>
+											{m.typeKind === "ai" ? (
+												<span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-indigo-500 text-white text-xs font-semibold">
+													AI
+												</span>
+											) : m.avatar ? (
+												<img
+													src={m.avatar}
+													alt={m.name}
+													className="h-6 w-6 rounded-full object-cover"
+												/>
+											) : (
+												<div className="h-6 w-6 rounded-full bg-neutral-300 dark:bg-neutral-700" />
+											)}
+											<span className="truncate">
+												{m.typeKind === "ai" ? `@${m.providerKey}` : m.name}
+											</span>
+											{m.typeKind === "ai" && (
+												<span className="ml-auto text-[10px] uppercase tracking-wide text-neutral-500">
+													provider
+												</span>
+											)}
+										</button>
+									))}
+								</div>
+							</div>
+						)}
+
+						{reqTypeVisible && reqTypeProvider && (
+							<div
+								className="absolute z-[10001] w-64 max-w-full overflow-hidden rounded-md border border-neutral-300 bg-white shadow-md"
+								style={{ bottom: 25, left: mentionPos.left + 8 }}
+							>
+								<div className="border-b px-3 py-2 text-xs font-medium text-neutral-600">
+									@{reqTypeProvider}/
+									<span className="text-neutral-400">
+										{reqTypeQuery || "<type>"}
+									</span>
+								</div>
+								<div className="max-h-56 overflow-auto py-1 flex flex-col">
+									{requestTypes
+										.filter((t) => t.startsWith(reqTypeQuery))
+										.map((t, idx) => (
+											<button
+												key={t}
+												type="button"
+												className={`flex w-full items-center gap-2 px-3 py-2 text-left text-sm ${idx === reqTypeActiveIndex ? "bg-neutral-100" : ""}`}
+												onMouseDown={(ev) => {
+													ev.preventDefault();
+													applyRequestType(t);
+												}}
+											>
+												<span className="truncate">{t}</span>
+											</button>
+										))}
+								</div>
+							</div>
 						)}
 
 						{/* File previews (above editor due to flex-col-reverse) */}
