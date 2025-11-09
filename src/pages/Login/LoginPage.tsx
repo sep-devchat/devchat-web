@@ -165,9 +165,6 @@ const LoginPage: React.FC<LoginPageProps> = ({
 
 		try {
 			if (codeChallenge && codeChallengeMethod) {
-				localStorage.setItem("codeChallenge", codeChallenge);
-				localStorage.setItem("codeChallengeMethod", codeChallengeMethod);
-
 				loginPkceMutation.mutate({
 					method: "google",
 					code: credentialResponse.credential,

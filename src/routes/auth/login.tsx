@@ -46,6 +46,8 @@ function RouteComponent() {
 		mutationFn: loginPkce,
 		onSuccess: (response) => {
 			const responseData = response.data;
+			localStorage.removeItem("codeChallenge");
+			localStorage.removeItem("codeChallengeMethod");
 			window.location.href = `devchat://?code=${responseData.authCode}`;
 		},
 	});
