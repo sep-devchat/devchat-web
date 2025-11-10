@@ -481,10 +481,11 @@ export default function ChatInput({
 
 	const updateMentionStateFromSelection = useCallback(() => {
 		// Detect if caret is after an @mention token and update dropdown state/position
+		// Note: Even when the code editor is visible, we still allow mentions in the main editor.
 		const container = document.querySelector(
 			"[contenteditable]",
 		) as HTMLElement | null;
-		if (!container || showCodeEditor) {
+		if (!container) {
 			setMentionVisible(false);
 			setReqTypeVisible(false);
 			return;
@@ -563,7 +564,7 @@ export default function ChatInput({
 		setMentionPos({ top: 0, left: 0 });
 		setMentionVisible(true);
 		setMentionActiveIndex(0);
-	}, [showCodeEditor]);
+	}, []);
 
 	const onToolbarAction = (action: ToolbarAction) => {
 		switch (action) {
@@ -1047,13 +1048,31 @@ export default function ChatInput({
 					className="flex w-full flex-col gap-2"
 					style={{ minWidth: 0, flex: 1 }}
 				>
-					{/* Scrollable content area rendered bottom-to-top */}
+					{/* Scrollable content area */}
 					<div
-						className={`flex max-h-96 ${showCodeEditor ? "flex-col" : "flex-col-reverse"} gap-2 min-h-0`}
+						className={`flex max-h-96 flex-col gap-2 min-h-0`}
 						style={{ position: "relative" }}
 					>
-						{/* Editor (at bottom) */}
-						{showCodeEditor ? (
+						{/* File previews above the input */}
+						{files.length > 0 && (
+							<FilePreview
+								files={files}
+								imagePreviews={imagePreviews}
+								onRemove={handleRemoveFile}
+							/>
+						)}
+
+						{/* Main plain text/markdown editor (always visible) */}
+						<Editor
+							ref={editorRef}
+							placeholder={placeholder}
+							onInput={handleEditorInput}
+							onKeyDown={handleEditorKeyDown}
+							onPaste={handleEditorPaste}
+						/>
+
+						{/* Optional code editor appears below the input when triggered */}
+						{showCodeEditor && (
 							<div className="w-full rounded-md border border-neutral-300 p-2 dark:border-neutral-700">
 								<CodeEditor
 									value={codeValue}
@@ -1076,14 +1095,6 @@ export default function ChatInput({
 									}}
 								/>
 							</div>
-						) : (
-							<Editor
-								ref={editorRef}
-								placeholder={placeholder}
-								onInput={handleEditorInput}
-								onKeyDown={handleEditorKeyDown}
-								onPaste={handleEditorPaste}
-							/>
 						)}
 
 						{/* Mentions dropdown */}
@@ -1160,15 +1171,6 @@ export default function ChatInput({
 										))}
 								</div>
 							</div>
-						)}
-
-						{/* File previews (above editor due to flex-col-reverse) */}
-						{files.length > 0 && (
-							<FilePreview
-								files={files}
-								imagePreviews={imagePreviews}
-								onRemove={handleRemoveFile}
-							/>
 						)}
 
 						<Toolbar
