@@ -1,16 +1,7 @@
-import { Mail } from "lucide-react";
-import React, { useState } from "react";
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import React, { useEffect, useRef, useState } from "react";
 import {
-	AddEmailButton,
 	Avatar,
-	EditButton,
-	EmailAddress,
-	EmailDetails,
-	EmailIcon,
-	EmailItem,
-	EmailSection,
-	EmailSectionTitle,
-	EmailTime,
 	FormContainer,
 	FormContent,
 	FormGroup,
@@ -24,121 +15,124 @@ import {
 	ProfileName,
 	SelectAccount,
 } from "./SettingsItems.styled";
+import { Profile } from "@/services/auth/auth.type";
+import { AvatarImg, NoAvatar } from "@/pages/Setting/Setting.styled";
 
 interface AccountFormProps {
-	initialData?: {
-		fullName?: string;
-		displayName?: string;
-		phoneNumber?: string;
-		gender?: string;
-		country?: string;
-		usageType?: string;
-		email?: string;
-	};
-	onSave?: (data: any) => void;
+	initialData?: Profile | any;
+	resetKey?: number;
+	onChange?: (data: any) => void;
+	onEditEmail?: () => void;
+	onEditPassword?: () => void;
 }
 
 const AccountForm: React.FC<AccountFormProps> = ({
 	initialData = {},
-	onSave,
+	resetKey = 0,
+	onChange,
 }) => {
-	const [formData, setFormData] = useState({
-		fullName: initialData.fullName || "Amanda Nguyen",
-		displayName: initialData.displayName || "Amanda",
-		phoneNumber: initialData.phoneNumber || "0865181875",
-		gender: initialData.gender || "Female",
-		country: initialData.country || "Viet Nam",
-		usageType: initialData.usageType || "Personal",
-		email: initialData.email || "abc123@gmail.com",
-	});
+	const [local, setLocal] = useState<any>({ ...initialData });
+	const mountedRef = useRef(false);
+	const skipOnChangeRef = useRef(false);
+
+	useEffect(() => {
+		setLocal({ ...initialData });
+		mountedRef.current = true;
+	}, []);
+
+	useEffect(() => {
+		skipOnChangeRef.current = true;
+		setLocal({ ...initialData });
+	}, [resetKey]);
+
+	useEffect(() => {
+		if (!mountedRef.current) return;
+		if (skipOnChangeRef.current) {
+			skipOnChangeRef.current = false;
+			return;
+		}
+		if (onChange) onChange(local);
+	}, [local, onChange]);
 
 	const handleInputChange = (field: string, value: string) => {
-		setFormData((prev) => ({
-			...prev,
-			[field]: value,
-		}));
+		setLocal((prev: any) => ({ ...prev, [field]: value }));
 	};
 
-	const handleSave = () => {
-		if (onSave) {
-			onSave(formData);
-		}
-	};
+	//   const handleEditEmailClick = () => {
+	//     if (onEditEmail) onEditEmail();
+	//   };
+
+	//   const handleEditPasswordClick = () => {
+	//     if (onEditPassword) onEditPassword();
+	//   };
 
 	return (
 		<FormContainer>
 			<ProfileHeader>
 				<ProfileInfo>
-					<Avatar>{formData.displayName.charAt(0).toUpperCase()}</Avatar>
+					<Avatar>
+						{local?.avatarUrl ? (
+							<AvatarImg src={local.avatarUrl} alt="avatar preview" />
+						) : (
+							<NoAvatar>
+								{(local?.firstName ?? "")?.charAt(0)}
+								{(local?.lastName ?? "")?.charAt(0)}
+							</NoAvatar>
+						)}
+					</Avatar>
 					<ProfileDetails>
-						<ProfileName>{formData.fullName}</ProfileName>
-						<ProfileEmail>{formData.email}</ProfileEmail>
+						<ProfileName>{local?.username}</ProfileName>
+						<ProfileEmail>{local?.email}</ProfileEmail>
 					</ProfileDetails>
 				</ProfileInfo>
-				<EditButton onClick={handleSave}>EDIT</EditButton>
 			</ProfileHeader>
 
 			<FormContent>
 				<FormRow>
 					<FormGroup>
-						<Label>Full Name</Label>
+						<Label>First Name</Label>
 						<Input
 							type="text"
-							value={formData.fullName}
+							value={local?.firstName ?? ""}
 							onChange={(e: any) =>
-								handleInputChange("fullName", e.target.value)
+								handleInputChange("firstName", e.target.value)
 							}
-							placeholder="Enter full name"
+							placeholder="Enter first name"
 						/>
 					</FormGroup>
 
 					<FormGroup>
-						<Label>Display Name</Label>
+						<Label>Last Name</Label>
 						<Input
 							type="text"
-							value={formData.displayName}
+							value={local?.lastName ?? ""}
 							onChange={(e: any) =>
-								handleInputChange("displayName", e.target.value)
+								handleInputChange("lastName", e.target.value)
 							}
-							placeholder="Enter display name"
+							placeholder="Enter last name"
 						/>
 					</FormGroup>
 				</FormRow>
 
 				<FormRow>
 					<FormGroup>
-						<Label>Phone Number</Label>
+						<Label>User Name</Label>
 						<Input
-							type="tel"
-							value={formData.phoneNumber}
+							type="text"
+							value={local?.username ?? ""}
 							onChange={(e: any) =>
-								handleInputChange("phoneNumber", e.target.value)
+								handleInputChange("username", e.target.value)
 							}
-							placeholder="Enter phone number"
+							placeholder="Enter username"
 						/>
 					</FormGroup>
 
 					<FormGroup>
-						<Label>Gender</Label>
+						<Label>Timezone</Label>
 						<SelectAccount
-							value={formData.gender}
-							onChange={(e: any) => handleInputChange("gender", e.target.value)}
-						>
-							<option value="Female">Female</option>
-							<option value="Male">Male</option>
-							<option value="Other">Other</option>
-							<option value="Prefer not to say">Prefer not to say</option>
-						</SelectAccount>
-					</FormGroup>
-				</FormRow>
-
-				<FormRow>
-					<FormGroup>
-						<Label>Country</Label>
-						<SelectAccount
-							value={formData.country}
+							value={local?.timezone ?? ""}
 							onChange={(e: any) =>
-								handleInputChange("country", e.target.value)
+								handleInputChange("timezone", e.target.value)
 							}
 						>
 							<option value="Viet Nam">Viet Nam</option>
@@ -151,36 +145,20 @@ const AccountForm: React.FC<AccountFormProps> = ({
 							<option value="Malaysia">Malaysia</option>
 						</SelectAccount>
 					</FormGroup>
-
-					<FormGroup>
-						<Label>Usage Type</Label>
-						<SelectAccount
-							value={formData.usageType}
-							onChange={(e: any) =>
-								handleInputChange("usageType", e.target.value)
-							}
-						>
-							<option value="Personal">Personal</option>
-							<option value="Business">Business</option>
-							<option value="Education">Education</option>
-							<option value="Non-profit">Non-profit</option>
-						</SelectAccount>
-					</FormGroup>
 				</FormRow>
 
-				<EmailSection>
-					<EmailSectionTitle>My email Address</EmailSectionTitle>
-					<EmailItem>
-						<EmailIcon>
-							<Mail size={24} />
-						</EmailIcon>
-						<EmailDetails>
-							<EmailAddress>{formData.email}</EmailAddress>
-							<EmailTime>1 month ago</EmailTime>
-						</EmailDetails>
-					</EmailItem>
-					<AddEmailButton>Add email address</AddEmailButton>
-				</EmailSection>
+				{/* <EmailSection>
+          <EmailSectionTitle>My email Address</EmailSectionTitle>
+          <EmailItem>
+            <EmailIcon>
+              <Mail size={24} />
+            </EmailIcon>
+            <EmailDetails>
+              <EmailAddress>{local?.email}</EmailAddress>
+            </EmailDetails>
+          </EmailItem>
+          <AddEmailButton onClick={handleEditEmailClick}>Add email address</AddEmailButton>
+        </EmailSection> */}
 			</FormContent>
 		</FormContainer>
 	);

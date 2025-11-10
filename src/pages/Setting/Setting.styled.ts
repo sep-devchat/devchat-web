@@ -1,10 +1,11 @@
 import styled from "styled-components";
 
-export const Card = styled.div`
+export const Card = styled.div<{ isDirty?: boolean }>`
 	background: rgba(255, 255, 255, 0.8);
 	backdrop-filter: blur(10px);
 	overflow: hidden;
 	min-height: 100vh;
+	padding-bottom: ${(props) => (props.isDirty ? "70px" : "0px")};
 `;
 
 export const CardHeader = styled.div`
@@ -26,4 +27,17 @@ export const CardDescription = styled.p`
 
 export const CardContent = styled.div`
 	padding: 24px;
+`;
+
+export const AvatarImg = styled.img`
+	width: 64px;
+	height: 64px;
+	border-radius: 50%;
+	object-fit: cover;
+	display: block;
+`;
+
+export const NoAvatar = styled.div`
+	text-align: center;
+	color: var(--muted-foreground, #6b7280);
 `;

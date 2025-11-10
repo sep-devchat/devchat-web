@@ -25,6 +25,7 @@ export interface UserPostRequest {
 	avatarUrl?: string | null;
 	timezone?: string;
 	isActive?: boolean;
+	password?: string;
 }
 
 export const listUsers = (page: number, limit: number) => {
