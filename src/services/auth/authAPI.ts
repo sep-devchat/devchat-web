@@ -7,6 +7,10 @@ import {
 	RegisterPkceRequest,
 	RegisterRequest,
 	TokenResponse,
+	ForgotPasswordRequest,
+	SendResetCodeRequest,
+	ConfirmResetCodeRequest,
+	ResetPasswordRequest,
 } from "./auth.type";
 
 export const login = async (dto: LoginRequest) => {
@@ -39,4 +43,21 @@ export const verifyEmail = async (code: string) => {
 
 export const logout = async () => {
 	return get("/api/auth/logout");
+};
+
+// Forgot / reset password flow
+export const forgotPassword = async (dto: ForgotPasswordRequest) => {
+	return post<{ message?: string }>("/api/auth/forgot-password", dto);
+};
+
+export const sendResetCode = async (dto: SendResetCodeRequest) => {
+	return post<{ message?: string }>("/api/auth/send-reset-code", dto);
+};
+
+export const confirmResetCode = async (dto: ConfirmResetCodeRequest) => {
+	return post<{ message?: string }>("/api/auth/confirm-reset-code", dto);
+};
+
+export const resetPassword = async (dto: ResetPasswordRequest) => {
+	return post<{ message?: string }>("/api/auth/reset-password", dto);
 };

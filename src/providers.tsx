@@ -17,6 +17,7 @@ import AuthProvider from "./components/AuthProvider.tsx";
 import SocketProvider from "./components/SocketProvider.tsx";
 import { io } from "socket.io-client";
 import ThemeInit from "./components/ThemeInit.tsx";
+import AppInit from "./components/AppInit.tsx";
 
 // Create a new router instance
 let history: RouterHistory | undefined;
@@ -50,6 +51,7 @@ export function Providers() {
 				<AuthProvider>
 					<SocketProvider socket={socket}>
 						<ThemeInit />
+						<AppInit />
 						<RouterProvider router={router} />
 						{Boolean(config.publicRuntime.DEV_ENABLED) ? (
 							<ReactQueryDevtools

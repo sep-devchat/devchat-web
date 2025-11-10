@@ -59,3 +59,23 @@ export interface PkceIssueTokenRequest {
 	codeChallengeMethod: string;
 	authCode: string;
 }
+
+// Forgot / Reset password flow types
+export interface ForgotPasswordRequest {
+	email: string;
+}
+
+export interface SendResetCodeRequest {
+	email: string;
+}
+
+export interface ConfirmResetCodeRequest {
+	email: string;
+	code: string; // 6-digit verification code
+}
+
+export interface ResetPasswordRequest {
+	email: string;
+	code: string; // 6-digit verification code
+	newPassword: string; // >=8 chars (backend enforces 8 min)
+}
