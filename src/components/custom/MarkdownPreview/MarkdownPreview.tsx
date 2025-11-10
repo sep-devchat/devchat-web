@@ -9,7 +9,7 @@ import {
 	TableRow,
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
-import React, { Suspense, useEffect, useState } from "react";
+import React, { Suspense, useEffect, useMemo, useState } from "react";
 const Markdown = React.lazy(() => import("react-markdown"));
 import CodeBlock from "../CodeBlock";
 import InlineCode from "../InlineCode";
@@ -21,6 +21,116 @@ export interface MarkdownPreviewProps {
 
 const MarkdownPreview = ({ content = "", className }: MarkdownPreviewProps) => {
 	const [remarkPlugins, setRemarkPlugins] = useState<any[]>([]);
+	const mentionClasses = useMemo(
+		() => [
+			"mention",
+			"bg-blue-300",
+			"text-primary",
+			"rounded",
+			"px-1",
+			"py-0.5",
+			"font-medium",
+			"whitespace-nowrap",
+		],
+		[],
+	);
+
+	// Minimal rehype plugin to highlight @mentions in rendered HTML (HAST)
+	const rehypeMentions = useMemo(() => {
+		const isElement = (n: any) => n && n.type === "element";
+		const isText = (n: any) => n && n.type === "text";
+
+		const makeMentionSpan = (text: string) => ({
+			type: "element",
+			tagName: "span",
+			properties: { className: mentionClasses },
+			children: [{ type: "text", value: text }],
+		});
+
+		const transformChildren = (parent: any) => {
+			if (!parent || !Array.isArray(parent.children)) return;
+			const out: any[] = [];
+			for (let i = 0; i < parent.children.length; i++) {
+				const child = parent.children[i];
+
+				// Skip transforming inside <pre> or <code>
+				if (
+					isElement(parent) &&
+					(parent.tagName === "pre" || parent.tagName === "code")
+				) {
+					out.push(child);
+					continue;
+				}
+
+				if (isText(child)) {
+					const next = parent.children[i + 1];
+
+					// Handle pattern: text ending with '@' immediately followed by <code>username</code>
+					if (
+						typeof child.value === "string" &&
+						child.value.endsWith("@") &&
+						isElement(next) &&
+						next.tagName === "code"
+					) {
+						const before = child.value.slice(0, -1);
+						if (before) out.push({ type: "text", value: before });
+						out.push({
+							type: "element",
+							tagName: "span",
+							properties: { className: mentionClasses },
+							children: [{ type: "text", value: "@" }, next],
+						});
+						i++; // consume next as well
+						continue;
+					}
+
+					// Handle simple inline mentions like "@username" with a boundary before '@'
+					const text: string = child.value ?? "";
+					const regex = /(^|\s)@([a-zA-Z0-9_]{1,30})/g;
+					let pos = 0;
+					let m: RegExpExecArray | null;
+					let matched = false;
+					while ((m = regex.exec(text)) !== null) {
+						matched = true;
+						const start = m.index; // index where the boundary (start or space) begins
+						const leading = m[1] ?? ""; // possibly a space or empty string
+						const handle = "@" + m[2];
+
+						// text before the boundary
+						if (start > pos)
+							out.push({ type: "text", value: text.slice(pos, start) });
+						// the boundary itself
+						if (leading) out.push({ type: "text", value: leading });
+						// the mention
+						out.push(makeMentionSpan(handle));
+
+						pos = start + leading.length + handle.length;
+					}
+					if (matched) {
+						if (pos < text.length)
+							out.push({ type: "text", value: text.slice(pos) });
+					} else {
+						out.push(child);
+					}
+				} else if (isElement(child)) {
+					// Recurse into children first to allow nested processing
+					transformChildren(child);
+					out.push(child);
+				} else {
+					out.push(child);
+				}
+			}
+			parent.children = out;
+		};
+
+		return function rehypeMentionsPlugin() {
+			return (tree: any) => {
+				// Only process element trees (root is usually 'root' with children)
+				if (!tree || !Array.isArray((tree as any).children)) return;
+				transformChildren(tree);
+			};
+		};
+	}, [mentionClasses]);
 
 	useEffect(() => {
 		let mounted = true;
@@ -57,6 +167,7 @@ const MarkdownPreview = ({ content = "", className }: MarkdownPreviewProps) => {
 			>
 				<Markdown
 					remarkPlugins={remarkPlugins}
+					rehypePlugins={[rehypeMentions]}
 					components={{
 						h1: ({ children, ...p }) => (
 							<h1
