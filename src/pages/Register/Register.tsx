@@ -148,12 +148,33 @@ const RegisterPage: React.FC<RegisterPageProps> = ({
 				if (!value) {
 					return "Password is required";
 				}
+				// Length constraints
 				if (value.length < 8) {
 					return "Password must be at least 8 characters";
 				}
 				if (value.length > 128) {
 					return "Password must not exceed 128 characters";
 				}
+
+				// Complexity requirements
+				const hasLower = /[a-z]/.test(value);
+				const hasUpper = /[A-Z]/.test(value);
+				const hasNumber = /[0-9]/.test(value);
+				// Symbols: any non-alphanumeric ASCII char; we purposefully exclude spaces
+				const hasSymbol = /[^A-Za-z0-9\s]/.test(value);
+
+				const missing: string[] = [];
+				if (!hasLower) missing.push("1 lowercase letter");
+				if (!hasUpper) missing.push("1 uppercase letter");
+				if (!hasNumber) missing.push("1 number");
+				if (!hasSymbol) missing.push("1 symbol");
+
+				if (missing.length) {
+					// Build a user-friendly, compact message listing only missing categories
+					return `Password must contain at least ${missing.join(", ")}.`;
+				}
+
+				// Confirm password mismatch check only after complexity passes
 				if (
 					registerData.confirmPassword &&
 					value !== registerData.confirmPassword
@@ -732,7 +753,7 @@ const RegisterPage: React.FC<RegisterPageProps> = ({
 								<Input
 									id="password"
 									type={showPassword ? "text" : "password"}
-									placeholder="At least 8 characters"
+									placeholder="At least 8 chars, 1 upper, 1 lower, 1 number, 1 symbol"
 									value={registerData.password}
 									onChange={(e) =>
 										handleInputChange("password", e.target.value)

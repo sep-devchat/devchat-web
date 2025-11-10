@@ -1,25 +1,21 @@
 import { AuthContext } from "@/contexts/auth.context";
-import { fetchProfile } from "@/services/auth/authAPI";
-import { PropsWithChildren, useEffect, useState } from "react";
+import { PropsWithChildren, useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { fetchCurrentProfile } from "@/store/user.slice";
+import { AppDispatch, RootState } from "@/store";
 
 export default function AuthProvider({ children }: PropsWithChildren) {
-	const [profile, setProfile] = useState<any>();
-	const [isLoading, setIsLoading] = useState(true);
+	const dispatch = useDispatch<AppDispatch>();
+	const profile = useSelector((s: RootState) => s.user.profile);
+	const isLoading = useSelector((s: RootState) => s.user.loading);
+
 	const refetchProfile = async () => {
-		setIsLoading(true);
-		try {
-			const data = await fetchProfile();
-			setProfile(data.data);
-		} catch (err) {
-			console.log(err);
-			setProfile(undefined);
-		}
-		setIsLoading(false);
+		await dispatch(fetchCurrentProfile());
 	};
 
 	useEffect(() => {
-		refetchProfile();
-	}, []);
+		dispatch(fetchCurrentProfile());
+	}, [dispatch]);
 
 	return (
 		<AuthContext.Provider

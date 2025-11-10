@@ -165,9 +165,6 @@ const LoginPage: React.FC<LoginPageProps> = ({
 
 		try {
 			if (codeChallenge && codeChallengeMethod) {
-				localStorage.setItem("codeChallenge", codeChallenge);
-				localStorage.setItem("codeChallengeMethod", codeChallengeMethod);
-
 				loginPkceMutation.mutate({
 					method: "google",
 					code: credentialResponse.credential,
@@ -359,7 +356,7 @@ const LoginPage: React.FC<LoginPageProps> = ({
 								{errors.password}
 							</div>
 						)}
-						<ForgotPasswordLink href="#forgot">
+						<ForgotPasswordLink as={Link} to="/auth/forgot-password">
 							Forgot Password?
 						</ForgotPasswordLink>
 					</FormGroup>
