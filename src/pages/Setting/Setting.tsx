@@ -39,11 +39,9 @@ export const SettingPage: React.FC = () => {
 	const [userSetting, setUserSetting] = useState("Anyone");
 	const [allowKeyboardShortcuts, setAllowKeyboardShortcuts] = useState(true);
 
-	const handleSoundInfoClick = () => {
-		console.log("Sound info clicked");
-	};
-
-	const [userSetting, setUserSetting] = useState("Anyone");
+	// const handleSoundInfoClick = () => {
+	// 	console.log("Sound info clicked");
+	// };
 
 	const soundOptions = [
 		{ value: "Default", label: "Default" },
@@ -123,8 +121,8 @@ export const SettingPage: React.FC = () => {
 	);
 
 	const renderAccountSettings = () => <AccountSettings />;
-  
-const renderContent = () => {
+
+	const renderContent = () => {
 		switch (activeSection) {
 			case "notification":
 				return renderNotificationSettings();
