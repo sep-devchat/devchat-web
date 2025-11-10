@@ -195,3 +195,30 @@ export const CompareIcon = styled.div`
 		transform: translateX(0);
 	}
 `;
+
+export const DeleteButton = styled.button`
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 0.375rem;
+	background: transparent;
+	border: none;
+	border-radius: 0.375rem;
+	color: #94a3b8;
+	cursor: pointer;
+	transition: all 0.2s;
+	flex-shrink: 0;
+
+	&:hover {
+		background: #fee2e2;
+		color: #dc2626;
+	}
+
+	&:focus {
+		outline: none;
+	}
+
+	&:active {
+		transform: scale(0.95);
+	}
+`;

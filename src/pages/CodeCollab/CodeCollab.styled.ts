@@ -166,3 +166,22 @@ export const DiscardButton = styled.button`
 		transform: translateY(0);
 	}
 `;
+
+// CloseButton (đã có trong DiffViewer.styled.ts)
+export const CloseButton = styled.button`
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 0.5rem;
+	background: transparent;
+	border: none;
+	border-radius: 0.5rem;
+	color: #94a3b8;
+	cursor: pointer;
+	transition: all 0.2s;
+
+	&:hover {
+		background: #f1f5f9;
+		color: #475569;
+	}
+`;

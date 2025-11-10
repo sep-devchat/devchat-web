@@ -36,7 +36,7 @@ export const Header = styled.div`
 	justify-content: space-between;
 	padding: 1.25rem 1.5rem;
 	border-bottom: 1px solid rgba(209, 224, 253, 0.5);
-	background: #a6c2f2;
+	background: linear-gradient(to bottom, #f7f9fc, #e8f0fc);
 	flex-shrink: 0;
 	position: relative;
 	overflow: hidden;
@@ -76,7 +76,7 @@ export const HeaderTitle = styled.h2`
 
 export const HeaderSubtitle = styled.p`
 	font-size: 0.8rem;
-	color: rgba(255, 255, 255, 0.7);
+	color: #27364b;
 	font-weight: 300;
 	margin-top: 0.125rem;
 `;
@@ -85,8 +85,8 @@ export const CloseButton = styled.button`
 	padding: 0.5rem;
 	border-radius: 8px;
 	background: rgba(255, 255, 255, 0.1);
-	border: 1px solid rgba(255, 255, 255, 0.2);
-	color: #ffffff;
+	border: 1px solid #27364b;
+	color: #27364b;
 	cursor: pointer;
 	transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 	display: flex;
@@ -153,7 +153,7 @@ export const LoadButton = styled.button`
 export const Footer = styled.div`
 	padding: 1rem;
 	border-top: 1px solid rgba(209, 224, 253, 0.5);
-	background: linear-gradient(to bottom, #ffffff, #f7f9fc);
+	background: linear-gradient(to bottom, #f7f9fc, #e8f0fc);
 	flex-shrink: 0;
 	box-shadow: 0 -2px 10px rgba(123, 159, 232, 0.08);
 	border-bottom-left-radius: 12px;
