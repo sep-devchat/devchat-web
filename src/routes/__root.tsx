@@ -7,9 +7,8 @@ export const Route = createRootRoute({
 
 function RootComponent() {
 	return (
-		<>
-			<NotificationProvider />
+		<NotificationProvider>
 			<Outlet />
-		</>
+		</NotificationProvider>
 	);
 }
