@@ -1,6 +1,8 @@
 import React from "react";
 import { cn } from "@/lib/utils";
 
+import bgImage from "@/assets/image/loginBackground.png";
+
 type MaxWidth =
 	| "sm"
 	| "md"
@@ -33,19 +35,6 @@ export type MockPageProps = {
 	animate?: boolean;
 };
 
-const maxWidthMap: Record<MaxWidth, string> = {
-	sm: "max-w-sm",
-	md: "max-w-md",
-	lg: "max-w-lg",
-	xl: "max-w-xl",
-	"2xl": "max-w-2xl",
-	"3xl": "max-w-3xl",
-	"4xl": "max-w-4xl",
-	"5xl": "max-w-5xl",
-	"6xl": "max-w-6xl",
-	"7xl": "max-w-7xl",
-};
-
 /**
  * MockPage: A general page container for displaying page content consistently.
  * - Provides an optional header (title, description, actions)
@@ -58,15 +47,12 @@ export default function MockPage({
 	actions,
 	children,
 	className,
-	maxWidth = "7xl",
 	padded = true,
 	headerSticky = false,
 	contentPadding = true,
 	visible = true,
 	animate = true,
 }: MockPageProps) {
-	const mw = maxWidthMap[maxWidth] ?? maxWidthMap["7xl"];
-
 	if (!visible) return null;
 
 	return (
@@ -81,13 +67,17 @@ export default function MockPage({
 			)}
 		>
 			<div
+				style={{
+					backgroundImage: `url(${bgImage})`,
+					backgroundSize: "cover",
+					backgroundPosition: "center",
+					backgroundRepeat: "no-repeat",
+				}}
 				className={cn(
-					"mx-auto w-full", // center the page
-					mw,
+					"mx-auto w-full h-screen p-6",
 					padded && "px-4 sm:px-6 lg:px-8",
 					"py-4 sm:py-6 lg:py-8",
 					animate &&
-						// Slide content a bit for a pleasant entrance
 						"motion-safe:animate-in motion-safe:slide-in-from-bottom-8 motion-safe:duration-200 motion-safe:ease-out",
 				)}
 			>
@@ -101,16 +91,18 @@ export default function MockPage({
 					>
 						<div className="min-w-0">
 							{title ? (
-								<h1 className="text-xl font-semibold tracking-tight truncate">
+								<h2 className="text-2xl font-semibold tracking-tight truncate text-[#27364B]">
 									{title}
-								</h1>
+								</h2>
 							) : null}
+
 							{description ? (
-								<p className="mt-1 text-sm text-muted-foreground line-clamp-2">
+								<p className="mt-1 text-sm text-muted-foreground line-clamp-2 text-[#666666]">
 									{description}
 								</p>
 							) : null}
 						</div>
+
 						{actions ? (
 							<div className="flex shrink-0 items-center gap-2">{actions}</div>
 						) : null}
