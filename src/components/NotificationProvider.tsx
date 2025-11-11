@@ -1,15 +1,22 @@
 import publicRuntimeConfig from "@/config/publicRuntime";
+import { NotificationContext } from "@/contexts/notification.context";
 import useSocketEvent from "@/hooks/useSocketEvent";
 import { MessageResponse } from "@/services/messageAPI";
+import { NotificationResponse } from "@/services/notification/notification.type";
+import {
+	listNotifications,
+	markRead,
+} from "@/services/notification/notificationAPI";
 import { SocketEvents } from "@/utils/constants";
+import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { useEffect } from "react";
+import { PropsWithChildren, useEffect } from "react";
 
-async function handleElectronNotification(data: MessageResponse) {
+async function handleElectronMessageNotification(data: MessageResponse) {
 	await window.nativeAPI.showMessageNotification(data);
 }
 
-async function handleBrowserNotification(
+async function handleBrowserMessageNotification(
 	data: MessageResponse,
 	navigate: ReturnType<typeof useNavigate>,
 ) {
@@ -43,8 +50,52 @@ async function handleBrowserNotification(
 	};
 }
 
-export default function NotificationProvider() {
+async function handleNotification(
+	data: NotificationResponse,
+	navigate: ReturnType<typeof useNavigate>,
+	refetchNotifications: () => void,
+) {
+	let perm = Notification.permission;
+	if (perm != "granted") {
+		perm = await new Promise((resolve) => {
+			Notification.requestPermission().then(resolve);
+		});
+	}
+
+	if (perm != "granted") return;
+
+	const notification = new Notification(data.title, {
+		body: data.content,
+	});
+
+	notification.onclick = async () => {
+		if (publicRuntimeConfig.ELECTRON) {
+			window.nativeAPI.showElectronApp();
+		}
+		window.focus();
+		await markRead([data.id]);
+		refetchNotifications();
+		navigate({
+			to: data.notificationSource,
+			replace: true,
+		});
+	};
+}
+
+export interface NotificationProviderProps {}
+
+export default function NotificationProvider({
+	children,
+}: PropsWithChildren<NotificationProviderProps>) {
 	const navigate = useNavigate();
+	const listNotificationsQuery = useQuery({
+		queryKey: ["listNotifications"],
+		queryFn: async () => {
+			const response = await listNotifications();
+			return response.data;
+		},
+		initialData: [],
+	});
 
 	if (publicRuntimeConfig.ELECTRON) {
 		useEffect(() => {
@@ -70,11 +121,29 @@ export default function NotificationProvider() {
 
 	useSocketEvent(SocketEvents.MESSAGE_NOTIFICATION, (data: MessageResponse) => {
 		if (publicRuntimeConfig.ELECTRON) {
-			handleElectronNotification(data);
+			handleElectronMessageNotification(data);
 		} else {
-			handleBrowserNotification(data, navigate);
+			handleBrowserMessageNotification(data, navigate);
 		}
 	});
 
-	return <></>;
+	useSocketEvent(SocketEvents.NOTIFICATION, (data: NotificationResponse) => {
+		handleNotification(data, navigate, listNotificationsQuery.refetch);
+		listNotificationsQuery.refetch();
+	});
+
+	useEffect(() => {
+		listNotificationsQuery.refetch();
+	}, []);
+
+	return (
+		<NotificationContext.Provider
+			value={{
+				notifications: listNotificationsQuery.data,
+				refetchNotifications: listNotificationsQuery.refetch,
+			}}
+		>
+			{children}
+		</NotificationContext.Provider>
+	);
 }

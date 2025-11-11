@@ -219,58 +219,56 @@ const MainLayout = () => {
 	};
 
 	return (
-		<>
-			<AuthLayout>
-				<MainBg />
-				<TodoFloatingManager groups={localGroups} />
+		<AuthLayout>
+			<MainBg />
+			<TodoFloatingManager groups={localGroups} />
 
-				{!settingSelect ? (
-					<MainLayoutContainer>
-						<TitleBar title="DevChat" icon={<User />} />
-						<ContentWrapper direction="horizontal">
-							<LeftSection
-								defaultSize={isHalf ? 25 : 20}
-								collapsible
-								minSize={isHalf ? 30 : 15}
-								maxSize={isHalf ? 35 : 25}
-							>
-								<GroupSidebar />
-								<LeftSidebar setSettingSelect={setSettingSelect} />
-							</LeftSection>
-							<ResizableHandle />
-							<RightSection
-								defaultSize={100}
-								style={{ marginRight: isHalf ? "16px" : "0" }}
-							>
-								{!hasOpenPanel && (
-									<CenterPanel
-										$isHalf={isHalf}
-										$hasRightBorderRadius={shouldShowBorderRadius}
-									>
-										<Header
-											setIconSelected={setIconSelected}
-											iconSelected={iconSelected}
-											onCreateThread={handleCreateThread}
-											onThreadSelect={handleThreadSelect}
-										/>
-										<OutletContainer>
-											<Outlet />
-										</OutletContainer>
-									</CenterPanel>
-								)}
-								<RightPanelWrapper $fullWidth={hasOpenPanel}>
-									{renderRightPanel()}
-								</RightPanelWrapper>
-							</RightSection>
-						</ContentWrapper>
-						<Profile />
-						<BottomSpacer />
-					</MainLayoutContainer>
-				) : (
-					<GroupSetting setSettingSelect={setSettingSelect} isAdmin={isAdmin} />
-				)}
-			</AuthLayout>
-		</>
+			{!settingSelect ? (
+				<MainLayoutContainer>
+					<TitleBar title="DevChat" icon={<User />} />
+					<ContentWrapper direction="horizontal">
+						<LeftSection
+							defaultSize={isHalf ? 25 : 20}
+							collapsible
+							minSize={isHalf ? 30 : 15}
+							maxSize={isHalf ? 35 : 25}
+						>
+							<GroupSidebar />
+							<LeftSidebar setSettingSelect={setSettingSelect} />
+						</LeftSection>
+						<ResizableHandle />
+						<RightSection
+							defaultSize={100}
+							style={{ marginRight: isHalf ? "16px" : "0" }}
+						>
+							{!hasOpenPanel && (
+								<CenterPanel
+									$isHalf={isHalf}
+									$hasRightBorderRadius={shouldShowBorderRadius}
+								>
+									<Header
+										setIconSelected={setIconSelected}
+										iconSelected={iconSelected}
+										onCreateThread={handleCreateThread}
+										onThreadSelect={handleThreadSelect}
+									/>
+									<OutletContainer>
+										<Outlet />
+									</OutletContainer>
+								</CenterPanel>
+							)}
+							<RightPanelWrapper $fullWidth={hasOpenPanel}>
+								{renderRightPanel()}
+							</RightPanelWrapper>
+						</RightSection>
+					</ContentWrapper>
+					<Profile />
+					<BottomSpacer />
+				</MainLayoutContainer>
+			) : (
+				<GroupSetting setSettingSelect={setSettingSelect} isAdmin={isAdmin} />
+			)}
+		</AuthLayout>
 	);
 };
 

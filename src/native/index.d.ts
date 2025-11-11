@@ -27,6 +27,7 @@ interface nativeAPI {
 		content: string,
 	): Promise<CodeExecutionResult>;
 	showMessageNotification(message: MessageResponse): Promise<void>;
+	showElectronApp(): Promise<void>;
 }
 
 declare global {

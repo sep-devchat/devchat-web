@@ -1,12 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import {
-	Bell,
-	UserPlus,
-	Users,
-	CheckCircle,
-	AlertCircle,
-	X,
-} from "lucide-react";
+import { Bell, X } from "lucide-react";
 import {
 	NotificationContainer,
 	BellButton,
@@ -21,91 +14,29 @@ import {
 	EmptyIcon,
 	NotificationItem,
 	NotificationContent,
-	IconWrapper,
 	TextContent,
 	NotificationTitle,
 	NotificationMessage,
 	NotificationTime,
-	ActionButtons,
-	AcceptButton,
-	DeclineButton,
-	ViewDetailsButton,
 	DeleteButton,
 	PopupFooter,
 	ViewAllButton,
 } from "./NotificationPopup.styled";
-
-interface Notification {
-	id: string;
-	type: "group_invite" | "friend_request" | "friend_accepted" | "report";
-	title: string;
-	message: string;
-	timestamp: string;
-	isRead: boolean;
-	avatar?: string | null;
-	groupName?: string;
-	userName?: string;
-}
-
-const mockNotifications: Notification[] = [
-	{
-		id: "1",
-		type: "group_invite",
-		title: "Group Invitation",
-		message: 'Nguyen Van A invited you to join "React Developers" group',
-		timestamp: "5 minutes ago",
-		isRead: false,
-		avatar: null,
-		groupName: "React Developers",
-	},
-	{
-		id: "2",
-		type: "friend_request",
-		title: "Friend Request",
-		message: "Tran Thi B wants to be your friend",
-		timestamp: "10 minutes ago",
-		isRead: false,
-		avatar: null,
-		userName: "Tran Thi B",
-	},
-	{
-		id: "3",
-		type: "friend_accepted",
-		title: "Friend Request Accepted",
-		message: "Le Van C accepted your friend request",
-		timestamp: "1 hour ago",
-		isRead: true,
-		avatar: null,
-		userName: "Le Van C",
-	},
-	{
-		id: "4",
-		type: "report",
-		title: "Violation Warning",
-		message:
-			"You have been reported for violating group rules. Please see details.",
-		timestamp: "2 hours ago",
-		isRead: false,
-		avatar: null,
-	},
-	{
-		id: "5",
-		type: "friend_request",
-		title: "Friend Request",
-		message: "Pham Minh D wants to be your friend",
-		timestamp: "3 hours ago",
-		isRead: true,
-		avatar: null,
-		userName: "Pham Minh D",
-	},
-];
+import dayjs from "dayjs";
+import useNotification from "@/hooks/useNotification";
+import { NotificationResponse } from "@/services/notification/notification.type";
+import {
+	bulkDeleteNotification,
+	markRead,
+} from "@/services/notification/notificationAPI";
+import { useNavigate } from "@tanstack/react-router";
 
 const NotificationPopup = () => {
+	const navigate = useNavigate();
 	const [isOpen, setIsOpen] = useState(false);
-	const [notifications, setNotifications] =
-		useState<Notification[]>(mockNotifications);
 	const popupRef = useRef<HTMLDivElement>(null);
 	const buttonRef = useRef<HTMLButtonElement>(null);
+	const { notifications, refetchNotifications } = useNotification();
 
 	const unreadCount = notifications.filter((n) => !n.isRead).length;
 
@@ -130,43 +61,25 @@ const NotificationPopup = () => {
 		};
 	}, [isOpen]);
 
-	const getNotificationIcon = (type: Notification["type"]) => {
-		switch (type) {
-			case "group_invite":
-				return <Users size={20} color="#608BC1" />;
-			case "friend_request":
-				return <UserPlus size={20} color="#EFB008" />;
-			case "friend_accepted":
-				return <CheckCircle size={20} color="#1CCA93" />;
-			case "report":
-				return <AlertCircle size={20} color="#D83232" />;
-			default:
-				return <Bell size={20} color="#374151" />;
-		}
+	const handleClickNotification = async (
+		notification: NotificationResponse,
+	) => {
+		await markRead([notification.id]);
+		refetchNotifications();
+		navigate({
+			to: notification.notificationSource,
+		});
 	};
 
-	const handleAccept = (id: string, type: Notification["type"]) => {
-		console.log("Accept notification:", id, type);
-		setNotifications(notifications.filter((n) => n.id !== id));
+	const handleMarkAllAsRead = async () => {
+		const ids = notifications.map((item) => item.id);
+		await markRead(ids);
+		refetchNotifications();
 	};
 
-	const handleReject = (id: string, type: Notification["type"]) => {
-		console.log("Reject notification:", id, type);
-		setNotifications(notifications.filter((n) => n.id !== id));
-	};
-
-	const handleMarkAsRead = (id: string) => {
-		setNotifications(
-			notifications.map((n) => (n.id === id ? { ...n, isRead: true } : n)),
-		);
-	};
-
-	const handleMarkAllAsRead = () => {
-		setNotifications(notifications.map((n) => ({ ...n, isRead: true })));
-	};
-
-	const handleDeleteNotification = (id: string) => {
-		setNotifications(notifications.filter((n) => n.id !== id));
+	const handleDeleteNotification = async (notificationId: string) => {
+		await bulkDeleteNotification([notificationId]);
+		refetchNotifications();
 	};
 
 	return (
@@ -208,25 +121,27 @@ const NotificationPopup = () => {
 								<NotificationItem
 									key={notification.id}
 									$isRead={notification.isRead}
-									onClick={() => handleMarkAsRead(notification.id)}
+									onClick={() => handleClickNotification(notification)}
 								>
 									<NotificationContent>
-										<IconWrapper>
+										{/* <IconWrapper>
 											{getNotificationIcon(notification.type)}
-										</IconWrapper>
+										</IconWrapper> */}
 
 										<TextContent>
 											<NotificationTitle>
 												{notification.title}
 											</NotificationTitle>
 											<NotificationMessage>
-												{notification.message}
+												{notification.content}
 											</NotificationMessage>
 											<NotificationTime>
-												{notification.timestamp}
+												{dayjs(notification.createdAt).format(
+													"DD/MM/YYYY HH:mm:ss",
+												)}
 											</NotificationTime>
 
-											{(notification.type === "group_invite" ||
+											{/* {(notification.type === "group_invite" ||
 												notification.type === "friend_request") && (
 												<ActionButtons>
 													<AcceptButton
@@ -246,9 +161,9 @@ const NotificationPopup = () => {
 														Decline
 													</DeclineButton>
 												</ActionButtons>
-											)}
+											)} */}
 
-											{notification.type === "report" && (
+											{/* {notification.type === "report" && (
 												<ViewDetailsButton
 													onClick={(e) => {
 														e.stopPropagation();
@@ -260,7 +175,7 @@ const NotificationPopup = () => {
 												>
 													View Details
 												</ViewDetailsButton>
-											)}
+											)} */}
 										</TextContent>
 
 										<DeleteButton
@@ -279,7 +194,7 @@ const NotificationPopup = () => {
 
 					{notifications.length > 0 && (
 						<PopupFooter>
-							<ViewAllButton>View all notifications</ViewAllButton>
+							<ViewAllButton>Show more notifications</ViewAllButton>
 						</PopupFooter>
 					)}
 				</PopupWrapper>
