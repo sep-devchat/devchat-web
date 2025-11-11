@@ -17,6 +17,7 @@ import {
 	ChevronLeft,
 	ChevronRight,
 	Loader,
+	Eye,
 } from "lucide-react";
 import * as S from "./TaskGroup.styled";
 import {
@@ -26,6 +27,9 @@ import {
 } from "@/services/taskAPI";
 import { Task as ApiTask, TaskStatus, TaskPriority } from "@/types/task";
 import { membersGroup } from "@/services/userGroupAPI";
+import { useSelector } from "react-redux";
+import { RootState } from "@/store";
+import { get } from "@/services/apiCaller";
 
 type Task = {
 	id: string;
@@ -45,7 +49,6 @@ type GroupMember = {
 	joined_at?: string;
 };
 
-// Conversion functions between API and local Task types
 const convertApiTaskToLocal = (apiTask: ApiTask): Task => {
 	const statusMap: Record<TaskStatus, Task["status"]> = {
 		[TaskStatus.TODO]: "To Do",
@@ -326,7 +329,8 @@ const CustomSelect: React.FC<{
 const CustomDatePicker: React.FC<{
 	value: string;
 	onChange: (value: string) => void;
-}> = ({ value, onChange }) => {
+	disabled?: boolean;
+}> = ({ value, onChange, disabled = false }) => {
 	const [isOpen, setIsOpen] = useState(false);
 	const [currentMonth, setCurrentMonth] = useState(new Date());
 	const dateRef = useRef<HTMLDivElement>(null);
@@ -395,6 +399,7 @@ const CustomDatePicker: React.FC<{
 	today.setHours(0, 0, 0, 0);
 
 	const handleDateClick = (date: Date) => {
+		if (disabled) return;
 		const year = date.getFullYear();
 		const month = String(date.getMonth() + 1).padStart(2, "0");
 		const day = String(date.getDate()).padStart(2, "0");
@@ -412,13 +417,24 @@ const CustomDatePicker: React.FC<{
 			<S.DateInput
 				type="text"
 				value={formatDisplayDate(value)}
-				onClick={() => setIsOpen(!isOpen)}
+				onClick={() => !disabled && setIsOpen(!isOpen)}
 				readOnly
+				style={{
+					cursor: disabled ? "not-allowed" : "pointer",
+					opacity: disabled ? 0.6 : 1,
+					background: disabled ? "#f3f4f6" : "white",
+				}}
 			/>
-			<S.CalendarIcon onClick={() => setIsOpen(!isOpen)}>
+			<S.CalendarIcon
+				onClick={() => !disabled && setIsOpen(!isOpen)}
+				style={{
+					cursor: disabled ? "not-allowed" : "pointer",
+					opacity: disabled ? 0.6 : 1,
+				}}
+			>
 				<Calendar size={18} />
 			</S.CalendarIcon>
-			{isOpen && (
+			{isOpen && !disabled && (
 				<S.CalendarDropdown>
 					<S.CalendarHeader>
 						<S.MonthYearNav>
@@ -506,6 +522,7 @@ const Dialog: React.FC<{
 		</S.DialogOverlay>
 	);
 };
+
 export type TaskGroupProps = {
 	onClose?: () => void;
 	groupId?: string;
@@ -514,7 +531,21 @@ export type TaskGroupProps = {
 export default function TaskGroup({ onClose, groupId }: TaskGroupProps) {
 	const queryClient = useQueryClient();
 
-	// Fetch tasks from API
+	const currentUserProfile = useSelector(
+		(state: RootState) => state.user.profile,
+	);
+	const currentUserId = currentUserProfile?.id || "";
+
+	const { data: groupData } = useQuery({
+		queryKey: ["groupInfo", groupId],
+		queryFn: () => get(`/api/group/${groupId}`),
+		enabled: !!groupId,
+		refetchOnWindowFocus: false,
+	});
+
+	const groupCreatorId = groupData?.data?.createdBy || "";
+	const isGroupCreator = currentUserId === groupCreatorId;
+
 	const {
 		data: apiTasksData,
 		isLoading,
@@ -527,7 +558,6 @@ export default function TaskGroup({ onClose, groupId }: TaskGroupProps) {
 		refetchOnWindowFocus: false,
 	});
 
-	// Fetch group members for assignee options
 	const { data: membersData, isLoading: membersLoading } = useQuery({
 		queryKey: ["groupMembers", groupId],
 		queryFn: () => membersGroup(groupId!, 1, 100),
@@ -537,13 +567,11 @@ export default function TaskGroup({ onClose, groupId }: TaskGroupProps) {
 
 	const groupMembers = membersData?.data || [];
 
-	// Convert API tasks to local format
 	const apiTasks = apiTasksData?.data || [];
 	const tasks = apiTasks.map(convertApiTaskToLocal);
 
 	const displayTasks = tasks;
 
-	// Mutations for CRUD operations
 	const createTaskMutation = useMutation({
 		mutationFn: (data: CreateTaskRequest) => taskAPI.createTask(groupId!, data),
 		onSuccess: () => {
@@ -590,6 +618,19 @@ export default function TaskGroup({ onClose, groupId }: TaskGroupProps) {
 	const [isUpdateOpen, setIsUpdateOpen] = useState(false);
 	const [isDeleteOpen, setIsDeleteOpen] = useState(false);
 	const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+	const [editPermissions, setEditPermissions] = useState({
+		canEdit: false,
+		fullAccess: false,
+		canView: false,
+	});
+	const [originalFormData, setOriginalFormData] = useState({
+		name: "",
+		description: "",
+		status: "Open" as Task["status"],
+		priority: "Medium" as Task["priority"],
+		dueDate: "",
+		assignedTo: "",
+	});
 
 	const [formData, setFormData] = useState({
 		name: "",
@@ -617,6 +658,20 @@ export default function TaskGroup({ onClose, groupId }: TaskGroupProps) {
 		value: member.id,
 		label: `${member.username} (${member.email})`,
 	}));
+
+	const canEditTask = (task: Task) => {
+		if (isGroupCreator) {
+			return { canEdit: true, fullAccess: true, canView: true };
+		}
+		if (task.assignedTo === currentUserId) {
+			return { canEdit: true, fullAccess: false, canView: true };
+		}
+		return { canEdit: false, fullAccess: false, canView: true };
+	};
+
+	const canDeleteTask = () => {
+		return isGroupCreator;
+	};
 
 	const resetForm = () => {
 		setFormData({
@@ -688,14 +743,18 @@ export default function TaskGroup({ onClose, groupId }: TaskGroupProps) {
 
 	const openUpdateDialog = (task: Task) => {
 		setSelectedTask(task);
-		setFormData({
+		const permissions = canEditTask(task);
+		setEditPermissions(permissions);
+		const taskData = {
 			name: task.name,
 			description: task.description,
 			status: task.status,
 			priority: task.priority,
 			dueDate: task.dueDate,
 			assignedTo: task.assignedTo,
-		});
+		};
+		setFormData(taskData);
+		setOriginalFormData(taskData);
 		setIsUpdateOpen(true);
 	};
 
@@ -758,6 +817,17 @@ export default function TaskGroup({ onClose, groupId }: TaskGroupProps) {
 		return <AlertCircle size={14} />;
 	};
 
+	const hasChanges = () => {
+		return (
+			formData.name !== originalFormData.name ||
+			formData.description !== originalFormData.description ||
+			formData.status !== originalFormData.status ||
+			formData.priority !== originalFormData.priority ||
+			formData.dueDate !== originalFormData.dueDate ||
+			formData.assignedTo !== originalFormData.assignedTo
+		);
+	};
+
 	const formatDate = (dateString: string) => {
 		const date = new Date(dateString);
 		return date.toLocaleDateString("en-US", {
@@ -765,6 +835,35 @@ export default function TaskGroup({ onClose, groupId }: TaskGroupProps) {
 			day: "numeric",
 			year: "numeric",
 		});
+	};
+
+	const renderTaskActions = (task: Task) => {
+		const { canEdit } = canEditTask(task);
+
+		return (
+			<S.TaskActions>
+				{canEdit ? (
+					<Edit2
+						size={18}
+						style={{ cursor: "pointer", color: "#608BC1" }}
+						onClick={() => openUpdateDialog(task)}
+					/>
+				) : (
+					<Eye
+						size={18}
+						style={{ cursor: "pointer", color: "#6b7280" }}
+						onClick={() => openUpdateDialog(task)}
+					/>
+				)}
+				{canDeleteTask() && (
+					<Trash2
+						size={18}
+						style={{ cursor: "pointer", color: "#D83232" }}
+						onClick={() => openDeleteDialog(task)}
+					/>
+				)}
+			</S.TaskActions>
+		);
 	};
 
 	return (
@@ -793,11 +892,19 @@ export default function TaskGroup({ onClose, groupId }: TaskGroupProps) {
 							Manage your team's tasks and assignments
 						</S.Description>
 					</div>
-					<S.Button variant="primary" onClick={() => setIsCreateOpen(true)}>
-						{" "}
-						<Plus size={16} /> Create Task{" "}
+					<S.Button
+						variant="primary"
+						onClick={() => setIsCreateOpen(true)}
+						disabled={!isGroupCreator}
+						style={{
+							opacity: isGroupCreator ? 1 : 0.5,
+							cursor: isGroupCreator ? "pointer" : "not-allowed",
+						}}
+					>
+						<Plus size={16} /> Create Task
 					</S.Button>
 				</S.HeaderWrapper>
+
 				{isLoading && (
 					<S.TaskCard>
 						<div style={{ textAlign: "center", padding: "20px" }}>
@@ -857,18 +964,7 @@ export default function TaskGroup({ onClose, groupId }: TaskGroupProps) {
 							<S.TaskCard key={task.id}>
 								<S.TaskHeader>
 									<S.TaskTitle>{task.name}</S.TaskTitle>
-									<S.TaskActions>
-										<Edit2
-											size={18}
-											style={{ cursor: "pointer", color: "#608BC1" }}
-											onClick={() => openUpdateDialog(task)}
-										/>
-										<Trash2
-											size={18}
-											style={{ cursor: "pointer", color: "#D83232" }}
-											onClick={() => openDeleteDialog(task)}
-										/>
-									</S.TaskActions>
+									{renderTaskActions(task)}
 								</S.TaskHeader>
 
 								<S.TaskDescription>{task.description}</S.TaskDescription>
@@ -897,6 +993,7 @@ export default function TaskGroup({ onClose, groupId }: TaskGroupProps) {
 					})}
 			</S.ContentArea>
 
+			{/* Create Dialog */}
 			<Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
 				<S.DialogContent maxWidth="42rem">
 					<S.DialogHeader>
@@ -997,11 +1094,12 @@ export default function TaskGroup({ onClose, groupId }: TaskGroupProps) {
 				</S.DialogContent>
 			</Dialog>
 
-			{/* Update Dialog */}
 			<Dialog open={isUpdateOpen} onOpenChange={setIsUpdateOpen}>
 				<S.DialogContent maxWidth="42rem">
 					<S.DialogHeader>
-						<S.DialogTitle>Update Task</S.DialogTitle>
+						<S.DialogTitle>
+							{editPermissions.canEdit ? "Update Task" : "View Task"}
+						</S.DialogTitle>
 					</S.DialogHeader>
 
 					<S.DialogBody>
@@ -1015,6 +1113,12 @@ export default function TaskGroup({ onClose, groupId }: TaskGroupProps) {
 									setFormData({ ...formData, name: e.target.value })
 								}
 								placeholder="Enter task name"
+								disabled={!editPermissions.fullAccess}
+								style={{
+									cursor: editPermissions.fullAccess ? "text" : "not-allowed",
+									opacity: editPermissions.fullAccess ? 1 : 0.6,
+									background: editPermissions.fullAccess ? "white" : "#f3f4f6",
+								}}
 							/>
 						</S.FormGroup>
 
@@ -1028,6 +1132,12 @@ export default function TaskGroup({ onClose, groupId }: TaskGroupProps) {
 									setFormData({ ...formData, description: e.target.value })
 								}
 								placeholder="Enter task description"
+								disabled={!editPermissions.fullAccess}
+								style={{
+									cursor: editPermissions.fullAccess ? "text" : "not-allowed",
+									opacity: editPermissions.fullAccess ? 1 : 0.6,
+									background: editPermissions.fullAccess ? "white" : "#f3f4f6",
+								}}
 							/>
 						</S.FormGroup>
 
@@ -1044,6 +1154,7 @@ export default function TaskGroup({ onClose, groupId }: TaskGroupProps) {
 											})
 										}
 										options={statusOptions}
+										disabled={!editPermissions.canEdit}
 									/>
 								</S.FormGroup>
 							</S.FormColumn>
@@ -1062,6 +1173,7 @@ export default function TaskGroup({ onClose, groupId }: TaskGroupProps) {
 											})
 										}
 										options={priorityOptions}
+										disabled={!editPermissions.fullAccess}
 									/>
 								</S.FormGroup>
 							</S.FormColumn>
@@ -1076,6 +1188,7 @@ export default function TaskGroup({ onClose, groupId }: TaskGroupProps) {
 								onChange={(value) =>
 									setFormData({ ...formData, dueDate: value })
 								}
+								disabled={!editPermissions.fullAccess}
 							/>
 						</S.FormGroup>
 
@@ -1092,7 +1205,7 @@ export default function TaskGroup({ onClose, groupId }: TaskGroupProps) {
 								placeholder={
 									membersLoading ? "Loading members..." : "Select assignee..."
 								}
-								disabled={membersLoading}
+								disabled={!editPermissions.fullAccess || membersLoading}
 							/>
 						</S.FormGroup>
 					</S.DialogBody>
@@ -1103,19 +1216,26 @@ export default function TaskGroup({ onClose, groupId }: TaskGroupProps) {
 							onClick={() => setIsUpdateOpen(false)}
 							disabled={updateTaskMutation.isPending}
 						>
-							Cancel
+							{editPermissions.canEdit ? "Cancel" : "Close"}
 						</S.Button>
-						<S.Button
-							variant="primary"
-							onClick={handleUpdate}
-							disabled={updateTaskMutation.isPending}
-						>
-							{updateTaskMutation.isPending ? "Updating..." : "Update Task"}
-						</S.Button>
+						{editPermissions.canEdit && (
+							<S.Button
+								variant="primary"
+								onClick={handleUpdate}
+								disabled={updateTaskMutation.isPending || !hasChanges()}
+								style={{
+									opacity: hasChanges() ? 1 : 0.5,
+									cursor: hasChanges() ? "pointer" : "not-allowed",
+								}}
+							>
+								{updateTaskMutation.isPending ? "Updating..." : "Update Task"}
+							</S.Button>
+						)}
 					</S.DialogFooter>
 				</S.DialogContent>
 			</Dialog>
 
+			{/* Delete Dialog */}
 			<Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
 				<S.DialogContent maxWidth="28rem">
 					<S.DialogHeader>
