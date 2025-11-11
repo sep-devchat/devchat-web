@@ -1,4 +1,5 @@
 import { get, post, put, remove } from "./apiCaller";
+import { ApiResponse } from "./friendAPI";
 
 export interface InviteRequest {
 	userIdOrEmail: string;
@@ -22,6 +23,52 @@ export interface UpdateRoleRequest {
 		read: boolean;
 		write: boolean;
 		delete: boolean;
+	};
+}
+
+export interface GroupRequest {
+	id: string;
+	groupId: string;
+	userId: string;
+	addedById: string;
+	joinedAt: string | null;
+	invitedAt: string;
+	status: number;
+	group: {
+		id: string;
+		name: string;
+		description: string;
+		avatar: string;
+		createdBy: string;
+		createdAt: string;
+		updatedAt: string;
+		isActive: boolean;
+	};
+	user: {
+		id: string;
+		username: string;
+		email: string;
+		firstName: string;
+		lastName: string;
+		avatarUrl: string;
+		isActive: boolean;
+		emailVerified: boolean;
+		createdAt: string;
+		updatedAt: string;
+		lastLogin: string | null;
+		timezone: string | null;
+	};
+	addedBy: {
+		id: string;
+		username: string;
+		email: string;
+		firstName: string;
+		lastName: string;
+		avatarUrl: string;
+		isActive: boolean;
+		emailVerified: boolean;
+		createdAt: string;
+		updatedAt: string;
 	};
 }
 
@@ -52,6 +99,12 @@ export const updateRoleMember = (
 	return put(`/api/group/${groupId}/member/${userId}/role`, data);
 };
 
-export const listInvitationGr = () => {
-	return get("/api/user/group-requests/received?status=0");
+export const listReceivedInvitationGr = (status: number = 0) => {
+	return get(`/api/user/group-requests/received?status=${status}`);
+};
+
+export const listSentInvitationGr = (status: number = 0) => {
+	return get<ApiResponse<GroupRequest[]>>(
+		`/api/user/group-requests/sent?status=${status}`,
+	);
 };

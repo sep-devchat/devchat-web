@@ -657,7 +657,7 @@ export const AddEmailButton = styled.button`
 
 export const SelectAccount = styled.select`
 	width: 100%;
-	padding: 8px 12px;
+	padding: 10px 12px;
 	border: 1px solid #d1d5db;
 	border-radius: 6px;
 	background: white;

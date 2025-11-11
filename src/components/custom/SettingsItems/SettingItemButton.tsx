@@ -109,6 +109,8 @@ interface ButtonConfig {
 	text: string;
 	variant?: "primary" | "secondary" | "danger" | "outline-danger";
 	onClick: () => void;
+	disabled?: boolean;
+	title?: string;
 }
 
 interface SettingItemButtonProps {

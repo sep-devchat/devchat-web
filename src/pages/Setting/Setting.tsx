@@ -16,20 +16,32 @@ type SettingsSection =
 export const SettingPage: React.FC = () => {
 	const [activeSection, setActiveSection] =
 		useState<SettingsSection>("general");
+
+	// notification state
 	const [muteAll, setMuteAll] = useState(false);
 	const [enableDesktop, setEnableDesktop] = useState(false);
-	const [keepAppBarVisible, setKeepAppBarVisible] = useState(false);
 	const [enableUnread, setEnableUnread] = useState(true);
-	const [keepAllowReadReceipts, setKeepAllowReadReceipts] = useState(true);
-	const [allowAnalyzeContent, setAllowAnalyzeContent] = useState(false);
-	const [allowKeyboardShortcuts, setAllowKeyboardShortcuts] = useState(true);
 	const [selectedReaction, setSelectedReaction] = useState("All");
-	const [selectedTimeFormat, setSelectedTimeFormat] = useState("Auto");
 	const [soundSetting, setSoundSetting] = useState("Default");
+
+	// general
 	const [languageSetting, setLanguageSetting] = useState(
 		"English (United States)",
 	);
+	const [keepAppBarVisible, setKeepAppBarVisible] = useState(false);
+
+	// appearance
+	const [selectedTimeFormat, setSelectedTimeFormat] = useState("Auto");
+
+	// privacy
+	const [keepAllowReadReceipts, setKeepAllowReadReceipts] = useState(true);
+	const [allowAnalyzeContent, setAllowAnalyzeContent] = useState(false);
 	const [userSetting, setUserSetting] = useState("Anyone");
+	const [allowKeyboardShortcuts, setAllowKeyboardShortcuts] = useState(true);
+
+	// const handleSoundInfoClick = () => {
+	// 	console.log("Sound info clicked");
+	// };
 
 	const soundOptions = [
 		{ value: "Default", label: "Default" },
@@ -136,3 +148,5 @@ export const SettingPage: React.FC = () => {
 		</SettingsMenu>
 	);
 };
+
+export default SettingPage;

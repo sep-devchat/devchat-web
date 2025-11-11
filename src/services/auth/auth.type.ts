@@ -51,6 +51,7 @@ export interface Profile {
 	updatedAt: Date;
 	lastLogin?: Date;
 	timezone?: string;
+	method?: string;
 }
 
 export interface PkceIssueTokenRequest {

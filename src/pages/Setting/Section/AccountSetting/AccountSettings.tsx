@@ -1,23 +1,19 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { KeyIcon, Lock, Save, Trash } from "lucide-react";
-import AccountForm from "@/components/custom/SettingsItems/AccountForm";
-import SettingItemButton from "@/components/custom/SettingsItems/SettingItemButton";
 import {
 	Card,
 	CardContent,
 	CardDescription,
 	CardHeader,
 	CardTitle,
-} from "../Setting.styled";
-import OTPInput from "@/components/custom/OTPInput/OTPInput";
-import {
-	confirmResetCode,
-	fetchProfile,
-	resetPassword,
-	sendResetCode,
-} from "@/services/auth/authAPI";
-import { Button } from "@/components/ui/button";
+} from "../../Setting.styled";
+import AccountForm from "@/components/custom/SettingsItems/AccountForm";
+import SettingItemButton from "@/components/custom/SettingsItems/SettingItemButton";
+import { fetchProfile } from "@/services/auth/authAPI";
+import { Profile } from "@/services/auth/auth.type";
+import FloatingCard from "@/components/custom/FloatingCardSetting/FloatingCard";
+import { deleteUser, updateUser } from "@/services/userAPI";
 import {
 	Dialog,
 	DialogClose,
@@ -27,20 +23,14 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "@/components/ui/dialog";
-import { useSelector } from "react-redux";
-import { RootState } from "@/store";
-import { z, type ZodIssue } from "zod";
-import { DeleteButton } from "@/components/custom/ActionButton/DeleteButton";
-import { CancelButton } from "@/components/custom/ActionButton/CancelButton";
+import EmailModalContent from "./ChangeEmail";
+import ChangePasswordContent from "./ChangePassword";
 import {
 	Input,
 	Label,
 } from "@/components/custom/SettingsItems/SettingsItems.styled";
-import { Profile } from "@/services/auth/auth.type";
-import { deleteUser, updateUser } from "@/services/userAPI";
-import FloatingCard from "@/components/custom/FloatingCardSetting/FloatingCard";
-import EmailModalContent from "../Section/AccountSetting/ChangeEmail";
-import ChangePasswordContent from "../Section/AccountSetting/ChangePassword";
+import { CancelButton } from "@/components/custom/ActionButton/CancelButton";
+import { DeleteButton } from "@/components/custom/ActionButton/DeleteButton";
 
 type AlertType = "success" | "warning" | "error";
 const fireAlert = (type: AlertType, message: string, duration = 4000) => {
@@ -50,21 +40,7 @@ const fireAlert = (type: AlertType, message: string, duration = 4000) => {
 	);
 };
 
-export const AccountSettings: React.FC = () => {
-	// Inline reset password flow state
-	const [showReset, setShowReset] = useState(false);
-	const [step, setStep] = useState<1 | 2>(1); // code step, then new password
-	const [email, setEmail] = useState("");
-	const [code, setCode] = useState("");
-	const [newPassword, setNewPassword] = useState("");
-	const [confirmPassword, setConfirmPassword] = useState("");
-	const [loading, setLoading] = useState(false);
-	const [error, setError] = useState<string>("");
-	const [success, setSuccess] = useState<string>("");
-	const [cooldown, setCooldown] = useState<number>(0); // seconds remaining
-	const [codeSent, setCodeSent] = useState<boolean>(false);
-	const cooldownTimerRef = useRef<number | null>(null);
-
+const AccountSettings: React.FC = () => {
 	const [original, setOriginal] = useState<Profile | null>(null);
 	const [form, setForm] = useState<any>(null);
 	const [isDirty, setIsDirty] = useState(false);
@@ -80,9 +56,7 @@ export const AccountSettings: React.FC = () => {
 	const [deleteConfirmText, setDeleteConfirmText] = useState("");
 	const [isDeleting, setIsDeleting] = useState(false);
 
-	// Email validation no longer needed (email sourced from profile)
-	const profile = useSelector((state: RootState) => state.user.profile);
-
+	// fetch profile
 	useEffect(() => {
 		const init = async () => {
 			try {
@@ -96,19 +70,7 @@ export const AccountSettings: React.FC = () => {
 			}
 		};
 		init();
-
-		if (!showReset && cooldownTimerRef.current) {
-			window.clearInterval(cooldownTimerRef.current);
-			cooldownTimerRef.current = null;
-			setCooldown(0);
-		}
-		return () => {
-			if (cooldownTimerRef.current) {
-				window.clearInterval(cooldownTimerRef.current);
-				cooldownTimerRef.current = null;
-			}
-		};
-	}, [showReset]);
+	}, []);
 
 	const handleFormChange = useCallback(
 		(newForm: any) => {
@@ -280,132 +242,6 @@ export const AccountSettings: React.FC = () => {
 		},
 	];
 
-	const startFlow = async () => {
-		setShowReset(true);
-		setCode("");
-		setNewPassword("");
-		setConfirmPassword("");
-		setLoading(false);
-		setError("");
-		setSuccess("");
-		setCooldown(0);
-		setCodeSent(false);
-		// Auto use current user email
-		const userEmail = profile?.email || "";
-		setEmail(userEmail);
-		if (!userEmail) {
-			setError("No email found on your profile.");
-			return;
-		}
-		setStep(1);
-	};
-
-	const passwordSchema = z
-		.string()
-		.min(8, "Password must be at least 8 characters.")
-		.regex(/[A-Z]/, "Password must include at least one uppercase letter.")
-		.regex(/\d/, "Password must include at least one number.")
-		.regex(
-			/[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?`~]/,
-			"Password must include at least one special character.",
-		);
-
-	const onVerifyCode = async () => {
-		setError("");
-		setSuccess("");
-		if (!codeSent) {
-			setError("Please send the verification code first.");
-			return;
-		}
-		if (!/^\d{6}$/.test(code)) {
-			setError("Please enter the 6-digit code.");
-			return;
-		}
-		try {
-			setLoading(true);
-			await confirmResetCode({ email, code });
-			setStep(2);
-		} catch (e: any) {
-			setError(e?.response?.data?.message || "Code verification failed");
-		} finally {
-			setLoading(false);
-		}
-	};
-
-	const onSendOrResend = async () => {
-		if (loading || cooldown > 0) return;
-		setError("");
-		try {
-			setLoading(true);
-			await sendResetCode({ email });
-			setCodeSent(true);
-			setCooldown(60);
-			// Start countdown
-			if (cooldownTimerRef.current) {
-				window.clearInterval(cooldownTimerRef.current);
-			}
-			cooldownTimerRef.current = window.setInterval(() => {
-				setCooldown((prev) => {
-					if (prev <= 1) {
-						if (cooldownTimerRef.current) {
-							window.clearInterval(cooldownTimerRef.current);
-							cooldownTimerRef.current = null;
-						}
-						return 0;
-					}
-					return prev - 1;
-				});
-			}, 1000);
-		} catch (e: any) {
-			setError(e?.response?.data?.message || "Failed to send code");
-		} finally {
-			setLoading(false);
-		}
-	};
-
-	// Cleanup cooldown timer when dialog closes or on unmount
-	// useEffect(() => {
-	// 	if (!showReset && cooldownTimerRef.current) {
-	// 		window.clearInterval(cooldownTimerRef.current);
-	// 		cooldownTimerRef.current = null;
-	// 		setCooldown(0);
-	// 	}
-	// 	return () => {
-	// 		if (cooldownTimerRef.current) {
-	// 			window.clearInterval(cooldownTimerRef.current);
-	// 			cooldownTimerRef.current = null;
-	// 		}
-	// 	};
-	// }, [showReset]);
-
-	const onUpdatePassword = async () => {
-		setError("");
-		setSuccess("");
-		// Validate password via Zod schema
-		const parsed = passwordSchema.safeParse(newPassword);
-		if (!parsed.success) {
-			const message = parsed.error.issues
-				.map((e: ZodIssue) => e.message)
-				.join(" ");
-			setError(message);
-			return;
-		}
-		if (newPassword !== confirmPassword) {
-			setError("Passwords do not match.");
-			return;
-		}
-		try {
-			setLoading(true);
-			await resetPassword({ email, code, newPassword });
-			setSuccess("Password updated successfully.");
-			setShowReset(false);
-		} catch (e: any) {
-			setError(e?.response?.data?.message || "Failed to reset password");
-		} finally {
-			setLoading(false);
-		}
-	};
-
 	return (
 		<>
 			<Card isDirty={isDirty}>
@@ -419,6 +255,7 @@ export const AccountSettings: React.FC = () => {
 							: ""}
 					</CardDescription>
 				</CardHeader>
+
 				<CardContent>
 					<AccountForm
 						initialData={form}
@@ -435,108 +272,35 @@ export const AccountSettings: React.FC = () => {
 							{
 								text: "Change password",
 								variant: "primary",
-								onClick: startFlow,
-								// onClick: () => {
-								// 	if (isGoogleSSO) {
-								// 		fireAlert(
-								// 			"warning",
-								// 			"Vì bạn đăng nhập bằng Google nên không thể đổi mật khẩu",
-								// 		);
-								// 		return;
-								// 	}
-								// 	setIsPasswordModalOpen(true);
-								// },
+								onClick: () => {
+									if (isGoogleSSO) {
+										fireAlert(
+											"warning",
+											"Vì bạn đăng nhập bằng Google nên không thể đổi mật khẩu",
+										);
+										return;
+									}
+									setIsPasswordModalOpen(true);
+								},
+								disabled: isGoogleSSO,
+								title: isGoogleSSO
+									? "Vì bạn đăng nhập bằng Google nên không thể đổi mật khẩu"
+									: "Change password",
 							},
 						]}
 					/>
 
-					<Dialog open={showReset} onOpenChange={(open) => setShowReset(open)}>
-						<DialogContent>
-							<DialogHeader>
-								<DialogTitle>Reset your password</DialogTitle>
-								<DialogDescription>
-									{step === 1 && `Enter the 6-digit code sent to ${email}.`}
-									{step === 2 &&
-										"Choose a strong new password (8+ characters)."}
-								</DialogDescription>
-							</DialogHeader>
-
-							{error && <div className="text-red-500 text-sm">{error}</div>}
-							{success && (
-								<div className="text-green-500 text-sm">{success}</div>
-							)}
-
-							{step === 1 && (
-								<div className="grid gap-3">
-									<OTPInput length={6} value={code} onChange={setCode} />
-									<div className="flex gap-2 justify-center items-center">
-										<Button
-											variant="outline"
-											onClick={onSendOrResend}
-											disabled={loading || cooldown > 0}
-										>
-											{cooldown > 0
-												? `Resend in ${cooldown}s`
-												: codeSent
-													? "Resend code"
-													: "Send code"}
-										</Button>
-									</div>
-								</div>
-							)}
-
-							{step === 2 && (
-								<div className="grid gap-2">
-									<label className="text-sm">New password</label>
-									<input
-										type="password"
-										value={newPassword}
-										onChange={(e) => setNewPassword(e.target.value)}
-										placeholder="••••••••"
-										className="h-10 rounded-md border px-3 bg-transparent"
-									/>
-									<label className="text-sm">Confirm password</label>
-									<input
-										type="password"
-										value={confirmPassword}
-										onChange={(e) => setConfirmPassword(e.target.value)}
-										placeholder="••••••••"
-										className="h-10 rounded-md border px-3 bg-transparent"
-									/>
-								</div>
-							)}
-
-							<DialogFooter>
-								<DialogClose asChild>
-									<Button variant="outline">Cancel</Button>
-								</DialogClose>
-								{/* Initial send handled automatically; no step 0 button now */}
-								{step === 1 && (
-									<Button
-										onClick={onVerifyCode}
-										disabled={loading || !codeSent}
-									>
-										{loading ? "Verifying..." : "Verify"}
-									</Button>
-								)}
-
-								{step === 2 && (
-									<Button onClick={onUpdatePassword} disabled={loading}>
-										{loading ? "Updating..." : "Update password"}
-									</Button>
-								)}
-							</DialogFooter>
-						</DialogContent>
-					</Dialog>
 					<SettingItemButton
 						icon={<Lock />}
 						title="Account Removal"
 						description="Disabling your account means you can recover it at any time after taking this action."
 						buttons={[
 							// {
-							// 	text: "Disable Account",
-							// 	variant: "danger",
-							// 	onClick: () => console.log("Disable account clicked"),
+							//   text: "Disable Account",
+							//   variant: "danger",
+							//   onClick: () => {
+							//     fireAlert("warning", "Disable account not implemented");
+							//   },
 							// },
 							{
 								text: "Delete Account",
