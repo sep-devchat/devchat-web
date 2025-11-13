@@ -58,6 +58,15 @@ export const put = <T = any>(
 	return request<T>(endpoint, "PUT", headers, params, body);
 };
 
+export const patch = <T = any>(
+	endpoint: string,
+	body: object = {},
+	params: object = {},
+	headers: object = {},
+): Promise<ApiResponseDto<T>> => {
+	return request<T>(endpoint, "PATCH", headers, params, body);
+};
+
 export const remove = <T = any>(
 	endpoint: string,
 	body: object = {},

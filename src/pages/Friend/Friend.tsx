@@ -21,11 +21,12 @@ import { listUsers, UserResponse } from "@/services/userAPI";
 import {
 	listFriends,
 	sendFriendRequest,
-	listSentFriendRequests,
-	listReceivedFriendRequests,
-	updateFriendRequestStatus,
-	cancelFriendRequest,
+	listAllFriendRequests,
+	acceptFriendRequest,
+	declineFriendRequest,
 	unfriendUser,
+	FriendRequest,
+	deleteFriendRequest,
 } from "@/services/friendAPI";
 import {
 	listSentInvitationGr,
@@ -36,17 +37,24 @@ import { showGlobalAlert } from "@/components/custom/AlertCustom/Alert";
 import ConfirmModal from "@/components/custom/ConfirmModal/ConfirmModal";
 import { toast } from "sonner";
 
+interface PendingFriend {
+	id: string;
+	name: string;
+	handle: string;
+	avatar?: string;
+	direction: "received" | "sent";
+	raw: FriendRequest;
+}
+
 const Friend: React.FC = () => {
 	const search = useSearch({ from: "/chat/friend" });
 	const activeTab = (search.tab as string) || "add-friend";
 
-	// Redux current user id
 	const currentUserProfile = useSelector(
 		(state: RootState) => state.user.profile,
 	);
 	const currentUserId = currentUserProfile?.id || "";
 
-	// --- Shared state ---
 	const [searchAdd, setSearchAdd] = useState("");
 	const [searchAll, setSearchAll] = useState("");
 	const [searchPending, setSearchPending] = useState("");
@@ -66,7 +74,6 @@ const Friend: React.FC = () => {
 	const [currentPage, setCurrentPage] = useState(1);
 	const friendsPerPage = 18;
 
-	// --- Unfriend modal ---
 	const [isUnfriendModalOpen, setIsUnfriendModalOpen] = useState(false);
 	const [unfriendTarget, setUnfriendTarget] = useState<{
 		id: string;
@@ -75,11 +82,12 @@ const Friend: React.FC = () => {
 	const [isUnfriendLoading, setIsUnfriendLoading] = useState(false);
 
 	const [allFriends, setAllFriends] = useState<any[]>([]);
-	const [pendingFriendRequests, setPendingFriendRequests] = useState<any[]>([]);
+	const [pendingFriendRequests, setPendingFriendRequests] = useState<
+		PendingFriend[]
+	>([]);
 	const [pendingGroupInvites, setPendingGroupInvites] = useState<any[]>([]);
 	const [isLoadingPending, setIsLoadingPending] = useState(false);
 
-	// Fetch active users on mount
 	useEffect(() => {
 		const fetchActiveUsers = async () => {
 			setIsLoadingUsers(true);
@@ -104,7 +112,158 @@ const Friend: React.FC = () => {
 		fetchActiveUsers();
 	}, [currentUserId]);
 
-	// Fetch friends (single unified function)
+	useEffect(() => {
+		const refetchCurrentTab = async () => {
+			if (activeTab === "all") {
+				await fetchFriendsData();
+			} else if (activeTab === "pending") {
+				setIsLoadingPending(true);
+				try {
+					const [friendRequestsResp, sentGroupResp, receivedGroupResp] =
+						await Promise.allSettled([
+							listAllFriendRequests(1, 100),
+							listSentInvitationGr(0),
+							listReceivedInvitationGr(0),
+						]);
+
+					// Friend requests
+					const allFriendRequests: PendingFriend[] = [];
+
+					if (
+						friendRequestsResp.status === "fulfilled" &&
+						friendRequestsResp.value?.data
+					) {
+						const requestsData = Array.isArray(friendRequestsResp.value.data)
+							? friendRequestsResp.value.data
+							: [];
+
+						requestsData.forEach((r: FriendRequest) => {
+							const isReceived = r.toUserId === currentUserId;
+							const isSent = r.fromUserId === currentUserId;
+
+							if (isReceived) {
+								const senderUser = r.fromUser;
+								allFriendRequests.push({
+									id: r.id,
+									name:
+										`${senderUser?.firstName ?? ""} ${senderUser?.lastName ?? ""}`.trim() ||
+										senderUser?.username ||
+										"User",
+									handle: senderUser?.username ? `@${senderUser.username}` : "",
+									avatar: senderUser?.avatarUrl || "",
+									direction: "received",
+									raw: r,
+								});
+							} else if (isSent) {
+								const targetUser = r.toUser;
+								allFriendRequests.push({
+									id: r.id,
+									name:
+										`${targetUser?.firstName ?? ""} ${targetUser?.lastName ?? ""}`.trim() ||
+										targetUser?.username ||
+										"User",
+									handle: targetUser?.username ? `@${targetUser.username}` : "",
+									avatar: targetUser?.avatarUrl || "",
+									direction: "sent",
+									raw: r,
+								});
+							}
+						});
+					}
+
+					setPendingFriendRequests(allFriendRequests);
+
+					// Group invites
+					const allGroupInvites: any[] = [];
+
+					if (
+						sentGroupResp.status === "fulfilled" &&
+						sentGroupResp.value?.data
+					) {
+						const sentGroupData = Array.isArray(sentGroupResp.value.data)
+							? sentGroupResp.value.data
+							: [];
+
+						const sentInvites = sentGroupData.map((inv: any) => {
+							const inviter =
+								`${inv.addedBy?.firstName ?? ""} ${inv.addedBy?.lastName ?? ""}`.trim() ||
+								"";
+							return {
+								id: inv.id,
+								groupId: inv.groupId ?? inv.roomId ?? inv.targetId,
+								groupAvatar: inv?.group?.avatar ?? inv?.groupAvatar,
+								groupName: inv?.group?.name ?? inv?.groupName ?? "Group",
+								inviterName:
+									inviter ||
+									(inv.addedBy?.username ? `@${inv.addedBy.username}` : ""),
+								inviterAvatar: inv.addedBy?.avatarUrl || "",
+								direction: "sent" as const,
+								raw: inv,
+							};
+						});
+						allGroupInvites.push(...sentInvites);
+					}
+
+					if (
+						receivedGroupResp.status === "fulfilled" &&
+						receivedGroupResp.value?.data
+					) {
+						const receivedGroupData = Array.isArray(
+							receivedGroupResp.value.data,
+						)
+							? receivedGroupResp.value.data
+							: [];
+
+						const receivedInvites = receivedGroupData.map((inv: any) => {
+							const inviter =
+								`${inv.addedBy?.firstName ?? ""} ${inv.addedBy?.lastName ?? ""}`.trim() ||
+								"";
+							return {
+								id: inv.id,
+								groupId: inv.groupId ?? inv.roomId ?? inv.targetId,
+								groupAvatar: inv?.group?.avatar ?? inv?.groupAvatar,
+								groupName: inv?.group?.name ?? inv?.groupName ?? "Group",
+								inviterName:
+									inviter ||
+									(inv.addedBy?.username ? `@${inv.addedBy.username}` : ""),
+								inviterAvatar: inv.addedBy?.avatarUrl || "",
+								direction: "received" as const,
+								raw: inv,
+							};
+						});
+						allGroupInvites.push(...receivedInvites);
+					}
+
+					setPendingGroupInvites(allGroupInvites);
+				} catch (err) {
+					console.error("Failed to fetch pending invites", err);
+				} finally {
+					setIsLoadingPending(false);
+				}
+			} else if (activeTab === "add-friend") {
+				setIsLoadingUsers(true);
+				try {
+					const response = await listUsers(1, 100);
+					const payload = response?.data;
+					const usersArray = Array.isArray(payload) ? payload : [];
+
+					const active = (usersArray || []).filter(
+						(user: UserResponse) =>
+							user?.isActive === true &&
+							String(user?.id) !== String(currentUserId),
+					);
+					setAvailableUsers(active);
+				} catch (err) {
+					console.error("Failed to fetch users", err);
+				} finally {
+					setIsLoadingUsers(false);
+				}
+			}
+		};
+
+		refetchCurrentTab();
+	}, [activeTab]);
+
 	const fetchFriendsData = async () => {
 		setIsLoadingUsers(true);
 		try {
@@ -145,74 +304,64 @@ const Friend: React.FC = () => {
 		fetchFriendsData();
 	}, []);
 
-	// Fetch pending friend requests + group invites
 	useEffect(() => {
 		const fetchPendings = async () => {
 			setIsLoadingPending(true);
 			try {
-				const [
-					sentFriendResp,
-					receivedFriendResp,
-					sentGroupResp,
-					receivedGroupResp,
-				] = await Promise.allSettled([
-					listSentFriendRequests(0), // pending status = 0
-					listReceivedFriendRequests(0),
-					listSentInvitationGr(0),
-					listReceivedInvitationGr(0),
-				]);
+				const [friendRequestsResp, sentGroupResp, receivedGroupResp] =
+					await Promise.allSettled([
+						listAllFriendRequests(1, 100),
+						listSentInvitationGr(0),
+						listReceivedInvitationGr(0),
+					]);
 
-				// --- Friend requests ---
-				const allFriendRequests: any[] = [];
+				const allFriendRequests: PendingFriend[] = [];
 
 				if (
-					sentFriendResp.status === "fulfilled" &&
-					sentFriendResp.value?.data
+					friendRequestsResp.status === "fulfilled" &&
+					friendRequestsResp.value?.data
 				) {
-					const sentData = Array.isArray(sentFriendResp.value.data)
-						? sentFriendResp.value.data
+					const requestsData = Array.isArray(friendRequestsResp.value.data)
+						? friendRequestsResp.value.data
 						: [];
 
-					const sentRequests = sentData.map((r: any) => ({
-						id: r.id,
-						name:
-							`${r.receiver?.firstName ?? ""} ${r.receiver?.lastName ?? ""}`.trim() ||
-							r.receiver?.username ||
-							"User",
-						handle: r.receiver?.username ? `@${r.receiver.username}` : "",
-						avatar: r.receiver?.avatarUrl || "",
-						direction: "sent" as const,
-						raw: r,
-					}));
-					allFriendRequests.push(...sentRequests);
-				}
+					requestsData.forEach((r: FriendRequest) => {
+						const isReceived = r.toUserId === currentUserId;
+						const isSent = r.fromUserId === currentUserId;
 
-				if (
-					receivedFriendResp.status === "fulfilled" &&
-					receivedFriendResp.value?.data
-				) {
-					const receivedData = Array.isArray(receivedFriendResp.value.data)
-						? receivedFriendResp.value.data
-						: [];
-
-					const receivedRequests = receivedData.map((r: any) => ({
-						id: r.id,
-						name:
-							`${r.sender?.firstName ?? ""} ${r.sender?.lastName ?? ""}`.trim() ||
-							r.sender?.username ||
-							"User",
-						handle: r.sender?.username ? `@${r.sender.username}` : "",
-						avatar: r.sender?.avatarUrl || "",
-						direction: "received" as const,
-						raw: r,
-					}));
-					allFriendRequests.push(...receivedRequests);
+						if (isReceived) {
+							const senderUser = r.fromUser;
+							allFriendRequests.push({
+								id: r.id,
+								name:
+									`${senderUser?.firstName ?? ""} ${senderUser?.lastName ?? ""}`.trim() ||
+									senderUser?.username ||
+									"User",
+								handle: senderUser?.username ? `@${senderUser.username}` : "",
+								avatar: senderUser?.avatarUrl || "",
+								direction: "received",
+								raw: r,
+							});
+						} else if (isSent) {
+							const targetUser = r.toUser;
+							allFriendRequests.push({
+								id: r.id,
+								name:
+									`${targetUser?.firstName ?? ""} ${targetUser?.lastName ?? ""}`.trim() ||
+									targetUser?.username ||
+									"User",
+								handle: targetUser?.username ? `@${targetUser.username}` : "",
+								avatar: targetUser?.avatarUrl || "",
+								direction: "sent",
+								raw: r,
+							});
+						}
+					});
 				}
 
 				setPendingFriendRequests(allFriendRequests);
 				console.log("Pending friend requests:", allFriendRequests);
 
-				// --- Group invites ---
 				const allGroupInvites: any[] = [];
 
 				if (sentGroupResp.status === "fulfilled" && sentGroupResp.value?.data) {
@@ -220,7 +369,6 @@ const Friend: React.FC = () => {
 						? sentGroupResp.value.data
 						: [];
 
-					// for sent invites show target group info (you sent)
 					const sentInvites = sentGroupData.map((inv: any) => {
 						const inviter =
 							`${inv.addedBy?.firstName ?? ""} ${inv.addedBy?.lastName ?? ""}`.trim() ||
@@ -249,7 +397,6 @@ const Friend: React.FC = () => {
 						? receivedGroupResp.value.data
 						: [];
 
-					// for received invites show inviter info (someone invited you)
 					const receivedInvites = receivedGroupData.map((inv: any) => {
 						const inviter =
 							`${inv.addedBy?.firstName ?? ""} ${inv.addedBy?.lastName ?? ""}`.trim() ||
@@ -346,31 +493,42 @@ const Friend: React.FC = () => {
 
 		setIsSendingRequest(true);
 		try {
-			await sendFriendRequest({
-				receiverId: selectedUser.id,
+			const response = await sendFriendRequest({
+				toUserId: selectedUser.id,
 				message: "Hi! I'd like to be friends.",
 			});
 
+			console.log("Send request response:", response);
+
 			setModalType("success");
-			setModalMessage(`Your friend request to ${selectedUser.name} was sent!`);
+			setModalMessage(
+				response?.message ||
+					`Your friend request to ${selectedUser.name} was sent!`,
+			);
 			setShowModal(true);
 
-			setPendingFriendRequests((prev) => [
-				...prev,
-				{
-					id: String(selectedUser.id),
+			const friendRequest = response.data;
+
+			if (friendRequest.data?.id) {
+				const newRequest: PendingFriend = {
+					id: friendRequest.data.id,
 					name: selectedUser.name,
 					handle: selectedUser.handle,
 					avatar: selectedUser.avatar,
 					direction: "sent",
-				},
-			]);
+					raw: friendRequest.data,
+				};
+
+				setPendingFriendRequests((prev) => [...prev, newRequest]);
+			}
 
 			setSearchAdd("");
 			setSearchResults([]);
 			setSelectedUser(null);
 			setIsUserSelectedFromList(false);
 		} catch (error: any) {
+			console.error("Send friend request error:", error);
+
 			let errorMessage = "Failed to send friend request";
 
 			if (error?.response) {
@@ -378,7 +536,7 @@ const Friend: React.FC = () => {
 				if (status === 400) {
 					errorMessage =
 						error.response.data?.message ||
-						"Invalid request. This user may already be your friend or have a pending request.";
+						"This user may already be your friend or have a pending request.";
 				} else if (status === 404) {
 					errorMessage = "User not found";
 				} else if (status === 409) {
@@ -414,7 +572,7 @@ const Friend: React.FC = () => {
 
 	const handleAcceptFriend = async (requestId: string) => {
 		try {
-			await updateFriendRequestStatus(requestId, { status: 1 });
+			await acceptFriendRequest(requestId);
 
 			setPendingFriendRequests((prev) =>
 				prev.filter((r) => r.id !== requestId),
@@ -424,7 +582,6 @@ const Friend: React.FC = () => {
 
 			window.dispatchEvent(new CustomEvent("friendListUpdated"));
 
-			// refresh friends
 			await fetchFriendsData();
 		} catch (err) {
 			showGlobalAlert({ type: "error", message: "Failed to accept request!" });
@@ -434,7 +591,7 @@ const Friend: React.FC = () => {
 
 	const handleDeclineFriend = async (requestId: string) => {
 		try {
-			await updateFriendRequestStatus(requestId, { status: 2 });
+			await declineFriendRequest(requestId);
 
 			setPendingFriendRequests((prev) =>
 				prev.filter((r) => r.id !== requestId),
@@ -449,7 +606,7 @@ const Friend: React.FC = () => {
 
 	const handleCancelFriend = async (requestId: string) => {
 		try {
-			await cancelFriendRequest(requestId);
+			await deleteFriendRequest(requestId);
 
 			setPendingFriendRequests((prev) =>
 				prev.filter((r) => r.id !== requestId),
@@ -457,21 +614,27 @@ const Friend: React.FC = () => {
 
 			showGlobalAlert({
 				type: "success",
-				message: "Friend request cancelled!",
+				message: "Friend request cancelled successfully!",
 			});
-		} catch (err) {
-			showGlobalAlert({ type: "error", message: "Failed to cancel request!" });
-			console.error("cancel friend request failed", err);
+		} catch (err: any) {
+			console.error("Cancel friend request failed", err);
+
+			let errorMessage = "Failed to cancel request!";
+			if (err?.response?.data?.message) {
+				errorMessage = err.response.data.message;
+			}
+
+			showGlobalAlert({
+				type: "error",
+				message: errorMessage,
+			});
 		}
 	};
 
-	// Group invite actions
 	const handleAcceptGroup = async (inviteId: string) => {
 		try {
-			// Remove locally first for snappy UI
 			setPendingGroupInvites((prev) => prev.filter((r) => r.id !== inviteId));
 
-			// tìm item để lấy groupId
 			const item = pendingGroupInvites.find((r) => r.id === inviteId);
 			const raw = item?.raw;
 			const groupId =
@@ -485,8 +648,6 @@ const Friend: React.FC = () => {
 			await updateInvitation(groupId, acceptRequest);
 
 			toast.success("Accepted successfully!");
-
-			// optional: refresh friends / groups if needed
 		} catch (err) {
 			toast.error(`Accept failed: ${err}`);
 			console.error("Accept group invite failed", err);
@@ -495,7 +656,6 @@ const Friend: React.FC = () => {
 
 	const handleDeclineGroup = async (inviteId: string) => {
 		try {
-			// Remove locally first
 			setPendingGroupInvites((prev) => prev.filter((r) => r.id !== inviteId));
 
 			const item = pendingGroupInvites.find((r) => r.id === inviteId);
@@ -516,10 +676,8 @@ const Friend: React.FC = () => {
 		}
 	};
 
-	// Cancel a group invite that the current user SENT
 	const handleCancelGroup = async (inviteId: string) => {
 		try {
-			// find invite
 			const item = pendingGroupInvites.find((r) => r.id === inviteId);
 			const raw = item?.raw;
 			const groupId =
@@ -529,12 +687,9 @@ const Friend: React.FC = () => {
 				raw?.targetId ??
 				inviteId;
 
-			// Implementation detail: depends on API; here we try to set a 'cancel' status = 3
-			// If your API provides dedicated cancel endpoint, replace with that.
 			const cancelRequest = { userIdOrEmail: currentUserId, status: 3 };
 			await updateInvitation(groupId, cancelRequest);
 
-			// remove locally
 			setPendingGroupInvites((prev) => prev.filter((r) => r.id !== inviteId));
 			toast.success("Cancelled invite successfully!");
 		} catch (err) {
@@ -580,6 +735,8 @@ const Friend: React.FC = () => {
 				type: "success",
 				message: `You have unfriended ${unfriendTarget.name}`,
 			});
+
+			window.dispatchEvent(new CustomEvent("friendListUpdated"));
 
 			handleCloseUnfriendModal();
 		} catch (err) {
