@@ -176,12 +176,15 @@ const ChatArea: React.FC = () => {
 	const params = useParams({ strict: false }) as {
 		groupId?: string;
 		id?: string;
+		userId?: string; // direct message target user id when on /chat/user/$userId route
 	};
 	const search = useSearch({ strict: false }) as { channel?: string };
 	// const navigate = useNavigate();
 	const groupId = params.groupId ?? undefined;
 	const channelIdParam = search.channel ?? undefined;
 	const threadIdParam = params.id ?? undefined; // if present => show thread
+	const directUserIdParam = params.userId ?? undefined; // if present => in direct message mode
+	const isDirectMode = !!directUserIdParam && !groupId && !channelIdParam; // heuristic: DM route has userId only
 	const queryClient = useQueryClient();
 	const profile = useSelector((state: RootState) => state.user.profile);
 	const [realtimeMessages, setRealtimeMessages] = useState<MessageResponse[]>(
@@ -238,13 +241,31 @@ const ChatArea: React.FC = () => {
 
 	// Subscribe to messages for this room using the query cache as source of truth.
 	// We keep optimistics in realtimeMessages and merge them for rendering.
+	// Query messages differently for direct mode vs group/channel mode
 	const {
 		data: messagesData,
 		isLoading: messagesLoading,
 		isError: messagesError,
 	} = useQuery<any[]>({
-		queryKey: ["messages", groupId, channelIdParam],
+		queryKey: isDirectMode
+			? ["direct_messages", directUserIdParam]
+			: ["messages", groupId, channelIdParam],
 		queryFn: async () => {
+			if (isDirectMode) {
+				const cached = queryClient.getQueryData<any>([
+					"direct_messages",
+					directUserIdParam,
+				]);
+				if (
+					cached &&
+					typeof cached === "object" &&
+					Array.isArray((cached as any).data)
+				) {
+					return (cached as any).data;
+				}
+				if (Array.isArray(cached)) return cached as any[];
+				return [] as any[];
+			}
 			if (!groupId || !channelIdParam) return [] as any[];
 			const cached = queryClient.getQueryData<any>([
 				"messages",
@@ -261,7 +282,7 @@ const ChatArea: React.FC = () => {
 			if (Array.isArray(cached)) return cached as any[];
 			return [] as any[];
 		},
-		enabled: !!(groupId && channelIdParam),
+		enabled: isDirectMode ? !!directUserIdParam : !!(groupId && channelIdParam),
 	});
 
 	// Handle server echo for MESSAGE to replace optimistics and update cache
@@ -345,6 +366,71 @@ const ChatArea: React.FC = () => {
 	);
 
 	useSocketEvent(SocketEvents.MESSAGE, onServerMessage);
+
+	// Direct message realtime handler
+	const onServerDirectMessage = useCallback(
+		(payload: any) => {
+			if (!isDirectMode) return; // ignore if not in DM view
+			if (!payload) return;
+			// Filter messages not involving the target user (basic heuristic: senderId or receiverId matches)
+			const targetId = directUserIdParam;
+			if (!targetId) return;
+			const involvesTarget =
+				payload.senderId === targetId ||
+				payload.receiverId === targetId ||
+				payload.sender?.id === targetId ||
+				payload.receiver?.id === targetId;
+			if (!involvesTarget) return;
+
+			const serverMsg: any = {
+				...payload,
+				id:
+					payload.id ??
+					payload._id ??
+					payload.messageId ??
+					payload.clientTempId ??
+					`dm-${Date.now()}`,
+				createdAt: payload.createdAt ?? new Date().toISOString(),
+			};
+
+			setRealtimeMessages((prev) => {
+				const withoutOptimistics = prev.filter((m) => {
+					if (payload.clientTempId && m.id === payload.clientTempId)
+						return false;
+					// Fallback match similar to channel messages
+					if (!payload.clientTempId && m.id?.startsWith?.("temp-")) {
+						const sameSender =
+							m.sender?.id === payload.senderId ||
+							m.sender?.id === payload.sender?.id;
+						const sameContent = (m.content || "") === (payload.content || "");
+						if (sameSender && sameContent) return false;
+					}
+					return true;
+				});
+				return [...withoutOptimistics, serverMsg];
+			});
+
+			queryClient.setQueryData(
+				["direct_messages", directUserIdParam],
+				(old: any) => {
+					const toArray = (o: any) =>
+						Array.isArray(o?.data) ? o.data : Array.isArray(o) ? o : [];
+					const arr = toArray(old);
+					const id = serverMsg.id;
+					const next = [...arr.filter((x: any) => x?.id !== id), serverMsg];
+					next.sort(
+						(a: any, b: any) =>
+							new Date(a.createdAt as any).getTime() -
+							new Date(b.createdAt as any).getTime(),
+					);
+					if (Array.isArray(old)) return next;
+					return { ...old, data: next };
+				},
+			);
+		},
+		[isDirectMode, directUserIdParam, queryClient],
+	);
+	useSocketEvent(SocketEvents.DIRECT_MESSAGE, onServerDirectMessage);
 
 	// Handle server echo for EDIT_MESSAGE to update content
 	const onServerEditMessage = useCallback(
@@ -440,6 +526,7 @@ const ChatArea: React.FC = () => {
 
 	// Join socket room whenever group/channel changes (or first mount)
 	useEffect(() => {
+		if (isDirectMode) return; // skip room join logic in direct mode
 		if (!groupId || !channelIdParam) return;
 
 		const joinKey = `${groupId}:${channelIdParam}`;
@@ -511,7 +598,7 @@ const ChatArea: React.FC = () => {
 	// Reset optimistics when switching room
 	useEffect(() => {
 		setRealtimeMessages([]);
-	}, [groupId, channelIdParam]);
+	}, [groupId, channelIdParam, directUserIdParam, isDirectMode]);
 
 	// After JOINED_ROOM, ask server for messages via FETCH_MESSAGES (ack)
 	const onJoinedRoom = useCallback(() => {
@@ -571,6 +658,70 @@ const ChatArea: React.FC = () => {
 	}, [socket, groupId, channelIdParam, queryClient]);
 
 	useSocketEvent(SocketEvents.JOINED_ROOM, onJoinedRoom);
+
+	// Fetch direct messages when entering direct mode or target user changes
+	useEffect(() => {
+		if (!isDirectMode || !directUserIdParam) return;
+		if (!socket) {
+			setEmitQueue((q) => [
+				...q,
+				{
+					event: SocketEvents.FETCH_DIRECT_MESSAGES,
+					payload: { userId: directUserIdParam },
+				},
+			]);
+			return;
+		}
+		setSocketLoading(true);
+		try {
+			socket.emit(
+				SocketEvents.FETCH_DIRECT_MESSAGES,
+				{ userId: directUserIdParam },
+				(resp: any) => {
+					try {
+						if (resp && (resp.error || resp.code)) {
+							console.error("[ChatArea] FETCH_DIRECT_MESSAGES ack error", resp);
+							setSocketLoading(false);
+							return;
+						}
+						const itemsRaw = Array.isArray(resp)
+							? resp
+							: Array.isArray(resp?.data)
+								? resp.data
+								: Array.isArray(resp?.messages)
+									? resp.messages
+									: [];
+						const items = itemsRaw.slice().sort((a: any, b: any) => {
+							const ta = new Date(a.createdAt).getTime();
+							const tb = new Date(b.createdAt).getTime();
+							return ta - tb;
+						});
+						queryClient.setQueryData(
+							["direct_messages", directUserIdParam],
+							items,
+						);
+						setSocketLoading(false);
+					} catch (e) {
+						console.error(
+							"[ChatArea] error handling FETCH_DIRECT_MESSAGES ack",
+							e,
+						);
+						setSocketLoading(false);
+					}
+				},
+			);
+		} catch (err) {
+			console.debug("[ChatArea] queue FETCH_DIRECT_MESSAGES due to", err);
+			setEmitQueue((q) => [
+				...q,
+				{
+					event: SocketEvents.FETCH_DIRECT_MESSAGES,
+					payload: { userId: directUserIdParam },
+				},
+			]);
+			setSocketLoading(true);
+		}
+	}, [isDirectMode, directUserIdParam, socket, queryClient]);
 
 	// Queue flush & connect handling
 	useEffect(() => {
@@ -698,8 +849,8 @@ const ChatArea: React.FC = () => {
 				});
 			}
 
-			// Re-join the current room on reconnect
-			if (groupId && channelIdParam) {
+			// Re-join the current room on reconnect (group mode only)
+			if (!isDirectMode && groupId && channelIdParam) {
 				const payload = { groupId, channelId: channelIdParam };
 				try {
 					socket.emit(SocketEvents.JOIN_ROOM, payload);
@@ -762,26 +913,38 @@ const ChatArea: React.FC = () => {
 		return () => {
 			socket.off?.("connect", onConnect);
 		};
-	}, [socket, emitQueue, groupId, channelIdParam, queryClient]);
+	}, [socket, emitQueue, groupId, channelIdParam, queryClient, isDirectMode]);
 
 	const send = useCallback(
 		async (payload?: ChatInputPayload) => {
 			if (!payload) return;
 
 			// guard: phải have channel selected
-			if (!channelIdParam) {
+			// guard: phải have channel selected OR in direct mode have target user
+			if (!isDirectMode && !channelIdParam) {
 				console.warn("[ChatArea] missing channelIdParam — cannot send message");
 				window.alert("Please select a channel before sending a message.");
+				return;
+			}
+			if (isDirectMode && !directUserIdParam) {
+				console.warn(
+					"[ChatArea] missing directUserIdParam — cannot send direct message",
+				);
+				window.alert("Missing target user.");
 				return;
 			}
 
 			const tempId = `temp-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
 
-			const baseEmit: any = {
-				groupId: groupId ?? null,
-				channelId: channelIdParam ?? null,
-				threadId: threadIdParam ?? null,
-			};
+			const baseEmit: any = isDirectMode
+				? {
+						userId: directUserIdParam,
+					}
+				: {
+						groupId: groupId ?? null,
+						channelId: channelIdParam ?? null,
+						threadId: threadIdParam ?? null,
+					};
 
 			const queueEmit = (eventName: string, payloadToSend: any) => {
 				setEmitQueue((q) => [
@@ -804,11 +967,19 @@ const ChatArea: React.FC = () => {
 				console.debug("[ChatArea] safeEmit prepared", ev, p, {
 					socketConnected: socket?.connected,
 				});
-				// quick guard: ensure groupId + channelId exist (server probably expects these)
-				if (!p.groupId || !p.channelId) {
+				// quick guard: ensure required identifiers exist
+				if (!isDirectMode && (!p.groupId || !p.channelId)) {
 					console.warn(
 						"[ChatArea] safeEmit missing groupId or channelId — queueing instead",
 						{ groupId: p.groupId, channelId: p.channelId },
+					);
+					queueEmit(ev, p);
+					return Promise.resolve({ queued: true });
+				}
+				if (isDirectMode && !p.userId) {
+					console.warn(
+						"[ChatArea] safeEmit missing userId — queueing instead",
+						{ userId: p.userId },
 					);
 					queueEmit(ev, p);
 					return Promise.resolve({ queued: true });
@@ -896,15 +1067,25 @@ const ChatArea: React.FC = () => {
 
 				setRealtimeMessages((prev) => [...prev, optimistic]);
 
-				const ev = SocketEvents.MESSAGE;
-				const p = {
-					...baseEmit,
-					parentMessageId: replyToMessage?.id || null,
-					content: text,
-					clientTempId: payload.clientTempId || tempId,
-					senderId: senderPayload.id,
-					sender: senderPayload,
-				};
+				const ev = isDirectMode
+					? SocketEvents.SEND_DIRECT_MESSAGE
+					: SocketEvents.MESSAGE;
+				const p = isDirectMode
+					? {
+							...baseEmit,
+							content: text,
+							clientTempId: payload.clientTempId || tempId,
+							senderId: senderPayload.id,
+							sender: senderPayload,
+						}
+					: {
+							...baseEmit,
+							parentMessageId: replyToMessage?.id || null,
+							content: text,
+							clientTempId: payload.clientTempId || tempId,
+							senderId: senderPayload.id,
+							sender: senderPayload,
+						};
 
 				// log payload before emit (very important for debugging)
 				console.debug("[ChatArea] about to emit message", ev, p);
@@ -957,15 +1138,25 @@ const ChatArea: React.FC = () => {
 
 						setRealtimeMessages((prev) => [...prev, optimisticMd]);
 
-						const evMd = SocketEvents.MESSAGE;
-						const pMd = {
-							...baseEmit,
-							parentMessageId: replyToMessage?.id || null,
-							content,
-							clientTempId: mdTempId,
-							senderId: senderPayload.id,
-							sender: senderPayload,
-						};
+						const evMd = isDirectMode
+							? SocketEvents.SEND_DIRECT_MESSAGE
+							: SocketEvents.MESSAGE;
+						const pMd = isDirectMode
+							? {
+									...baseEmit,
+									content,
+									clientTempId: mdTempId,
+									senderId: senderPayload.id,
+									sender: senderPayload,
+								}
+							: {
+									...baseEmit,
+									parentMessageId: replyToMessage?.id || null,
+									content,
+									clientTempId: mdTempId,
+									senderId: senderPayload.id,
+									sender: senderPayload,
+								};
 
 						console.debug(
 							"[ChatArea] about to emit markdown message",
@@ -1005,16 +1196,27 @@ const ChatArea: React.FC = () => {
 
 					setRealtimeMessages((prev) => [...prev, optimisticFilesMsg]);
 
-					const ev = SocketEvents.MESSAGE;
-					const p = {
-						...baseEmit,
-						parentMessageId: replyToMessage?.id || null,
-						content: "",
-						attachments: attachmentsMeta,
-						clientTempId: tempId,
-						senderId: senderPayload.id,
-						sender: senderPayload,
-					};
+					const ev = isDirectMode
+						? SocketEvents.SEND_DIRECT_MESSAGE
+						: SocketEvents.MESSAGE;
+					const p = isDirectMode
+						? {
+								...baseEmit,
+								content: "",
+								attachments: attachmentsMeta,
+								clientTempId: tempId,
+								senderId: senderPayload.id,
+								sender: senderPayload,
+							}
+						: {
+								...baseEmit,
+								parentMessageId: replyToMessage?.id || null,
+								content: "",
+								attachments: attachmentsMeta,
+								clientTempId: tempId,
+								senderId: senderPayload.id,
+								sender: senderPayload,
+							};
 
 					console.debug("[ChatArea] about to emit attachments", ev, p);
 					safeEmit(ev, p);
@@ -1032,6 +1234,8 @@ const ChatArea: React.FC = () => {
 			threadIdParam,
 			editingMessage,
 			replyToMessage,
+			isDirectMode,
+			directUserIdParam,
 		],
 	);
 
@@ -1088,7 +1292,9 @@ const ChatArea: React.FC = () => {
 	}, [messages, threadIdParam, latestMessagePerThread, threadDetailsMap]);
 
 	// Compute a stable room key (group/channel/thread) to detect hard switches
-	const roomKey = `${groupId ?? ""}:${channelIdParam ?? ""}:${threadIdParam ?? ""}`;
+	const roomKey = isDirectMode
+		? `dm:${directUserIdParam}`
+		: `${groupId ?? ""}:${channelIdParam ?? ""}:${threadIdParam ?? ""}`;
 
 	const scrollToBottomInstant = useCallback(() => {
 		const container = listRef.current;
@@ -1251,7 +1457,9 @@ const ChatArea: React.FC = () => {
 					<p className="text-sm text-red-500">Failed to load messages.</p>
 				) : displayItems.length === 0 ? (
 					<p className="text-sm text-muted-foreground">
-						No messages yet. Start the conversation below.
+						{isDirectMode
+							? "No direct messages yet. Say hello below."
+							: "No messages yet. Start the conversation below."}
 					</p>
 				) : (
 					displayItems.map((item, idx) => {
