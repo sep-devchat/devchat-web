@@ -383,7 +383,9 @@ const RegisterPage: React.FC<RegisterPageProps> = ({
 	};
 
 	const isFormValid = (): boolean => {
-		const hasErrors = Object.keys(errors).length > 0;
+		// Ignore "general" top-level errors for form validity so user can retry without changing fields
+		const fieldErrorKeys = Object.keys(errors).filter((k) => k !== "general");
+		const hasErrors = fieldErrorKeys.length > 0;
 		const requiredFields = [
 			"username",
 			"firstName",
@@ -411,6 +413,12 @@ const RegisterPage: React.FC<RegisterPageProps> = ({
 		];
 		setTouched(new Set(allFields));
 		setSuccessMessage("");
+		// Clear any previous general error so it doesn't block retry
+		setErrors((prev) => {
+			if (!prev.general) return prev;
+			const { general, ...rest } = prev;
+			return rest;
+		});
 
 		if (!validateForm()) {
 			return;
@@ -516,6 +524,7 @@ const RegisterPage: React.FC<RegisterPageProps> = ({
 				setErrors({ general: "Registration failed. Please try again later." });
 			}
 
+			// Keep form enabled for immediate retry
 			window.scrollTo({ top: 0, behavior: "smooth" });
 		}
 	};
