@@ -31,7 +31,9 @@ import {
 import {
 	listSentInvitationGr,
 	listReceivedInvitationGr,
-	updateInvitation,
+	acceptGroupInvitation,
+	declineGroupInvitation,
+	deleteGroupInvitation,
 } from "@/services/userGroupAPI";
 import { showGlobalAlert } from "@/components/custom/AlertCustom/Alert";
 import ConfirmModal from "@/components/custom/ConfirmModal/ConfirmModal";
@@ -122,8 +124,8 @@ const Friend: React.FC = () => {
 					const [friendRequestsResp, sentGroupResp, receivedGroupResp] =
 						await Promise.allSettled([
 							listAllFriendRequests(1, 100),
-							listSentInvitationGr(0),
-							listReceivedInvitationGr(0),
+							listSentInvitationGr(),
+							listReceivedInvitationGr(),
 						]);
 
 					// Friend requests
@@ -185,18 +187,25 @@ const Friend: React.FC = () => {
 							: [];
 
 						const sentInvites = sentGroupData.map((inv: any) => {
-							const inviter =
-								`${inv.addedBy?.firstName ?? ""} ${inv.addedBy?.lastName ?? ""}`.trim() ||
-								"";
+							let recipientName = "";
+
+							if (inv.toUser) {
+								const firstName = inv.toUser.firstName?.trim() || "";
+								const lastName = inv.toUser.lastName?.trim() || "";
+								recipientName = `${firstName} ${lastName}`.trim();
+
+								if (!recipientName) {
+									recipientName =
+										inv.toUser.username || inv.toUser.email || "Unknown User";
+								}
+							}
+
 							return {
 								id: inv.id,
-								groupId: inv.groupId ?? inv.roomId ?? inv.targetId,
-								groupAvatar: inv?.group?.avatar ?? inv?.groupAvatar,
-								groupName: inv?.group?.name ?? inv?.groupName ?? "Group",
-								inviterName:
-									inviter ||
-									(inv.addedBy?.username ? `@${inv.addedBy.username}` : ""),
-								inviterAvatar: inv.addedBy?.avatarUrl || "",
+								groupId: inv.groupId,
+								groupAvatar: inv?.group?.avatar,
+								groupName: inv?.group?.name ?? "Group",
+								toUserName: recipientName,
 								direction: "sent" as const,
 								raw: inv,
 							};
@@ -216,7 +225,7 @@ const Friend: React.FC = () => {
 
 						const receivedInvites = receivedGroupData.map((inv: any) => {
 							const inviter =
-								`${inv.addedBy?.firstName ?? ""} ${inv.addedBy?.lastName ?? ""}`.trim() ||
+								`${inv.fromUser?.firstName ?? ""} ${inv.fromUser?.lastName ?? ""}`.trim() ||
 								"";
 							return {
 								id: inv.id,
@@ -311,8 +320,8 @@ const Friend: React.FC = () => {
 				const [friendRequestsResp, sentGroupResp, receivedGroupResp] =
 					await Promise.allSettled([
 						listAllFriendRequests(1, 100),
-						listSentInvitationGr(0),
-						listReceivedInvitationGr(0),
+						listSentInvitationGr(),
+						listReceivedInvitationGr(),
 					]);
 
 				const allFriendRequests: PendingFriend[] = [];
@@ -370,18 +379,25 @@ const Friend: React.FC = () => {
 						: [];
 
 					const sentInvites = sentGroupData.map((inv: any) => {
-						const inviter =
-							`${inv.addedBy?.firstName ?? ""} ${inv.addedBy?.lastName ?? ""}`.trim() ||
-							"";
+						let recipientName = "";
+
+						if (inv.toUser) {
+							const firstName = inv.toUser.firstName?.trim() || "";
+							const lastName = inv.toUser.lastName?.trim() || "";
+							recipientName = `${firstName} ${lastName}`.trim();
+
+							if (!recipientName) {
+								recipientName =
+									inv.toUser.username || inv.toUser.email || "Unknown User";
+							}
+						}
+
 						return {
 							id: inv.id,
-							groupId: inv.groupId ?? inv.roomId ?? inv.targetId,
-							groupAvatar: inv?.group?.avatar ?? inv?.groupAvatar,
-							groupName: inv?.group?.name ?? inv?.groupName ?? "Group",
-							inviterName:
-								inviter ||
-								(inv.addedBy?.username ? `@${inv.addedBy.username}` : ""),
-							inviterAvatar: inv.addedBy?.avatarUrl || "",
+							groupId: inv.groupId,
+							groupAvatar: inv?.group?.avatar,
+							groupName: inv?.group?.name ?? "Group",
+							toUserName: recipientName,
 							direction: "sent" as const,
 							raw: inv,
 						};
@@ -399,7 +415,7 @@ const Friend: React.FC = () => {
 
 					const receivedInvites = receivedGroupData.map((inv: any) => {
 						const inviter =
-							`${inv.addedBy?.firstName ?? ""} ${inv.addedBy?.lastName ?? ""}`.trim() ||
+							`${inv.fromUser?.firstName ?? ""} ${inv.fromUser?.lastName ?? ""}`.trim() ||
 							"";
 						return {
 							id: inv.id,
@@ -633,68 +649,54 @@ const Friend: React.FC = () => {
 
 	const handleAcceptGroup = async (inviteId: string) => {
 		try {
+			console.log("Accepting group invitation with ID:", inviteId);
+
+			await acceptGroupInvitation(inviteId);
 			setPendingGroupInvites((prev) => prev.filter((r) => r.id !== inviteId));
 
-			const item = pendingGroupInvites.find((r) => r.id === inviteId);
-			const raw = item?.raw;
-			const groupId =
-				item?.groupId ??
-				raw?.groupId ??
-				raw?.roomId ??
-				raw?.targetId ??
-				inviteId;
+			window.dispatchEvent(new Event("refreshGroups"));
 
-			const acceptRequest = { userIdOrEmail: currentUserId, status: 1 };
-			await updateInvitation(groupId, acceptRequest);
-
-			toast.success("Accepted successfully!");
-		} catch (err) {
-			toast.error(`Accept failed: ${err}`);
+			toast.success("Group invitation accepted successfully!");
+		} catch (err: any) {
 			console.error("Accept group invite failed", err);
+
+			const errorMessage =
+				err?.response?.data?.message || "Failed to accept group invitation";
+
+			toast.error(errorMessage);
 		}
 	};
 
 	const handleDeclineGroup = async (inviteId: string) => {
 		try {
+			console.log("Declining group invitation with ID:", inviteId);
+			await declineGroupInvitation(inviteId);
 			setPendingGroupInvites((prev) => prev.filter((r) => r.id !== inviteId));
-
-			const item = pendingGroupInvites.find((r) => r.id === inviteId);
-			const raw = item?.raw;
-			const groupId =
-				item?.groupId ??
-				raw?.groupId ??
-				raw?.roomId ??
-				raw?.targetId ??
-				inviteId;
-
-			const declineRequest = { userIdOrEmail: currentUserId, status: 2 };
-			await updateInvitation(groupId, declineRequest);
-			toast.success("Declined successfully!");
-		} catch (err) {
-			toast.error(`Decline failed: ${err}`);
+			toast.success("Group invitation declined successfully!");
+		} catch (err: any) {
 			console.error("Decline group invite failed", err);
+
+			const errorMessage =
+				err?.response?.data?.message || "Failed to decline group invitation";
+
+			toast.error(errorMessage);
 		}
 	};
 
 	const handleCancelGroup = async (inviteId: string) => {
 		try {
-			const item = pendingGroupInvites.find((r) => r.id === inviteId);
-			const raw = item?.raw;
-			const groupId =
-				item?.groupId ??
-				raw?.groupId ??
-				raw?.roomId ??
-				raw?.targetId ??
-				inviteId;
+			console.log("Deleting sent group invitation with ID:", inviteId);
 
-			const cancelRequest = { userIdOrEmail: currentUserId, status: 3 };
-			await updateInvitation(groupId, cancelRequest);
-
+			await deleteGroupInvitation(inviteId);
 			setPendingGroupInvites((prev) => prev.filter((r) => r.id !== inviteId));
-			toast.success("Cancelled invite successfully!");
-		} catch (err) {
-			toast.error(`Cancel failed: ${err}`);
+			toast.success("Group invitation cancelled successfully!");
+		} catch (err: any) {
 			console.error("Cancel group invite failed", err);
+
+			const errorMessage =
+				err?.response?.data?.message || "Failed to cancel group invitation";
+
+			toast.error(errorMessage);
 		}
 	};
 

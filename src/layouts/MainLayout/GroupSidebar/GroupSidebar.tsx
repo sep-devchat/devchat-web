@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import {
 	GroupSidebarContainer,
@@ -57,6 +57,58 @@ const GroupSidebar: React.FC = () => {
 		}
 	}, [selectedGroupId, logoMode]);
 
+	const fetchGroups = useCallback(async () => {
+		try {
+			const res = await listGroups();
+			const payload = (res && (res.data ?? res)) as GroupResponse[];
+
+			const mapped = (payload || []).map((g) => {
+				const initials = (g.name || "")
+					.split(" ")
+					.map((s) => s[0] ?? "")
+					.join("")
+					.slice(0, 2)
+					.toUpperCase();
+				return {
+					id: g.id,
+					name: g.name,
+					initials,
+					avatarColor: `${theme.color.primary}`,
+					unread: 0,
+					avatar: g.avatar ?? undefined,
+					isActive: g.isActive ?? true,
+				} as SidebarGroup;
+			});
+
+			const onlyActive = mapped.filter((mg) => mg.isActive === true);
+
+			setLocalGroups(onlyActive);
+			if (onlyActive.length > 0 && !activeId) {
+				setActiveId(onlyActive[0].id);
+				setSelectedGroupId(onlyActive[0].id);
+				setLogoMode(false);
+			}
+		} catch (err) {
+			console.error("Failed to load groups:", err);
+		}
+	}, [activeId]);
+
+	useEffect(() => {
+		fetchGroups();
+	}, []);
+
+	useEffect(() => {
+		const handleRefresh = () => {
+			fetchGroups();
+		};
+
+		window.addEventListener("refreshGroups", handleRefresh);
+
+		return () => {
+			window.removeEventListener("refreshGroups", handleRefresh);
+		};
+	}, [fetchGroups]);
+
 	useEffect(() => {
 		let mounted = true;
 		const fetch = async () => {
@@ -76,7 +128,7 @@ const GroupSidebar: React.FC = () => {
 						id: g.id,
 						name: g.name,
 						initials,
-						avatarColor: `${theme.color.primary}`, // giữ mặc định như trước; đổi nếu có logic color khác
+						avatarColor: `${theme.color.primary}`,
 						unread: 0,
 						avatar: g.avatar ?? undefined,
 						isActive: g.isActive ?? true,
