@@ -167,3 +167,7 @@ export const listSentInvitationGr = () => {
 export const listAllPendingInvitations = () => {
 	return get<ApiResponse<GroupInvitation[]>>(`/api/group-invitation`);
 };
+
+export const leaveGroup = (groupId: string) => {
+	return post(`/api/group/${groupId}/members/leave`, {});
+};
