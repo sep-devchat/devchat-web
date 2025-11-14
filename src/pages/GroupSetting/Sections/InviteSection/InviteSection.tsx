@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import {
 	Form,
@@ -25,14 +25,19 @@ import { useParams } from "@tanstack/react-router";
 
 import { detailGroup } from "@/services/groupAPI";
 import { listFriends } from "@/services/friendAPI";
-import { inviteToGroup } from "@/services/userGroupAPI";
+import {
+	GroupInvitation,
+	inviteToGroup,
+	listSentInvitationGr,
+	membersGroup,
+} from "@/services/userGroupAPI";
 import { theme } from "@/themes";
 
 type AddGroupFormValues = {
 	name: string;
 	description?: string;
 	privacy: "public" | "private";
-	members?: string; // comma separated emails
+	members?: string;
 	avatar?: File | null;
 };
 
@@ -57,19 +62,21 @@ export default function InviteSection() {
 	});
 
 	const [search, setSearch] = useState("");
-	const [addedIds, setAddedIds] = useState<string[]>([]);
 	const [addingMap, setAddingMap] = useState<Record<string, boolean>>({});
 	const [friends, setFriends] = useState<Friend[]>([]);
 	const [loadingFriends, setLoadingFriends] = useState(false);
+	const [groupMembers, setGroupMembers] = useState<string[]>([]);
+	const [pendingInvitations, setPendingInvitations] = useState<
+		Map<string, string>
+	>(new Map());
 	const copyTimeoutRef = useRef<number | null>(null);
+	const pollingIntervalRef = useRef<number | null>(null);
 
 	const params = useParams({ strict: false }) as { groupId?: string };
 	const groupId = params.groupId ?? "unknown-group";
 	const [groupName, setGroupName] = useState<string>(groupId);
 
-	// session keys scoped by group id (use groupId fallback)
 	const inviteStorageKey = `devchat_invite_copied_${groupId}`;
-	const addedStorageKey = `devchat_added_members_${groupId}`;
 
 	const [copiedInvite, setCopiedInvite] = useState<boolean>(() => {
 		try {
@@ -90,9 +97,69 @@ export default function InviteSection() {
 		}
 	};
 
+	const fetchGroupMembers = async () => {
+		if (!groupId) return;
+		try {
+			const response = await membersGroup(groupId, 1, 1000);
+			const members = response?.data?.data ?? response?.data ?? [];
+			const memberIds = members.map((m: any) => m.id || m.userId);
+			setGroupMembers(memberIds);
+		} catch (error) {
+			console.error("Failed to fetch group members:", error);
+			setGroupMembers([]);
+		}
+	};
+
+	const fetchPendingInvitations = async () => {
+		if (!groupId) return;
+		try {
+			const response = await listSentInvitationGr();
+			const invitations: GroupInvitation[] =
+				response?.data?.data ?? response?.data ?? [];
+
+			const pendingMap = new Map<string, string>();
+			invitations
+				.filter((inv: GroupInvitation) => inv.groupId === groupId)
+				.forEach((inv: GroupInvitation) => {
+					pendingMap.set(inv.toUserId, inv.id);
+				});
+
+			setPendingInvitations(pendingMap);
+		} catch (error) {
+			console.error("Failed to fetch pending invitations:", error);
+			setPendingInvitations(new Map());
+		}
+	};
+
+	const refreshInvitationStatus = async () => {
+		await fetchGroupMembers();
+		await fetchPendingInvitations();
+	};
+
 	useEffect(() => {
 		fetchDetailGroup(groupId);
+		fetchGroupMembers();
+		fetchPendingInvitations();
 	}, [groupId]);
+
+	useEffect(() => {
+		if (pollingIntervalRef.current) {
+			clearInterval(pollingIntervalRef.current);
+		}
+
+		if (pendingInvitations.size > 0) {
+			pollingIntervalRef.current = window.setInterval(() => {
+				refreshInvitationStatus();
+			}, 5000);
+		}
+
+		return () => {
+			if (pollingIntervalRef.current) {
+				clearInterval(pollingIntervalRef.current);
+				pollingIntervalRef.current = null;
+			}
+		};
+	}, [pendingInvitations.size, groupId]);
 
 	useEffect(() => {
 		let mounted = true;
@@ -135,68 +202,62 @@ export default function InviteSection() {
 		};
 	}, []);
 
-	// initialize addedIds from sessionStorage for this group
 	useEffect(() => {
-		try {
-			const raw = sessionStorage.getItem(addedStorageKey);
-			if (raw) {
-				const parsed = JSON.parse(raw) as string[];
-				if (Array.isArray(parsed)) setAddedIds(parsed);
-			}
-		} catch (err: any) {
-			console.log(err);
-		}
 		return () => {
 			if (copyTimeoutRef.current) {
 				clearTimeout(copyTimeoutRef.current);
 				copyTimeoutRef.current = null;
 			}
+			if (pollingIntervalRef.current) {
+				clearInterval(pollingIntervalRef.current);
+				pollingIntervalRef.current = null;
+			}
 		};
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [groupId]);
+	}, []);
 
-	const persistAddedIds = (ids: string[]) => {
-		try {
-			sessionStorage.setItem(addedStorageKey, JSON.stringify(ids));
-		} catch {
-			/* ignore */
-		}
-	};
-
-	// filtered friends by search (safe lowercasing)
 	const filtered = useMemo(() => {
 		const q = search.trim().toLowerCase();
-		if (!q) return friends;
-		return friends.filter((u) => {
-			return (
-				(u.username ?? "").toLowerCase().includes(q) ||
-				(u.first_name ?? "").toLowerCase().includes(q) ||
-				(u.last_name ?? "").toLowerCase().includes(q) ||
-				(u.email ?? "").toLowerCase().includes(q)
-			);
-		});
-	}, [friends, search]);
 
-	// invite single friend (calls API)
+		let result = friends.filter((f) => !groupMembers.includes(f.user_id));
+
+		if (q) {
+			result = result.filter((u) => {
+				return (
+					(u.username ?? "").toLowerCase().includes(q) ||
+					(u.first_name ?? "").toLowerCase().includes(q) ||
+					(u.last_name ?? "").toLowerCase().includes(q) ||
+					(u.email ?? "").toLowerCase().includes(q)
+				);
+			});
+		}
+
+		return result;
+	}, [friends, search, groupMembers]);
+
 	const handleAddSingle = async (userId: string) => {
 		if (!groupId) {
 			alert("No group id provided.");
 			return;
 		}
-		if (addedIds.includes(userId)) return;
 		if (addingMap[userId]) return;
+
+		if (pendingInvitations.has(userId)) {
+			alert("This user has already been invited to the group.");
+			return;
+		}
 
 		setAddingMap((m) => ({ ...m, [userId]: true }));
 
 		try {
-			// assume API accepts { user_id: string } — adjust if backend expects different payload
-			await inviteToGroup(groupId, { userIdOrEmail: userId } as any);
-
-			setAddedIds((prev) => {
-				const next = [...prev, userId];
-				persistAddedIds(next);
-				return next;
+			await inviteToGroup({
+				toUserId: userId,
+				groupId,
+				message: "Hi, would you like to join our group?",
 			});
+
+			setTimeout(() => {
+				refreshInvitationStatus();
+			}, 1000);
 		} catch (err) {
 			console.error("Failed to invite friend:", err);
 		} finally {
@@ -230,7 +291,6 @@ export default function InviteSection() {
 		}
 	};
 
-	// ---- New: invite by email input + preview + send
 	const [emailInput, setEmailInput] = useState<string>("");
 	const [emailError, setEmailError] = useState<string | null>(null);
 	const [lookupLoading, setLookupLoading] = useState(false);
@@ -239,13 +299,11 @@ export default function InviteSection() {
 
 	const validateEmail = (e?: string) => {
 		if (!e) return false;
-		// simple RFC-like regex (not perfect but ok for client-side quick check)
 		const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 		return re.test(e.trim().toLowerCase());
 	};
 
 	useEffect(() => {
-		// whenever emailInput changes, validate and attempt to lookup in loaded friends
 		const val = emailInput.trim().toLowerCase();
 		if (val === "") {
 			setEmailError(null);
@@ -262,11 +320,9 @@ export default function InviteSection() {
 		setEmailError(null);
 		setLookupLoading(true);
 
-		// quick local lookup in friends list
 		const found =
 			friends.find((f) => (f.email ?? "").toLowerCase() === val) ?? null;
 
-		// simulate small delay for lookup UX (optional)
 		const t = window.setTimeout(() => {
 			setLookupResult(found);
 			setLookupLoading(false);
@@ -290,21 +346,24 @@ export default function InviteSection() {
 		setSendingEmail(true);
 
 		try {
-			// NOTE: adjust payload to backend expectation. Here we POST { email }
-			await inviteToGroup(groupId, { userIdOrEmail: email } as any);
+			await inviteToGroup({
+				toUserId: email,
+				groupId,
+				message: "Hi, would you like to join our group?",
+			});
 
-			// optional: clear input and show success state
 			setEmailInput("");
 			setLookupResult(null);
-			// you can also show a toast here indicating success
+
+			setTimeout(() => {
+				refreshInvitationStatus();
+			}, 1000);
 		} catch (err) {
 			console.error("Failed to invite by email:", err);
 		} finally {
 			setSendingEmail(false);
 		}
 	};
-
-	// ---- end new
 
 	const onSubmit = async (data: AddGroupFormValues) => {
 		const members = data.members
@@ -365,7 +424,6 @@ export default function InviteSection() {
 
 				<Divider />
 
-				{/* New: invite by email area */}
 				<div style={{ marginBottom: 12 }}>
 					<div style={{ fontSize: 13, marginBottom: 8 }}>Invite by email</div>
 
@@ -457,20 +515,14 @@ export default function InviteSection() {
 									padding: "8px 0",
 								}}
 							>
-								No friends found.
+								{search.trim() !== ""
+									? "No friends found matching your search."
+									: "All your friends are already members of this group."}
 							</div>
 						) : (
 							filtered.map((u) => {
-								const added = addedIds.includes(u.user_id);
+								const hasPendingInvite = pendingInvitations.has(u.user_id);
 								const adding = Boolean(addingMap[u.user_id]);
-
-								const addBtnStyle: React.CSSProperties = added
-									? {
-											backgroundColor: "#10B981",
-											color: "white",
-											border: "none",
-										}
-									: {};
 
 								return (
 									<FriendItem key={u.user_id}>
@@ -490,12 +542,25 @@ export default function InviteSection() {
 
 										<div>
 											<AddButton
-												$added={added}
+												$added={hasPendingInvite}
 												onClick={() => handleAddSingle(u.user_id)}
-												disabled={added || adding}
-												style={addBtnStyle}
+												disabled={hasPendingInvite || adding}
+												style={
+													hasPendingInvite
+														? {
+																backgroundColor: "#F59E0B",
+																color: "white",
+																border: "none",
+																cursor: "not-allowed",
+															}
+														: {}
+												}
 											>
-												{adding ? "Adding..." : added ? "Added" : "Add"}
+												{adding
+													? "Adding..."
+													: hasPendingInvite
+														? "Pending"
+														: "Add"}
 											</AddButton>
 										</div>
 									</FriendItem>

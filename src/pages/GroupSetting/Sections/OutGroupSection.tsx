@@ -15,9 +15,7 @@ import { Label } from "@/components/ui/label";
 import { Trash, AlertTriangle, Loader2 } from "lucide-react";
 import { detailGroup } from "@/services/groupAPI";
 import { useParams } from "@tanstack/react-router";
-import { useSelector } from "react-redux";
-import { RootState } from "@/store";
-import { deleteMemberGroup } from "@/services/userGroupAPI";
+import { leaveGroup } from "@/services/userGroupAPI";
 
 type AlertType = "success" | "warning" | "error";
 const fireAlert = (type: AlertType, message: string, duration = 4000) => {
@@ -41,10 +39,6 @@ export const OutGroupSection: React.FC<GroupSettingProps> = ({
 	const [groupName, setGroupName] = useState<string>("");
 	const [confirmText, setConfirmText] = useState("");
 	const [fetching, setFetching] = useState(false);
-	const currentUserProfile = useSelector(
-		(state: RootState) => state.user.profile,
-	);
-	const currentUserId = currentUserProfile?.id || "";
 
 	useEffect(() => {
 		// Open dialog when this component mounts
@@ -75,11 +69,10 @@ export const OutGroupSection: React.FC<GroupSettingProps> = ({
 
 	const handleLeave = async () => {
 		if (!groupId) return;
-		// require exact match (trimmed) to avoid accidental leaving
 		if (confirmText.trim() !== groupName) return;
 		try {
 			setLoading(true);
-			await deleteMemberGroup(groupId, { userId: currentUserId } as any);
+			await leaveGroup(groupId);
 			fireAlert("success", "You have left the group");
 			setOpen(false);
 			setSettingSelect(false);

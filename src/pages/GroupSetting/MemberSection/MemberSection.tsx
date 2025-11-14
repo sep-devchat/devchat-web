@@ -190,7 +190,7 @@ export default function MemberSection() {
 		if (!groupId || !selectedRow) return;
 		try {
 			setLoading(true);
-			await deleteMemberGroup(groupId, { userId: selectedRow.id });
+			await deleteMemberGroup(groupId, selectedRow.id);
 			await fetchData(page, limit);
 			setSelectedRow(null);
 			setOpenDeleteDialog(false);
@@ -302,7 +302,6 @@ export default function MemberSection() {
 								</DropdownMenuTrigger>
 
 								<DropdownMenuContent align="end" className="min-w-[160px]">
-									{/* Show loading / no roles */}
 									{roleLoading ? (
 										<DropdownMenuItem onSelect={() => {}}>
 											Loading...

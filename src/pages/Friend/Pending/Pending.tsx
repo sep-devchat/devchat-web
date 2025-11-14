@@ -30,8 +30,10 @@ interface PendingGroup {
 	id: string;
 	groupId?: string;
 	groupName: string;
+	groupAvatar?: string;
 	inviterName?: string;
 	inviterAvatar?: string;
+	toUserName?: string;
 	direction: "received" | "sent";
 	raw?: any;
 }
@@ -50,29 +52,70 @@ interface Props {
 	isLoadingPending?: boolean;
 }
 
+const AVATAR_COLORS = ["#184EAB"];
+
+const getGroupInitials = (name: string): string => {
+	if (!name || name.trim() === "") return "GR";
+
+	const initials = name
+		.split(" ")
+		.map((s) => s[0] ?? "")
+		.join("")
+		.slice(0, 2)
+		.toUpperCase();
+
+	return initials || "GR";
+};
+
+const getAvatarColorFromName = (name: string): string => {
+	if (!name) return AVATAR_COLORS[0];
+
+	let hash = 0;
+	for (let i = 0; i < name.length; i++) {
+		hash = name.charCodeAt(i) + ((hash << 5) - hash);
+	}
+
+	const index = Math.abs(hash) % AVATAR_COLORS.length;
+	return AVATAR_COLORS[index];
+};
+
+const GroupAvatarComponent: React.FC<{
+	src?: string | null;
+	name: string;
+}> = ({ src, name }) => {
+	const [imageError, setImageError] = React.useState(false);
+	const hasAvatar = src && src.trim() !== "" && !imageError;
+
+	if (hasAvatar) {
+		return <Avatar src={src} alt={name} onError={() => setImageError(true)} />;
+	}
+
+	const initials = getGroupInitials(name);
+	const bgColor = getAvatarColorFromName(name);
+
+	return (
+		<div
+			style={{
+				width: "40px",
+				height: "40px",
+				borderRadius: "50%",
+				backgroundColor: bgColor,
+				color: "#FFFFFF",
+				display: "flex",
+				alignItems: "center",
+				justifyContent: "center",
+				fontWeight: 600,
+				fontSize: "14px",
+				flexShrink: 0,
+				marginRight: "24px",
+			}}
+		>
+			{initials}
+		</div>
+	);
+};
+
 const safeLower = (v?: string) => (v ?? "").toLowerCase();
-
-const badgeStyle: React.CSSProperties = {
-	fontSize: 11,
-	padding: "2px 8px",
-	borderRadius: 12,
-	background: "#F3F4F6",
-	color: "#374151",
-	marginLeft: 8,
-	display: "inline-block",
-};
-
-const groupBadgeStyle: React.CSSProperties = {
-	...badgeStyle,
-	background: "#EEF2FF",
-	color: "#3730A3",
-};
-
-const smallHintStyle: React.CSSProperties = {
-	fontSize: 12,
-	color: "#6B7280",
-	marginTop: 2,
-};
 
 const EmptyState: React.FC<{
 	icon: React.ReactNode;
@@ -302,20 +345,19 @@ const Pending: React.FC<Props> = ({
 						<ResultsList style={{ marginBottom: 16 }}>
 							{filteredGroupReceived.map((inv) => (
 								<ResultItem key={inv.id}>
-									<Avatar src={inv.inviterAvatar} alt={inv.groupName} />
+									<GroupAvatarComponent
+										src={inv.groupAvatar}
+										name={inv.groupName}
+									/>
 									<UserInfo>
 										<div style={{ display: "flex", alignItems: "center" }}>
 											<UserName>{inv.groupName}</UserName>
-											<span style={groupBadgeStyle}>Group</span>
 										</div>
 										<UserHandle>
 											{inv.inviterName
 												? `Invited by ${inv.inviterName}`
 												: "Group invitation"}
 										</UserHandle>
-										<div style={smallHintStyle}>
-											Incoming group invite — join the group to participate
-										</div>
 									</UserInfo>
 									<ActionButtons>
 										<ActionButton
@@ -357,20 +399,19 @@ const Pending: React.FC<Props> = ({
 						<ResultsList style={{ marginBottom: 16 }}>
 							{filteredGroupSent.map((inv) => (
 								<ResultItem key={inv.id}>
-									<Avatar src={inv.inviterAvatar} alt={inv.groupName} />
+									<GroupAvatarComponent
+										src={inv.groupAvatar}
+										name={inv.groupName}
+									/>
 									<UserInfo>
 										<div style={{ display: "flex", alignItems: "center" }}>
 											<UserName>{inv.groupName}</UserName>
-											<span style={groupBadgeStyle}>Group</span>
 										</div>
 										<UserHandle>
-											{inv.inviterName
-												? `Invited by ${inv.inviterName}`
+											{inv.toUserName
+												? `You sent this invite to ${inv.toUserName}`
 												: "You sent this invite"}
 										</UserHandle>
-										<div style={smallHintStyle}>
-											Pending invite — you can cancel it
-										</div>
 									</UserInfo>
 
 									<ActionButton
