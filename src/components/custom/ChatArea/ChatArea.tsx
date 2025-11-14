@@ -334,17 +334,21 @@ const ChatArea: React.FC = () => {
 	// mark socket as authenticated/ready before DM fetches
 	useSocketEvent(SocketEvents.SOCKET_READY, () => setSocketReady(true));
 
-	// Direct message realtime handler
+	// Direct message realtime handler (capture globally)
 	const onServerDirectMessage = useCallback(
 		(payload: any) => {
-			if (!isDirectMode) return; // ignore if not in DM view
 			if (!payload) return;
-			// Filter messages not involving the target user
-			const targetId = directUserIdParam;
-			if (!targetId) return;
-			const involvesTarget =
-				payload.from?.id === targetId || payload.to?.id === targetId;
-			if (!involvesTarget) return;
+			// Determine other participant id relative to current user
+			const fromId = payload.from?.id || payload.sender?.id;
+			const toId = payload.to?.id;
+			const myId = profile?.id;
+			let otherUserId: string | undefined;
+			if (myId && fromId === myId) otherUserId = toId;
+			else otherUserId = fromId;
+			if (!otherUserId) return;
+
+			const involvesMe = !!myId && (fromId === myId || toId === myId);
+			if (!involvesMe) return; // ignore messages not involving current user
 
 			const serverMsg: any = {
 				id:
@@ -358,41 +362,41 @@ const ChatArea: React.FC = () => {
 				sender: payload.from ?? payload.sender ?? null,
 			};
 
-			setRealtimeMessages((prev) => {
-				const withoutOptimistics = prev.filter((m) => {
-					if (payload.clientTempId && m.id === payload.clientTempId)
-						return false;
-					// Fallback match similar to channel messages
-					if (!payload.clientTempId && m.id?.startsWith?.("temp-")) {
-						const sameSender =
-							m.sender?.id === (payload.from?.id || payload.sender?.id);
-						const sameContent = (m.content || "") === (payload.content || "");
-						if (sameSender && sameContent) return false;
-					}
-					return true;
+			// If currently viewing this DM, update realtime optimistic list
+			if (isDirectMode && directUserIdParam === otherUserId) {
+				setRealtimeMessages((prev) => {
+					const withoutOptimistics = prev.filter((m) => {
+						if (payload.clientTempId && m.id === payload.clientTempId)
+							return false;
+						if (!payload.clientTempId && m.id?.startsWith?.("temp-")) {
+							const sameSender =
+								m.sender?.id === (payload.from?.id || payload.sender?.id);
+							const sameContent = (m.content || "") === (payload.content || "");
+							if (sameSender && sameContent) return false;
+						}
+						return true;
+					});
+					return [...withoutOptimistics, serverMsg];
 				});
-				return [...withoutOptimistics, serverMsg];
-			});
+			}
 
-			queryClient.setQueryData(
-				["direct_messages", directUserIdParam],
-				(old: any) => {
-					const toArray = (o: any) =>
-						Array.isArray(o?.data) ? o.data : Array.isArray(o) ? o : [];
-					const arr = toArray(old);
-					const id = serverMsg.id;
-					const next = [...arr.filter((x: any) => x?.id !== id), serverMsg];
-					next.sort(
-						(a: any, b: any) =>
-							new Date(a.createdAt as any).getTime() -
-							new Date(b.createdAt as any).getTime(),
-					);
-					if (Array.isArray(old)) return next;
-					return { ...old, data: next };
-				},
-			);
+			// Always update cache for that DM partner so latest messages are available when navigating later
+			queryClient.setQueryData(["direct_messages", otherUserId], (old: any) => {
+				const toArray = (o: any) =>
+					Array.isArray(o?.data) ? o.data : Array.isArray(o) ? o : [];
+				const arr = toArray(old);
+				const id = serverMsg.id;
+				const next = [...arr.filter((x: any) => x?.id !== id), serverMsg];
+				next.sort(
+					(a: any, b: any) =>
+						new Date(a.createdAt as any).getTime() -
+						new Date(b.createdAt as any).getTime(),
+				);
+				if (Array.isArray(old)) return next;
+				return { ...old, data: next };
+			});
 		},
-		[isDirectMode, directUserIdParam, queryClient],
+		[profile?.id, isDirectMode, directUserIdParam, queryClient],
 	);
 	useSocketEvent(SocketEvents.DIRECT_MESSAGE, onServerDirectMessage);
 
@@ -1408,7 +1412,7 @@ const ChatArea: React.FC = () => {
 					onAddFriend={async () => {
 						if (!directUserIdParam) return;
 						await sendFriendRequest({
-							receiverId: directUserIdParam,
+							toUserId: directUserIdParam,
 							message: "",
 						});
 						toast.success("Friend request sent");

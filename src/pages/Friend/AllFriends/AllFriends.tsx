@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "@tanstack/react-router";
 import { MoreHorizontal, Star, UserMinus } from "lucide-react";
 import {
 	Title,
@@ -56,6 +57,7 @@ const AllFriends: React.FC<Props> = ({
 	onMenuToggle,
 	onMenuAction,
 }) => {
+	const navigate = useNavigate();
 	const [mutualFriendsCount, setMutualFriendsCount] = useState<
 		Record<string, number>
 	>({});
@@ -136,7 +138,16 @@ const AllFriends: React.FC<Props> = ({
 				style={{ scrollbarWidth: "none" }}
 			>
 				{currentFriends.map((friend) => (
-					<FriendCard key={friend.id}>
+					<FriendCard
+						key={friend.id}
+						onClick={() =>
+							navigate({
+								to: "/chat/user/$userId",
+								params: { userId: friend.id },
+							})
+						}
+						style={{ cursor: "pointer" }}
+					>
 						<CardContent>
 							<CardHeader>
 								<div
@@ -157,24 +168,31 @@ const AllFriends: React.FC<Props> = ({
 								</div>
 
 								<MenuContainer>
-									<MenuButton onClick={(e) => onMenuToggle(friend.id, e)}>
+									<MenuButton
+										onClick={(e) => {
+											e.stopPropagation();
+											onMenuToggle(friend.id, e);
+										}}
+									>
 										<MoreHorizontal size={20} color="#6B7280" />
 									</MenuButton>
 
 									{activeMenu === friend.id && (
 										<MenuDropdown>
 											<MenuItem
-												onClick={() =>
-													onMenuAction("Profile", friend.name, friend.id)
-												}
+												onClick={(e) => {
+													e.stopPropagation();
+													onMenuAction("Profile", friend.name, friend.id);
+												}}
 											>
 												<Star size={18} style={{ marginRight: "12px" }} />
 												<span>Profile</span>
 											</MenuItem>
 											<MenuItem
-												onClick={() =>
-													onMenuAction("Unfriend", friend.name, friend.id)
-												}
+												onClick={(e) => {
+													e.stopPropagation();
+													onMenuAction("Unfriend", friend.name, friend.id);
+												}}
 											>
 												<UserMinus size={18} style={{ marginRight: "12px" }} />
 												<span>Unfriend</span>
