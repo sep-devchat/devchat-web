@@ -1,15 +1,15 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { get, put, post } from "./apiCaller";
+import { get, post, remove, patch } from "./apiCaller";
 
 export interface FriendRequest {
 	id: string;
-	senderId: string;
-	receiverId: string;
-	status: number; // 0-Pending, 1-Accepted, 2-Declined, 3-Cancelled
+	fromUserId: string;
+	toUserId: string;
 	message: string;
+	createdBy: string;
 	createdAt: string;
-	respondedAt: string | null;
-	sender: {
+	updatedAt: string;
+	fromUser: {
 		id: string;
 		username: string;
 		email: string;
@@ -23,7 +23,7 @@ export interface FriendRequest {
 		lastLogin: string | null;
 		timezone: string | null;
 	};
-	receiver: {
+	toUser: {
 		id: string;
 		username: string;
 		email: string;
@@ -40,8 +40,8 @@ export interface FriendRequest {
 }
 
 export interface FriendRequestResponse {
-	data: FriendRequest[];
-	pagination: any;
+	data: FriendRequest;
+	pagination: null;
 	message: string;
 }
 
@@ -51,45 +51,100 @@ export interface ApiResponse<T> {
 	message?: string;
 }
 
-export const listSentFriendRequests = (status: number = 0) => {
-	return get<ApiResponse<FriendRequest[]>>(
-		`/api/user/friend-request/sent?status=${status}`,
+export interface FriendRequestListResponse {
+	data: FriendRequest[];
+	pagination: {
+		page: number;
+		take: number;
+		totalRecord: number;
+		totalPage: number;
+	};
+	message: string;
+}
+
+export interface MutualFriend {
+	id: string;
+	username: string;
+	email: string;
+	firstName: string;
+	lastName: string;
+	avatarUrl: string | null;
+	isActive: boolean;
+	emailVerified: boolean;
+	createdAt: string;
+	updatedAt: string;
+	lastLogin: string | null;
+	timezone: string | null;
+}
+
+export interface MutualFriendsResponse {
+	friends: MutualFriend[];
+	count: number;
+}
+
+export const listAllFriendRequests = (
+	page: number = 1,
+	limit: number = 100,
+	search?: string,
+) => {
+	let url = `/api/friend-request?page=${page}&limit=${limit}`;
+	if (search) {
+		url += `&search=${encodeURIComponent(search)}`;
+	}
+	return get<FriendRequestListResponse>(url);
+};
+
+export const listSentFriendRequests = (search?: string) => {
+	const params = search ? `?search=${encodeURIComponent(search)}` : "";
+	return get<FriendRequestListResponse>(
+		`/api/user/friend-requests/sent${params}`,
 	);
 };
 
-export const listReceivedFriendRequests = (status: number = 0) => {
-	return get<ApiResponse<FriendRequest[]>>(
-		`/api/user/friend-requests/received?status=${status}`,
+export const listReceivedFriendRequests = (search?: string) => {
+	const params = search ? `?search=${encodeURIComponent(search)}` : "";
+	return get<FriendRequestListResponse>(
+		`/api/user/friend-requests/received${params}`,
 	);
 };
 
 export const sendFriendRequest = (data: {
-	receiverId: string;
+	toUserId: string;
 	message: string;
 }) => {
-	return post<any>(`/api/user-friend`, data);
+	return post<FriendRequestResponse>("/api/friend-request", data);
 };
 
-export const updateFriendRequestStatus = (
-	id: string,
-	data: { status: number },
+export const acceptFriendRequest = (friendRequestId: string) => {
+	return patch<any>(`/api/friend-request/${friendRequestId}/accept`);
+};
+
+export const declineFriendRequest = (friendRequestId: string) => {
+	return patch<any>(`/api/friend-request/${friendRequestId}/decline`);
+};
+
+export const deleteFriendRequest = (friendRequestId: string) => {
+	return remove<any>(`/api/friend-request/${friendRequestId}`);
+};
+
+export const unfriendUser = (friendId: string) => {
+	return remove<any>(`/api/friends/${friendId}`);
+};
+
+export const listFriends = (
+	page: number = 1,
+	limit: number = 100,
+	search: string = "",
 ) => {
-	return put<any>(`/api/user-friend/${id}`, data);
-};
-
-export const cancelFriendRequest = (id: string) => {
-	return put<any>(`/api/user-friend/${id}`, { status: 3 });
-};
-
-//wait BE fix
-export const unfriendUser = (id: string) => {
-	return put<any>(`/api/user-friend/${id}`, { status: 4 });
-};
-
-export const listFriends = (page: number = 1, limit: number = 100) => {
-	return get<any>(`/api/user-friend?page=${page}&limit=${limit}`);
+	return get<any>(
+		`/api/friends?page=${page}&limit=${limit}${search ? `&search=${search}` : ""}`,
+	);
 };
 
 export const listInvitationFriend = () => {
 	return get("/api/user-friend/invitation");
+};
+
+export const getMutualFriends = (userId: string) => {
+	return get<MutualFriendsResponse>(`/api/friends/${userId}/mutual`);
 };

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { MoreHorizontal, Star, UserMinus } from "lucide-react";
 import {
 	Title,
@@ -21,6 +21,7 @@ import {
 	PageButton,
 	NoResults,
 } from "../Friend.styled";
+import { getMutualFriends } from "@/services/friendAPI";
 
 interface FriendType {
 	id: string;
@@ -55,6 +56,49 @@ const AllFriends: React.FC<Props> = ({
 	onMenuToggle,
 	onMenuAction,
 }) => {
+	const [mutualFriendsCount, setMutualFriendsCount] = useState<
+		Record<string, number>
+	>({});
+	const [loading, setLoading] = useState(false);
+
+	useEffect(() => {
+		const fetchMutualFriends = async () => {
+			setLoading(true);
+			const counts: Record<string, number> = {};
+
+			try {
+				await Promise.all(
+					allFriends.map(async (friend) => {
+						try {
+							const response = await getMutualFriends(friend.id);
+
+							const mutualCount = response.data.count || 0;
+							counts[friend.id] = mutualCount;
+						} catch (error) {
+							console.error(
+								`Error fetching mutual friends for ${friend.id}:`,
+								error,
+							);
+							counts[friend.id] = 0;
+						}
+					}),
+				);
+
+				setMutualFriendsCount(counts);
+			} catch (error) {
+				console.error("Error fetching mutual friends:", error);
+			} finally {
+				setLoading(false);
+			}
+		};
+
+		if (allFriends.length > 0) {
+			fetchMutualFriends();
+		} else {
+			setLoading(false);
+		}
+	}, [allFriends]);
+
 	const filteredFriends = allFriends.filter((friend) => {
 		const name = (friend.name ?? "").toString().toLowerCase();
 		const handle = (friend.handle ?? "").toString().toLowerCase();
@@ -105,7 +149,9 @@ const AllFriends: React.FC<Props> = ({
 												`${friend.firstName ?? ""} ${friend.lastName ?? ""}`}
 										</FriendName>
 										<MutualFriends>
-											{friend.mutualFriends ?? 0} bạn chung
+											{loading
+												? "Loading..."
+												: `${mutualFriendsCount[friend.id] ?? 0} mutual friends`}
 										</MutualFriends>
 									</FriendInfo>
 								</div>
@@ -119,11 +165,11 @@ const AllFriends: React.FC<Props> = ({
 										<MenuDropdown>
 											<MenuItem
 												onClick={() =>
-													onMenuAction("Yêu thích", friend.name, friend.id)
+													onMenuAction("Profile", friend.name, friend.id)
 												}
 											>
 												<Star size={18} style={{ marginRight: "12px" }} />
-												<span>Yêu thích</span>
+												<span>Profile</span>
 											</MenuItem>
 											<MenuItem
 												onClick={() =>

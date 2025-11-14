@@ -45,6 +45,18 @@ export const NavTab = styled.button<{ active?: boolean }>`
 
 export const Content = styled.div`
 	padding: 24px 20px;
+	flex: 1;
+	overflow-y: auto;
+	height: calc(100vh - 130px);
+	overflow-x: hidden;
+
+	-ms-overflow-style: none;
+
+	&::-webkit-scrollbar {
+		display: none;
+	}
+
+	-webkit-overflow-scrolling: touch;
 `;
 
 export const Title = styled.h2`
