@@ -32,3 +32,8 @@ export const listMessages = (
 export const deleteMessage = (id: string) => {
 	return remove(`/api/message/${id}`);
 };
+
+// Direct Message peers: users you've exchanged direct messages with
+export const listDirectMessagePeers = () => {
+	return get<Profile[]>(`/api/message/direct/peers`);
+};

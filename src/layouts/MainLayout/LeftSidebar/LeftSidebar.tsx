@@ -52,6 +52,8 @@ import {
 	ChannelPostRequest,
 } from "@/services/channelAPI";
 import { ChannelItem } from "@/components/custom/ChannelItem/ChannelItem";
+import { listDirectMessagePeers } from "@/services/messageAPI";
+import { Profile } from "@/services/auth/auth.type";
 
 interface LeftSidebarProps {
 	setSettingSelect: (value: boolean) => void;
@@ -85,7 +87,10 @@ const saveLastChannelForGroup = (groupId: string, channelId: string): void => {
 export const LeftSidebar: React.FC<LeftSidebarProps> = ({
 	setSettingSelect,
 }) => {
-	const params = useParams({ strict: false }) as { groupId?: string };
+	const params = useParams({ strict: false }) as {
+		groupId?: string;
+		userId?: string;
+	};
 	const search = useSearch({ strict: false }) as { channel?: string };
 	const [localGroups, setLocalGroups] = React.useState<any[]>([]);
 	const navigate = useNavigate();
@@ -100,6 +105,8 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
 		? localGroups.find((g) => g.id === params.groupId)
 		: undefined;
 	const [channels, setChannels] = useState<ChannelResponse[]>([]);
+	const [dmPeers, setDmPeers] = useState<Profile[]>([]);
+	const [dmLoading, setDmLoading] = useState<boolean>(false);
 
 	React.useEffect(() => {
 		if (params.groupId && search.channel) {
@@ -115,6 +122,20 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
 			setChannels([]);
 			isFirstFetch.current = true;
 			prevGroupId.current = undefined;
+			// load DM peers when not on group page
+			(async () => {
+				try {
+					setDmLoading(true);
+					const res = await listDirectMessagePeers();
+					const payload = (res as any)?.data ?? (res as any);
+					setDmPeers(Array.isArray(payload) ? payload : []);
+				} catch (err) {
+					console.error("Failed to fetch DM peers:", err);
+					setDmPeers([]);
+				} finally {
+					setDmLoading(false);
+				}
+			})();
 			return;
 		}
 
@@ -350,36 +371,51 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
 				</FriendList>
 			) : (
 				<FriendList>
-					{[
-						{
-							id: "1",
-							name: "Alice Johnson",
-							avatar:
-								"https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face",
-							isOnline: false,
-						},
-						{
-							id: "2",
-							name: "Bob Smith",
-							avatar:
-								"https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face",
-							isOnline: true,
-						},
-						{
-							id: "3",
-							name: "Catherine Zeta",
-							avatar:
-								"https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face",
-							isOnline: true,
-						},
-					].map((f) => (
-						<MemberItem
-							key={f.id}
-							showTooltip={false}
-							member={f}
-							buttonType="more"
-						/>
-					))}
+					{dmLoading ? (
+						<div style={{ padding: "8px", fontSize: 12, color: "#666" }}>
+							Loading conversations…
+						</div>
+					) : dmPeers.length === 0 ? (
+						<div style={{ padding: "8px", fontSize: 12, color: "#666" }}>
+							No direct conversations yet
+						</div>
+					) : (
+						dmPeers.map((p) => {
+							const name =
+								[p.firstName, p.lastName].filter(Boolean).join(" ") ||
+								p.username ||
+								"Unknown";
+							const member = {
+								id: p.id,
+								name,
+								avatar: p.avatarUrl || "",
+								isOnline: false,
+								email: p.email,
+							} as any;
+							const isActive = params.userId === p.id;
+							return (
+								<div
+									key={p.id}
+									onClick={() =>
+										navigate({
+											to: "/chat/user/$userId",
+											params: { userId: p.id },
+										})
+									}
+									style={{
+										cursor: "pointer",
+										background: isActive ? "#f5f5f5" : undefined,
+									}}
+								>
+									<MemberItem
+										showTooltip={false}
+										member={member}
+										buttonType="more"
+									/>
+								</div>
+							);
+						})
+					)}
 				</FriendList>
 			)}
 

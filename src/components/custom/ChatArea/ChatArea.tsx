@@ -12,8 +12,6 @@ import {
 	DateText,
 	DividerWrapper,
 	Line,
-	MessageBubbleStyle,
-	MessageItem,
 	MessagesViewport,
 } from "./ChatArea.styled";
 import { MessageResponse } from "@/services/messageAPI";
@@ -25,7 +23,6 @@ import { RootState } from "@/store";
 import { useSelector } from "react-redux";
 import ChatInput from "../ChatInput/ChatInput";
 import { detailThread } from "@/services/threadAPI";
-import MessageActions from "../MessageActions/MessageActions";
 import { useParams, useSearch } from "@tanstack/react-router";
 import ThreadPreview from "./ThreadPreview";
 import ThreadHeader from "./ThreadHeader";
@@ -35,20 +32,22 @@ import {
 	isSameDay,
 } from "./ChatArea.helpers";
 import {
-	Dialog,
-	DialogClose,
-	DialogContent,
-	DialogDescription,
-	DialogFooter,
-	DialogHeader,
-	DialogTitle,
-} from "@/components/ui/dialog";
-import {
 	ChatInputPayload,
 	InboxType,
 } from "../ChatInputComponent/ChatTypeModal/InboxType";
-import MarkdownPreview from "../MarkdownPreview";
+// (Removed inline MarkdownPreview usage after refactor)
 import ChatAreaLoading from "./ChatAreaLoading";
+import { detailUser, UserResponse } from "@/services/userAPI";
+import {
+	sendFriendRequest,
+	listFriends,
+	unfriendUser,
+} from "@/services/friendAPI";
+import { toast } from "sonner";
+import { DirectMessageHeader } from "./parts/DirectMessageHeader";
+import { MessageRow } from "./parts/MessageRow";
+import { DeleteMessageDialog } from "./parts/DeleteMessageDialog";
+import { ReportUserDialog } from "./parts/ReportUserDialog";
 
 type Thread = {
 	id: string;
@@ -59,118 +58,7 @@ type Thread = {
 	createdBy?: any;
 };
 
-// Memoized MarkdownPreview so row hover or unrelated re-renders don't re-render it
-const MarkdownPreviewMemo = React.memo(MarkdownPreview);
-
-// Memoized row component so parent state updates don't re-render all messages
-type MessageRowProps = {
-	m: MessageResponse;
-	name: string;
-	initials: string;
-	isCurrentUser: boolean;
-	positionClassName: string;
-	showAvatarAndHeader: boolean;
-	// Handlers (memoized in parent)
-	handleEdit: (m: MessageResponse) => void;
-	handleCopy: (m: MessageResponse) => void;
-	handleReport: (m: MessageResponse) => void;
-	handleDelete: (m: MessageResponse) => void;
-	handleReply: (m: MessageResponse) => void;
-	handleReact: (messageId: string, reaction: string) => void;
-	// Reaction picker (lifted state in parent)
-	reactionPickerFor: string | null;
-	setReactionPickerFor: (v: string | null) => void;
-};
-
-const MessageRow: React.FC<MessageRowProps> = React.memo(
-	({
-		m,
-		name,
-		initials,
-		isCurrentUser,
-		positionClassName,
-		showAvatarAndHeader,
-		handleEdit,
-		handleCopy,
-		handleReport,
-		handleDelete,
-		handleReply,
-		handleReact,
-		reactionPickerFor,
-		setReactionPickerFor,
-	}) => {
-		const [hovered, setHovered] = useState(false);
-
-		return (
-			<div
-				className={`group relative w-full`}
-				onMouseEnter={() => setHovered(true)}
-				onMouseLeave={() => setHovered(false)}
-			>
-				<MessageItem className={`flex items-start gap-2 ${positionClassName}`}>
-					{showAvatarAndHeader ? (
-						m.sender?.avatarUrl ? (
-							<img
-								src={m.sender.avatarUrl}
-								alt={name}
-								className="h-8 w-8 rounded-full"
-							/>
-						) : (
-							<div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center text-xs font-medium select-none">
-								{initials || (name[0] ?? "?")}
-							</div>
-						)
-					) : (
-						// spacer to keep alignment when avatar/name are hidden for grouped messages
-						<div className="h-8 w-8" />
-					)}
-
-					<div
-						className={`flex flex-col max-w-[80%]  ${isCurrentUser ? "items-end" : ""}`}
-					>
-						{showAvatarAndHeader && (
-							<div
-								className={`flex gap-4 items-center text-xs text-muted-foreground mb-1 ${isCurrentUser ? "flex-row-reverse" : ""}`}
-							>
-								<span className="font-bold text-sm">{name}</span>
-								<span>{formatMessageTime(m.createdAt)}</span>
-							</div>
-						)}
-						<div
-							className={`flex w-full items-end gap-2 ${isCurrentUser ? "flex-row-reverse" : ""}`}
-						>
-							<MessageBubbleStyle
-								className={`message-bubble w-fit rounded-lg px-3 py-2 text-sm shadow-none ${isCurrentUser ? "me" : "other"} ${(m as any).pending ? "opacity-50" : ""}`}
-								// giữ lại whitespace cho text
-								style={{ whiteSpace: "pre-wrap" }}
-							>
-								<MarkdownPreviewMemo content={m.content || ""} />
-							</MessageBubbleStyle>
-
-							<div className="flex items-end">
-								<MessageActions
-									m={m}
-									// localize hovered state to this row to avoid parent re-render
-									hoveredMessageId={hovered ? m.id : null}
-									setHoveredMessageId={(v) => setHovered(v === m.id)}
-									handleEdit={handleEdit}
-									handleCopy={handleCopy}
-									handleReport={handleReport}
-									handleDelete={handleDelete}
-									handleReply={handleReply}
-									// only the active row sees its id; others get null (stable), minimizing re-renders
-									reactionPickerFor={reactionPickerFor === m.id ? m.id : null}
-									setReactionPickerFor={setReactionPickerFor}
-									handleReact={handleReact}
-								/>
-							</div>
-						</div>
-					</div>
-				</MessageItem>
-			</div>
-		);
-	},
-);
+// MessageRow & DirectMessageHeader extracted to ./parts
 
 const ChatArea: React.FC = () => {
 	const params = useParams({ strict: false }) as {
@@ -201,6 +89,7 @@ const ChatArea: React.FC = () => {
 	const viewportVariant = inboxTypeSelected ?? undefined;
 	const [emitQueue, setEmitQueue] = useState<any[]>([]);
 	const [socketLoading, setSocketLoading] = useState<boolean>(false);
+	const [socketReady, setSocketReady] = useState<boolean>(false);
 	// track the last room we attempted to join to avoid redundant joins
 	const lastJoinKeyRef = useRef<string | null>(null);
 	// moved hovered state to per-row component to avoid whole list re-renders on hover
@@ -213,6 +102,10 @@ const ChatArea: React.FC = () => {
 	const [reactionPickerFor, setReactionPickerFor] = useState<string | null>(
 		null,
 	);
+	// Report user dialog state (DM header)
+	const [reportDialogOpen, setReportDialogOpen] = useState(false);
+	const [reportSubmitting, setReportSubmitting] = useState(false);
+	const [reportReason, setReportReason] = useState("");
 	// Delete confirmation dialog state
 	const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 	const [messagePendingDelete, setMessagePendingDelete] =
@@ -238,6 +131,78 @@ const ChatArea: React.FC = () => {
 	});
 
 	const thread: Thread | null = threadDataResp ?? null;
+
+	// Fetch opponent user info when in Direct Message mode
+	const {
+		data: opponent,
+		isLoading: opponentLoading,
+		isError: opponentError,
+	} = useQuery<UserResponse | null>({
+		queryKey: ["dm_opponent", directUserIdParam],
+		queryFn: async () => {
+			if (!isDirectMode || !directUserIdParam) return null;
+			try {
+				const res = await detailUser(directUserIdParam);
+				return (res as any)?.data ?? (res as any);
+			} catch (e) {
+				return null;
+			}
+		},
+		enabled: !!(isDirectMode && directUserIdParam),
+	});
+
+	// Try to determine friend relationship (best-effort)
+	const { data: friendList } = useQuery<any>({
+		queryKey: ["friends"],
+		queryFn: async () => {
+			try {
+				const res = await listFriends();
+				return (res as any)?.data ?? (res as any);
+			} catch {
+				return [];
+			}
+		},
+		enabled: !!(isDirectMode && directUserIdParam),
+	});
+
+	const isFriend = useMemo(() => {
+		if (!friendList || !Array.isArray(friendList)) return false;
+		const meId = profile?.id;
+		const targetId = directUserIdParam;
+		if (!meId || !targetId) return false;
+		// Heuristic: look for entries where target is either sender/receiver and status looks accepted (1 or "ACCEPTED")
+		return friendList.some((fr: any) => {
+			const sId = fr.senderId || fr.sender?.id;
+			const rId = fr.receiverId || fr.receiver?.id;
+			const accepted =
+				fr.status === 1 || fr.status === "ACCEPTED" || fr.status === "accepted";
+			return (
+				accepted &&
+				((sId === meId && rId === targetId) ||
+					(sId === targetId && rId === meId))
+			);
+		});
+	}, [friendList, profile?.id, directUserIdParam]);
+
+	const friendRelationId = useMemo(() => {
+		if (!friendList || !Array.isArray(friendList))
+			return undefined as string | undefined;
+		const meId = profile?.id;
+		const targetId = directUserIdParam;
+		if (!meId || !targetId) return undefined;
+		const match = friendList.find((fr: any) => {
+			const sId = fr.senderId || fr.sender?.id;
+			const rId = fr.receiverId || fr.receiver?.id;
+			const accepted =
+				fr.status === 1 || fr.status === "ACCEPTED" || fr.status === "accepted";
+			return (
+				accepted &&
+				((sId === meId && rId === targetId) ||
+					(sId === targetId && rId === meId))
+			);
+		});
+		return match?.id as string | undefined;
+	}, [friendList, profile?.id, directUserIdParam]);
 
 	// Subscribe to messages for this room using the query cache as source of truth.
 	// We keep optimistics in realtimeMessages and merge them for rendering.
@@ -366,24 +331,22 @@ const ChatArea: React.FC = () => {
 	);
 
 	useSocketEvent(SocketEvents.MESSAGE, onServerMessage);
+	// mark socket as authenticated/ready before DM fetches
+	useSocketEvent(SocketEvents.SOCKET_READY, () => setSocketReady(true));
 
 	// Direct message realtime handler
 	const onServerDirectMessage = useCallback(
 		(payload: any) => {
 			if (!isDirectMode) return; // ignore if not in DM view
 			if (!payload) return;
-			// Filter messages not involving the target user (basic heuristic: senderId or receiverId matches)
+			// Filter messages not involving the target user
 			const targetId = directUserIdParam;
 			if (!targetId) return;
 			const involvesTarget =
-				payload.senderId === targetId ||
-				payload.receiverId === targetId ||
-				payload.sender?.id === targetId ||
-				payload.receiver?.id === targetId;
+				payload.from?.id === targetId || payload.to?.id === targetId;
 			if (!involvesTarget) return;
 
 			const serverMsg: any = {
-				...payload,
 				id:
 					payload.id ??
 					payload._id ??
@@ -391,6 +354,8 @@ const ChatArea: React.FC = () => {
 					payload.clientTempId ??
 					`dm-${Date.now()}`,
 				createdAt: payload.createdAt ?? new Date().toISOString(),
+				content: payload.content ?? "",
+				sender: payload.from ?? payload.sender ?? null,
 			};
 
 			setRealtimeMessages((prev) => {
@@ -400,8 +365,7 @@ const ChatArea: React.FC = () => {
 					// Fallback match similar to channel messages
 					if (!payload.clientTempId && m.id?.startsWith?.("temp-")) {
 						const sameSender =
-							m.sender?.id === payload.senderId ||
-							m.sender?.id === payload.sender?.id;
+							m.sender?.id === (payload.from?.id || payload.sender?.id);
 						const sameContent = (m.content || "") === (payload.content || "");
 						if (sameSender && sameContent) return false;
 					}
@@ -661,22 +625,15 @@ const ChatArea: React.FC = () => {
 
 	// Fetch direct messages when entering direct mode or target user changes
 	useEffect(() => {
-		if (!isDirectMode || !directUserIdParam) return;
+		if (!isDirectMode || !directUserIdParam || !socketReady) return;
 		if (!socket) {
-			setEmitQueue((q) => [
-				...q,
-				{
-					event: SocketEvents.FETCH_DIRECT_MESSAGES,
-					payload: { userId: directUserIdParam },
-				},
-			]);
 			return;
 		}
 		setSocketLoading(true);
 		try {
 			socket.emit(
 				SocketEvents.FETCH_DIRECT_MESSAGES,
-				{ userId: directUserIdParam },
+				{ targetUserId: directUserIdParam },
 				(resp: any) => {
 					try {
 						if (resp && (resp.error || resp.code)) {
@@ -691,7 +648,13 @@ const ChatArea: React.FC = () => {
 								: Array.isArray(resp?.messages)
 									? resp.messages
 									: [];
-						const items = itemsRaw.slice().sort((a: any, b: any) => {
+						const mapped = itemsRaw.map((dm: any) => ({
+							id: dm.id,
+							content: dm.content ?? "",
+							createdAt: dm.createdAt,
+							sender: dm.from ?? null,
+						}));
+						const items = mapped.slice().sort((a: any, b: any) => {
 							const ta = new Date(a.createdAt).getTime();
 							const tb = new Date(b.createdAt).getTime();
 							return ta - tb;
@@ -712,16 +675,9 @@ const ChatArea: React.FC = () => {
 			);
 		} catch (err) {
 			console.debug("[ChatArea] queue FETCH_DIRECT_MESSAGES due to", err);
-			setEmitQueue((q) => [
-				...q,
-				{
-					event: SocketEvents.FETCH_DIRECT_MESSAGES,
-					payload: { userId: directUserIdParam },
-				},
-			]);
 			setSocketLoading(true);
 		}
-	}, [isDirectMode, directUserIdParam, socket, queryClient]);
+	}, [isDirectMode, directUserIdParam, socket, queryClient, socketReady]);
 
 	// Queue flush & connect handling
 	useEffect(() => {
@@ -938,7 +894,7 @@ const ChatArea: React.FC = () => {
 
 			const baseEmit: any = isDirectMode
 				? {
-						userId: directUserIdParam,
+						toUserId: directUserIdParam,
 					}
 				: {
 						groupId: groupId ?? null,
@@ -976,10 +932,10 @@ const ChatArea: React.FC = () => {
 					queueEmit(ev, p);
 					return Promise.resolve({ queued: true });
 				}
-				if (isDirectMode && !p.userId) {
+				if (isDirectMode && !p.toUserId) {
 					console.warn(
-						"[ChatArea] safeEmit missing userId — queueing instead",
-						{ userId: p.userId },
+						"[ChatArea] safeEmit missing toUserId — queueing instead",
+						{ toUserId: p.toUserId },
 					);
 					queueEmit(ev, p);
 					return Promise.resolve({ queued: true });
@@ -1443,6 +1399,34 @@ const ChatArea: React.FC = () => {
 
 	return (
 		<ChatAreaContainer>
+			{isDirectMode && (
+				<DirectMessageHeader
+					opponent={opponent as any}
+					loading={opponentLoading}
+					error={!!opponentError}
+					isFriend={isFriend}
+					onAddFriend={async () => {
+						if (!directUserIdParam) return;
+						await sendFriendRequest({
+							receiverId: directUserIdParam,
+							message: "",
+						});
+						toast.success("Friend request sent");
+						queryClient.invalidateQueries({ queryKey: ["friends"] });
+					}}
+					onRemoveFriend={async () => {
+						if (!friendRelationId) {
+							toast("Couldn't identify friendship to remove");
+							return;
+						}
+						await unfriendUser(friendRelationId);
+						toast.success("Removed from friends");
+						queryClient.invalidateQueries({ queryKey: ["friends"] });
+					}}
+					onBlock={() => toast("Block user is not available yet")}
+					onOpenReport={() => setReportDialogOpen(true)}
+				/>
+			)}
 			{/* If thread present, show its header */}
 			{threadIdParam && <ThreadHeader thread={thread} />}
 
@@ -1554,6 +1538,7 @@ const ChatArea: React.FC = () => {
 									handleReact={handleReact}
 									reactionPickerFor={reactionPickerFor}
 									setReactionPickerFor={(v) => setReactionPickerFor(v)}
+									formatMessageTime={formatMessageTime}
 								/>
 							</div>
 						);
@@ -1563,41 +1548,34 @@ const ChatArea: React.FC = () => {
 				{/* <div ref={bottomRef} /> */}
 			</MessagesViewport>
 
-			{/* Delete confirmation dialog */}
-			<Dialog
+			<DeleteMessageDialog
 				open={deleteDialogOpen}
+				messageContent={messagePendingDelete?.content || null}
+				submitting={deleteSubmitting}
 				onOpenChange={(open) => {
 					setDeleteDialogOpen(open);
 					if (!open) setMessagePendingDelete(null);
 				}}
-			>
-				<DialogContent>
-					<DialogHeader>
-						<DialogTitle>Delete message?</DialogTitle>
-						<DialogDescription>
-							This action cannot be undone. The message will be permanently
-							removed for everyone in this conversation.
-						</DialogDescription>
-					</DialogHeader>
-					<div className="rounded-md bg-slate-50 border p-3 text-sm text-slate-700 max-h-40 overflow-auto">
-						{messagePendingDelete?.content
-							? messagePendingDelete.content
-							: "(No text content)"}
-					</div>
-					<DialogFooter>
-						<DialogClose className="inline-flex items-center justify-center h-9 rounded-md border px-4 text-sm font-medium bg-white hover:bg-slate-50">
-							Cancel
-						</DialogClose>
-						<button
-							onClick={confirmDelete}
-							disabled={deleteSubmitting}
-							className="inline-flex items-center justify-center h-9 rounded-md px-4 text-sm font-medium bg-red-600 text-white hover:bg-red-700 disabled:opacity-60"
-						>
-							{deleteSubmitting ? "Deleting…" : "Delete"}
-						</button>
-					</DialogFooter>
-				</DialogContent>
-			</Dialog>
+				onConfirm={confirmDelete}
+			/>
+			<ReportUserDialog
+				open={reportDialogOpen}
+				reason={reportReason}
+				submitting={reportSubmitting}
+				onOpenChange={(open) => setReportDialogOpen(open)}
+				onReasonChange={(v) => setReportReason(v)}
+				onSubmit={async () => {
+					try {
+						setReportSubmitting(true);
+						console.debug("Report user", directUserIdParam, reportReason);
+						toast.success("Report submitted");
+						setReportDialogOpen(false);
+						setReportReason("");
+					} finally {
+						setReportSubmitting(false);
+					}
+				}}
+			/>
 
 			<ChatInput
 				setInboxTypeSelected={setInboxTypeSelected}
