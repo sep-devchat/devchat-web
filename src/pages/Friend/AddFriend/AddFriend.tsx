@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Search } from "lucide-react";
 import {
 	SearchContainer,
@@ -14,6 +14,7 @@ import {
 	Title,
 	Subtitle,
 } from "../Friend.styled";
+import { getMutualFriends } from "@/services/friendAPI";
 
 interface User {
 	id: string;
@@ -46,6 +47,44 @@ const AddFriend: React.FC<Props> = ({
 	isSendingRequest,
 	isUserSelectedFromList,
 }) => {
+	const [mutualFriendsCount, setMutualFriendsCount] = useState<
+		Record<string, number>
+	>({});
+	const [loadingMutual, setLoadingMutual] = useState(false);
+
+	useEffect(() => {
+		const fetchMutualFriends = async () => {
+			if (searchResults.length === 0) return;
+			setLoadingMutual(true);
+			const counts: Record<string, number> = {};
+
+			try {
+				await Promise.all(
+					searchResults.map(async (user) => {
+						try {
+							const response = await getMutualFriends(user.id);
+							const count = response.data.count || 0;
+							counts[user.id] = count;
+						} catch (error) {
+							console.error(
+								`Error fetching mutual friends for ${user.id}:`,
+								error,
+							);
+							counts[user.id] = 0;
+						}
+					}),
+				);
+				setMutualFriendsCount(counts);
+			} catch (error) {
+				console.error("Error fetching mutual friends:", error);
+			} finally {
+				setLoadingMutual(false);
+			}
+		};
+
+		fetchMutualFriends();
+	}, [searchResults]);
+
 	return (
 		<>
 			<Title>Let's find and add friends!</Title>
@@ -95,7 +134,11 @@ const AddFriend: React.FC<Props> = ({
 								<UserName>{user.name}</UserName>
 								<UserHandle>{user.handle}</UserHandle>
 							</UserInfo>
-							<MutualFriends>{user.mutualFriends} mutual friends</MutualFriends>
+							<MutualFriends>
+								{loadingMutual
+									? "Loading..."
+									: `${mutualFriendsCount[user.id] ?? 0} mutual friends`}
+							</MutualFriends>
 						</ResultItem>
 					))}
 				</ResultsList>
