@@ -1,5 +1,6 @@
 export const SocketEvents = {
 	MESSAGE: "message",
+	DIRECT_MESSAGE: "direct_message",
 	AUTHENTICATE: "authenticate",
 	AUTHENTICATE_FAILED: "authenticate_failed",
 	SOCKET_READY: "socket_ready",
@@ -9,6 +10,8 @@ export const SocketEvents = {
 	JOIN_ROOM: "join_room",
 	JOINED_ROOM: "joined_room",
 	FETCH_MESSAGES: "fetch_messages",
+	FETCH_DIRECT_MESSAGES: "fetch_direct_messages",
+	SEND_DIRECT_MESSAGE: "send_direct_message",
 	EDIT_MESSAGE: "edit_message",
 	DELETE_MESSAGE: "delete_message",
 	MESSAGE_NOTIFICATION: "message_notification",
