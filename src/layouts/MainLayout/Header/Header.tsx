@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import {
-	// Bell,
 	MessageSquarePlus,
 	NotebookPenIcon,
 	Spool,
@@ -13,6 +12,7 @@ import {
 	NavTabTitle,
 	IconBtn,
 	Tooltip,
+	TabButton,
 } from "./Header.styled";
 import { useNavigate, useParams, useSearch } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
@@ -155,19 +155,13 @@ const Header = ({
 						Friend
 					</NavTabTitle>
 					{actions.map(({ id, title, isPrimary }) => (
-						<Button
+						<TabButton
 							key={id}
-							size="sm"
-							variant={isPrimary || search.tab === id ? "default" : "ghost"}
+							isActive={isPrimary || search.tab === id}
 							onClick={() => handleTabClick(id)}
-							className={
-								isPrimary || search.tab === id
-									? "bg-gray-100 text-white hover:bg-white shadow-none !outline-none focus:!outline-none focus-visible:!ring-0 focus-visible:!ring-offset-0"
-									: "shadow-none !outline-none focus:!outline-none focus-visible:!ring-0 focus-visible:!ring-offset-0"
-							}
 						>
 							{title}
-						</Button>
+						</TabButton>
 					))}
 				</div>
 			)}
@@ -184,29 +178,10 @@ const Header = ({
 							onClick={() => onIconClick("tasks")}
 							onKeyDown={(e) => onIconKeyDown(e, "tasks")}
 							disabled={loading}
-							style={{
-								background: iconSelected === "tasks" ? "#eff6ff" : undefined,
-								color: iconSelected === "tasks" ? "#6366f1" : undefined,
-							}}
 						>
 							<NotebookPenIcon size={20} />
 							<Tooltip visible={hoveredIcon === "tasks"}>Tasks</Tooltip>
 						</IconBtn>
-						{/* <IconBtn
-							aria-label="notifications"
-							onMouseEnter={() => setHoveredIcon("notifications")}
-							onMouseLeave={() =>
-								setHoveredIcon((h) => (h === "notifications" ? null : h))
-							}
-							onClick={() => onIconClick("notifications")}
-							onKeyDown={(e) => onIconKeyDown(e, "notifications")}
-							disabled={loading}
-						>
-							<Bell size={20} />
-							<Tooltip visible={hoveredIcon === "notifications"}>
-								Notifications
-							</Tooltip>
-						</IconBtn> */}
 
 						<IconBtn
 							aria-label="spool"
@@ -217,10 +192,6 @@ const Header = ({
 							onClick={() => onIconClick("spool")}
 							onKeyDown={(e) => onIconKeyDown(e, "spool")}
 							disabled={loading}
-							style={{
-								background: showThreadDropdown ? "#eff6ff" : undefined,
-								color: showThreadDropdown ? "#6366f1" : undefined,
-							}}
 						>
 							<Spool size={20} />
 							<Tooltip visible={hoveredIcon === "spool"}>Threads</Tooltip>
@@ -235,10 +206,6 @@ const Header = ({
 							onClick={() => onIconClick("code")}
 							onKeyDown={(e) => onIconKeyDown(e, "code")}
 							disabled={loading}
-							style={{
-								background: iconSelected === "code" ? "#eff6ff" : undefined,
-								color: iconSelected === "code" ? "#6366f1" : undefined,
-							}}
 						>
 							<SquareCode size={20} />
 							<Tooltip visible={hoveredIcon === "code"}>Code</Tooltip>
@@ -257,12 +224,6 @@ const Header = ({
 							<Users size={20} />
 							<Tooltip visible={hoveredIcon === "users"}>Members</Tooltip>
 						</IconBtn>
-
-						{/* <Input
-							className="shadow-none"
-							placeholder="Search"
-							disabled={loading}
-						/> */}
 
 						{showThreadDropdown && groupId && channelId && (
 							<ThreadList

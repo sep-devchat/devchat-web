@@ -58,6 +58,14 @@ const MainLayout = () => {
 		(showThreadPanel || iconSelected !== "") && iconSelected !== "users";
 
 	useEffect(() => {
+		if (isHalf && iconSelected === "users") {
+			setIconSelected("");
+			setShowThreadPanel(false);
+			setSelectedThreadId("");
+		}
+	}, [isHalf]);
+
+	useEffect(() => {
 		const handleResize = () => setIsHalf(window.innerWidth < 1220);
 		window.addEventListener("resize", handleResize);
 		return () => window.removeEventListener("resize", handleResize);

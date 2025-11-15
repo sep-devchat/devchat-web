@@ -70,3 +70,40 @@ export const NavTabTitle = styled.div`
 	color: #1e2a3b;
 	align-items: center;
 `;
+
+export const TabButton = styled.button<{ isActive?: boolean }>`
+	padding: 6px 12px;
+	border-radius: 6px;
+	border: none;
+	font-size: 16px;
+	font-weight: 600;
+	cursor: pointer;
+	transition: all 0.2s ease;
+	background: ${(p) => (p.isActive ? "#D1DCF0" : "transparent")};
+	color: ${(p) => (p.isActive ? "#0141A1" : "#1A1A1A")};
+
+	&:hover:not(:disabled) {
+		background: ${(p) => (p.isActive ? "#D1DCF0" : "#f1f5f9")};
+		color: ${(p) => (p.isActive ? "#0141A1" : "#475569")};
+	}
+
+	&:focus-visible {
+		outline: 2px solid #0141a1;
+		outline-offset: 2px;
+	}
+
+	&:active:not(:disabled) {
+		background: ${(p) => (p.isActive ? "#D1DCF0" : "#e2e8f0")};
+		color: ${(p) => (p.isActive ? "#0141A1" : "#475569")};
+		transform: scale(0.98);
+	}
+
+	&:disabled {
+		opacity: 0.5;
+		cursor: not-allowed;
+	}
+
+	&:focus {
+		outline: none;
+	}
+`;
