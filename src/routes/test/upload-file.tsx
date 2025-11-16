@@ -169,7 +169,7 @@ function RouteComponent() {
 			if (delivery) setSignedUrl(delivery.url);
 			// Persist metadata
 			setPersisting(true);
-			const ok = await saveDirectUpload(uploadRes);
+			const ok = !!(await saveDirectUpload(uploadRes));
 			setPersisted(ok);
 			setPersisting(false);
 		} catch (e: any) {
