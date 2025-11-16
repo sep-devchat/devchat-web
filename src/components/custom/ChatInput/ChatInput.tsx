@@ -21,6 +21,7 @@ import {
 import {
 	directUploadWithSignature,
 	getUploadSignature,
+	saveDirectUpload,
 } from "@/services/upload/upload.api";
 import ReplyPreview from "../ChatInputComponent/ReplyPreview/ReplyPreview";
 import ChatTypeDropdown from "../ChatInputComponent/ChatTypeModal/ChatTypeModal";
@@ -33,6 +34,7 @@ import CodeEditor from "../CodeEditor";
 import { useSelector } from "react-redux";
 import { type RootState } from "@/store";
 import aiAPI from "@/services/ai/ai.api";
+import { CreateCodeBlockRequest } from "@/services/code-block/code-block.type";
 
 type MentionCandidate = {
 	id: string;
@@ -245,7 +247,9 @@ export default function ChatInput({
 		});
 	}, []);
 
-	async function uploadFileAndGetUrl(file: File): Promise<string | null> {
+	async function uploadFileAndGetUrl(
+		file: File,
+	): Promise<{ url: string; attachmentId: string } | null> {
 		try {
 			const suggestedPublicId = `${file.name.replace(/\s+/g, "_")}_${Date.now()}`;
 			const sig = await getUploadSignature({
@@ -258,7 +262,11 @@ export default function ChatInput({
 				onProgress: () => {},
 				generateDelivery: false,
 			});
-			return uploadRes?.secure_url ?? delivery?.url ?? null;
+			const result = await saveDirectUpload(uploadRes);
+			return {
+				url: uploadRes?.secure_url ?? delivery?.url ?? null,
+				attachmentId: result.data.id,
+			};
 		} catch (err) {
 			console.error("Upload failed", err);
 			return null;
@@ -272,8 +280,13 @@ export default function ChatInput({
 
 			// Capture current typed markdown content first
 			let typedMd = (mdText || "").trim();
+			let codeBlock: CreateCodeBlockRequest | undefined;
 			// If code editor is open and has content, append as fenced block
 			if (showCodeEditor && codeValue.trim().length > 0) {
+				codeBlock = {
+					content: codeValue,
+					language: codeLangRef.current,
+				};
 				const block = buildCodeFence(codeLangRef.current, codeValue);
 				typedMd = [typedMd, block].filter(Boolean).join("\n");
 				setShowCodeEditor(false);
@@ -309,13 +322,16 @@ export default function ChatInput({
 				});
 				const mdParts: string[] = [];
 				if (typedMd.length > 0) mdParts.push(typedMd);
+				const attachmentIds: string[] = [];
 				for (const f of snapshotFiles) {
-					const url = await uploadFileAndGetUrl(f);
-					if (url)
+					const uploadResult = await uploadFileAndGetUrl(f);
+					if (!uploadResult) continue;
+					attachmentIds.push(uploadResult.attachmentId);
+					if (uploadResult.url)
 						mdParts.push(
 							f.type.startsWith("image/")
-								? `![](${url})`
-								: `[${f.name}](${url})`,
+								? `![](${uploadResult.url})`
+								: `[${f.name}](${uploadResult.url})`,
 						);
 					else
 						mdParts.push(
@@ -327,6 +343,8 @@ export default function ChatInput({
 					type: "text",
 					text: combined,
 					clientTempId,
+					attachmentIds,
+					codeBlock,
 				});
 				// If message begins with @provider/requestType, trigger AI ask using created message id
 				try {
@@ -354,7 +372,7 @@ export default function ChatInput({
 			}
 
 			if (typedMd.length === 0) return;
-			const sent = await onSend?.({ type: "text", text: typedMd });
+			const sent = await onSend?.({ type: "text", text: typedMd, codeBlock });
 			// Trigger AI ask if command prefix detected at start
 			try {
 				const aiCmd = typedMd.trim();

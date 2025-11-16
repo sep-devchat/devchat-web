@@ -6,6 +6,7 @@ import {
 	UploadResult,
 	DirectUploadResult,
 	ProgressCallback,
+	AttachmentResponse,
 } from "./upload.type";
 import { post, remove } from "@/services/apiCaller";
 
@@ -158,13 +159,7 @@ export async function saveDirectUpload(
 		asset_folder,
 	};
 	if (opts?.messageId) payload.messageId = opts.messageId;
-	try {
-		await post("/api/upload/save-data", payload);
-		return true;
-	} catch (e) {
-		// Swallow error; caller can decide whether to surface
-		return false;
-	}
+	return await post<AttachmentResponse>("/api/upload/save-data", payload);
 }
 
 // Delete an uploaded asset by publicId (server should delete from storage and metadata)

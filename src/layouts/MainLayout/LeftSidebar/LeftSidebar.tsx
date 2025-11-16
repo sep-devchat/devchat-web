@@ -324,7 +324,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
 				) : (
 					<SearchContainer>
 						<SearchIcon />
-						<SearchInput placeholder="Find or start a conversation" />
+						<SearchInput placeholder="Find conversation" />
 					</SearchContainer>
 				)}
 			</HeaderContainer>

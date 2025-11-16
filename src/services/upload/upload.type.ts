@@ -62,3 +62,19 @@ export interface ProgressCallbackPayload {
 }
 
 export type ProgressCallback = (data: ProgressCallbackPayload) => void;
+
+export interface AttachmentResponse {
+	id: string;
+	messageId: string | null;
+	fileName: string;
+	originalFileName: string;
+	filePath: string;
+	fileSize: number;
+	fileType: string;
+	folder: string;
+	format: string;
+	publicId: string;
+	uploadedBy: string | null;
+	createdAt: string;
+	updatedAt: string;
+}
