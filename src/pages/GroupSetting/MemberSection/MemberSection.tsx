@@ -88,32 +88,29 @@ export default function MemberSection() {
 	});
 
 	// fetch members
-	const fetchData = useCallback(
-		async (p = 1, l = limit) => {
-			if (!groupId) return;
-			try {
-				setLoading(true);
-				const res = await membersGroup(groupId, p, l);
-				const members = res?.data ?? [];
-				setRowData(members);
-				setAllMembersCache(members);
-				if (res?.pagination) {
-					setTotalRow(res.pagination.total ?? members.length);
-				} else {
-					setTotalRow(members.length);
-				}
-			} catch (err) {
-				console.error("fetch members failed", err);
-			} finally {
-				setLoading(false);
+	const fetchData = useCallback(async () => {
+		if (!groupId) return;
+		try {
+			setLoading(true);
+			const res = await membersGroup(groupId);
+			const members = res?.data ?? [];
+			setRowData(members);
+			setAllMembersCache(members);
+			if (res?.pagination) {
+				setTotalRow(res.pagination.total ?? members.length);
+			} else {
+				setTotalRow(members.length);
 			}
-		},
-		[groupId, limit],
-	);
+		} catch (err) {
+			console.error("fetch members failed", err);
+		} finally {
+			setLoading(false);
+		}
+	}, [groupId, limit]);
 
 	useEffect(() => {
-		fetchData(page, limit);
-	}, [fetchData, page, limit]);
+		fetchData();
+	}, [fetchData]);
 
 	// quick client-side search
 	useEffect(() => {
@@ -191,7 +188,7 @@ export default function MemberSection() {
 		try {
 			setLoading(true);
 			await deleteMemberGroup(groupId, selectedRow.id);
-			await fetchData(page, limit);
+			await fetchData();
 			setSelectedRow(null);
 			setOpenDeleteDialog(false);
 		} catch (err) {
@@ -398,7 +395,7 @@ export default function MemberSection() {
 					page={page}
 					onPageChange={(p: number) => {
 						setPage(p);
-						fetchData(p, limit);
+						fetchData();
 					}}
 					totalRows={totalRow}
 					initialPageSize={limit}

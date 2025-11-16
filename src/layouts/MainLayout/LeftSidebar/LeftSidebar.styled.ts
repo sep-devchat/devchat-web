@@ -1,3 +1,4 @@
+import { Input } from "@/components/custom/TablePermission/Modal/Modal.styled";
 import { Plus, Search, Settings as SettingsIcon } from "lucide-react";
 import styled from "styled-components";
 
@@ -14,7 +15,7 @@ export const HeaderContainer = styled.div`
 	align-items: center;
 	justify-content: center;
 	padding: 0.5rem;
-	padding-right: 1rem;
+	// padding-right: 1rem;
 	border-bottom: 1px solid white;
 `;
 
@@ -61,6 +62,19 @@ export const SettingsIconStyled = styled(SettingsIcon)`
 export const SearchContainer = styled.div`
 	position: relative;
 	width: 100%;
+	display: flex;
+	gap: 40px;
+`;
+
+export const SearchIconWrapper = styled.div`
+	position: absolute;
+	left: -3px;
+	top: 50%;
+	transform: translateY(-50%);
+	color: #6b7280;
+	pointer-events: none;
+	display: flex;
+	align-items: center;
 `;
 
 export const SearchIcon = styled(Search)`
@@ -74,10 +88,9 @@ export const SearchIcon = styled(Search)`
 	color: #9ca3af;
 `;
 
-export const SearchInput = styled.input`
+export const SearchInput = styled(Input)<{ prefix?: React.ReactNode }>`
 	width: 100%;
-	padding-left: 2.25rem;
-	padding: 0.5rem 0.75rem;
+	padding: 6px 12px 7px 30px;
 	border-radius: 0.375rem;
 	border: 1px solid rgba(25, 82, 179, 0.21);
 	background: rgba(32, 102, 223, 0.09);

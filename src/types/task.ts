@@ -12,6 +12,9 @@ export interface User {
 	id: string;
 	username: string;
 	email: string;
+	firstName: string;
+	lastName: string;
+	avatarUrl?: string;
 	// Other properties like avatar, etc., would go here.
 }
 

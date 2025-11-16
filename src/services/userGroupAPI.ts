@@ -136,8 +136,8 @@ export const deleteGroupInvitation = (invitationId: string) => {
 	return remove(`/api/group-invitation/${invitationId}`, {});
 };
 
-export const membersGroup = (groupId: string, page: number, limit: number) => {
-	return get(`/api/group/${groupId}/members`, { page, limit });
+export const membersGroup = (groupId: string) => {
+	return get(`/api/group/${groupId}/members`);
 };
 
 export const deleteMemberGroup = (groupId: string, userId: string) => {

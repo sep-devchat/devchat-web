@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { createAsyncThunk, createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { membersGroup } from "@/services/userGroupAPI";
 
@@ -37,9 +38,9 @@ export const fetchGroupMembers = createAsyncThunk(
 		args: { groupId: string; page?: number; limit?: number },
 		{ rejectWithValue },
 	) => {
-		const { groupId, page = 1, limit = 50 } = args;
+		const { groupId } = args;
 		try {
-			const response = await membersGroup(groupId, page, limit);
+			const response = await membersGroup(groupId);
 			const data = (response as any)?.data ?? response;
 			const membersList: any[] = Array.isArray(data)
 				? data

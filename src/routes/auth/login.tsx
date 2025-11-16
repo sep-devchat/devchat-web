@@ -8,6 +8,7 @@ import LoginPage from "@/pages/Login";
 import { useAuth, useSocket } from "@/hooks";
 import cookieUtils from "@/services/cookieUtils";
 import publicRuntimeConfig from "@/config/publicRuntime";
+import { useEffect } from "react";
 
 const loginSearchParamsSchema = z.object({
 	codeChallenge: z.string().optional(),
@@ -51,6 +52,13 @@ function RouteComponent() {
 			window.location.href = `devchat://?code=${responseData.authCode}`;
 		},
 	});
+
+	useEffect(() => {
+		console.log("codeChallenge", codeChallenge);
+		console.log("codeChallengeMethod", codeChallengeMethod);
+		console.log("loginMutation", loginMutation);
+		console.log("loginPkceMutation", loginPkceMutation);
+	}, [codeChallenge, codeChallengeMethod, loginMutation, loginPkceMutation]);
 
 	return (
 		<LoginPage

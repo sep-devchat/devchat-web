@@ -52,6 +52,11 @@ export interface TaskQuery {
 	sortOrder?: "ASC" | "DESC";
 	status?: TaskStatus;
 	assigneeId?: string;
+	priority?: number;
+	dueDate?: string;
+	search?: string;
+	overdue?: boolean | null;
+	unassigned?: boolean | null;
 }
 
 /**

@@ -68,6 +68,9 @@ export const ContentArea = styled.div`
 	padding: 16px;
 	overflow-y: auto;
 	scrollbar-width: thin;
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
 	&::-webkit-scrollbar {
 		width: 8px;
 	}
@@ -147,6 +150,27 @@ export const MetaItem = styled.span`
 	display: flex;
 	align-items: center;
 	gap: 4px;
+`;
+
+export const AvatarImg = styled.img`
+	width: 20px;
+	height: 20px;
+	border-radius: 50%;
+	object-fit: cover;
+	display: inline-block;
+`;
+
+export const AvatarInitials = styled.div`
+	width: 20px;
+	height: 20px;
+	border-radius: 50%;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 12px;
+	font-weight: 600;
+	color: white;
+	background: ${theme.color.primary};
 `;
 
 export const DialogOverlay = styled.div<{ open: boolean }>`
@@ -374,6 +398,67 @@ export const CustomSelect = styled.div<{ $isOpen: boolean }>`
 		background: white;
 		box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
 		transform: translateY(-1px);
+	}
+`;
+
+export const CustomDateInput = styled.input.attrs({ type: "date" })<{
+	$isOpen?: boolean;
+}>`
+	width: 100%;
+	padding: 12px 40px 12px 16px;
+	border: 1.5px solid ${(props) => (props.$isOpen ? "#133e87" : "#e5e7eb")};
+	border-radius: 10px;
+	font-size: 14px;
+	color: #1f2937;
+	background: ${(props) =>
+		props.$isOpen ? "white" : "linear-gradient(to bottom, #ffffff, #f9fafb)"};
+	cursor: pointer;
+	transition: all 0.3s ease;
+	box-shadow: ${(props) =>
+		props.$isOpen
+			? "0 0 0 4px rgba(59, 130, 246, 0.12), 0 4px 6px rgba(0, 0, 0, 0.07)"
+			: "0 1px 3px rgba(0, 0, 0, 0.05)"};
+	user-select: none;
+	font-weight: 300 !important;
+	-webkit-appearance: none;
+	appearance: none;
+
+	/* ensure the native calendar icon doesn't overflow the padding */
+	&::-webkit-calendar-picker-indicator {
+		position: relative;
+		right: 8px;
+		opacity: 0.8;
+		cursor: pointer;
+	}
+
+	&:hover {
+		border-color: #133e87;
+		background: white;
+		box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
+		transform: translateY(-1px);
+	}
+
+	&:focus {
+		outline: none;
+		border-color: #0b4fcc;
+		box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.12);
+		background: white;
+	}
+
+	/* disabled / aria-disabled */
+	&:disabled,
+	&[aria-disabled="true"] {
+		cursor: not-allowed;
+		opacity: 0.6;
+		border-color: #e5e7eb;
+		background: linear-gradient(to bottom, #ffffff, #f9fafb);
+		box-shadow: none;
+		transform: none;
+	}
+
+	/* small devices / long dates handling */
+	&::placeholder {
+		color: #9ca3af;
 	}
 `;
 
@@ -632,7 +717,7 @@ export const HeaderWrapper = styled.div`
 	display: flex;
 	justify-content: space-between;
 	align-items: center;
-	margin-bottom: 24px;
+	margin-bottom: 8px;
 `;
 
 export const SubTitle = styled.h2`
@@ -665,5 +750,135 @@ export const CloseButton = styled.button`
 
 	&:focus {
 		outline: none;
+	}
+`;
+
+// ================== Filter Area ================== //
+
+export const FilterArea = styled.div`
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+	width: 100%;
+`;
+
+export const FilterRow = styled.div`
+	display: flex;
+	gap: 12px;
+	width: 100%;
+`;
+
+export const IconBtn = styled.button`
+	background: transparent;
+	border: none;
+	padding: 6px;
+	border-radius: 6px;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	cursor: pointer;
+	color: inherit;
+	position: relative;
+	transition: background 0.15s ease;
+	&:hover {
+		background: #f3f4f6;
+		outline: none;
+	}
+	&:focus {
+		background: #eff6ff;
+		color: #6366f1;
+		outline: none;
+	}
+`;
+
+export const FilterTags = styled.div`
+	display: flex;
+	gap: 8px;
+	flex-wrap: wrap;
+	align-items: center;
+	margin-left: 8px;
+`;
+
+export const FilterChip = styled.div<{ bg?: string; color?: string }>`
+	background: ${(props) => props.bg || "#eef2ff"};
+	color: ${(props) => props.color || "#4338ca"};
+	padding: 6px 10px;
+	border-radius: 16px;
+	display: inline-flex;
+	gap: 8px;
+	align-items: center;
+	font-size: 13px;
+`;
+
+export const ChipClose = styled.button`
+	background: transparent;
+	border: none;
+	cursor: pointer;
+	padding: 0;
+	color: inherit;
+	font-size: 14px;
+`;
+
+export const NativeSelect = styled.select`
+	width: 100%;
+	padding: 10px;
+	border-radius: 8px;
+	border: 1px solid #e5e7eb;
+`;
+
+export const NativeDateInput = styled.input`
+	width: 100%;
+	padding: 10px;
+	border-radius: 8px;
+	border: 1px solid #e5e7eb;
+`;
+
+export const CheckboxLabel = styled.label`
+	display: inline-flex;
+	gap: 8px;
+	align-items: center;
+`;
+
+export const SearchContainer = styled.div`
+	position: relative;
+	width: 100%;
+	display: flex;
+	gap: 40px;
+`;
+
+export const SearchIconWrapper = styled.div`
+	position: absolute;
+	left: 12px;
+	top: 50%;
+	transform: translateY(-50%);
+	color: #6b7280;
+	pointer-events: none;
+	display: flex;
+	align-items: center;
+`;
+
+export const SearchClearButton = styled.button`
+	border: none;
+	background: transparent;
+	cursor: pointer;
+	padding-left: 8px;
+`;
+
+export const SearchInput = styled(Input)<{ prefix?: React.ReactNode }>`
+	width: 100%;
+	padding-left: 2.25rem;
+	padding: 0.5rem 0.75rem;
+	border-radius: 0.375rem;
+	border: 1px solid rgba(25, 82, 179, 0.21);
+	background: rgba(32, 102, 223, 0.09);
+	box-shadow: none;
+
+	&:focus {
+		outline: none;
+		ring: 1px solid rgba(25, 82, 179, 0.21);
+	}
+
+	&::placeholder {
+		color: #9ca3af;
 	}
 `;

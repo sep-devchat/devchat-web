@@ -243,7 +243,7 @@ export const AccountSettings: React.FC = () => {
 			await deleteUser(String(original.id));
 			fireAlert("success", "Account deleted");
 			setIsDeleteOpen(false);
-			window.location.href = "/"; // or logout route
+			window.location.href = "/auth/login"; // or logout route
 		} catch (err: any) {
 			console.error("delete account failed", err);
 			fireAlert("error", "Failed to delete account");

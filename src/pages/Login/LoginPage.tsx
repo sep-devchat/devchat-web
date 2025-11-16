@@ -32,6 +32,7 @@ import {
 	IconWrapper,
 	GitHubButton,
 } from "./LoginPage.styled";
+import { useAuth } from "@/hooks";
 
 interface LoginPageProps {
 	codeChallenge?: string;
@@ -57,6 +58,8 @@ const LoginPage: React.FC<LoginPageProps> = ({
 		password: "",
 	});
 
+	const { profile } = useAuth();
+
 	const [showPassword, setShowPassword] = useState(false);
 	const [errors, setErrors] = useState<ValidationErrors>({});
 	const [touched, setTouched] = useState<Set<string>>(new Set());
@@ -76,6 +79,7 @@ const LoginPage: React.FC<LoginPageProps> = ({
 			setSuccessMessage("Login successful! Redirecting...");
 			setErrors({});
 		}
+		console.log("profile", profile);
 	}, [loginMutation.error, loginMutation.isSuccess]);
 
 	useEffect(() => {
