@@ -100,7 +100,7 @@ export default function InviteSection() {
 	const fetchGroupMembers = async () => {
 		if (!groupId) return;
 		try {
-			const response = await membersGroup(groupId, 1, 1000);
+			const response = await membersGroup(groupId);
 			const members = response?.data?.data ?? response?.data ?? [];
 			const memberIds = members.map((m: any) => m.id || m.userId);
 			setGroupMembers(memberIds);
