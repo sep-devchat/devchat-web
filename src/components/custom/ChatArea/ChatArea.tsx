@@ -904,6 +904,8 @@ const ChatArea: React.FC = () => {
 						groupId: groupId ?? null,
 						channelId: channelIdParam ?? null,
 						threadId: threadIdParam ?? null,
+						attachmentIds: payload.attachmentIds,
+						codeBlock: payload.codeBlock,
 					};
 
 			const queueEmit = (eventName: string, payloadToSend: any) => {
