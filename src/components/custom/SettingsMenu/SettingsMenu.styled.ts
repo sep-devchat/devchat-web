@@ -236,7 +236,7 @@ export const Header = styled.div`
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
-	padding: 5px 18px;
+	padding: 12px 18px;
 	flex-shrink: 0;
 `;
 

@@ -109,9 +109,7 @@ export const SettingsMenu: React.FC<SettingsMenuProps> = ({
 			<Header>
 				<NotificationButton></NotificationButton>
 				<Title>Setting</Title>
-				<NotificationButton>
-					<Bell size={16} />
-				</NotificationButton>
+				<NotificationButton>{/* <Bell size={16} /> */}</NotificationButton>
 			</Header>
 			<SettingRows>
 				{/* <NavigatorIcon>

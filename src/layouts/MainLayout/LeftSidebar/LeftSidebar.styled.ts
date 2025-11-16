@@ -68,28 +68,37 @@ export const SearchIcon = styled(Search)`
 	position: absolute;
 	left: 0.75rem;
 	top: 50%;
+	transform: translateY(-50%);
 	height: 1rem;
 	width: 1rem;
-	transform: translateY(-50%);
 	color: #9ca3af;
+	z-index: 1;
 `;
 
 export const SearchInput = styled.input`
 	width: 100%;
-	padding-left: 2.25rem;
-	padding: 0.5rem 0.75rem;
+	padding: 0.5rem 0.75rem 0.5rem 2.25rem;
 	border-radius: 0.375rem;
 	border: 1px solid rgba(25, 82, 179, 0.21);
 	background: rgba(32, 102, 223, 0.09);
-	box-shadow: none;
+	font-size: 0.875rem;
+	color: #1f2937;
+	transition: all 0.2s ease;
 
 	&:focus {
 		outline: none;
-		ring: 1px solid rgba(25, 82, 179, 0.21);
+		border-color: rgba(25, 82, 179, 0.4);
+		background: rgba(32, 102, 223, 0.12);
+		box-shadow: 0 0 0 3px rgba(32, 102, 223, 0.1);
 	}
 
 	&::placeholder {
 		color: #9ca3af;
+		font-size: 0.875rem;
+	}
+
+	&:hover:not(:focus) {
+		border-color: rgba(25, 82, 179, 0.3);
 	}
 `;
 
