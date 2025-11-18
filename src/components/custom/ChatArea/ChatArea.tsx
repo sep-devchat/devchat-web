@@ -42,6 +42,9 @@ import {
 	sendFriendRequest,
 	listFriends,
 	unfriendUser,
+	listAllFriendRequests,
+	acceptFriendRequest,
+	declineFriendRequest,
 } from "@/services/friendAPI";
 import { toast } from "sonner";
 import { DirectMessageHeader } from "./parts/DirectMessageHeader";
@@ -78,6 +81,7 @@ const ChatArea: React.FC = () => {
 	const [realtimeMessages, setRealtimeMessages] = useState<MessageResponse[]>(
 		[],
 	);
+	const [friendRequestId, setFriendRequestId] = useState<string | null>(null);
 
 	const listRef = useRef<HTMLDivElement | null>(null);
 	const bottomRef = useRef<HTMLDivElement | null>(null);
@@ -165,44 +169,51 @@ const ChatArea: React.FC = () => {
 		enabled: !!(isDirectMode && directUserIdParam),
 	});
 
+	const { data: friendRequests } = useQuery<any>({
+		queryKey: ["friend_requests"],
+		queryFn: async () => {
+			try {
+				const res = await listAllFriendRequests();
+				return (res as any)?.data ?? (res as any);
+			} catch {
+				return [];
+			}
+		},
+		enabled: !!(isDirectMode && directUserIdParam),
+	});
+
 	const isFriend = useMemo(() => {
 		if (!friendList || !Array.isArray(friendList)) return false;
 		const meId = profile?.id;
 		const targetId = directUserIdParam;
 		if (!meId || !targetId) return false;
-		// Heuristic: look for entries where target is either sender/receiver and status looks accepted (1 or "ACCEPTED")
 		return friendList.some((fr: any) => {
-			const sId = fr.senderId || fr.sender?.id;
-			const rId = fr.receiverId || fr.receiver?.id;
-			const accepted =
-				fr.status === 1 || fr.status === "ACCEPTED" || fr.status === "accepted";
-			return (
-				accepted &&
-				((sId === meId && rId === targetId) ||
-					(sId === targetId && rId === meId))
-			);
+			return fr.id === directUserIdParam;
 		});
-	}, [friendList, profile?.id, directUserIdParam]);
+	}, [friendList, profile?.id, directUserIdParam, friendRequestId]);
 
-	const friendRelationId = useMemo(() => {
-		if (!friendList || !Array.isArray(friendList))
-			return undefined as string | undefined;
-		const meId = profile?.id;
+	const isPending = useMemo(() => {
+		if (!friendRequests || !Array.isArray(friendRequests)) return false;
 		const targetId = directUserIdParam;
-		if (!meId || !targetId) return undefined;
-		const match = friendList.find((fr: any) => {
-			const sId = fr.senderId || fr.sender?.id;
-			const rId = fr.receiverId || fr.receiver?.id;
-			const accepted =
-				fr.status === 1 || fr.status === "ACCEPTED" || fr.status === "accepted";
-			return (
-				accepted &&
-				((sId === meId && rId === targetId) ||
-					(sId === targetId && rId === meId))
-			);
+		const meId = profile?.id;
+		if (!targetId || !meId) return false;
+		return friendRequests.some((fr: any) => {
+			return fr.fromUserId === meId && fr.toUserId === targetId;
 		});
-		return match?.id as string | undefined;
-	}, [friendList, profile?.id, directUserIdParam]);
+	}, [friendRequests, directUserIdParam, profile?.id, friendRequestId]);
+
+	const isInvite = useMemo(() => {
+		if (!friendRequests || !Array.isArray(friendRequests)) return false;
+		const targetId = directUserIdParam;
+		const meId = profile?.id;
+		if (!targetId || !meId) return false;
+		return friendRequests.some((fr: any) => {
+			if (fr.fromUserId === targetId && fr.toUserId === meId) {
+				setFriendRequestId(fr.id);
+			}
+			return fr.fromUserId === targetId && fr.toUserId === meId;
+		});
+	}, [friendRequests, directUserIdParam, profile?.id, friendRequestId]);
 
 	// Subscribe to messages for this room using the query cache as source of truth.
 	// We keep optimistics in realtimeMessages and merge them for rendering.
@@ -1413,6 +1424,20 @@ const ChatArea: React.FC = () => {
 					loading={opponentLoading}
 					error={!!opponentError}
 					isFriend={isFriend}
+					isPending={isPending}
+					isInvite={isInvite}
+					onAcceptInvite={async () => {
+						if (!friendRequestId) return;
+						await acceptFriendRequest(friendRequestId);
+						toast.success("Friend invite accepted");
+						queryClient.invalidateQueries({ queryKey: ["friends"] });
+					}}
+					onDenyInvite={async () => {
+						if (!friendRequestId) return;
+						await declineFriendRequest(friendRequestId);
+						toast.success("Friend invite denied");
+						queryClient.invalidateQueries({ queryKey: ["friends"] });
+					}}
 					onAddFriend={async () => {
 						if (!directUserIdParam) return;
 						await sendFriendRequest({
@@ -1423,11 +1448,11 @@ const ChatArea: React.FC = () => {
 						queryClient.invalidateQueries({ queryKey: ["friends"] });
 					}}
 					onRemoveFriend={async () => {
-						if (!friendRelationId) {
+						if (!isFriend) {
 							toast("Couldn't identify friendship to remove");
 							return;
 						}
-						await unfriendUser(friendRelationId);
+						await unfriendUser(directUserIdParam!);
 						toast.success("Removed from friends");
 						queryClient.invalidateQueries({ queryKey: ["friends"] });
 					}}
