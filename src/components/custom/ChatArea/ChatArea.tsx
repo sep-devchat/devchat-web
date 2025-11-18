@@ -899,6 +899,8 @@ const ChatArea: React.FC = () => {
 			const baseEmit: any = isDirectMode
 				? {
 						toUserId: directUserIdParam,
+						attachmentIds: payload.attachmentIds,
+						codeBlock: payload.codeBlock,
 					}
 				: {
 						groupId: groupId ?? null,
