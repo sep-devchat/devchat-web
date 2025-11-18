@@ -58,7 +58,12 @@ const MainLayout = () => {
 		(showThreadPanel || iconSelected !== "") && iconSelected !== "users";
 
 	useEffect(() => {
-		if (isHalf && iconSelected === "users") {
+		if (
+			isHalf &&
+			(iconSelected === "users" ||
+				iconSelected === "code" ||
+				iconSelected === "tasks")
+		) {
 			setIconSelected("");
 			setShowThreadPanel(false);
 			setSelectedThreadId("");
