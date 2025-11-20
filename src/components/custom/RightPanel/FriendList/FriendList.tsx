@@ -105,7 +105,7 @@ export default function FriendList() {
 				</CPHeaderLeft>
 				<CPHeaderRight>
 					<CPHeaderIcon onClick={toggleSearch}>
-						{showSearch ? <X size={18} /> : <Search size={18} />}
+						{showSearch ? <X size={20} /> : <Search size={20} />}
 					</CPHeaderIcon>
 				</CPHeaderRight>
 			</CPHeader>
