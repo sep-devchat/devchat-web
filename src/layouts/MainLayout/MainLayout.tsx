@@ -5,16 +5,15 @@ import {
 	CenterPanel,
 	MainLayoutContainer,
 	ContentWrapper,
-	LeftSection,
 	RightSection,
 	OutletContainer,
 	BottomSpacer,
 	RightPanelWrapper,
+	LeftSection,
 } from "./MainLayout.styled";
 import TitleBar from "./TitleBar/TitleBar";
 import { User } from "lucide-react";
 import GroupSidebar from "./GroupSidebar";
-import Profile from "./Profile";
 import AuthLayout from "../AuthLayout";
 import { useEffect, useState } from "react";
 import ThreadPanel from "@/components/custom/RightPanel/ThreadPanel/ThreadPanel";
@@ -26,7 +25,6 @@ import { LeftSidebar } from "./LeftSidebar/LeftSidebar";
 import TodoFloatingManager from "@/components/custom/ResizableFloatingWindow/TodoFloatingManager/TodoFloatingManager";
 import { detailGroup, GroupResponse, listGroups } from "@/services/groupAPI";
 import { theme } from "@/themes";
-import { ResizableHandle } from "@/components/ui/resizable";
 import TaskGroup from "@/components/custom/RightPanel/TaskGroup/TaskGroup";
 import FriendList from "@/components/custom/RightPanel/FriendList/FriendList";
 import { useSelector } from "react-redux";
@@ -214,13 +212,13 @@ const MainLayout = () => {
 				return <CodeList onClose={handleCloseCodePanel} />;
 			case "users":
 				return groupId ? (
-					<MemberList onClose={handleClosePanel} />
+					<MemberList onClose={isHalf ? handleClosePanel : undefined} />
 				) : (
 					<FriendList />
 				);
 			default:
 				if (groupId && !isHalf) {
-					return <MemberList onClose={handleClosePanel} />;
+					return <MemberList />;
 				}
 				return isHalf ? null : <FriendList />;
 		}
@@ -235,16 +233,11 @@ const MainLayout = () => {
 				<MainLayoutContainer>
 					<TitleBar title="DevChat" icon={<User />} />
 					<ContentWrapper direction="horizontal">
-						<LeftSection
-							defaultSize={isHalf ? 25 : 20}
-							collapsible
-							minSize={isHalf ? 30 : 15}
-							maxSize={isHalf ? 35 : 25}
-						>
+						<LeftSection $isHalf={isHalf}>
 							<GroupSidebar />
 							<LeftSidebar setSettingSelect={setSettingSelect} />
 						</LeftSection>
-						<ResizableHandle />
+
 						<RightSection
 							defaultSize={100}
 							style={{ marginRight: isHalf ? "16px" : "0" }}
@@ -270,7 +263,6 @@ const MainLayout = () => {
 							</RightPanelWrapper>
 						</RightSection>
 					</ContentWrapper>
-					<Profile />
 					<BottomSpacer />
 				</MainLayoutContainer>
 			) : (

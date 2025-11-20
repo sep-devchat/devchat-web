@@ -162,11 +162,13 @@ export const SettingsMenu: React.FC<SettingsMenuProps> = ({
 				</Sidebar>
 
 				<MainContent>
-					<ContentWrapper ref={contentWrapperRef}>{children}</ContentWrapper>
+					<ContentWrapper ref={contentWrapperRef}>
+						<LogoSection>
+							<CircleX size={35} onClick={handleReturn} />
+						</LogoSection>
+						{children}
+					</ContentWrapper>
 				</MainContent>
-				<LogoSection>
-					<CircleX size={35} onClick={handleReturn} />
-				</LogoSection>
 			</SettingRows>
 		</SettingsContainer>
 	);

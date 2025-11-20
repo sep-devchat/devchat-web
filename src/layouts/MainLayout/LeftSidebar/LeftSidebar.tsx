@@ -39,6 +39,7 @@ import {
 	SectionHeader,
 	SectionTitle,
 	AddButton,
+	ProfileWrapper,
 } from "./LeftSidebar.styled";
 import { useNavigate, useParams, useSearch } from "@tanstack/react-router";
 import { useState } from "react";
@@ -54,7 +55,7 @@ import {
 import { ChannelItem } from "@/components/custom/ChannelItem/ChannelItem";
 import { listDirectMessagePeers } from "@/services/messageAPI";
 import { Profile } from "@/services/auth/auth.type";
-
+import ProfileSection from "../Profile";
 interface LeftSidebarProps {
 	setSettingSelect: (value: boolean) => void;
 }
@@ -418,6 +419,10 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
 					)}
 				</FriendList>
 			)}
+
+			<ProfileWrapper>
+				<ProfileSection />
+			</ProfileWrapper>
 
 			{isModalOpen && (
 				<ModalOverlay onClick={handleCloseModal}>

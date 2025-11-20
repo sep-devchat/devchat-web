@@ -11,7 +11,7 @@ import { ListTodo, Settings } from "lucide-react";
 import { RootState } from "@/store";
 import { Link } from "@tanstack/react-router";
 
-const Profile = () => {
+const ProfileSection = () => {
 	const profile = useSelector((state: RootState) => state.user.profile);
 	return (
 		<ProfileContainer>
@@ -50,4 +50,4 @@ const Profile = () => {
 	);
 };
 
-export default Profile;
+export default ProfileSection;

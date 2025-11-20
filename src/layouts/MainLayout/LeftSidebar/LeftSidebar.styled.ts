@@ -6,8 +6,11 @@ export const LeftSidebarContainer = styled.div`
 	display: flex;
 	flex-direction: column;
 	width: 100%;
+	height: 100%;
 	background: rgba(255, 255, 255, 0.3);
 	border-radius: 10px 0 0 10px;
+	overflow: hidden;
+	gap: 12px;
 `;
 
 export const HeaderContainer = styled.div`
@@ -15,8 +18,8 @@ export const HeaderContainer = styled.div`
 	align-items: center;
 	justify-content: center;
 	padding: 0.5rem;
-	// padding-right: 1rem;
 	border-bottom: 1px solid white;
+	flex-shrink: 0;
 `;
 
 export const GroupHeader = styled.div`
@@ -91,7 +94,6 @@ export const SearchIcon = styled(Search)`
 
 export const SearchInput = styled(Input)<{ prefix?: React.ReactNode }>`
 	width: 100%;
-	// padding: 6px 12px 7px 30px;
 	padding: 0.5rem 0.75rem 0.5rem 2.25rem;
 	border-radius: 0.375rem;
 	border: 1px solid rgba(25, 82, 179, 0.21);
@@ -122,6 +124,7 @@ export const SectionHeader = styled.div`
 	padding: 0.5rem;
 	justify-content: space-between;
 	align-items: center;
+	flex-shrink: 0;
 `;
 
 export const SectionTitle = styled.h3`
@@ -152,6 +155,27 @@ export const FriendList = styled.ul`
 	display: flex;
 	flex-direction: column;
 	gap: 6px;
+	flex: 1;
+	overflow-y: auto;
+	min-height: 0;
+
+	/* Custom scrollbar */
+	&::-webkit-scrollbar {
+		width: 6px;
+	}
+
+	&::-webkit-scrollbar-track {
+		background: transparent;
+	}
+
+	&::-webkit-scrollbar-thumb {
+		background: rgba(0, 0, 0, 0.2);
+		border-radius: 3px;
+	}
+
+	&::-webkit-scrollbar-thumb:hover {
+		background: rgba(0, 0, 0, 0.3);
+	}
 `;
 
 export const ModalOverlay = styled.div`
@@ -399,4 +423,11 @@ export const ButtonModal = styled.button<{
 	&:focus {
 		outline: none;
 	}
+`;
+
+export const ProfileWrapper = styled.div`
+	margin-top: auto;
+	padding-top: 12px;
+	flex-shrink: 0;
+	padding: 16px;
 `;

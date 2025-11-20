@@ -137,7 +137,7 @@ export default function MemberList({ onClose }: MemberListProps) {
 			<PageWrapper>
 				<CPHeader>
 					<CPHeaderLeft>
-						<CPTitle>{isSearchMode ? "Tìm kiếm" : "Member List"}</CPTitle>
+						<CPTitle>{isSearchMode ? "Tìm kiếm" : ""}</CPTitle>
 					</CPHeaderLeft>
 					<CPHeaderRight>
 						{!isSearchMode && (
@@ -175,7 +175,7 @@ export default function MemberList({ onClose }: MemberListProps) {
 			<PageWrapper>
 				<CPHeader>
 					<CPHeaderLeft>
-						<CPTitle>{isSearchMode ? "Tìm kiếm" : "Member List"}</CPTitle>
+						<CPTitle>{isSearchMode ? "Tìm kiếm" : ""}</CPTitle>
 					</CPHeaderLeft>
 					<CPHeaderRight>
 						{!isSearchMode && (
@@ -213,7 +213,7 @@ export default function MemberList({ onClose }: MemberListProps) {
 			<PageWrapper>
 				<CPHeader>
 					<CPHeaderLeft>
-						<CPTitle>{isSearchMode ? "Tìm kiếm" : "Member List"}</CPTitle>
+						<CPTitle>{isSearchMode ? "Tìm kiếm" : ""}</CPTitle>
 					</CPHeaderLeft>
 					<CPHeaderRight>
 						{!isSearchMode && (
@@ -260,7 +260,7 @@ export default function MemberList({ onClose }: MemberListProps) {
 							ariaLabel="Back"
 						/>
 					)}
-					<CPTitle>{isSearchMode ? "Tìm kiếm" : "Member List"}</CPTitle>
+					<CPTitle>{isSearchMode ? "Tìm kiếm" : ""}</CPTitle>
 				</CPHeaderLeft>
 				<CPHeaderRight>
 					{!isSearchMode && (

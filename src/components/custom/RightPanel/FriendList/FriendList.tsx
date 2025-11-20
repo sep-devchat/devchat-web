@@ -2,8 +2,9 @@ import { useEffect, useState } from "react";
 import MemberItem from "../../MemberItem/MemberItem";
 import {
 	CPHeader,
+	CPHeaderIcon,
 	CPHeaderLeft,
-	CPTitle,
+	CPHeaderRight,
 	MemberContent,
 	MemberCount,
 	MemberSection,
@@ -11,8 +12,11 @@ import {
 	PageWrapper,
 	SectionHeader,
 	SectionTitle,
+	SearchContainer,
+	SearchInput,
 } from "./FriendList.styled";
 import { listFriends } from "@/services/friendAPI";
+import { Search, X } from "lucide-react";
 
 interface Member {
 	id: string;
@@ -24,13 +28,14 @@ interface Member {
 export default function FriendList() {
 	const [friends, setFriends] = useState<Member[]>([]);
 	const [loading, setLoading] = useState(true);
+	const [showSearch, setShowSearch] = useState(false);
+	const [searchQuery, setSearchQuery] = useState("");
 
 	const fetchFriends = async () => {
 		try {
 			setLoading(true);
 			const response = await listFriends(1, 100);
 			const friendsData = response.data || [];
-
 			const friendsWithStatus: Member[] = friendsData.map((friend: any) => ({
 				id: friend.id,
 				name: `${friend.firstName} ${friend.lastName}`,
@@ -39,7 +44,6 @@ export default function FriendList() {
 					"https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face",
 				isOnline: Math.random() > 0.5,
 			}));
-
 			setFriends(friendsWithStatus);
 		} catch (error) {
 			console.error("Error fetching friends:", error);
@@ -49,6 +53,7 @@ export default function FriendList() {
 	};
 
 	useEffect(() => {
+		console.log("Fetching friend list...", loading);
 		fetchFriends();
 	}, []);
 
@@ -57,9 +62,7 @@ export default function FriendList() {
 			console.log("Friend list update event received, refetching...");
 			fetchFriends();
 		};
-
 		window.addEventListener("friendListUpdated", handleFriendListUpdate);
-
 		return () => {
 			window.removeEventListener("friendListUpdated", handleFriendListUpdate);
 		};
@@ -73,43 +76,56 @@ export default function FriendList() {
 		console.log(`Button clicked for member ${memberId}`);
 	};
 
-	if (loading) {
-		return (
-			<PageWrapper>
-				<CPHeader>
-					<CPHeaderLeft>
-						<CPTitle>Friend List</CPTitle>
-					</CPHeaderLeft>
-				</CPHeader>
-				<MemberContent>
-					<div style={{ padding: "20px", textAlign: "center" }}>Loading...</div>
-				</MemberContent>
-			</PageWrapper>
-		);
-	}
+	const toggleSearch = () => {
+		setShowSearch(!showSearch);
+		if (showSearch) {
+			setSearchQuery("");
+		}
+	};
+
+	const filteredFriends = friends.filter((friend) =>
+		friend.name.toLowerCase().includes(searchQuery.toLowerCase()),
+	);
 
 	return (
 		<PageWrapper>
 			<CPHeader>
 				<CPHeaderLeft>
-					<CPTitle>Friend List</CPTitle>
+					{showSearch && (
+						<SearchContainer>
+							<SearchInput
+								type="text"
+								placeholder="Search friends..."
+								value={searchQuery}
+								onChange={(e) => setSearchQuery(e.target.value)}
+								autoFocus
+							/>
+						</SearchContainer>
+					)}
 				</CPHeaderLeft>
+				<CPHeaderRight>
+					<CPHeaderIcon onClick={toggleSearch}>
+						{showSearch ? <X size={18} /> : <Search size={18} />}
+					</CPHeaderIcon>
+				</CPHeaderRight>
 			</CPHeader>
 			<MemberContent>
 				<MemberSection>
 					<SectionHeader>
-						<SectionTitle>All Friends</SectionTitle>
-						<MemberCount>{friends.length}</MemberCount>
+						<SectionTitle>
+							{searchQuery ? "Search Results" : "All Friends"}
+						</SectionTitle>
+						<MemberCount>{filteredFriends.length}</MemberCount>
 					</SectionHeader>
 					<MembersList>
-						{friends.length === 0 ? (
+						{filteredFriends.length === 0 ? (
 							<div
 								style={{ padding: "20px", textAlign: "center", color: "#888" }}
 							>
-								No friends yet
+								{searchQuery ? "No friends found" : "No friends yet"}
 							</div>
 						) : (
-							friends.map((friend) => (
+							filteredFriends.map((friend) => (
 								<MemberItem
 									key={friend.id}
 									member={friend}
