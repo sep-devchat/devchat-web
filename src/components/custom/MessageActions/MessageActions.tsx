@@ -34,9 +34,6 @@ const MessageActions: React.FC<MessageActionsProps> = ({
 	handleReport,
 	handleDelete,
 	handleReply,
-	reactionPickerFor,
-	setReactionPickerFor,
-	handleReact,
 }) => {
 	return (
 		<div
@@ -88,15 +85,17 @@ const MessageActions: React.FC<MessageActionsProps> = ({
 						Copy
 					</DropdownMenuItem>
 
-					<DropdownMenuItem
-						onSelect={() => {
-							handleReport(m);
-							setHoveredMessageId(null);
-						}}
-						className="px-3 py-2 cursor-pointer"
-					>
-						Report
-					</DropdownMenuItem>
+					{!isCurrentUser && (
+						<DropdownMenuItem
+							onSelect={() => {
+								handleReport(m);
+								setHoveredMessageId(null);
+							}}
+							className="px-3 py-2 cursor-pointer"
+						>
+							Report
+						</DropdownMenuItem>
+					)}
 
 					{isCurrentUser && (
 						<>
@@ -129,7 +128,7 @@ const MessageActions: React.FC<MessageActionsProps> = ({
 				↩
 			</button>
 
-			<div className="relative">
+			{/* <div className="relative">
 				<button
 					className="text-sm px-2 py-1 rounded hover:bg-muted"
 					onClick={(e) => {
@@ -157,7 +156,7 @@ const MessageActions: React.FC<MessageActionsProps> = ({
 						))}
 					</div>
 				)}
-			</div>
+			</div> */}
 		</div>
 	);
 };

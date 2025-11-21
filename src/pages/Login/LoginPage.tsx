@@ -213,11 +213,7 @@ const LoginPage: React.FC<LoginPageProps> = ({
 			<ContentContainer>
 				<LoginCard>
 					<WelcomeTitle>Welcome Back!</WelcomeTitle>
-					<WelcomeSubtitle>
-						Today is a new day. It's your day. You shape it.
-						<br />
-						Sign in to start managing your projects.
-					</WelcomeSubtitle>
+					<WelcomeSubtitle>Sign in to DevChat.</WelcomeSubtitle>
 
 					{errors.general && (
 						<div
@@ -258,7 +254,7 @@ const LoginPage: React.FC<LoginPageProps> = ({
 						<Input
 							id="email"
 							type="email"
-							placeholder="Example@email.com"
+							placeholder="Username or Email"
 							value={loginData.usernameOrEmail}
 							onChange={(e) =>
 								handleInputChange("usernameOrEmail", e.target.value)
@@ -297,7 +293,7 @@ const LoginPage: React.FC<LoginPageProps> = ({
 							<Input
 								id="password"
 								type={showPassword ? "text" : "password"}
-								placeholder="At least 8 characters"
+								placeholder="Password"
 								value={loginData.password}
 								onChange={(e) => handleInputChange("password", e.target.value)}
 								onBlur={() =>

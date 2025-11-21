@@ -586,9 +586,9 @@ const RegisterPage: React.FC<RegisterPageProps> = ({
 				<ImageSection backgroundImage={testImage} />
 
 				<RegisterCard>
-					<WelcomeTitle>Register Individual Account!</WelcomeTitle>
+					<WelcomeTitle>Register</WelcomeTitle>
 					<WelcomeSubtitle>
-						For the purpose of industry regulation, your details are required.
+						Please fill in the form to create an account.
 					</WelcomeSubtitle>
 
 					{errors.general && (
@@ -627,7 +627,7 @@ const RegisterPage: React.FC<RegisterPageProps> = ({
 
 					<FormRow>
 						<FormGroup>
-							<Label htmlFor="username">Your username</Label>
+							<Label htmlFor="username">Username</Label>
 							<Input
 								id="username"
 								type="text"
@@ -665,7 +665,7 @@ const RegisterPage: React.FC<RegisterPageProps> = ({
 							<Input
 								id="firstName"
 								type="text"
-								placeholder="Firstname"
+								placeholder="First name"
 								value={registerData.firstName}
 								onChange={(e) => handleInputChange("firstName", e.target.value)}
 								onBlur={() =>
@@ -762,7 +762,7 @@ const RegisterPage: React.FC<RegisterPageProps> = ({
 								<Input
 									id="password"
 									type={showPassword ? "text" : "password"}
-									placeholder="At least 8 chars, 1 upper, 1 lower, 1 number, 1 symbol"
+									placeholder="A strong password"
 									value={registerData.password}
 									onChange={(e) =>
 										handleInputChange("password", e.target.value)
