@@ -21,6 +21,7 @@ type MessageActionsProps = {
 	reactionPickerFor: string | null;
 	setReactionPickerFor: (v: string | null) => void;
 	handleReact: (messageId: string, reaction: string) => void;
+	isCurrentUser: boolean;
 };
 
 const MessageActions: React.FC<MessageActionsProps> = ({
@@ -28,6 +29,7 @@ const MessageActions: React.FC<MessageActionsProps> = ({
 	hoveredMessageId,
 	setHoveredMessageId,
 	handleEdit,
+	isCurrentUser,
 	handleCopy,
 	handleReport,
 	handleDelete,
@@ -64,15 +66,17 @@ const MessageActions: React.FC<MessageActionsProps> = ({
 					className="w-40"
 					onClick={(e) => e.stopPropagation()}
 				>
-					<DropdownMenuItem
-						onSelect={() => {
-							handleEdit(m);
-							setHoveredMessageId(null);
-						}}
-						className="px-3 py-2 cursor-pointer"
-					>
-						Edit
-					</DropdownMenuItem>
+					{isCurrentUser && (
+						<DropdownMenuItem
+							onSelect={() => {
+								handleEdit(m);
+								setHoveredMessageId(null);
+							}}
+							className="px-3 py-2 cursor-pointer"
+						>
+							Edit
+						</DropdownMenuItem>
+					)}
 
 					<DropdownMenuItem
 						onSelect={() => {
@@ -94,17 +98,21 @@ const MessageActions: React.FC<MessageActionsProps> = ({
 						Report
 					</DropdownMenuItem>
 
-					<DropdownMenuSeparator />
+					{isCurrentUser && (
+						<>
+							<DropdownMenuSeparator />
 
-					<DropdownMenuItem
-						onSelect={() => {
-							handleDelete(m);
-							setHoveredMessageId(null);
-						}}
-						className="px-3 py-2 text-red-600"
-					>
-						Delete
-					</DropdownMenuItem>
+							<DropdownMenuItem
+								onSelect={() => {
+									handleDelete(m);
+									setHoveredMessageId(null);
+								}}
+								className="px-3 py-2 text-red-600"
+							>
+								Delete
+							</DropdownMenuItem>
+						</>
+					)}
 				</DropdownMenuContent>
 			</DropdownMenu>
 

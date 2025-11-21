@@ -1335,6 +1335,30 @@ const ChatArea: React.FC = () => {
 		setReplyToMessage(m);
 	}, []);
 
+	const handleGoToMessage = useCallback((id: string) => {
+		// Attempt to locate the message element and smoothly scroll to it
+		const el = document.getElementById(`message-${id}`);
+		if (!el) return;
+		el.scrollIntoView({ behavior: "smooth", block: "center" });
+		// Temporary highlight
+		el.classList.add(
+			"ring",
+			"ring-primary",
+			"ring-offset-2",
+			"ring-offset-background",
+			"transition-colors",
+		);
+		setTimeout(() => {
+			el.classList.remove(
+				"ring",
+				"ring-primary",
+				"ring-offset-2",
+				"ring-offset-background",
+				"transition-colors",
+			);
+		}, 1600);
+	}, []);
+
 	const handleReport = useCallback(
 		(m: MessageResponse) => {
 			const reason = window.prompt("Report message - please enter reason:");
@@ -1572,6 +1596,7 @@ const ChatArea: React.FC = () => {
 									reactionPickerFor={reactionPickerFor}
 									setReactionPickerFor={(v) => setReactionPickerFor(v)}
 									formatMessageTime={formatMessageTime}
+									handleGoToMessage={handleGoToMessage}
 								/>
 							</div>
 						);

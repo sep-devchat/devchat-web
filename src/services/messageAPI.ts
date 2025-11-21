@@ -10,6 +10,7 @@ export interface MessageResponse {
 	threadId: string | null;
 	senderId: string;
 	parentMessageId: string | null;
+	parentMessage: MessageResponse | null;
 	content: string;
 	createdAt: Date;
 	updatedAt: Date;
