@@ -31,13 +31,13 @@ export const NavigatorIcon = styled.div`
 `;
 
 export const LogoSection = styled.div`
-	margin-bottom: 30px;
-	margin-left: 20px;
-	z-index: 2;
+	position: absolute;
+	top: 24px;
+	right: 24px;
+	z-index: 10;
 	cursor: pointer;
 	height: max-content;
 	color: ${theme.color.grey500};
-
 	&:hover {
 		color: ${theme.color.primary};
 	}
@@ -114,6 +114,10 @@ export const Sidebar = styled.div`
 	border-right: 1px solid #e5e7eb;
 	height: 100%;
 	border-radius: 8px 0px 0px 8px;
+
+	@media (max-width: 1220px) {
+		width: 300px;
+	}
 `;
 
 export const SidebarContent = styled.div`
@@ -218,6 +222,7 @@ export const MainContent = styled.div`
 	overflow: hidden;
 	display: flex;
 	flex-direction: column;
+	position: relative;
 `;
 
 export const ContentWrapper = styled.div`
@@ -229,6 +234,12 @@ export const ContentWrapper = styled.div`
 
 	&::-webkit-scrollbar {
 		display: none;
+	}
+
+	width: 100%;
+
+	@media (max-width: 1220px) {
+		width: auto;
 	}
 `;
 

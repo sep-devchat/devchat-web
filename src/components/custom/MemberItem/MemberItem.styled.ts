@@ -53,6 +53,13 @@ export const MemberName = styled.span`
 	font-size: 14px;
 	font-weight: 500;
 	color: ${theme.color.grey90 || "#111827"};
+	text-overflow: ellipsis;
+	flex: 1;
+	min-width: 0;
+
+	@media (max-width: 1220px) {
+		font-size: 12px;
+	}
 `;
 export const Tooltip = styled.div<TooltipProps>`
 	position: absolute;

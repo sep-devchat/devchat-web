@@ -35,7 +35,6 @@ import ActivitySection from "./Sections/ActivitySection/ActivitySection";
 import MemberSection from "./MemberSection/MemberSection";
 import { OutGroupSection } from "./Sections/OutGroupSection";
 
-/* 1) Định nghĩa lại kiểu section hợp lệ */
 type SettingsSection = "profile" | "invite" | "member" | "activity" | "delete";
 
 interface MenuItemType {
@@ -44,15 +43,6 @@ interface MenuItemType {
 	icon: React.ComponentType<any>;
 }
 
-// const menuItems: MenuItemType[] = [
-// 	{ id: "profile", label: "Server Profile", icon: SettingsIcon },
-// 	{ id: "invite", label: "Invites", icon: Palette },
-// 	{ id: "member", label: "Member", icon: Bell },
-// 	// { id: "activity", label: "Activity", icon: User },
-// 	{ id: "delete", label: "Delete Server", icon: Trash },
-// ];
-
-// export const GroupSetting: React.FC = () => {
 interface GroupSettingProps {
 	setSettingSelect: (value: boolean) => void;
 	isAdmin: boolean;
@@ -66,7 +56,6 @@ export const GroupSetting: React.FC<GroupSettingProps> = ({
 		useState<SettingsSection>("profile");
 	const contentWrapperRef = useRef<HTMLDivElement | null>(null);
 
-	/* Khi đổi section, scroll top content */
 	useEffect(() => {
 		if (contentWrapperRef.current) contentWrapperRef.current.scrollTop = 0;
 	}, [activeSection]);
@@ -149,18 +138,16 @@ export const GroupSetting: React.FC<GroupSettingProps> = ({
 				</Sidebar>
 
 				<MainContent>
-					{/* wrapper ref để scrollTop khi đổi section */}
 					<ContentWrapper ref={contentWrapperRef}>
-						{/* Suspense để hiển thị loading khi lazy load */}
+						<LogoSection>
+							<CircleX size={35} onClick={() => setSettingSelect(false)} />
+						</LogoSection>
+
 						<Suspense fallback={<div>Loading...</div>}>
 							{renderActiveSection()}
 						</Suspense>
 					</ContentWrapper>
 				</MainContent>
-
-				<LogoSection>
-					<CircleX size={35} onClick={() => setSettingSelect(false)} />
-				</LogoSection>
 			</SettingRows>
 		</SettingsContainer>
 	);

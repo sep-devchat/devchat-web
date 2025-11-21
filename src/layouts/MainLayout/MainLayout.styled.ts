@@ -26,11 +26,15 @@ export const ContentWrapper = styled(ResizablePanelGroup)`
 	overflow: hidden;
 `;
 
-export const LeftSection = styled(ResizablePanel)`
+export const LeftSection = styled.div<{ $isHalf: boolean }>`
 	grid-column: span 2;
 	display: flex;
 	min-width: 0;
 	overflow: hidden;
+	width: ${(props) => (props.$isHalf ? "25%" : "20%")};
+	min-width: ${(props) => (props.$isHalf ? "30%" : "15%")};
+	max-width: ${(props) => (props.$isHalf ? "35%" : "25%")};
+	flex-shrink: 0;
 `;
 
 export const RightSection = styled(ResizablePanel)`
