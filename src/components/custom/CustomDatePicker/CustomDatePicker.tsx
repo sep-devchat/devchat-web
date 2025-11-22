@@ -16,14 +16,15 @@ const CustomDatePicker: React.FC<{
 	const dateRef = useRef<HTMLDivElement | null>(null);
 
 	useEffect(() => {
-		const handleClickOutside = (event: MouseEvent) => {
-			if (dateRef.current && !dateRef.current.contains(event.target as Node)) {
-				setIsOpen(false);
-			}
+		if (isOpen) {
+			document.body.style.overflow = "hidden";
+		} else {
+			document.body.style.overflow = "unset";
+		}
+		return () => {
+			document.body.style.overflow = "unset";
 		};
-		document.addEventListener("mousedown", handleClickOutside);
-		return () => document.removeEventListener("mousedown", handleClickOutside);
-	}, []);
+	}, [isOpen]);
 
 	const formatDisplayDate = (dateStr: string) => {
 		if (!dateStr) return "Select date...";
@@ -101,260 +102,312 @@ const CustomDatePicker: React.FC<{
 	});
 
 	return (
-		<div
-			style={{
-				position: "relative",
-				width: "100%",
-			}}
-			ref={dateRef}
-		>
-			<input
-				type="text"
-				value={formatDisplayDate(value)}
-				onClick={() => !disabled && setIsOpen(!isOpen)}
-				readOnly
+		<>
+			<div
 				style={{
+					position: "relative",
 					width: "100%",
-					height: "43px",
-					padding: "12px 40px 12px 16px",
-					border: `1.5px solid ${isOpen ? "#133e87" : "#e5e7eb"}`,
-					borderRadius: "10px",
-					fontSize: "14px",
-					color: "#1f2937",
-					background: disabled ? DISABLED_BG : "white",
-					cursor: disabled ? "not-allowed" : "pointer",
-					transition: "all 0.3s ease",
-					outline: "none",
-					opacity: disabled ? DISABLED_OPACITY : 1,
 				}}
-			/>
+				ref={dateRef}
+			>
+				<input
+					type="text"
+					value={formatDisplayDate(value)}
+					onClick={() => !disabled && setIsOpen(!isOpen)}
+					readOnly
+					style={{
+						width: "100%",
+						height: "43px",
+						padding: "12px 40px 12px 16px",
+						border: `1.5px solid ${isOpen ? "#133e87" : "#e5e7eb"}`,
+						borderRadius: "10px",
+						fontSize: "14px",
+						color: "#1f2937",
+						background: disabled ? DISABLED_BG : "white",
+						cursor: disabled ? "not-allowed" : "pointer",
+						transition: "all 0.3s ease",
+						outline: "none",
+						opacity: disabled ? DISABLED_OPACITY : 1,
+					}}
+				/>
 
-			{/* Clear button */}
-			{allowClear && !disabled && value && (
-				<button
-					onClick={handleClear}
-					aria-label="Clear date"
-					title="Clear date"
+				{allowClear && !disabled && value && (
+					<button
+						onClick={handleClear}
+						aria-label="Clear date"
+						title="Clear date"
+						style={{
+							position: "absolute",
+							right: "44px",
+							top: "50%",
+							transform: "translateY(-50%)",
+							border: "none",
+							background: "transparent",
+							padding: 4,
+							display: "flex",
+							alignItems: "center",
+							justifyContent: "center",
+							cursor: "pointer",
+							color: "#6b7280",
+							zIndex: 1,
+						}}
+					>
+						<X size={16} />
+					</button>
+				)}
+
+				<div
+					onClick={() => !disabled && setIsOpen(!isOpen)}
 					style={{
 						position: "absolute",
-						right: "44px",
+						right: "12px",
 						top: "50%",
 						transform: "translateY(-50%)",
-						border: "none",
-						background: "transparent",
-						padding: 4,
+						cursor: disabled ? "not-allowed" : "pointer",
+						color: "#6b7280",
 						display: "flex",
 						alignItems: "center",
 						justifyContent: "center",
-						cursor: "pointer",
-						color: "#6b7280",
-						zIndex: 1,
+						padding: 4,
 					}}
 				>
-					<X size={16} />
-				</button>
-			)}
-
-			{/* Calendar icon */}
-			<div
-				onClick={() => !disabled && setIsOpen(!isOpen)}
-				style={{
-					position: "absolute",
-					right: "12px",
-					top: "50%",
-					transform: "translateY(-50%)",
-					cursor: disabled ? "not-allowed" : "pointer",
-					color: "#6b7280",
-					display: "flex",
-					alignItems: "center",
-					justifyContent: "center",
-					padding: 4,
-				}}
-			>
-				<Calendar size={18} />
+					<Calendar size={18} />
+				</div>
 			</div>
 
 			{isOpen && !disabled && (
-				<div
-					style={{
-						position: "absolute",
-						top: "calc(100% + 8px)",
-						left: 0,
-						right: 0,
-						background: "white",
-						border: "1.5px solid #e5e7eb",
-						borderRadius: "12px",
-						zIndex: 1000,
-						padding: "16px",
-						minWidth: "320px",
-					}}
-				>
-					{/* Calendar Header */}
-					<div style={{ marginBottom: "16px" }}>
+				<>
+					<div
+						onClick={() => setIsOpen(false)}
+						style={{
+							position: "fixed",
+							top: 0,
+							left: 0,
+							right: 0,
+							bottom: 0,
+							background: "rgba(0, 0, 0, 0.5)",
+							zIndex: 10000,
+							animation: "fadeIn 0.2s ease",
+						}}
+					/>
+
+					<div
+						style={{
+							position: "fixed",
+							top: "50%",
+							left: "50%",
+							transform: "translate(-50%, -50%)",
+							background: "white",
+							borderRadius: "16px",
+							zIndex: 10001,
+							padding: "24px",
+							minWidth: "360px",
+							maxWidth: "90vw",
+							boxShadow: "0 20px 60px rgba(0, 0, 0, 0.3)",
+							animation: "slideIn 0.3s ease",
+						}}
+					>
+						<div style={{ marginBottom: "24px" }}>
+							<div
+								style={{
+									display: "flex",
+									alignItems: "center",
+									justifyContent: "space-between",
+									marginBottom: "12px",
+								}}
+							>
+								<Button
+									onClick={() =>
+										setCurrentMonth(
+											new Date(
+												currentMonth.getFullYear(),
+												currentMonth.getMonth() - 1,
+											),
+										)
+									}
+									style={{
+										border: "none",
+										background: "transparent",
+										cursor: "pointer",
+										padding: "8px",
+										display: "flex",
+										alignItems: "center",
+										color: "#374151",
+										borderRadius: "8px",
+									}}
+									onMouseEnter={(e) =>
+										(e.currentTarget.style.background = "#f3f4f6")
+									}
+									onMouseLeave={(e) =>
+										(e.currentTarget.style.background = "transparent")
+									}
+								>
+									<ChevronLeft size={20} />
+								</Button>
+								<div
+									style={{
+										fontSize: "18px",
+										fontWeight: 600,
+										color: "#1f2937",
+									}}
+								>
+									{monthYear}
+								</div>
+								<Button
+									onClick={() =>
+										setCurrentMonth(
+											new Date(
+												currentMonth.getFullYear(),
+												currentMonth.getMonth() + 1,
+											),
+										)
+									}
+									style={{
+										border: "none",
+										background: "transparent",
+										cursor: "pointer",
+										padding: "8px",
+										display: "flex",
+										alignItems: "center",
+										color: "#374151",
+										borderRadius: "8px",
+									}}
+									onMouseEnter={(e) =>
+										(e.currentTarget.style.background = "#f3f4f6")
+									}
+									onMouseLeave={(e) =>
+										(e.currentTarget.style.background = "transparent")
+									}
+								>
+									<ChevronRight size={20} />
+								</Button>
+							</div>
+							<div
+								style={{
+									fontSize: "13px",
+									color: "#6b7280",
+									textAlign: "center",
+								}}
+							>
+								Select due date
+							</div>
+						</div>
+
 						<div
 							style={{
-								display: "flex",
-								alignItems: "center",
-								justifyContent: "space-between",
+								display: "grid",
+								gridTemplateColumns: "repeat(7, 1fr)",
+								gap: "4px",
 								marginBottom: "8px",
 							}}
 						>
-							<Button
-								onClick={() =>
-									setCurrentMonth(
-										new Date(
-											currentMonth.getFullYear(),
-											currentMonth.getMonth() - 1,
-										),
-									)
-								}
-								style={{
-									border: "none",
-									background: "transparent",
-									cursor: "pointer",
-									padding: "4px",
-									display: "flex",
-									alignItems: "center",
-									color: "#374151",
-								}}
-							>
-								<ChevronLeft size={20} />
-							</Button>
-							<div
-								style={{ fontSize: "16px", fontWeight: 600, color: "#1f2937" }}
-							>
-								{monthYear}
-							</div>
-							<Button
-								onClick={() =>
-									setCurrentMonth(
-										new Date(
-											currentMonth.getFullYear(),
-											currentMonth.getMonth() + 1,
-										),
-									)
-								}
-								style={{
-									border: "none",
-									background: "transparent",
-									cursor: "pointer",
-									padding: "4px",
-									display: "flex",
-									alignItems: "center",
-									color: "#374151",
-								}}
-							>
-								<ChevronRight size={20} />
-							</Button>
-						</div>
-						<div
-							style={{
-								fontSize: "12px",
-								color: "#6b7280",
-								textAlign: "center",
-							}}
-						>
-							Select due date
-						</div>
-					</div>
-
-					{/* Week Days */}
-					<div
-						style={{
-							display: "grid",
-							gridTemplateColumns: "repeat(7, 1fr)",
-							gap: "4px",
-							marginBottom: "8px",
-						}}
-					>
-						{["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map((d) => (
-							<div
-								key={d}
-								style={{
-									fontSize: "12px",
-									fontWeight: 600,
-									color: "#6b7280",
-									textAlign: "center",
-									padding: "8px 0",
-								}}
-							>
-								{d}
-							</div>
-						))}
-					</div>
-
-					{/* Days Grid */}
-					<div
-						style={{
-							display: "grid",
-							gridTemplateColumns: "repeat(7, 1fr)",
-							gap: "4px",
-						}}
-					>
-						{days.map((dayInfo, idx) => {
-							const dayDate = new Date(dayInfo.date);
-							dayDate.setHours(0, 0, 0, 0);
-							const isToday = dayDate.getTime() === today.getTime();
-							const isSelected = Boolean(
-								value &&
-									dayDate.getTime() === new Date(value).setHours(0, 0, 0, 0),
-							);
-							const isFuture = dayDate < today;
-
-							return (
+							{["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map((d) => (
 								<div
-									key={idx}
-									onClick={() => {
-										if (dayInfo.isCurrentMonth && !isFuture) {
-											handleDateClick(dayInfo.date);
-										}
-									}}
+									key={d}
 									style={{
-										padding: "8px",
-										fontSize: "14px",
+										fontSize: "12px",
+										fontWeight: 600,
+										color: "#6b7280",
 										textAlign: "center",
-										borderRadius: "8px",
-										cursor:
-											dayInfo.isCurrentMonth && !isFuture
-												? "pointer"
-												: "not-allowed",
-										color: !dayInfo.isCurrentMonth
-											? "#d1d5db"
-											: isFuture
-												? "#9ca3af"
-												: isSelected
-													? "white"
-													: "#1f2937",
-										background: isSelected
-											? "#133e87"
-											: isToday
-												? "#e0e7ff"
-												: "transparent",
-										fontWeight: isSelected || isToday ? 600 : 400,
-										transition: "all 0.2s ease",
-										opacity: isFuture ? 0.5 : 1,
-									}}
-									onMouseEnter={(e) => {
-										if (dayInfo.isCurrentMonth && !isFuture && !isSelected) {
-											e.currentTarget.style.background = "#f3f4f6";
-										}
-									}}
-									onMouseLeave={(e) => {
-										if (!isSelected && !isToday) {
-											e.currentTarget.style.background = "transparent";
-										} else if (isToday && !isSelected) {
-											e.currentTarget.style.background = "#e0e7ff";
-										}
+										padding: "8px 0",
 									}}
 								>
-									{dayInfo.day}
+									{d}
 								</div>
-							);
-						})}
+							))}
+						</div>
+
+						<div
+							style={{
+								display: "grid",
+								gridTemplateColumns: "repeat(7, 1fr)",
+								gap: "4px",
+							}}
+						>
+							{days.map((dayInfo, idx) => {
+								const dayDate = new Date(dayInfo.date);
+								dayDate.setHours(0, 0, 0, 0);
+								const isToday = dayDate.getTime() === today.getTime();
+								const isSelected = Boolean(
+									value &&
+										dayDate.getTime() === new Date(value).setHours(0, 0, 0, 0),
+								);
+								const isFuture = dayDate < today;
+
+								return (
+									<div
+										key={idx}
+										onClick={() => {
+											if (dayInfo.isCurrentMonth && !isFuture) {
+												handleDateClick(dayInfo.date);
+											}
+										}}
+										style={{
+											padding: "10px",
+											fontSize: "14px",
+											textAlign: "center",
+											borderRadius: "8px",
+											cursor:
+												dayInfo.isCurrentMonth && !isFuture
+													? "pointer"
+													: "not-allowed",
+											color: !dayInfo.isCurrentMonth
+												? "#d1d5db"
+												: isFuture
+													? "#9ca3af"
+													: isSelected
+														? "white"
+														: "#1f2937",
+											background: isSelected
+												? "#133e87"
+												: isToday
+													? "#e0e7ff"
+													: "transparent",
+											fontWeight: isSelected || isToday ? 600 : 400,
+											transition: "all 0.2s ease",
+											opacity: isFuture ? 0.5 : 1,
+										}}
+										onMouseEnter={(e) => {
+											if (dayInfo.isCurrentMonth && !isFuture && !isSelected) {
+												e.currentTarget.style.background = "#f3f4f6";
+											}
+										}}
+										onMouseLeave={(e) => {
+											if (!isSelected && !isToday) {
+												e.currentTarget.style.background = "transparent";
+											} else if (isToday && !isSelected) {
+												e.currentTarget.style.background = "#e0e7ff";
+											}
+										}}
+									>
+										{dayInfo.day}
+									</div>
+								);
+							})}
+						</div>
 					</div>
-				</div>
+
+					<style>
+						{`
+							@keyframes fadeIn {
+								from { opacity: 0; }
+								to { opacity: 1; }
+							}
+							@keyframes slideIn {
+								from { 
+									opacity: 0;
+									transform: translate(-50%, -45%); 
+								}
+								to { 
+									opacity: 1;
+									transform: translate(-50%, -50%); 
+								}
+							}
+						`}
+					</style>
+				</>
 			)}
-		</div>
+		</>
 	);
 };
 

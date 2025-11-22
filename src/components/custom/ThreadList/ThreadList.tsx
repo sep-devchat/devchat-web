@@ -12,7 +12,6 @@ import {
 	SearchWrapper,
 	SearchInput,
 	SearchIcon,
-	CreateButton,
 	ThreadsSection,
 	SectionTitle,
 	ThreadsList,
@@ -26,7 +25,6 @@ import {
 	AuthorIconInner,
 	AuthorName,
 	TimeStamp,
-	ThreadDescription,
 	DeleteButton,
 	EditButton,
 	EmptyState,
@@ -63,7 +61,6 @@ const ThreadList: React.FC<ThreadListProps> = ({
 	groupId,
 	channelId,
 	onClose,
-	onCreateThread,
 	onThreadSelect,
 }) => {
 	const dispatch = useDispatch();
@@ -87,7 +84,6 @@ const ThreadList: React.FC<ThreadListProps> = ({
 	const [threadToEdit, setThreadToEdit] = useState<{
 		id: string;
 		name: string;
-		description: string;
 	} | null>(null);
 
 	useEffect(() => {
@@ -200,21 +196,16 @@ const ThreadList: React.FC<ThreadListProps> = ({
 		setThreadToEdit({
 			id: thread.id,
 			name: thread.name,
-			description: thread.description,
 		});
 		setShowEditModal(true);
 	};
 
-	const handleEditThread = async (data: {
-		name: string;
-		description: string;
-	}) => {
+	const handleEditThread = async (data: { name: string }) => {
 		if (!threadToEdit) return;
 
 		try {
 			const updateData: ThreadPutRequest = {
 				name: data.name,
-				description: data.description,
 			};
 
 			await updateThreadAPI(groupId, channelId, threadToEdit.id, updateData);
@@ -322,7 +313,6 @@ const ThreadList: React.FC<ThreadListProps> = ({
 							value={searchTerm}
 							onChange={(e) => setSearchTerm(e.target.value)}
 						/>
-						<CreateButton onClick={onCreateThread}>Create</CreateButton>
 					</SearchWrapper>
 				</SearchContainer>
 
@@ -406,11 +396,7 @@ const ThreadList: React.FC<ThreadListProps> = ({
 												</DeleteButton>
 											</div>
 										</ThreadItemHeader>
-										{thread.description && (
-											<ThreadDescription>
-												{thread.description}
-											</ThreadDescription>
-										)}
+										{/* description removed in new DTO; UI section omitted */}
 									</ThreadItem>
 								);
 							})}
@@ -425,7 +411,7 @@ const ThreadList: React.FC<ThreadListProps> = ({
 				groupId={groupId}
 				channelId={channelId}
 				initialName={threadToEdit?.name || ""}
-				initialDescription={threadToEdit?.description || ""}
+				initialDescription=""
 				onClose={() => {
 					setShowEditModal(false);
 					setThreadToEdit(null);

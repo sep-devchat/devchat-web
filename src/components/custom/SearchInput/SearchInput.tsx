@@ -22,7 +22,7 @@ export default function SearchInput({
 	onChange,
 	onClear,
 	onSubmit,
-	placeholder = "Tìm kiếm...",
+	placeholder = "Search...",
 	autoFocus = false,
 	className = "",
 	style,

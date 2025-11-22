@@ -5,16 +5,15 @@ import {
 	CenterPanel,
 	MainLayoutContainer,
 	ContentWrapper,
-	LeftSection,
 	RightSection,
 	OutletContainer,
 	BottomSpacer,
 	RightPanelWrapper,
+	LeftSection,
 } from "./MainLayout.styled";
 import TitleBar from "./TitleBar/TitleBar";
 import { User } from "lucide-react";
 import GroupSidebar from "./GroupSidebar";
-import Profile from "./Profile";
 import AuthLayout from "../AuthLayout";
 import { useEffect, useState } from "react";
 import ThreadPanel from "@/components/custom/RightPanel/ThreadPanel/ThreadPanel";
@@ -26,7 +25,6 @@ import { LeftSidebar } from "./LeftSidebar/LeftSidebar";
 import TodoFloatingManager from "@/components/custom/ResizableFloatingWindow/TodoFloatingManager/TodoFloatingManager";
 import { detailGroup, GroupResponse, listGroups } from "@/services/groupAPI";
 import { theme } from "@/themes";
-import { ResizableHandle } from "@/components/ui/resizable";
 import TaskGroup from "@/components/custom/RightPanel/TaskGroup/TaskGroup";
 import FriendList from "@/components/custom/RightPanel/FriendList/FriendList";
 import { useSelector } from "react-redux";
@@ -57,6 +55,14 @@ const MainLayout = () => {
 	const shouldShowBorderRadius =
 		(showThreadPanel || iconSelected !== "") && iconSelected !== "users";
 
+	// Handle resize
+	useEffect(() => {
+		const handleResize = () => setIsHalf(window.innerWidth < 1220);
+		window.addEventListener("resize", handleResize);
+		return () => window.removeEventListener("resize", handleResize);
+	}, []);
+
+	// Reset panels khi resize về isHalf
 	useEffect(() => {
 		if (
 			isHalf &&
@@ -70,12 +76,17 @@ const MainLayout = () => {
 		}
 	}, [isHalf]);
 
+	// QUAN TRỌNG: Reset tất cả panels khi chuyển group trong chế độ isHalf
 	useEffect(() => {
-		const handleResize = () => setIsHalf(window.innerWidth < 1220);
-		window.addEventListener("resize", handleResize);
-		return () => window.removeEventListener("resize", handleResize);
-	}, []);
+		if (isHalf && groupId) {
+			setIconSelected("");
+			setShowThreadPanel(false);
+			setSelectedThreadId("");
+			setShowCodeListPanel(false);
+		}
+	}, [groupId, isHalf]);
 
+	// Load groups
 	useEffect(() => {
 		let mounted = true;
 		const fetch = async () => {
@@ -116,6 +127,7 @@ const MainLayout = () => {
 		};
 	}, []);
 
+	// Fetch group detail để check admin
 	useEffect(() => {
 		const fetchGroupDetail = async () => {
 			if (!groupId) return;
@@ -134,6 +146,7 @@ const MainLayout = () => {
 		fetchGroupDetail();
 	}, [groupId, currentUserId]);
 
+	// Handle code panel
 	useEffect(() => {
 		if (iconSelected === "code") {
 			setShowThreadPanel(false);
@@ -144,12 +157,40 @@ const MainLayout = () => {
 		}
 	}, [iconSelected]);
 
+	// Handle thread panel
 	useEffect(() => {
 		if (showThreadPanel) {
 			setShowCodeListPanel(false);
 			setIconSelected("");
 		}
 	}, [showThreadPanel]);
+
+	// Listen for thread selection requests coming from ChatArea (message thread button)
+	useEffect(() => {
+		const onThreadSelected = (e: Event) => {
+			try {
+				const ce = e as CustomEvent;
+				const tid = ce.detail?.threadId as string | undefined;
+				if (tid) {
+					setSelectedThreadId(tid);
+					setShowThreadPanel(true);
+					setIconSelected("");
+				}
+			} catch {
+				/* noop */
+			}
+		};
+		window.addEventListener(
+			"app:threadSelected",
+			onThreadSelected as EventListener,
+		);
+		return () => {
+			window.removeEventListener(
+				"app:threadSelected",
+				onThreadSelected as EventListener,
+			);
+		};
+	}, []);
 
 	const handleCreateThread = () => {
 		setSelectedThreadId("");
@@ -180,19 +221,21 @@ const MainLayout = () => {
 		setIconSelected("");
 	};
 
+	// Auto show users panel chỉ khi KHÔNG phải isHalf
 	useEffect(() => {
 		if (
 			groupId &&
 			iconSelected === "" &&
 			!showThreadPanel &&
-			!showCodeListPanel
+			!showCodeListPanel &&
+			!isHalf // CHỈ auto show khi màn hình lớn
 		) {
 			setIconSelected("users");
 		}
 		if (!groupId && iconSelected === "users") {
 			setIconSelected("");
 		}
-	}, [groupId]);
+	}, [groupId, iconSelected, showThreadPanel, showCodeListPanel, isHalf]);
 
 	const renderRightPanel = () => {
 		if ((showCodeListPanel || iconSelected === "code") && !showThreadPanel) {
@@ -219,13 +262,13 @@ const MainLayout = () => {
 				return <CodeList onClose={handleCloseCodePanel} />;
 			case "users":
 				return groupId ? (
-					<MemberList onClose={handleClosePanel} />
+					<MemberList onClose={isHalf ? handleClosePanel : undefined} />
 				) : (
 					<FriendList />
 				);
 			default:
 				if (groupId && !isHalf) {
-					return <MemberList onClose={handleClosePanel} />;
+					return <MemberList />;
 				}
 				return isHalf ? null : <FriendList />;
 		}
@@ -240,16 +283,11 @@ const MainLayout = () => {
 				<MainLayoutContainer>
 					<TitleBar title="DevChat" icon={<User />} />
 					<ContentWrapper direction="horizontal">
-						<LeftSection
-							defaultSize={isHalf ? 25 : 20}
-							collapsible
-							minSize={isHalf ? 30 : 15}
-							maxSize={isHalf ? 35 : 25}
-						>
+						<LeftSection $isHalf={isHalf}>
 							<GroupSidebar />
 							<LeftSidebar setSettingSelect={setSettingSelect} />
 						</LeftSection>
-						<ResizableHandle />
+
 						<RightSection
 							defaultSize={100}
 							style={{ marginRight: isHalf ? "16px" : "0" }}
@@ -275,7 +313,6 @@ const MainLayout = () => {
 							</RightPanelWrapper>
 						</RightSection>
 					</ContentWrapper>
-					<Profile />
 					<BottomSpacer />
 				</MainLayoutContainer>
 			) : (

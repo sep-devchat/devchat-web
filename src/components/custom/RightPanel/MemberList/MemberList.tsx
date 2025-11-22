@@ -137,7 +137,7 @@ export default function MemberList({ onClose }: MemberListProps) {
 			<PageWrapper>
 				<CPHeader>
 					<CPHeaderLeft>
-						<CPTitle>{isSearchMode ? "Tìm kiếm" : "Member List"}</CPTitle>
+						<CPTitle>{isSearchMode ? "Search messages" : ""}</CPTitle>
 					</CPHeaderLeft>
 					<CPHeaderRight>
 						{!isSearchMode && (
@@ -175,7 +175,7 @@ export default function MemberList({ onClose }: MemberListProps) {
 			<PageWrapper>
 				<CPHeader>
 					<CPHeaderLeft>
-						<CPTitle>{isSearchMode ? "Tìm kiếm" : "Member List"}</CPTitle>
+						<CPTitle>{isSearchMode ? "Search messages" : ""}</CPTitle>
 					</CPHeaderLeft>
 					<CPHeaderRight>
 						{!isSearchMode && (
@@ -213,7 +213,7 @@ export default function MemberList({ onClose }: MemberListProps) {
 			<PageWrapper>
 				<CPHeader>
 					<CPHeaderLeft>
-						<CPTitle>{isSearchMode ? "Tìm kiếm" : "Member List"}</CPTitle>
+						<CPTitle>{isSearchMode ? "Search messages" : ""}</CPTitle>
 					</CPHeaderLeft>
 					<CPHeaderRight>
 						{!isSearchMode && (
@@ -260,7 +260,7 @@ export default function MemberList({ onClose }: MemberListProps) {
 							ariaLabel="Back"
 						/>
 					)}
-					<CPTitle>{isSearchMode ? "Tìm kiếm" : "Member List"}</CPTitle>
+					<CPTitle>{isSearchMode ? "Search messages" : ""}</CPTitle>
 				</CPHeaderLeft>
 				<CPHeaderRight>
 					{!isSearchMode && (
@@ -291,12 +291,12 @@ export default function MemberList({ onClose }: MemberListProps) {
 								value={searchQuery}
 								onChange={(v: any) => setSearchQuery(v)}
 								onClear={() => setSearchQuery("")}
-								placeholder="Tìm kiếm tin nhắn..."
+								placeholder="Search messages..."
 							/>
 							<SearchResultTotal>
 								{searchQuery
-									? `${filteredMessages.length} kết quả`
-									: "Nhập để tìm kiếm tin nhắn"}
+									? `${filteredMessages.length} results`
+									: "Type to search messages"}
 							</SearchResultTotal>
 						</SearchHeader>
 
@@ -308,7 +308,7 @@ export default function MemberList({ onClose }: MemberListProps) {
 									style={{ opacity: 0.3, marginBottom: "12px" }}
 								/>
 								<p style={{ fontSize: "14px", margin: 0 }}>
-									Nhập từ khóa để tìm kiếm
+									Type to search messages
 								</p>
 							</NoneResult>
 						) : filteredMessages.length === 0 ? (

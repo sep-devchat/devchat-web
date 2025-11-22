@@ -77,8 +77,26 @@ export const CPTitle = styled.h2`
 
 export const MessagesArea = styled.div`
 	flex: 1;
+	min-height: 0; /* critical for flex child scrolling */
 	padding: 16px;
 	overflow-y: auto;
+	overflow-x: hidden;
+	scrollbar-width: thin;
+	overscroll-behavior: contain;
+
+	&::-webkit-scrollbar {
+		width: 8px;
+	}
+	&::-webkit-scrollbar-track {
+		background: transparent;
+	}
+	&::-webkit-scrollbar-thumb {
+		background: #cbd5e1;
+		border-radius: 4px;
+	}
+	&::-webkit-scrollbar-thumb:hover {
+		background: #94a3b8;
+	}
 
 	&:has(> div:first-child) {
 		display: flex;

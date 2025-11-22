@@ -2,19 +2,25 @@
 import { get, remove } from "./apiCaller";
 import { Profile } from "./auth/auth.type";
 import { ChannelResponse } from "./channelAPI";
+import { ThreadResponse } from "./threadAPI";
 
 export interface MessageResponse {
 	id: string;
 	channelId: string;
 	channel?: ChannelResponse;
-	threadId: string | null;
+	thread?: ThreadResponse;
 	senderId: string;
 	parentMessageId: string | null;
+	parentMessage: MessageResponse | null;
 	content: string;
 	createdAt: Date;
 	updatedAt: Date;
-	deletedAt: Date | null;
 	sender: Profile;
+}
+
+export interface ThreadMessageResponse
+	extends Omit<MessageResponse, "parentMessage"> {
+	parentMessage: ThreadMessageResponse | null;
 }
 
 export const listMessages = (

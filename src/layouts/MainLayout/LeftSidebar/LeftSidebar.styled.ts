@@ -6,8 +6,11 @@ export const LeftSidebarContainer = styled.div`
 	display: flex;
 	flex-direction: column;
 	width: 100%;
+	height: 100%;
 	background: rgba(255, 255, 255, 0.3);
 	border-radius: 10px 0 0 10px;
+	overflow: hidden;
+	gap: 12px;
 `;
 
 export const HeaderContainer = styled.div`
@@ -15,8 +18,8 @@ export const HeaderContainer = styled.div`
 	align-items: center;
 	justify-content: center;
 	padding: 0.5rem;
-	// padding-right: 1rem;
 	border-bottom: 1px solid white;
+	flex-shrink: 0;
 `;
 
 export const GroupHeader = styled.div`
@@ -27,26 +30,89 @@ export const GroupHeader = styled.div`
 	display: flex;
 	justify-content: space-between;
 	align-items: center;
+	gap: 12px;
+	min-width: 0;
+`;
+
+export const TooltipWrapper = styled.div`
+	position: relative;
+	flex: 1;
+	min-width: 0;
+	display: flex;
+	align-items: center;
 `;
 
 export const GroupTitle = styled.h3`
 	font-size: 1rem;
 	font-weight: 600;
+	margin: 0;
+
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
+	min-width: 0;
+	width: 100%;
 `;
 
 export const IconButtonGroup = styled.div`
 	display: flex;
 	gap: 0.5rem;
+	flex-shrink: 0;
 `;
 
 export const IconButton = styled.div`
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 32px;
+	height: 32px;
+	border: none;
+	background: transparent;
+	border-radius: 6px;
 	cursor: pointer;
+	transition: background-color 0.2s;
+	flex-shrink: 0;
 
 	&:hover {
 		color: #3b82f6;
+	}
+`;
+
+export const Tooltip = styled.div`
+	position: absolute;
+	top: calc(100% + 8px);
+	left: 0;
+	background: #1f2937;
+	color: #ffffff;
+	padding: 8px 12px;
+	border-radius: 6px;
+	font-size: 14px;
+	font-weight: 500;
+	white-space: normal;
+	word-break: break-word;
+	max-width: 300px;
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+	z-index: 1000;
+	animation: fadeIn 0.15s ease-in;
+
+	&::before {
+		content: "";
+		position: absolute;
+		bottom: 100%;
+		left: 16px;
+		border: 6px solid transparent;
+		border-bottom-color: #1f2937;
+	}
+
+	@keyframes fadeIn {
+		from {
+			opacity: 0;
+			transform: translateY(-4px);
+		}
+		to {
+			opacity: 1;
+			transform: translateY(0);
+		}
 	}
 `;
 
@@ -91,7 +157,6 @@ export const SearchIcon = styled(Search)`
 
 export const SearchInput = styled(Input)<{ prefix?: React.ReactNode }>`
 	width: 100%;
-	// padding: 6px 12px 7px 30px;
 	padding: 0.5rem 0.75rem 0.5rem 2.25rem;
 	border-radius: 0.375rem;
 	border: 1px solid rgba(25, 82, 179, 0.21);
@@ -122,6 +187,7 @@ export const SectionHeader = styled.div`
 	padding: 0.5rem;
 	justify-content: space-between;
 	align-items: center;
+	flex-shrink: 0;
 `;
 
 export const SectionTitle = styled.h3`
@@ -152,6 +218,27 @@ export const FriendList = styled.ul`
 	display: flex;
 	flex-direction: column;
 	gap: 6px;
+	flex: 1;
+	overflow-y: auto;
+	min-height: 0;
+
+	/* Custom scrollbar */
+	&::-webkit-scrollbar {
+		width: 6px;
+	}
+
+	&::-webkit-scrollbar-track {
+		background: transparent;
+	}
+
+	&::-webkit-scrollbar-thumb {
+		background: rgba(0, 0, 0, 0.2);
+		border-radius: 3px;
+	}
+
+	&::-webkit-scrollbar-thumb:hover {
+		background: rgba(0, 0, 0, 0.3);
+	}
 `;
 
 export const ModalOverlay = styled.div`
@@ -399,4 +486,11 @@ export const ButtonModal = styled.button<{
 	&:focus {
 		outline: none;
 	}
+`;
+
+export const ProfileWrapper = styled.div`
+	margin-top: auto;
+	padding-top: 12px;
+	flex-shrink: 0;
+	padding: 16px;
 `;
