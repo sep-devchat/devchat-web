@@ -144,6 +144,33 @@ const MainLayout = () => {
 		}
 	}, [showThreadPanel]);
 
+	// Listen for thread selection requests coming from ChatArea (message thread button)
+	useEffect(() => {
+		const onThreadSelected = (e: Event) => {
+			try {
+				const ce = e as CustomEvent;
+				const tid = ce.detail?.threadId as string | undefined;
+				if (tid) {
+					setSelectedThreadId(tid);
+					setShowThreadPanel(true);
+					setIconSelected("");
+				}
+			} catch {
+				/* noop */
+			}
+		};
+		window.addEventListener(
+			"app:threadSelected",
+			onThreadSelected as EventListener,
+		);
+		return () => {
+			window.removeEventListener(
+				"app:threadSelected",
+				onThreadSelected as EventListener,
+			);
+		};
+	}, []);
+
 	const handleCreateThread = () => {
 		setSelectedThreadId("");
 		setShowThreadPanel(true);

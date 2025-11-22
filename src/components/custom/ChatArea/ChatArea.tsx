@@ -948,7 +948,6 @@ const ChatArea: React.FC = () => {
 				: {
 						groupId: groupId ?? null,
 						channelId: channelIdParam ?? null,
-						threadId: threadIdParam ?? null,
 						attachmentIds: payload.attachmentIds,
 						codeBlock: payload.codeBlock,
 					};
@@ -1394,17 +1393,31 @@ const ChatArea: React.FC = () => {
 			if (!groupId || !channelIdParam || !m?.id) return;
 			const existing = threadsByMessageId[m.id];
 			if (existing) {
-				// Navigation path for threads not yet implemented; placeholder action
-				toast.info("Thread already exists (open not implemented)");
+				// Dispatch event to open existing thread panel
+				window.dispatchEvent(
+					new CustomEvent("app:threadSelected", {
+						detail: { threadId: existing.id },
+					}),
+				);
+				toast.info("Opening thread…");
 				return;
 			}
 			createThread(groupId, channelIdParam, { messageId: m.id })
-				.then(() => {
-					toast.success("Thread created");
-					queryClient.invalidateQueries({
-						queryKey: ["threads", groupId, channelIdParam],
-					});
-					// Navigation to the new thread can be added once a route exists
+				.then((resp: any) => {
+					const threadData = resp?.data || resp;
+					if (threadData?.id) {
+						toast.success("Thread created");
+						queryClient.invalidateQueries({
+							queryKey: ["threads", groupId, channelIdParam],
+						});
+						window.dispatchEvent(
+							new CustomEvent("app:threadSelected", {
+								detail: { threadId: threadData.id },
+							}),
+						);
+					} else {
+						toast.error("Thread create response missing id");
+					}
 				})
 				.catch((err) => {
 					console.error("Failed to create thread", err);

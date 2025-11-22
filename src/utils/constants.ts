@@ -19,4 +19,8 @@ export const SocketEvents = {
 	THREAD_CREATED: "thread_created",
 	THREAD_UPDATED: "thread_updated",
 	THREAD_DELETED: "thread_deleted",
+	SEND_THREAD_MESSAGE: "send_thread_message",
+	FETCH_THREAD_MESSAGES: "fetch_thread_messages",
+	EDIT_THREAD_MESSAGE: "edit_thread_message",
+	DELETE_THREAD_MESSAGE: "delete_thread_message",
 };

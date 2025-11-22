@@ -15,8 +15,12 @@ export interface MessageResponse {
 	content: string;
 	createdAt: Date;
 	updatedAt: Date;
-	deletedAt: Date | null;
 	sender: Profile;
+}
+
+export interface ThreadMessageResponse
+	extends Omit<MessageResponse, "parentMessage"> {
+	parentMessage: ThreadMessageResponse | null;
 }
 
 export const listMessages = (

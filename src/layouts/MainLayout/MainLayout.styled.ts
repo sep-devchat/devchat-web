@@ -89,6 +89,10 @@ export const BottomSpacer = styled.div`
 `;
 
 export const RightPanelWrapper = styled.div<{ $fullWidth?: boolean }>`
+	height: 100%;
+	display: flex;
+	flex-direction: column;
+	min-height: 0; /* allow inner flex children to scroll */
 	${(props) =>
 		props.$fullWidth &&
 		`
