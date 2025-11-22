@@ -22,7 +22,13 @@ import { SocketEvents } from "@/utils/constants";
 import { RootState } from "@/store";
 import { useSelector } from "react-redux";
 import ChatInput from "../ChatInput/ChatInput";
-import { detailThread } from "@/services/threadAPI";
+import {
+	detailThread,
+	listThreads,
+	createThread,
+	ThreadListResponse,
+	ThreadResponse,
+} from "@/services/threadAPI";
 import { useParams, useSearch } from "@tanstack/react-router";
 import ThreadPreview from "./ThreadPreview";
 import ThreadHeader from "./ThreadHeader";
@@ -51,15 +57,6 @@ import { DirectMessageHeader } from "./parts/DirectMessageHeader";
 import { MessageRow } from "./parts/MessageRow";
 import { DeleteMessageDialog } from "./parts/DeleteMessageDialog";
 import { ReportUserDialog } from "./parts/ReportUserDialog";
-
-type Thread = {
-	id: string;
-	name?: string;
-	description?: string;
-	channelId?: string;
-	createdAt?: string;
-	createdBy?: any;
-};
 
 // MessageRow & DirectMessageHeader extracted to ./parts
 
@@ -122,19 +119,48 @@ const ChatArea: React.FC = () => {
 		data: threadDataResp,
 		isLoading: threadLoading,
 		isError: threadError,
-	} = useQuery<Thread | null>({
+	} = useQuery<ThreadResponse | null>({
 		queryKey: ["thread", groupId, channelIdParam, threadIdParam],
 		queryFn: async () => {
 			if (!groupId || !channelIdParam || !threadIdParam) return null;
 			const resp = await detailThread(groupId, channelIdParam, threadIdParam);
 			const data =
 				(resp as any)?.data !== undefined ? (resp as any).data : (resp as any);
-			return (data ?? null) as Thread | null;
+			return (data ?? null) as ThreadResponse | null;
 		},
 		enabled: !!(groupId && channelIdParam && threadIdParam),
 	});
 
-	const thread: Thread | null = threadDataResp ?? null;
+	const thread: ThreadResponse | null = threadDataResp ?? null;
+
+	// List all threads for current group/channel to detect existing thread per root message
+	const { data: threadsResp } = useQuery<ThreadListResponse | null>({
+		queryKey: ["threads", groupId, channelIdParam],
+		queryFn: async () => {
+			if (!groupId || !channelIdParam) return null;
+			try {
+				const resp = await listThreads(groupId, channelIdParam);
+				return (resp as any)?.data !== undefined
+					? (resp as any)
+					: (resp as any);
+			} catch (e) {
+				console.error("Failed to list threads", e);
+				return null;
+			}
+		},
+		enabled: !!(groupId && channelIdParam),
+	});
+
+	const threadsByMessageId = useMemo(() => {
+		const map: Record<string, ThreadResponse> = {};
+		const arr = (threadsResp as any)?.data ?? [];
+		if (Array.isArray(arr)) {
+			for (const t of arr) {
+				if (t && t.messageId) map[t.messageId] = t as ThreadResponse;
+			}
+		}
+		return map;
+	}, [threadsResp]);
 
 	// Fetch opponent user info when in Direct Message mode
 	const {
@@ -284,6 +310,11 @@ const ChatArea: React.FC = () => {
 					`srv-${Date.now()}`,
 				createdAt: payload.createdAt ?? new Date().toISOString(),
 			};
+			// Normalize thread shape into MessageResponse.thread
+			if (!serverMsg.thread && (payload.threadId || payload.thread?.id)) {
+				const tid = payload.threadId || payload.thread?.id;
+				if (tid) serverMsg.thread = { id: tid } as any;
+			}
 
 			// Remove matching optimistic and add server message to realtime list
 			setRealtimeMessages((prev) => {
@@ -298,7 +329,8 @@ const ChatArea: React.FC = () => {
 							m.sender?.id === payload.sender?.id;
 						const sameChannel = m.channelId === payload.channelId;
 						const sameThread =
-							(m.threadId ?? null) === (payload.threadId ?? null);
+							(m.thread?.id ?? null) ===
+							(payload.threadId ?? payload.thread?.id ?? null);
 						const sameContent = (m.content || "") === (payload.content || "");
 						const sameAttachments = Array.isArray((m as any).attachments)
 							? Array.isArray(payload.attachments) &&
@@ -484,7 +516,7 @@ const ChatArea: React.FC = () => {
 	const latestMessagePerThread = useMemo(() => {
 		const map = new Map<string, MessageResponse>();
 		for (const m of messages) {
-			const tId = (m as any)?.threadId as string | null;
+			const tId = m.thread?.id as string | undefined;
 			if (!tId) continue;
 			const prev = map.get(tId);
 			if (
@@ -989,8 +1021,7 @@ const ChatArea: React.FC = () => {
 					content: text,
 					createdAt: new Date().toISOString(),
 					channelId: channelIdParam,
-					threadId: threadIdParam ?? null,
-					groupId,
+					thread: threadIdParam ? ({ id: threadIdParam } as any) : undefined,
 					sender: {
 						id: profile?.id ?? "me",
 						firstName: profile?.firstName,
@@ -998,7 +1029,6 @@ const ChatArea: React.FC = () => {
 						username: profile?.username,
 						avatarUrl: profile?.avatarUrl,
 					} as any,
-					pending: true,
 				} as any;
 
 				setRealtimeMessages((prev) => [...prev, optimistic]);
@@ -1029,8 +1059,7 @@ const ChatArea: React.FC = () => {
 					content: text,
 					createdAt: new Date().toISOString(),
 					channelId: channelIdParam,
-					threadId: threadIdParam ?? null,
-					groupId,
+					thread: threadIdParam ? ({ id: threadIdParam } as any) : undefined,
 					sender: {
 						id: profile?.id ?? "me",
 						firstName: profile?.firstName,
@@ -1100,8 +1129,9 @@ const ChatArea: React.FC = () => {
 							content,
 							createdAt: new Date().toISOString(),
 							channelId: channelIdParam,
-							threadId: threadIdParam ?? null,
-							groupId,
+							thread: threadIdParam
+								? ({ id: threadIdParam } as any)
+								: undefined,
 							sender: {
 								id: profile?.id ?? "me",
 								firstName: profile?.firstName,
@@ -1157,8 +1187,7 @@ const ChatArea: React.FC = () => {
 						content: "",
 						createdAt: new Date().toISOString(),
 						channelId: channelIdParam,
-						threadId: threadIdParam ?? null,
-						groupId,
+						thread: threadIdParam ? ({ id: threadIdParam } as any) : undefined,
 						sender: {
 							id: profile?.id ?? "me",
 							firstName: profile?.firstName,
@@ -1245,7 +1274,8 @@ const ChatArea: React.FC = () => {
 
 		// Add messages that are not part of any thread
 		for (const msg of messages) {
-			if (!msg.threadId || !threadsAdded.has(msg.threadId)) {
+			const tid = msg.thread?.id;
+			if (!tid || !threadsAdded.has(tid)) {
 				items.push({ type: "msg", payload: msg });
 			}
 		}
@@ -1359,6 +1389,31 @@ const ChatArea: React.FC = () => {
 		}, 1600);
 	}, []);
 
+	const handleCreateThread = useCallback(
+		(m: MessageResponse) => {
+			if (!groupId || !channelIdParam || !m?.id) return;
+			const existing = threadsByMessageId[m.id];
+			if (existing) {
+				// Navigation path for threads not yet implemented; placeholder action
+				toast.info("Thread already exists (open not implemented)");
+				return;
+			}
+			createThread(groupId, channelIdParam, { messageId: m.id })
+				.then(() => {
+					toast.success("Thread created");
+					queryClient.invalidateQueries({
+						queryKey: ["threads", groupId, channelIdParam],
+					});
+					// Navigation to the new thread can be added once a route exists
+				})
+				.catch((err) => {
+					console.error("Failed to create thread", err);
+					toast.error("Failed to create thread");
+				});
+		},
+		[groupId, channelIdParam, threadsByMessageId, queryClient],
+	);
+
 	const handleReport = useCallback(
 		(m: MessageResponse) => {
 			const reason = window.prompt("Report message - please enter reason:");
@@ -1438,7 +1493,87 @@ const ChatArea: React.FC = () => {
 		[socket, groupId, channelIdParam],
 	);
 
-	// Local ThreadPreview/ThreadHeader and markdown helpers were moved to separate files
+	// Thread lifecycle handlers: keep local thread list cache in sync
+	const onThreadCreated = React.useCallback(
+		(thread: ThreadResponse) => {
+			if (!thread) return;
+			// Guard: ensure we are in a group/channel context before mutating cache
+			if (!groupId || !channelIdParam) return;
+			queryClient.setQueryData(
+				["threads", groupId, channelIdParam],
+				(old: any) => {
+					const arr: any[] = Array.isArray(old?.data)
+						? old.data
+						: Array.isArray(old)
+							? old
+							: [];
+					const existsIdx = arr.findIndex((t: any) => t?.id === thread.id);
+					let next: any[];
+					if (existsIdx >= 0) {
+						next = arr.map((t: any) => (t?.id === thread.id ? thread : t));
+					} else {
+						next = [...arr, thread];
+					}
+					next.sort(
+						(a: any, b: any) =>
+							new Date(a.createdAt || a.updatedAt || 0).getTime() -
+							new Date(b.createdAt || b.updatedAt || 0).getTime(),
+					);
+					if (Array.isArray(old)) return next;
+					return { ...old, data: next };
+				},
+			);
+			toast.success("Thread created");
+		},
+		[groupId, channelIdParam, queryClient],
+	);
+
+	const onThreadUpdated = React.useCallback(
+		(thread: ThreadResponse) => {
+			if (!thread) return;
+			if (!groupId || !channelIdParam) return;
+			queryClient.setQueryData(
+				["threads", groupId, channelIdParam],
+				(old: any) => {
+					const arr: any[] = Array.isArray(old?.data)
+						? old.data
+						: Array.isArray(old)
+							? old
+							: [];
+					const next = arr.map((t: any) => (t?.id === thread.id ? thread : t));
+					if (Array.isArray(old)) return next;
+					return { ...old, data: next };
+				},
+			);
+			toast.info("Thread updated");
+		},
+		[groupId, channelIdParam, queryClient],
+	);
+
+	const onThreadDeleted = React.useCallback(
+		(id: string) => {
+			if (!id) return;
+			queryClient.setQueryData(
+				["threads", groupId, channelIdParam],
+				(old: any) => {
+					const arr: any[] = Array.isArray(old?.data)
+						? old.data
+						: Array.isArray(old)
+							? old
+							: [];
+					const next = arr.filter((t: any) => t?.id !== id);
+					if (Array.isArray(old)) return next;
+					return { ...old, data: next };
+				},
+			);
+			toast.warning("Thread deleted");
+		},
+		[groupId, channelIdParam, queryClient],
+	);
+
+	useSocketEvent(SocketEvents.THREAD_CREATED, onThreadCreated);
+	useSocketEvent(SocketEvents.THREAD_UPDATED, onThreadUpdated);
+	useSocketEvent(SocketEvents.THREAD_DELETED, onThreadDeleted);
 
 	return (
 		<ChatAreaContainer>
@@ -1597,6 +1732,8 @@ const ChatArea: React.FC = () => {
 									setReactionPickerFor={(v) => setReactionPickerFor(v)}
 									formatMessageTime={formatMessageTime}
 									handleGoToMessage={handleGoToMessage}
+									existingThreadId={threadsByMessageId[m.id]?.id || null}
+									handleCreateThread={handleCreateThread}
 								/>
 							</div>
 						);

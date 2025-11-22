@@ -16,4 +16,7 @@ export const SocketEvents = {
 	DELETE_MESSAGE: "delete_message",
 	MESSAGE_NOTIFICATION: "message_notification",
 	NOTIFICATION: "notification",
+	THREAD_CREATED: "thread_created",
+	THREAD_UPDATED: "thread_updated",
+	THREAD_DELETED: "thread_deleted",
 };

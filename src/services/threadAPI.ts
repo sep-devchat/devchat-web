@@ -1,22 +1,22 @@
 import { get, post, put, remove } from "./apiCaller";
+import { Profile } from "./auth/auth.type";
 
 export interface ThreadResponse {
 	id: string;
 	name: string;
-	description: string;
+	messageId: string;
 	channelId: string;
 	createdAt: string;
-	createdBy: string;
+	createdBy: Profile;
+	createdById: string;
 }
 
 export interface ThreadPostRequest {
-	name: string;
-	description: string;
+	messageId: string;
 }
 
 export interface ThreadPutRequest {
-	name?: string;
-	description?: string;
+	name: string;
 }
 
 export interface ThreadListResponse {

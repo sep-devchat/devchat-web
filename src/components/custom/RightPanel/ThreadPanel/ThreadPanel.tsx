@@ -1,6 +1,6 @@
 import React, { useState, useRef, useCallback, useEffect } from "react";
-import { useSelector, useDispatch } from "react-redux";
-import { X, Hash, Plus, Smile, Send, Lock, Folder } from "lucide-react";
+import { useSelector } from "react-redux";
+import { X, Hash, Plus, Smile, Send, Folder } from "lucide-react";
 import {
 	PageWrapper,
 	CPHeader,
@@ -8,14 +8,7 @@ import {
 	CPHeaderLeft,
 	CPTitle,
 	ThreadIcon,
-	ThreadForm,
-	FormGroup,
-	Label,
 	Input,
-	CheckboxGroup,
-	Checkbox,
-	CheckboxLabel,
-	CheckboxDescription,
 	MessageInput,
 	InputContainer,
 	IconButton,
@@ -30,14 +23,13 @@ import {
 	DividerWrapper,
 	Line,
 	DateText,
-	PrivateText,
 	CloseButton,
 } from "./ThreadPanel.styled";
 import MentionModal from "@/components/custom/MentionModal/MentionModal";
-import { createThread, detailThread } from "@/services/threadAPI";
+import { detailThread } from "@/services/threadAPI";
 import { RootState } from "@/store";
 import { detailUser } from "@/services/userAPI";
-import { addThread, invalidateThreadCache } from "@/store/thread.slice";
+// Removed thread creation, no need for add/invalidate actions
 
 interface ChatMessage {
 	id: string;
@@ -173,17 +165,12 @@ const ThreadPanel: React.FC<ThreadPanelProps> = ({
 	channelId,
 	threadId,
 	onClose,
-	onThreadCreated,
 }) => {
-	const dispatch = useDispatch();
-	const channelKey = `${groupId}-${channelId}`;
+	// Creation removed: dispatch and channelKey no longer needed
 
-	const [threadName, setThreadName] = useState<string>("New Thread");
-	const [isPrivate, setIsPrivate] = useState<boolean>(false);
+	const [threadName, setThreadName] = useState<string>("Thread");
 	const [message, setMessage] = useState<string>("");
-	const [showCreated, setShowCreated] = useState<boolean>(false);
 	const [messages, setMessages] = useState<ChatMessage[]>([]);
-	const [isCreating, setIsCreating] = useState<boolean>(false);
 	const [isLoading, setIsLoading] = useState<boolean>(false);
 
 	const [threadCreatorInfo, setThreadCreatorInfo] = useState<{
@@ -207,14 +194,7 @@ const ThreadPanel: React.FC<ThreadPanelProps> = ({
 	} = useMention(messageInputRef);
 
 	useEffect(() => {
-		if (!threadId) {
-			setThreadName("New Thread");
-			setIsPrivate(false);
-			setMessage("");
-			setShowCreated(false);
-			setMessages([]);
-			setThreadCreatorInfo(null);
-		} else if (groupId && channelId) {
+		if (threadId && groupId && channelId) {
 			loadThreadDetails();
 		}
 	}, [threadId, groupId, channelId]);
@@ -237,7 +217,6 @@ const ThreadPanel: React.FC<ThreadPanelProps> = ({
 
 			if (threadData) {
 				setThreadName(threadData.name);
-				setShowCreated(true);
 
 				let creatorName = "Unknown User";
 				let creatorAvatar =
@@ -268,24 +247,7 @@ const ThreadPanel: React.FC<ThreadPanelProps> = ({
 					avatarUrl: creatorAvatar,
 				});
 
-				if (threadData.description) {
-					const initialMessage: ChatMessage = {
-						id: threadData.id,
-						author: creatorName,
-						content: threadData.description,
-						time: new Date(threadData.createdAt).toLocaleTimeString([], {
-							hour: "2-digit",
-							minute: "2-digit",
-						}),
-						avatarUrl: creatorAvatar,
-						date: new Date(threadData.createdAt).toLocaleDateString("en-US", {
-							month: "long",
-							day: "numeric",
-							year: "numeric",
-						}),
-					};
-					setMessages([initialMessage]);
-				}
+				// No description field in new DTO; start with empty messages.
 			}
 		} catch (error) {
 			console.error("Failed to load thread details:", error);
@@ -305,80 +267,7 @@ const ThreadPanel: React.FC<ThreadPanelProps> = ({
 		});
 	};
 
-	const handleCreateThread = async (): Promise<void> => {
-		if (threadName.trim() && message.trim() && !isCreating) {
-			setIsCreating(true);
-			try {
-				const response = await createThread(groupId, channelId, {
-					name: threadName.trim(),
-					description: message.trim(),
-				});
-
-				const createdThread = response?.data;
-
-				dispatch(
-					invalidateThreadCache({
-						channelKey,
-					}),
-				);
-
-				if (createdThread) {
-					dispatch(
-						addThread({
-							channelKey,
-							thread: createdThread,
-						}),
-					);
-				}
-
-				const currentUserName = getDisplayName(profile);
-				const currentUserAvatar =
-					profile?.avatarUrl ||
-					"https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face";
-
-				const firstMessage: ChatMessage = {
-					id: Date.now().toString(),
-					author: currentUserName,
-					content: message.trim(),
-					time: new Date().toLocaleTimeString([], {
-						hour: "2-digit",
-						minute: "2-digit",
-					}),
-					avatarUrl: currentUserAvatar,
-					date: getCurrentDate(),
-				};
-
-				setMessages((prevMessages) => [...prevMessages, firstMessage]);
-				setMessage("");
-				setShowCreated(true);
-				closeMentionModal();
-
-				setThreadCreatorInfo({
-					name: currentUserName,
-					avatarUrl: currentUserAvatar,
-				});
-
-				if (onThreadCreated) {
-					onThreadCreated(createdThread?.id || "");
-				}
-
-				window.dispatchEvent(
-					new CustomEvent("app:threadCreated", {
-						detail: { groupId, channelId },
-					}),
-				);
-			} catch (error: any) {
-				console.error("Error creating thread:", error);
-				const errorMessage =
-					error?.response?.data?.message ||
-					error?.message ||
-					"Failed to create thread. Please try again.";
-				alert(errorMessage);
-			} finally {
-				setIsCreating(false);
-			}
-		}
-	};
+	// Creation removed: component now only views existing thread content.
 
 	const handleSendMessage = (): void => {
 		if (message.trim()) {
@@ -406,17 +295,8 @@ const ThreadPanel: React.FC<ThreadPanelProps> = ({
 	};
 
 	const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>): void => {
-		if (showMentionModal) {
-			return;
-		}
-
-		if (e.key === "Enter") {
-			if (showCreated) {
-				handleSendMessage();
-			} else {
-				handleCreateThread();
-			}
-		}
+		if (showMentionModal) return;
+		if (e.key === "Enter") handleSendMessage();
 	};
 
 	const handleMessageChange = (
@@ -471,7 +351,7 @@ const ThreadPanel: React.FC<ThreadPanelProps> = ({
 		);
 	}
 
-	if (showCreated) {
+	if (threadId) {
 		const groupedMessages = groupMessagesByDate(messages);
 
 		return (
@@ -502,7 +382,7 @@ const ThreadPanel: React.FC<ThreadPanelProps> = ({
 						}}
 					>
 						<ThreadIcon>
-							{isPrivate ? <Lock size={24} /> : <Hash size={24} />}
+							<Hash size={24} />
 						</ThreadIcon>
 						<CPTitle style={{ fontSize: "24px", fontWeight: "bold" }}>
 							{threadName}
@@ -593,79 +473,11 @@ const ThreadPanel: React.FC<ThreadPanelProps> = ({
 					</CloseButton>
 				)}
 			</CPHeader>
-
 			<MessagesArea>
-				<div>
-					<ThreadIcon>
-						<Folder size={24} color="white" />
-					</ThreadIcon>
+				<div style={{ textAlign: "center", padding: "40px", color: "#6b7280" }}>
+					No thread selected.
 				</div>
-
-				<ThreadForm>
-					<FormGroup>
-						<Label>Thread Name</Label>
-						<Input
-							type="text"
-							value={threadName}
-							onChange={(e) => setThreadName(e.target.value)}
-							placeholder="Enter thread name"
-						/>
-					</FormGroup>
-					<div>
-						<CheckboxLabel htmlFor="private-thread">
-							Private Thread
-						</CheckboxLabel>
-						<CheckboxGroup>
-							<Checkbox
-								type="checkbox"
-								id="private-thread"
-								checked={isPrivate}
-								onChange={(e) => setIsPrivate(e.target.checked)}
-							/>
-							<div>
-								<CheckboxDescription>
-									Only people you invite and moderators can see
-								</CheckboxDescription>
-							</div>
-						</CheckboxGroup>
-						{isPrivate && (
-							<PrivateText>
-								You can invite new people by @mentioning them
-							</PrivateText>
-						)}
-					</div>
-				</ThreadForm>
 			</MessagesArea>
-
-			<MessageInput style={{ position: "relative" }}>
-				<InputContainer>
-					<IconButton>
-						<Plus size={20} />
-					</IconButton>
-					<Input
-						ref={messageInputRef}
-						type="text"
-						placeholder="Enter messages"
-						value={message}
-						onChange={handleMessageChange}
-						onKeyPress={handleKeyPress}
-						disabled={isCreating}
-					/>
-					<IconButton>
-						<Smile size={20} />
-					</IconButton>
-					<IconButton onClick={handleCreateThread} disabled={isCreating}>
-						<Send size={20} />
-					</IconButton>
-				</InputContainer>
-
-				<MentionModal
-					show={showMentionModal}
-					searchTerm={mentionSearchTerm}
-					onSelect={handleMentionSelectWrapper}
-					onClose={closeMentionModal}
-				/>
-			</MessageInput>
 		</PageWrapper>
 	);
 };

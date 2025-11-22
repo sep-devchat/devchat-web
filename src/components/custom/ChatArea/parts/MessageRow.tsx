@@ -22,6 +22,8 @@ export type MessageRowProps = {
 	setReactionPickerFor: (v: string | null) => void;
 	formatMessageTime: (d: any) => string;
 	handleGoToMessage?: (id: string) => void; // optional navigation to parent
+	handleCreateThread: (m: MessageResponse) => void;
+	existingThreadId: string | null;
 };
 
 const MarkdownPreviewMemo = React.memo(MarkdownPreview);
@@ -47,6 +49,8 @@ export const MessageRow: React.FC<MessageRowProps> = React.memo(
 		setReactionPickerFor,
 		formatMessageTime,
 		handleGoToMessage,
+		handleCreateThread,
+		existingThreadId,
 	}) => {
 		const [hovered, setHovered] = useState(false);
 
@@ -89,7 +93,7 @@ export const MessageRow: React.FC<MessageRowProps> = React.memo(
 							className={`flex w-full items-end gap-2 ${isCurrentUser ? "flex-row-reverse" : ""}`}
 						>
 							<MessageBubbleStyle
-								className={`message-bubble w-fit rounded-lg px-3 py-2 text-sm shadow-none ${isCurrentUser ? "me" : "other"} ${(m as any).pending ? "opacity-50" : ""}`}
+								className={`message-bubble relative w-fit rounded-lg px-3 py-2 text-sm shadow-none ${isCurrentUser ? "me" : "other"} ${(m as any).pending ? "opacity-50" : ""}`}
 								style={{ whiteSpace: "pre-wrap" }}
 							>
 								{m.parentMessageId && (
@@ -124,6 +128,25 @@ export const MessageRow: React.FC<MessageRowProps> = React.memo(
 									</button>
 								)}
 								<MarkdownPreviewMemo content={m.content || ""} />
+
+								{existingThreadId && !m.thread?.id && (
+									<button
+										onClick={(e) => {
+											e.stopPropagation();
+											handleCreateThread(m);
+										}}
+										className="mt-2 inline-flex items-center gap-1 rounded-full bg-primary/15 px-2 py-0.5 text-[11px] font-medium text-primary hover:bg-primary/25 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+										type="button"
+										aria-label="Open thread"
+									>
+										<span className="inline-block h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
+										Thread
+										<span className="text-xs">↗</span>
+									</button>
+								)}
+								<span className="absolute -bottom-4 left-2 text-[10px] tracking-wide text-muted-foreground/70 opacity-0 group-hover/bubble:opacity-100 transition-opacity">
+									{formatMessageTime(m.createdAt)}
+								</span>
 							</MessageBubbleStyle>
 
 							<div className="flex items-end">
@@ -140,6 +163,8 @@ export const MessageRow: React.FC<MessageRowProps> = React.memo(
 									setReactionPickerFor={setReactionPickerFor}
 									handleReact={handleReact}
 									isCurrentUser={isCurrentUser}
+									handleCreateThread={handleCreateThread}
+									existingThreadId={existingThreadId}
 								/>
 							</div>
 						</div>
