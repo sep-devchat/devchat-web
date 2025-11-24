@@ -3,7 +3,7 @@ import { ChevronDown, X } from "lucide-react";
 
 type Option = { value: string; label: string };
 
-const DISABLED_BG = "#f3f4f6";
+const DISABLED_BG = "#ffffff";
 const DISABLED_OPACITY = 0.6;
 
 const CustomSelect: React.FC<{
@@ -83,16 +83,9 @@ const CustomSelect: React.FC<{
 					borderRadius: "10px",
 					fontSize: "14px",
 					color: "#1f2937",
-					background: disabled
-						? DISABLED_BG
-						: isOpen
-							? "white"
-							: "linear-gradient(to bottom, #ffffff, #f9fafb)",
+					background: disabled ? DISABLED_BG : "white",
 					cursor: disabled ? "not-allowed" : "pointer",
 					transition: "all 0.3s ease",
-					boxShadow: isOpen
-						? "0 0 0 4px rgba(59, 130, 246, 0.12), 0 4px 6px rgba(0, 0, 0, 0.07)"
-						: "0 1px 3px rgba(0, 0, 0, 0.05)",
 					userSelect: "none" as const,
 					display: "flex",
 					alignItems: "center",
@@ -159,10 +152,8 @@ const CustomSelect: React.FC<{
 						background: "white",
 						border: "1.5px solid #e5e7eb",
 						borderRadius: "12px",
-						boxShadow: "0 10px 25px rgba(0, 0, 0, 0.15)",
 						zIndex: 1000,
 						overflow: "hidden",
-						animation: "slideDown 0.2s ease-out",
 						padding: 6,
 					}}
 				>
@@ -182,7 +173,10 @@ const CustomSelect: React.FC<{
 								display: "flex",
 								alignItems: "center",
 							}}
-							onClick={() => handleSelect("")}
+							onClick={(e) => {
+								e.stopPropagation();
+								handleSelect("");
+							}}
 						>
 							{placeholder}
 						</div>
@@ -207,7 +201,10 @@ const CustomSelect: React.FC<{
 									display: "flex",
 									alignItems: "center",
 								}}
-								onClick={() => handleSelect(option.value)}
+								onClick={(e) => {
+									e.stopPropagation();
+									handleSelect(option.value);
+								}}
 								role="option"
 								aria-selected={isSelected}
 							>

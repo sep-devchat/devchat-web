@@ -30,26 +30,89 @@ export const GroupHeader = styled.div`
 	display: flex;
 	justify-content: space-between;
 	align-items: center;
+	gap: 12px;
+	min-width: 0;
+`;
+
+export const TooltipWrapper = styled.div`
+	position: relative;
+	flex: 1;
+	min-width: 0;
+	display: flex;
+	align-items: center;
 `;
 
 export const GroupTitle = styled.h3`
 	font-size: 1rem;
 	font-weight: 600;
+	margin: 0;
+
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
+	min-width: 0;
+	width: 100%;
 `;
 
 export const IconButtonGroup = styled.div`
 	display: flex;
 	gap: 0.5rem;
+	flex-shrink: 0;
 `;
 
 export const IconButton = styled.div`
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 32px;
+	height: 32px;
+	border: none;
+	background: transparent;
+	border-radius: 6px;
 	cursor: pointer;
+	transition: background-color 0.2s;
+	flex-shrink: 0;
 
 	&:hover {
 		color: #3b82f6;
+	}
+`;
+
+export const Tooltip = styled.div`
+	position: absolute;
+	top: calc(100% + 8px);
+	left: 0;
+	background: #1f2937;
+	color: #ffffff;
+	padding: 8px 12px;
+	border-radius: 6px;
+	font-size: 14px;
+	font-weight: 500;
+	white-space: normal;
+	word-break: break-word;
+	max-width: 300px;
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+	z-index: 1000;
+	animation: fadeIn 0.15s ease-in;
+
+	&::before {
+		content: "";
+		position: absolute;
+		bottom: 100%;
+		left: 16px;
+		border: 6px solid transparent;
+		border-bottom-color: #1f2937;
+	}
+
+	@keyframes fadeIn {
+		from {
+			opacity: 0;
+			transform: translateY(-4px);
+		}
+		to {
+			opacity: 1;
+			transform: translateY(0);
+		}
 	}
 `;
 

@@ -40,9 +40,11 @@ import {
 	SectionTitle,
 	AddButton,
 	ProfileWrapper,
+	TooltipWrapper,
+	Tooltip,
 } from "./LeftSidebar.styled";
 import { useNavigate, useParams, useSearch } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import MemberItem from "@/components/custom/MemberItem/MemberItem";
 import React from "react";
 import { GroupResponse, listGroups } from "@/services/groupAPI";
@@ -83,6 +85,36 @@ const saveLastChannelForGroup = (groupId: string, channelId: string): void => {
 	} catch (err) {
 		console.error("Failed to save channel history:", err);
 	}
+};
+
+const GroupTitleWithTooltip = ({ title }: { title: string }) => {
+	const [showTooltip, setShowTooltip] = useState(false);
+	const [isOverflowing, setIsOverflowing] = useState(false);
+	const titleRef = useRef<HTMLHeadingElement>(null);
+
+	useEffect(() => {
+		const checkOverflow = () => {
+			if (titleRef.current) {
+				setIsOverflowing(
+					titleRef.current.scrollWidth > titleRef.current.clientWidth,
+				);
+			}
+		};
+
+		checkOverflow();
+		window.addEventListener("resize", checkOverflow);
+		return () => window.removeEventListener("resize", checkOverflow);
+	}, [title]);
+
+	return (
+		<TooltipWrapper
+			onMouseEnter={() => isOverflowing && setShowTooltip(true)}
+			onMouseLeave={() => setShowTooltip(false)}
+		>
+			<GroupTitle ref={titleRef}>{title}</GroupTitle>
+			{showTooltip && isOverflowing && <Tooltip>{title}</Tooltip>}
+		</TooltipWrapper>
+	);
 };
 
 export const LeftSidebar: React.FC<LeftSidebarProps> = ({
@@ -312,7 +344,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
 			<HeaderContainer>
 				{isGroupPage ? (
 					<GroupHeader>
-						<GroupTitle>{currentGroup?.name ?? "Group"}</GroupTitle>
+						<GroupTitleWithTooltip title={currentGroup?.name ?? "Group"} />
 						<IconButtonGroup>
 							<IconButton onClick={handleAddChannel}>
 								<PlusIcon />

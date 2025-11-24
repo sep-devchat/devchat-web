@@ -55,20 +55,38 @@ const MainLayout = () => {
 	const shouldShowBorderRadius =
 		(showThreadPanel || iconSelected !== "") && iconSelected !== "users";
 
-	useEffect(() => {
-		if (isHalf && iconSelected === "users") {
-			setIconSelected("");
-			setShowThreadPanel(false);
-			setSelectedThreadId("");
-		}
-	}, [isHalf]);
-
+	// Handle resize
 	useEffect(() => {
 		const handleResize = () => setIsHalf(window.innerWidth < 1220);
 		window.addEventListener("resize", handleResize);
 		return () => window.removeEventListener("resize", handleResize);
 	}, []);
 
+	// Reset panels khi resize về isHalf
+	useEffect(() => {
+		if (
+			isHalf &&
+			(iconSelected === "users" ||
+				iconSelected === "code" ||
+				iconSelected === "tasks")
+		) {
+			setIconSelected("");
+			setShowThreadPanel(false);
+			setSelectedThreadId("");
+		}
+	}, [isHalf]);
+
+	// QUAN TRỌNG: Reset tất cả panels khi chuyển group trong chế độ isHalf
+	useEffect(() => {
+		if (isHalf && groupId) {
+			setIconSelected("");
+			setShowThreadPanel(false);
+			setSelectedThreadId("");
+			setShowCodeListPanel(false);
+		}
+	}, [groupId, isHalf]);
+
+	// Load groups
 	useEffect(() => {
 		let mounted = true;
 		const fetch = async () => {
@@ -109,6 +127,7 @@ const MainLayout = () => {
 		};
 	}, []);
 
+	// Fetch group detail để check admin
 	useEffect(() => {
 		const fetchGroupDetail = async () => {
 			if (!groupId) return;
@@ -127,6 +146,7 @@ const MainLayout = () => {
 		fetchGroupDetail();
 	}, [groupId, currentUserId]);
 
+	// Handle code panel
 	useEffect(() => {
 		if (iconSelected === "code") {
 			setShowThreadPanel(false);
@@ -137,6 +157,7 @@ const MainLayout = () => {
 		}
 	}, [iconSelected]);
 
+	// Handle thread panel
 	useEffect(() => {
 		if (showThreadPanel) {
 			setShowCodeListPanel(false);
@@ -200,19 +221,21 @@ const MainLayout = () => {
 		setIconSelected("");
 	};
 
+	// Auto show users panel chỉ khi KHÔNG phải isHalf
 	useEffect(() => {
 		if (
 			groupId &&
 			iconSelected === "" &&
 			!showThreadPanel &&
-			!showCodeListPanel
+			!showCodeListPanel &&
+			!isHalf // CHỈ auto show khi màn hình lớn
 		) {
 			setIconSelected("users");
 		}
 		if (!groupId && iconSelected === "users") {
 			setIconSelected("");
 		}
-	}, [groupId]);
+	}, [groupId, iconSelected, showThreadPanel, showCodeListPanel, isHalf]);
 
 	const renderRightPanel = () => {
 		if ((showCodeListPanel || iconSelected === "code") && !showThreadPanel) {
