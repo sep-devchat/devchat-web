@@ -52,6 +52,7 @@ export interface Profile {
 	lastLogin?: Date;
 	timezone?: string;
 	method?: string;
+	isAdmin?: boolean; // added for frontend admin guard
 }
 
 export interface PkceIssueTokenRequest {

@@ -1,7 +1,9 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "@tanstack/react-router";
-import { Bell } from "lucide-react";
 import * as S from "./Header.styled";
+import { fetchProfile } from "@/services/auth/authAPI";
+import type { Profile } from "@/services/auth/auth.type";
+import { toast } from "sonner";
 
 interface Tab {
 	id: string;
@@ -16,6 +18,9 @@ interface RouteInfo {
 }
 
 const Header: React.FC = () => {
+	const [profile, setProfile] = useState<Profile | null>(null);
+	const [loadingProfile, setLoadingProfile] = useState<boolean>(false);
+	const [errorProfile, setErrorProfile] = useState<string | null>(null);
 	const navigate = useNavigate();
 	const location = useLocation();
 
@@ -157,6 +162,45 @@ const Header: React.FC = () => {
 
 	const currentRoute = getRouteInfo();
 
+	useEffect(() => {
+		let isMounted = true;
+		setLoadingProfile(true);
+		fetchProfile()
+			.then((res: any) => {
+				if (!isMounted) return;
+				// If wrapped, prefer res.data; else assume direct profile
+				setProfile(res?.data ?? res);
+			})
+			.catch((err: any) => {
+				console.error("Failed to load current user", err);
+				if (!isMounted) return;
+				setErrorProfile("Failed to load profile");
+				toast.error("Failed to load profile");
+			})
+			.finally(() => {
+				if (!isMounted) return;
+				setLoadingProfile(false);
+			});
+		return () => {
+			isMounted = false;
+		};
+	}, []);
+
+	const fullName = (() => {
+		if (!profile) return "";
+		const parts = [profile.firstName, profile.lastName]
+			.filter(Boolean)
+			.join(" ")
+			.trim();
+		return parts || profile.username;
+	})();
+
+	const avatarSrc = profile?.avatarUrl
+		? profile.avatarUrl
+		: fullName
+			? `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName)}&background=3b82f6&color=fff`
+			: `https://ui-avatars.com/api/?name=User&background=3b82f6&color=fff`;
+
 	const isTabActive = (tabId: string) => {
 		const searchParams = new URLSearchParams(location.search);
 		const currentTab = searchParams.get("tab");
@@ -192,21 +236,30 @@ const Header: React.FC = () => {
 			</S.HeaderLeft>
 			<S.HeaderRight>
 				<S.UserProfileContainer>
-					<S.UserAvatar
-						src="https://ui-avatars.com/api/?name=Nhu+Nguyen&background=3b82f6&color=fff"
-						alt="Nhu Nguyen"
-					/>
-					<S.UserInfo>
-						<S.UserName>Nhu Nguyen</S.UserName>
-						<S.UserMail>nhunguyen@gmail.com</S.UserMail>
-						<S.UserRole>Admin</S.UserRole>
-					</S.UserInfo>
-					<S.NotificationButton
-						onClick={() => console.log("Notification clicked")}
-					>
-						<Bell size={20} color="#6b7280" />
-						<S.NotificationDot />
-					</S.NotificationButton>
+					{loadingProfile ? (
+						<S.UserInfo>
+							<S.UserName>Loading...</S.UserName>
+							<S.UserMail>---</S.UserMail>
+							<S.UserRole>...</S.UserRole>
+						</S.UserInfo>
+					) : errorProfile ? (
+						<S.UserInfo>
+							<S.UserName>Error</S.UserName>
+							<S.UserMail>-</S.UserMail>
+							<S.UserRole>-</S.UserRole>
+						</S.UserInfo>
+					) : (
+						<>
+							<S.UserAvatar
+								src={avatarSrc}
+								alt={profile?.firstName || "User"}
+							/>
+							<S.UserInfo>
+								<S.UserName>{profile?.firstName}</S.UserName>
+								<S.UserMail>{profile?.email}</S.UserMail>
+							</S.UserInfo>
+						</>
+					)}
 				</S.UserProfileContainer>
 			</S.HeaderRight>
 		</S.HeaderContainer>

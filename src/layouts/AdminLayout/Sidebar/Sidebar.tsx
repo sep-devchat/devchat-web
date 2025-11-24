@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { useNavigate, useLocation } from "@tanstack/react-router";
 import {
 	LayoutDashboard,
@@ -10,6 +10,11 @@ import {
 	LogOut,
 	LucideIcon,
 } from "lucide-react";
+import { logout } from "@/services/auth/authAPI";
+import cookieUtils from "@/services/cookieUtils";
+import { useDispatch } from "react-redux";
+import { setProfile } from "@/store/user.slice";
+import { toast } from "sonner";
 import * as S from "./Sidebar.styled";
 
 interface MenuItem {
@@ -41,6 +46,26 @@ const SidebarItem: React.FC<SidebarItemProps> = ({
 const Sidebar: React.FC = () => {
 	const navigate = useNavigate();
 	const location = useLocation();
+	const dispatch = useDispatch();
+	const [loggingOut, setLoggingOut] = useState(false);
+
+	const handleLogout = async () => {
+		if (loggingOut) return;
+		setLoggingOut(true);
+		try {
+			await logout(); // server side token invalidation (if implemented)
+		} catch (err) {
+			// Even if API fails, proceed with local cleanup
+			console.error("Logout API failed", err);
+		}
+		// Clear local auth artifacts
+		cookieUtils.clear();
+		window.localStorage.removeItem("accessToken");
+		dispatch(setProfile(null));
+		toast.success("Logged out successfully");
+		navigate({ to: "/auth/login" });
+		setLoggingOut(false);
+	};
 
 	const menuItems: MenuItem[] = [
 		{
@@ -77,7 +102,12 @@ const Sidebar: React.FC = () => {
 
 	const bottomItems: MenuItem[] = [
 		{ id: "setting", icon: Settings, label: "Setting", path: "/admin/setting" },
-		{ id: "logout", icon: LogOut, label: "Log Out", path: "/auth/login" },
+		{
+			id: "logout",
+			icon: LogOut,
+			label: loggingOut ? "Logging out..." : "Log Out",
+			path: "__logout__",
+		},
 	];
 
 	const isActive = (path: string) => location.pathname === path;
@@ -101,8 +131,14 @@ const Sidebar: React.FC = () => {
 						key={item.id}
 						icon={item.icon}
 						label={item.label}
-						active={isActive(item.path)}
-						onClick={() => navigate({ to: item.path })}
+						active={item.path !== "__logout__" && isActive(item.path)}
+						onClick={() => {
+							if (item.id === "logout") {
+								handleLogout();
+								return;
+							}
+							navigate({ to: item.path });
+						}}
 					/>
 				))}
 			</S.SidebarBottom>

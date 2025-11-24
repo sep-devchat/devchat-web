@@ -14,7 +14,7 @@ import {
 	DialogTitle,
 	DialogFooter,
 } from "@/components/ui/dialog"; // đường import giả định shadcn dialog
-import { deleteUser, listUsers, updateUser } from "@/services/userAPI";
+import { listUsers, setUserActive } from "@/services/userAPI";
 import { LockKeyhole, LockKeyholeOpen } from "lucide-react";
 import { toast } from "sonner";
 import ReportDetailModal from "./ReportDetailModal";
@@ -154,24 +154,24 @@ export default function UserTab() {
 		});
 	};
 
-	const handleOpenReports = (rowId: string | number) => {
-		setRowData((prev) =>
-			prev.map((r) =>
-				r.id === rowId
-					? {
-							...r,
-							reports: r.reports?.map((rep) => ({ ...rep, read: true })) ?? [],
-						}
-					: r,
-			),
-		);
-		setActiveRowId(rowId);
-		const row = rowData.find((r) => r.id === rowId) ?? null;
-		setActiveReportId(
-			row?.reports && row.reports.length > 0 ? row.reports[0].id : null,
-		);
-		setReportModalVisible(true);
-	};
+	// const handleOpenReports = (rowId: string | number) => {
+	// 	setRowData((prev) =>
+	// 		prev.map((r) =>
+	// 			r.id === rowId
+	// 				? {
+	// 						...r,
+	// 						reports: r.reports?.map((rep) => ({ ...rep, read: true })) ?? [],
+	// 					}
+	// 				: r,
+	// 		),
+	// 	);
+	// 	setActiveRowId(rowId);
+	// 	const row = rowData.find((r) => r.id === rowId) ?? null;
+	// 	setActiveReportId(
+	// 		row?.reports && row.reports.length > 0 ? row.reports[0].id : null,
+	// 	);
+	// 	setReportModalVisible(true);
+	// };
 
 	const handleCloseReportModal = () => {
 		setReportModalVisible(false);
@@ -230,6 +230,12 @@ export default function UserTab() {
 		rowData.find((r) => r.id === id) ?? null;
 
 	const openConfirm = (mode: "ban" | "unban", id: string | number) => {
+		const target = rowData.find((r) => String(r.id) === String(id));
+		// Prevent any admin deactivation
+		if (mode === "ban" && target?.originalApi?.isAdmin) {
+			toast.warning("Admin accounts cannot be deactivated");
+			return;
+		}
 		setConfirmState({ open: true, mode, targetId: id });
 	};
 
@@ -237,40 +243,48 @@ export default function UserTab() {
 		setConfirmState({ open: false, mode: null, targetId: null });
 
 	const performBan = async (id: string | number) => {
+		const target = rowData.find((r) => String(r.id) === String(id));
+		if (target?.originalApi?.isAdmin) {
+			toast.warning("Admin accounts cannot be deactivated");
+			closeConfirm();
+			return;
+		}
+		// Deactivate user (soft ban)
+		const previous = rowData;
+		setRowData((prev) =>
+			prev.map((r) =>
+				r.id === id ? { ...r, isActive: false, banned: true } : r,
+			),
+		);
 		try {
-			await deleteUser(String(id));
-			setRowData((prev) => prev.filter((r) => r.id !== id));
-			toast.success("User banned (deleted) successfully");
+			await setUserActive(String(id), false);
+			toast.success("User deactivated successfully");
 			fetchData();
 		} catch (err) {
-			console.error("Failed to delete/ban user", err);
-			toast.error("Failed to ban user");
+			console.error("Failed to deactivate user", err);
+			toast.error("Failed to deactivate user");
+			setRowData(previous); // rollback
 		} finally {
 			closeConfirm();
 		}
 	};
 
 	const performUnban = async (id: string | number) => {
+		// Reactivate user
+		const previous = rowData;
+		setRowData((prev) =>
+			prev.map((r) =>
+				r.id === id ? { ...r, isActive: true, banned: false } : r,
+			),
+		);
 		try {
-			const user = rowData.find((r) => r.id === id);
-			if (!user) throw new Error("User not found");
-			await updateUser(String(id), {
-				username: user.userCode,
-				email: user.email ?? "",
-				firstName: user.originalApi?.firstName ?? "",
-				lastName: user.originalApi?.lastName ?? "",
-				avatarUrl: user.avatar ?? "",
-				isActive: true,
-			});
-			setRowData((prev) =>
-				prev.map((r) =>
-					r.id === id ? { ...r, isActive: true, banned: false } : r,
-				),
-			);
-			toast.success("User unbanned successfully");
+			await setUserActive(String(id), true);
+			toast.success("User activated successfully");
 			fetchData();
 		} catch (err) {
-			console.error("Failed to unban user", err);
+			console.error("Failed to activate user", err);
+			toast.error("Failed to activate user");
+			setRowData(previous); // rollback
 		}
 	};
 
@@ -336,13 +350,13 @@ export default function UserTab() {
 		},
 		{
 			field: "userCode",
-			headerName: "User Code",
+			headerName: "Username",
 			editable: false,
 			align: "left",
 		},
 		{
 			field: "userName",
-			headerName: "User Name",
+			headerName: "Full Name",
 			editable: false,
 			align: "left",
 		},
@@ -354,41 +368,6 @@ export default function UserTab() {
 			valueFormatter: (v: any) => v ?? "—",
 		},
 		{
-			field: "reports",
-			headerName: "Reports",
-			editable: false,
-			align: "center",
-			valueFormatter: (_value: any, row?: Row) => {
-				const reports = row?.reports ?? [];
-				const count = reports.length;
-				if (count === 0) {
-					return <span className="text-gray-400 text-sm">—</span>;
-				}
-				const hasUnread = reports.some((r) => !r.read);
-				return (
-					<a
-						href="#"
-						onClick={(e) => {
-							e.preventDefault();
-							if (!row) return;
-							handleOpenReports(row.id);
-						}}
-						className="text-blue-600 underline text-sm inline-flex items-center gap-2"
-					>
-						<span>Detail ({count})</span>
-						{hasUnread ? (
-							<span
-								className="inline-block w-2 h-2 rounded-full"
-								style={{ backgroundColor: "red" }}
-								aria-hidden
-								title="Unread reports"
-							/>
-						) : null}
-					</a>
-				);
-			},
-		},
-		{
 			field: "action",
 			headerName: "Action",
 			editable: false,
@@ -396,38 +375,62 @@ export default function UserTab() {
 			valueFormatter: (_value: any, row?: Row) => {
 				if (!row) return null;
 				const isActive = row.isActive ?? true;
-				// isActive = true -> show Ban; isActive = false -> show Unban
+				const isAdminRow = !!row.originalApi?.isAdmin;
+				// Admin rows: never show deactivate; if inactive allow activation
+				if (isAdminRow) {
+					if (isActive) {
+						return (
+							<span
+								className="text-xs text-gray-400"
+								title="Admin account cannot be deactivated"
+							>
+								Active (admin)
+							</span>
+						);
+					} else {
+						return (
+							<BanButton
+								onClick={(e) => {
+									e.preventDefault();
+									handleUnbanClick(row.id);
+								}}
+								className="unban"
+								title="Activate admin account"
+							>
+								<LockKeyholeOpen size={12} />
+								Activate
+							</BanButton>
+						);
+					}
+				}
 				if (isActive) {
 					return (
 						<BanButton
 							onClick={(e) => {
 								e.preventDefault();
-								if (!row) return;
 								handleBanClick(row.id);
 							}}
 							className="ban"
-							title="Ban user (delete)"
+							title="Deactivate user"
 						>
 							<LockKeyhole size={12} />
-							Ban
-						</BanButton>
-					);
-				} else {
-					return (
-						<BanButton
-							onClick={(e) => {
-								e.preventDefault();
-								if (!row) return;
-								handleUnbanClick(row.id);
-							}}
-							className="unban"
-							title="Unban (reactivate) user"
-						>
-							<LockKeyholeOpen size={12} />
-							Unban
+							Deactivate
 						</BanButton>
 					);
 				}
+				return (
+					<BanButton
+						onClick={(e) => {
+							e.preventDefault();
+							handleUnbanClick(row.id);
+						}}
+						className="unban"
+						title="Activate user"
+					>
+						<LockKeyholeOpen size={12} />
+						Activate
+					</BanButton>
+				);
 			},
 		},
 	];
