@@ -28,8 +28,12 @@ export interface UserPostRequest {
 	password?: string;
 }
 
-export const listUsers = (page: number, limit: number) => {
-	return get<UserResponse[]>(`/api/user?page=${page}&limit=${limit}`);
+export const listUsers = (page: number, limit: number, search?: string) => {
+	let url = `/api/user?page=${page}&limit=${limit}`;
+	if (search && search.trim()) {
+		url += `&search=${encodeURIComponent(search.trim())}`;
+	}
+	return get<UserResponse[]>(url);
 };
 
 export const detailUser = (id: string) => {
