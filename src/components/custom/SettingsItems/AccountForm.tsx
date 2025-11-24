@@ -16,7 +16,10 @@ import {
 	SelectAccount,
 } from "./SettingsItems.styled";
 import { Profile } from "@/services/auth/auth.type";
+import { resendVerifyEmail } from "@/services/auth/authAPI";
 import { AvatarImg, NoAvatar } from "@/pages/Setting/Setting.styled";
+import { InfoButton } from "../ActionButton/InfoButton";
+import { toast } from "sonner";
 
 interface AccountFormProps {
 	initialData?: Profile | any;
@@ -32,6 +35,7 @@ const AccountForm: React.FC<AccountFormProps> = ({
 	onChange,
 }) => {
 	const [local, setLocal] = useState<any>({ ...initialData });
+	const [isSendingVerify, setIsSendingVerify] = useState(false);
 	const mountedRef = useRef(false);
 	const skipOnChangeRef = useRef(false);
 
@@ -85,6 +89,40 @@ const AccountForm: React.FC<AccountFormProps> = ({
 						<ProfileEmail>{local?.email}</ProfileEmail>
 					</ProfileDetails>
 				</ProfileInfo>
+				<InfoButton
+					onClick={async () => {
+						if (!local?.email) {
+							window.dispatchEvent(
+								new CustomEvent("app:alert", {
+									detail: {
+										type: "warning",
+										message: "No email available to verify",
+										duration: 4000,
+									},
+								}),
+							);
+							return;
+						}
+
+						try {
+							setIsSendingVerify(true);
+							const res = await resendVerifyEmail({
+								email: String(local.email),
+							});
+
+							toast.success(
+								res?.message || "Verification email sent successfully",
+							);
+						} catch {
+							toast.error("Failed to send verification email");
+						} finally {
+							setIsSendingVerify(false);
+						}
+					}}
+					disabled={isSendingVerify}
+				>
+					{isSendingVerify ? "Sending..." : "Verify email"}
+				</InfoButton>
 			</ProfileHeader>
 
 			<FormContent>

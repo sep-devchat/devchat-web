@@ -113,7 +113,7 @@ export const StyledButton = styled.button<BaseProps>`
 			border-color: ${theme.color.error};
 
 			&:hover:not(:disabled) {
-				background: ${theme.color.error}60;
+				background: ${theme.color.error}80;
 			}
 
 			&:focus {

@@ -3,10 +3,11 @@ import { StyledButton } from "./ActionButton.styled";
 type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
 	fullWidth?: boolean;
 	leftIcon?: React.ReactNode;
+	children?: React.ReactNode;
 };
 
 export const DeleteButton: React.FC<ButtonProps> = ({
-	children = "Xóa",
+	children,
 	fullWidth,
 	leftIcon,
 	...rest
@@ -18,7 +19,7 @@ export const DeleteButton: React.FC<ButtonProps> = ({
 			{...(rest as React.ButtonHTMLAttributes<HTMLButtonElement>)}
 		>
 			{leftIcon}
-			{children}
+			{children ?? "Delete"}
 		</StyledButton>
 	);
 };

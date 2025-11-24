@@ -6,7 +6,7 @@ type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
 };
 
 export const InfoButton: React.FC<ButtonProps> = ({
-	children = "Info",
+	children,
 	fullWidth,
 	leftIcon,
 	...rest
@@ -18,7 +18,7 @@ export const InfoButton: React.FC<ButtonProps> = ({
 			{...(rest as React.ButtonHTMLAttributes<HTMLButtonElement>)}
 		>
 			{leftIcon}
-			{children}
+			{children || "Info"}
 		</StyledButton>
 	);
 };
