@@ -30,7 +30,7 @@ import CustomBarChart from "@/components/custom/BarChart/BarChart";
 import LanguageChart from "@/components/custom/LanguageChart/LanguageChart";
 
 export default function Analytics() {
-	const search = useSearch({ from: "/admin/analytics" });
+	const search = useSearch({ from: "/admin/dashboard" });
 	const activeTab = search.tab || "user";
 
 	const lineChartData = [

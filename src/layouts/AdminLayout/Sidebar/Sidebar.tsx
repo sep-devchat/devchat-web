@@ -4,7 +4,6 @@ import {
 	LayoutDashboard,
 	Users,
 	Shield,
-	BarChart3,
 	Lock,
 	Settings,
 	LogOut,
@@ -85,12 +84,6 @@ const Sidebar: React.FC = () => {
 			icon: Shield,
 			label: "Moderate Messages",
 			path: "/admin/moderate-messages",
-		},
-		{
-			id: "analytics",
-			icon: BarChart3,
-			label: "Analytics",
-			path: "/admin/analytics",
 		},
 		{
 			id: "permissions",

@@ -31,25 +31,18 @@ const Header: React.FC = () => {
 			return {
 				title: "Dashboard",
 				path: "/admin/dashboard",
-			};
-		}
-
-		if (pathname.startsWith("/admin/analytics")) {
-			return {
-				title: "Analytics Dashboard",
-				path: "/admin/analytics",
 				tabs: [
-					{ id: "user", label: "User", path: "/admin/analytics?tab=user" },
+					{ id: "user", label: "User", path: "/admin/dashboard?tab=user" },
 					{
 						id: "language",
 						label: "Language",
-						path: "/admin/analytics?tab=language",
+						path: "/admin/dashboard?tab=language",
 					},
-					{ id: "group", label: "Group", path: "/admin/analytics?tab=group" },
+					{ id: "group", label: "Group", path: "/admin/dashboard?tab=group" },
 					{
 						id: "system",
 						label: "System",
-						path: "/admin/analytics?tab=system",
+						path: "/admin/dashboard?tab=system",
 					},
 				],
 			};
@@ -93,18 +86,6 @@ const Header: React.FC = () => {
 			return {
 				title: "User Management",
 				path: "/admin/user-management",
-				tabs: [
-					{
-						id: "user",
-						label: "User",
-						path: "/admin/user-management?tab=user",
-					},
-					{
-						id: "group",
-						label: "Group",
-						path: "/admin/user-management?tab=group",
-					},
-				],
 			};
 		}
 

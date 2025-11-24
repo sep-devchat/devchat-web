@@ -285,6 +285,8 @@ export default function UserTab() {
 			console.error("Failed to activate user", err);
 			toast.error("Failed to activate user");
 			setRowData(previous); // rollback
+		} finally {
+			closeConfirm();
 		}
 	};
 
