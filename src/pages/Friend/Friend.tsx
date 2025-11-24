@@ -61,7 +61,6 @@ const Friend: React.FC = () => {
 	const [searchAll, setSearchAll] = useState("");
 	const [searchPending, setSearchPending] = useState("");
 
-	const [availableUsers, setAvailableUsers] = useState<UserResponse[]>([]);
 	const [isLoadingUsers, setIsLoadingUsers] = useState(false);
 	const [isSendingRequest, setIsSendingRequest] = useState(false);
 	const [isUserSelectedFromList, setIsUserSelectedFromList] = useState(false);
@@ -75,6 +74,7 @@ const Friend: React.FC = () => {
 
 	const [currentPage, setCurrentPage] = useState(1);
 	const friendsPerPage = 18;
+	const SEARCH_DEBOUNCE_MS = 400; // debounce delay for user search
 
 	const [isUnfriendModalOpen, setIsUnfriendModalOpen] = useState(false);
 	const [unfriendTarget, setUnfriendTarget] = useState<{
@@ -89,30 +89,6 @@ const Friend: React.FC = () => {
 	>([]);
 	const [pendingGroupInvites, setPendingGroupInvites] = useState<any[]>([]);
 	const [isLoadingPending, setIsLoadingPending] = useState(false);
-
-	useEffect(() => {
-		const fetchActiveUsers = async () => {
-			setIsLoadingUsers(true);
-			try {
-				const response = await listUsers(1, 100);
-				const payload = response?.data;
-				const usersArray = Array.isArray(payload) ? payload : [];
-
-				const active = (usersArray || []).filter(
-					(user: UserResponse) =>
-						user?.isActive === true &&
-						String(user?.id) !== String(currentUserId),
-				);
-				setAvailableUsers(active);
-			} catch (err) {
-				console.error("Failed to fetch users", err);
-			} finally {
-				setIsLoadingUsers(false);
-			}
-		};
-
-		fetchActiveUsers();
-	}, [currentUserId]);
 
 	useEffect(() => {
 		const refetchCurrentTab = async () => {
@@ -248,24 +224,6 @@ const Friend: React.FC = () => {
 					console.error("Failed to fetch pending invites", err);
 				} finally {
 					setIsLoadingPending(false);
-				}
-			} else if (activeTab === "add-friend") {
-				setIsLoadingUsers(true);
-				try {
-					const response = await listUsers(1, 100);
-					const payload = response?.data;
-					const usersArray = Array.isArray(payload) ? payload : [];
-
-					const active = (usersArray || []).filter(
-						(user: UserResponse) =>
-							user?.isActive === true &&
-							String(user?.id) !== String(currentUserId),
-					);
-					setAvailableUsers(active);
-				} catch (err) {
-					console.error("Failed to fetch users", err);
-				} finally {
-					setIsLoadingUsers(false);
 				}
 			}
 		};
@@ -447,48 +405,56 @@ const Friend: React.FC = () => {
 
 	const handleSearchAdd = (query: string) => {
 		setSearchAdd(query);
-
 		if (selectedUser && selectedUser.name !== query) {
 			setSelectedUser(null);
 			setIsUserSelectedFromList(false);
 		}
-
-		if (query.trim()) {
-			const searchTerm = query.toLowerCase();
-
-			const filtered = (availableUsers || [])
-				.filter((user) => {
-					if (!user) return false;
-
-					const first = (user.firstName ?? "").toString();
-					const last = (user.lastName ?? "").toString();
-					const fullName = `${first} ${last}`.trim().toLowerCase();
-
-					const username = (user.username ?? "").toString().toLowerCase();
-					const email = (user.email ?? "").toString().toLowerCase();
-
-					return (
-						fullName.includes(searchTerm) ||
-						username.includes(searchTerm) ||
-						email.includes(searchTerm)
-					);
-				})
-				.map((user) => ({
-					id: user.id,
-					name: `${user.firstName ?? ""} ${user.lastName ?? ""}`.trim(),
-					handle: user.username ? `@${user.username}` : "",
-					avatar:
-						user.avatarUrl ||
-						"https://images.unsplash.com/photo-1494790108755-2616b332c-c3?w=100&h=100&fit=crop&crop=face",
-					mutualFriends: 0,
-					raw: user,
-				}));
-
-			setSearchResults(filtered);
-		} else {
+		if (!query.trim()) {
 			setSearchResults([]);
 		}
 	};
+
+	useEffect(() => {
+		// Only perform debounced search in add-friend tab
+		if (activeTab !== "add-friend") return;
+		const trimmed = searchAdd.trim();
+		if (!trimmed) return; // nothing to search
+
+		const timer = setTimeout(() => {
+			setIsLoadingUsers(true);
+			listUsers(1, 50, trimmed)
+				.then((response) => {
+					const usersArray = Array.isArray(response?.data) ? response.data : [];
+					const mapped = usersArray
+						.filter((user: UserResponse) => {
+							if (!user) return false;
+							if (String(user.id) === String(currentUserId)) return false; // exclude self
+							return true;
+						})
+						.map((user: UserResponse) => ({
+							id: user.id,
+							name:
+								`${user.firstName ?? ""} ${user.lastName ?? ""}`.trim() ||
+								user.username ||
+								"User",
+							handle: user.username ? `@${user.username}` : "",
+							avatar:
+								user.avatarUrl ||
+								"https://images.unsplash.com/photo-1494790108755-2616b332c-c3?w=100&h=100&fit=crop&crop=face",
+							mutualFriends: 0,
+							raw: user,
+						}));
+					setSearchResults(mapped);
+				})
+				.catch((err) => {
+					console.error("User search failed", err);
+					setSearchResults([]);
+				})
+				.finally(() => setIsLoadingUsers(false));
+		}, SEARCH_DEBOUNCE_MS);
+
+		return () => clearTimeout(timer);
+	}, [searchAdd, activeTab, currentUserId]);
 
 	const handleSelectUser = (user: any) => {
 		setSelectedUser(user);
