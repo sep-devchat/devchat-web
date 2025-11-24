@@ -17,10 +17,20 @@ import InlineCode from "../InlineCode";
 export interface MarkdownPreviewProps {
 	content?: string;
 	className?: string;
+	codeBlockId?: string;
+	channelId?: string;
+	groupId?: string;
 }
 
-const MarkdownPreview = ({ content = "", className }: MarkdownPreviewProps) => {
+const MarkdownPreview = ({
+	content = "",
+	className,
+	codeBlockId,
+	channelId,
+	groupId,
+}: MarkdownPreviewProps) => {
 	const [remarkPlugins, setRemarkPlugins] = useState<any[]>([]);
+
 	const mentionClasses = useMemo(
 		() => [
 			"mention",
@@ -35,7 +45,6 @@ const MarkdownPreview = ({ content = "", className }: MarkdownPreviewProps) => {
 		[],
 	);
 
-	// Minimal rehype plugin to highlight @mentions in rendered HTML (HAST)
 	const rehypeMentions = useMemo(() => {
 		const isElement = (n: any) => n && n.type === "element";
 		const isText = (n: any) => n && n.type === "text";
@@ -53,7 +62,6 @@ const MarkdownPreview = ({ content = "", className }: MarkdownPreviewProps) => {
 			for (let i = 0; i < parent.children.length; i++) {
 				const child = parent.children[i];
 
-				// Skip transforming inside <pre> or <code>
 				if (
 					isElement(parent) &&
 					(parent.tagName === "pre" || parent.tagName === "code")
@@ -65,7 +73,6 @@ const MarkdownPreview = ({ content = "", className }: MarkdownPreviewProps) => {
 				if (isText(child)) {
 					const next = parent.children[i + 1];
 
-					// Handle pattern: text ending with '@' immediately followed by <code>username</code>
 					if (
 						typeof child.value === "string" &&
 						child.value.endsWith("@") &&
@@ -80,11 +87,10 @@ const MarkdownPreview = ({ content = "", className }: MarkdownPreviewProps) => {
 							properties: { className: mentionClasses },
 							children: [{ type: "text", value: "@" }, next],
 						});
-						i++; // consume next as well
+						i++;
 						continue;
 					}
 
-					// Handle simple inline mentions like "@username" with a boundary before '@'
 					const text: string = child.value ?? "";
 					const regex = /(^|\s)@([a-zA-Z0-9_]{1,30})/g;
 					let pos = 0;
@@ -92,16 +98,13 @@ const MarkdownPreview = ({ content = "", className }: MarkdownPreviewProps) => {
 					let matched = false;
 					while ((m = regex.exec(text)) !== null) {
 						matched = true;
-						const start = m.index; // index where the boundary (start or space) begins
-						const leading = m[1] ?? ""; // possibly a space or empty string
+						const start = m.index;
+						const leading = m[1] ?? "";
 						const handle = "@" + m[2];
 
-						// text before the boundary
 						if (start > pos)
 							out.push({ type: "text", value: text.slice(pos, start) });
-						// the boundary itself
 						if (leading) out.push({ type: "text", value: leading });
-						// the mention
 						out.push(makeMentionSpan(handle));
 
 						pos = start + leading.length + handle.length;
@@ -113,7 +116,6 @@ const MarkdownPreview = ({ content = "", className }: MarkdownPreviewProps) => {
 						out.push(child);
 					}
 				} else if (isElement(child)) {
-					// Recurse into children first to allow nested processing
 					transformChildren(child);
 					out.push(child);
 				} else {
@@ -125,7 +127,6 @@ const MarkdownPreview = ({ content = "", className }: MarkdownPreviewProps) => {
 
 		return function rehypeMentionsPlugin() {
 			return (tree: any) => {
-				// Only process element trees (root is usually 'root' with children)
 				if (!tree || !Array.isArray((tree as any).children)) return;
 				transformChildren(tree);
 			};
@@ -149,6 +150,28 @@ const MarkdownPreview = ({ content = "", className }: MarkdownPreviewProps) => {
 		};
 	}, []);
 
+	const extractedId = React.useMemo(() => {
+		if (codeBlockId) return codeBlockId;
+
+		const match = content.match(
+			/```[\w]*\s*<!--\s*data-code-block-id:\s*([a-f0-9-]+)\s*-->/,
+		);
+		return match?.[1];
+	}, [content, codeBlockId]);
+
+	const preComponent = useMemo(() => {
+		return (props: any) => {
+			return (
+				<CodeBlock
+					{...props}
+					codeBlockId={extractedId}
+					channelId={channelId}
+					groupId={groupId}
+				/>
+			);
+		};
+	}, [extractedId]);
+
 	return (
 		<div
 			className={cn(
@@ -166,6 +189,7 @@ const MarkdownPreview = ({ content = "", className }: MarkdownPreviewProps) => {
 				}
 			>
 				<Markdown
+					key={content}
 					remarkPlugins={remarkPlugins}
 					rehypePlugins={[rehypeMentions]}
 					components={{
@@ -173,7 +197,6 @@ const MarkdownPreview = ({ content = "", className }: MarkdownPreviewProps) => {
 							<h1
 								id={children?.toString().toLowerCase()}
 								className={cn(
-									// more compact top/bottom margins
 									"group scroll-m-20 text-3xl font-semibold tracking-tight mb-2 mt-2",
 									p.className,
 								)}
@@ -272,7 +295,7 @@ const MarkdownPreview = ({ content = "", className }: MarkdownPreviewProps) => {
 							</li>
 						),
 						code: (props) => <InlineCode {...props} />,
-						pre: (props) => <CodeBlock {...props} />,
+						pre: preComponent,
 						blockquote: ({ children, ...p }) => (
 							<blockquote
 								className={cn(

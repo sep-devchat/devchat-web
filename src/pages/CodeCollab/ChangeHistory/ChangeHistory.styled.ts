@@ -133,17 +133,17 @@ export const UserIconContainer = styled.div`
 	width: 2.5rem;
 	height: 2.5rem;
 	border-radius: 50%;
-	background: linear-gradient(135deg, #7b9fe8 0%, #a6c2f2 50%, #f5e6d3 100%);
 	display: flex;
 	align-items: center;
 	justify-content: center;
 	flex-shrink: 0;
 	transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-	box-shadow: 0 2px 8px rgba(123, 159, 232, 0.35);
-	color: #ffffff;
-
-	${ChangeButton}:hover & {
-		background: linear-gradient(135deg, #8baee8 0%, #b5d0f5 50%, #ffe8c7 100%);
+	img {
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+		border-radius: 50%;
+		border: 1px solid #d1e0fd;
 	}
 `;
 
@@ -212,6 +212,33 @@ export const DeleteButton = styled.button`
 	&:hover {
 		background: #fee2e2;
 		color: #dc2626;
+	}
+
+	&:focus {
+		outline: none;
+	}
+
+	&:active {
+		transform: scale(0.95);
+	}
+`;
+
+export const EditButton = styled.button`
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 0.375rem;
+	background: transparent;
+	border: none;
+	border-radius: 0.375rem;
+	color: #94a3b8;
+	cursor: pointer;
+	transition: all 0.2s;
+	flex-shrink: 0;
+
+	&:hover {
+		background: #fefee2ff;
+		color: #dcbb26ff;
 	}
 
 	&:focus {

@@ -20,7 +20,6 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({
 	modified,
 	onClose,
 	userName,
-	onLoadVersion,
 }) => {
 	useEffect(() => {
 		document.body.style.overflow = "hidden";
@@ -29,32 +28,51 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({
 		};
 	}, []);
 
-	const getDiff = useMemo(() => {
+	const isHalf = window.innerWidth <= 1220;
+
+	const diffData = useMemo(() => {
 		const origLines = original.split("\n");
 		const modLines = modified.split("\n");
-		const maxLen = Math.max(origLines.length, modLines.length);
 
-		const diff: Array<{
-			lineNum: number;
-			original: string;
-			modified: string;
-			type: "added" | "removed" | "changed";
-		}> = [];
+		const changedOriginalLines = new Set<number>();
+		const changedModifiedLines = new Set<number>();
 
-		for (let i = 0; i < maxLen; i++) {
-			const origLine = origLines[i] || "";
-			const modLine = modLines[i] || "";
+		const origContentLines = origLines
+			.map((line, idx) => ({ line: line.trim(), idx }))
+			.filter((item) => item.line !== "");
 
-			if (origLine !== modLine) {
-				diff.push({
-					lineNum: i + 1,
-					original: origLine,
-					modified: modLine,
-					type: !origLine ? "added" : !modLine ? "removed" : "changed",
-				});
+		const modContentLines = modLines
+			.map((line, idx) => ({ line: line.trim(), idx }))
+			.filter((item) => item.line !== "");
+
+		const origContentSet = new Set(origContentLines.map((item) => item.line));
+		const modContentSet = new Set(modContentLines.map((item) => item.line));
+
+		let removedCount = 0;
+		origContentLines.forEach((item) => {
+			if (!modContentSet.has(item.line)) {
+				changedOriginalLines.add(item.idx);
+				removedCount++;
 			}
-		}
-		return diff;
+		});
+
+		let addedCount = 0;
+		modContentLines.forEach((item) => {
+			if (!origContentSet.has(item.line)) {
+				changedModifiedLines.add(item.idx);
+				addedCount++;
+			}
+		});
+
+		const totalChanges = removedCount + addedCount;
+
+		return {
+			origLines,
+			modLines,
+			changedOriginalLines,
+			changedModifiedLines,
+			totalChanges,
+		};
 	}, [original, modified]);
 
 	return (
@@ -78,7 +96,10 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({
 				</S.Header>
 
 				<div className="flex-1 overflow-hidden">
-					<ResizablePanelGroup direction="horizontal">
+					<ResizablePanelGroup
+						key={isHalf ? "vertical" : "horizontal"}
+						direction={isHalf ? "vertical" : "horizontal"}
+					>
 						<ResizablePanel defaultSize={50} minSize={30}>
 							<div className="h-full flex flex-col bg-slate-950">
 								<div className="flex items-center justify-between px-4 py-3 border-b border-red-500/30 bg-red-950/20 flex-shrink-0">
@@ -92,12 +113,8 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({
 								</div>
 								<div className="flex-1 overflow-y-auto">
 									<S.CodePre>
-										{original.split("\n").map((line, i) => {
-											const diffLine = getDiff.find((d) => d.lineNum === i + 1);
-											const isChanged =
-												diffLine &&
-												(diffLine.type === "changed" ||
-													diffLine.type === "removed");
+										{diffData.origLines.map((line, i) => {
+											const isChanged = diffData.changedOriginalLines.has(i);
 											return (
 												<div
 													key={i}
@@ -130,12 +147,8 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({
 								</div>
 								<div className="flex-1 overflow-y-auto">
 									<S.CodePre>
-										{modified.split("\n").map((line, i) => {
-											const diffLine = getDiff.find((d) => d.lineNum === i + 1);
-											const isChanged =
-												diffLine &&
-												(diffLine.type === "changed" ||
-													diffLine.type === "added");
+										{diffData.modLines.map((line, i) => {
+											const isChanged = diffData.changedModifiedLines.has(i);
 											return (
 												<div
 													key={i}
@@ -158,13 +171,9 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({
 				<S.Footer>
 					<S.FooterContent>
 						<S.DiffInfo>
-							<span>{getDiff.length}</span> line(s) changed
+							<span>{diffData.totalChanges}</span> change
+							{diffData.totalChanges !== 1 ? "s" : ""}
 						</S.DiffInfo>
-						{onLoadVersion && (
-							<S.LoadButton onClick={onLoadVersion}>
-								Load & Continue Editing
-							</S.LoadButton>
-						)}
 					</S.FooterContent>
 				</S.Footer>
 			</S.ModalContent>

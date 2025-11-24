@@ -1,4 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSelector } from "react-redux";
+import { RootState } from "@/store";
 import {
 	ResizableHandle,
 	ResizablePanel,
@@ -6,106 +8,259 @@ import {
 } from "@/components/ui/resizable";
 import { X } from "lucide-react";
 import { Change } from "./types";
-import { SimplifiedChatArea } from "./SimplifiedChatArea/SimplifiedChatArea";
 import { CodeEditor } from "./CodeEditor/CodeEditor";
 import { ChangeHistory } from "./ChangeHistory/ChangeHistory";
 import { DiffViewer } from "./DiffViewer/DiffViewer";
 import * as S from "./CodeCollab.styled";
+import { Spinner } from "@/components/ui/spinner";
+import {
+	getCodeBlockById,
+	getCodeCollaborationHistory,
+	saveCodeCollaboration,
+	deleteCodeCollaboration,
+	updateCodeCollaboration,
+} from "@/services/codeCollabAPI";
+import { toast } from "sonner";
 
-const ORIGINAL_CODE = `import java.util.Scanner;
+interface CodeCollabProps {
+	codeBlockId: string;
+	channelId: string;
+	groupId: string;
+}
 
-public class SimpleSum {
-    public static void main(String[] args) {
-        Scanner sc = new Scanner(System.in);
-        
-        System.out.print("Enter the first number: ");
-        double a = sc.nextDouble();
-        
-        System.out.print("Enter the second number: ");
-        double b = sc.nextDouble();
-        
-        double sum = a + b;
-        System.out.println("The sum of " + a + " and " + b + " = " + sum);
-        
-        sc.close();
-    }
-}`;
+export default function CodeCollab({
+	codeBlockId,
+	channelId,
+	groupId,
+}: CodeCollabProps) {
+	const currentUserProfile = useSelector(
+		(state: RootState) => state.user.profile,
+	);
+	const currentUserId = currentUserProfile?.id || "";
 
-const MOCK_CHANGES: Change[] = [
-	{
-		id: "1",
-		userName: "Như Nguyễn Trần Nguyễn",
-		timestamp: new Date(Date.now() - 5 * 60 * 1000),
-		code: `import java.util.Scanner;
-
-public class SimpleSum {
-    public static void main(String[] args) {
-        Scanner sc = new Scanner(System.in);
-        
-        System.out.print("Enter first number: ");
-        double num1 = sc.nextDouble();
-        
-        System.out.print("Enter second number: ");
-        double num2 = sc.nextDouble();
-        
-        double result = num1 + num2;
-        System.out.println("Sum: " + result);
-        
-        sc.close();
-    }
-}`,
-	},
-	{
-		id: "2",
-		userName: "John Doe",
-		timestamp: new Date(Date.now() - 15 * 60 * 1000),
-		code: `import java.util.Scanner;
-
-public class SimpleSum {
-    public static void main(String[] args) {
-        Scanner scanner = new Scanner(System.in);
-        
-        System.out.print("Enter the first number: ");
-        double a = scanner.nextDouble();
-        
-        System.out.print("Enter the second number: ");
-        double b = scanner.nextDouble();
-        
-        double sum = a + b;
-        System.out.println("Result: " + a + " + " + b + " = " + sum);
-        
-        scanner.close();
-    }
-}`,
-	},
-];
-
-export default function CodeCollab() {
-	const [editableCode, setEditableCode] = useState(ORIGINAL_CODE);
-	const [lastSavedCode, setLastSavedCode] = useState(ORIGINAL_CODE);
+	const [originalCode, setOriginalCode] = useState("");
+	const [editableCode, setEditableCode] = useState("");
+	const [lastSavedCode, setLastSavedCode] = useState("");
 	const [selectedDiff, setSelectedDiff] = useState<Change | null>(null);
-	const [changes, setChanges] = useState<Change[]>(MOCK_CHANGES);
+	const [changes, setChanges] = useState<Change[]>([]);
 	const [showLoadConfirm, setShowLoadConfirm] = useState(false);
 	const [pendingLoadCode, setPendingLoadCode] = useState<string | null>(null);
 	const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 	const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+	const [isLoading, setIsLoading] = useState(true);
+	const [error, setError] = useState<string | null>(null);
+	const [isSaving, setIsSaving] = useState(false);
+	const [isDeleting, setIsDeleting] = useState(false);
+	const [editingRevisionId, setEditingRevisionId] = useState<string | null>(
+		null,
+	);
+	const [pendingEditId, setPendingEditId] = useState<string | null>(null);
+	const [showResetConfirm, setShowResetConfirm] = useState(false);
+	const handleResetConfirm = () => {
+		if (hasChanges) {
+			setShowResetConfirm(true);
+		} else {
+			performReset();
+		}
+	};
+
+	const performReset = () => {
+		setEditableCode(originalCode);
+		setLastSavedCode(originalCode);
+		setEditingRevisionId(null);
+		setSelectedDiff(null);
+		setShowResetConfirm(false);
+		toast.info("Code reset to original");
+	};
 
 	const hasChanges = editableCode !== lastSavedCode;
 
-	const currentUserName = "Bob Smith"; // Current logged-in user
+	const currentUserName = currentUserProfile
+		? `${currentUserProfile.firstName} ${currentUserProfile.lastName}`
+		: "Unknown User";
 
-	const handleSave = () => {
-		if (!hasChanges) return;
+	useEffect(() => {
+		const fetchData = async () => {
+			try {
+				setIsLoading(true);
+				setError(null);
 
-		const newChange: Change = {
-			id: `change-${Date.now()}`,
-			userName: currentUserName,
-			timestamp: new Date(),
-			code: editableCode,
+				if (!codeBlockId || !channelId || !groupId) {
+					throw new Error("Missing required params");
+				}
+
+				const codeBlockResponse = await getCodeBlockById(
+					codeBlockId,
+					channelId,
+					groupId,
+				);
+
+				if (!codeBlockResponse?.data) {
+					throw new Error("Failed to load code block");
+				}
+
+				const originalContent = codeBlockResponse.data.content ?? "";
+				setOriginalCode(originalContent);
+
+				const historyResponse = await getCodeCollaborationHistory(codeBlockId);
+
+				if (historyResponse?.data && Array.isArray(historyResponse.data)) {
+					const historyChanges: Change[] = historyResponse.data.map((item) => ({
+						id: item.id,
+						userName: `${item.createdBy.firstName} ${item.createdBy.lastName}`,
+						avatarUrl: item.createdBy.avatarUrl,
+						userId: item.createdBy.id,
+						timestamp: new Date(item.createdAt),
+						code: item.content,
+					}));
+					setChanges(historyChanges);
+				}
+
+				setEditableCode(originalContent);
+				setLastSavedCode(originalContent);
+			} catch (err: any) {
+				console.error("💥 Fetch error:", err);
+				setError(err?.message || "Failed to load data");
+			} finally {
+				setIsLoading(false);
+			}
 		};
 
-		setChanges((prev) => [newChange, ...prev]);
-		setLastSavedCode(editableCode);
+		if (codeBlockId && channelId && groupId) {
+			fetchData();
+		}
+	}, [codeBlockId, channelId, groupId]);
+
+	const handleEditRevision = (changeId: string) => {
+		const change = changes.find((c) => c.id === changeId);
+		if (!change) return;
+
+		if (change.userId !== currentUserId) {
+			toast.error("You can only edit your own revisions");
+			return;
+		}
+
+		if (hasChanges) {
+			setPendingEditId(changeId);
+			setShowLoadConfirm(true);
+			return;
+		}
+
+		loadRevisionForEdit(changeId);
+	};
+
+	const loadRevisionForEdit = (changeId: string) => {
+		const change = changes.find((c) => c.id === changeId);
+		if (!change) return;
+
+		setEditableCode(change.code);
+		setLastSavedCode(change.code);
+		setEditingRevisionId(changeId);
+		setSelectedDiff(null);
+
+		toast.info("Editing revision - changes will update this version");
+	};
+
+	const handleSave = async () => {
+		if (!hasChanges || isSaving) return;
+
+		try {
+			setIsSaving(true);
+
+			if (editingRevisionId) {
+				const response = await updateCodeCollaboration(
+					editingRevisionId,
+					editableCode,
+				);
+
+				console.log("✏️ Update response:", response);
+
+				setChanges((prev) =>
+					prev.map((change) =>
+						change.id === editingRevisionId
+							? {
+									...change,
+									code: editableCode,
+									timestamp: new Date(),
+								}
+							: change,
+					),
+				);
+
+				setLastSavedCode(editableCode);
+				setEditingRevisionId(null);
+
+				toast.success("Revision updated successfully");
+			} else {
+				const response = await saveCodeCollaboration(codeBlockId, editableCode);
+
+				const newChange: Change = {
+					id: response?.data?.id || `change-${Date.now()}`,
+					userName: currentUserName,
+					userId: currentUserId,
+					avatarUrl: currentUserProfile?.avatarUrl,
+					timestamp: new Date(),
+					code: editableCode,
+				};
+
+				setChanges((prev) => [newChange, ...prev]);
+				setLastSavedCode(editableCode);
+
+				toast.success("Changes saved successfully");
+			}
+
+			setEditableCode(originalCode);
+			setLastSavedCode(originalCode);
+			setEditingRevisionId(null);
+			setSelectedDiff(null);
+
+			try {
+				const historyResponse = await getCodeCollaborationHistory(codeBlockId);
+				if (historyResponse?.data && Array.isArray(historyResponse.data)) {
+					const historyChanges: Change[] = historyResponse.data.map((item) => ({
+						id: item.id,
+						userName: `${item.createdBy.firstName} ${item.createdBy.lastName}`,
+						userId: item.createdBy.id,
+						avatarUrl: item.createdBy.avatarUrl,
+						timestamp: new Date(item.createdAt),
+						code: item.content,
+					}));
+					setChanges(historyChanges);
+				}
+			} catch (refreshErr) {
+				console.warn("Failed to refresh history:", refreshErr);
+			}
+		} catch (err: any) {
+			console.error("💥 Save failed:", err);
+			toast.error(err?.message || "Failed to save changes");
+		} finally {
+			setIsSaving(false);
+		}
+	};
+
+	const handleDeleteRevision = async () => {
+		if (!pendingDeleteId) return;
+
+		try {
+			setIsDeleting(true);
+
+			await deleteCodeCollaboration(pendingDeleteId);
+
+			setChanges((prev) => prev.filter((c) => c.id !== pendingDeleteId));
+
+			if (selectedDiff && selectedDiff.id === pendingDeleteId) {
+				setSelectedDiff(null);
+			}
+
+			toast.success("Revision deleted successfully");
+		} catch (err: any) {
+			console.error("💥 Delete failed:", err);
+			toast.error(err?.message || "Failed to delete revision");
+		} finally {
+			setIsDeleting(false);
+			setShowDeleteConfirm(false);
+			setPendingDeleteId(null);
+		}
 	};
 
 	const handleLoadVersion = (code: string) => {
@@ -119,40 +274,80 @@ export default function CodeCollab() {
 		}
 	};
 
-	const saveAndLoadVersion = () => {
-		if (pendingLoadCode) {
-			// Save current changes first
-			const newChange: Change = {
-				id: `change-${Date.now()}`,
-				userName: "Bob Smith",
-				timestamp: new Date(),
-				code: editableCode,
-			};
-			setChanges((prev) => [newChange, ...prev]);
+	const saveAndLoadVersion = async () => {
+		await handleSave();
 
-			// Then load the pending version
+		if (pendingEditId) {
+			loadRevisionForEdit(pendingEditId);
+			setPendingEditId(null);
+		} else if (pendingLoadCode) {
 			setEditableCode(pendingLoadCode);
 			setLastSavedCode(pendingLoadCode);
 			setPendingLoadCode(null);
-			setShowLoadConfirm(false);
-			setSelectedDiff(null);
 		}
+
+		setShowLoadConfirm(false);
+		setSelectedDiff(null);
 	};
 
 	const discardAndLoadVersion = () => {
-		if (pendingLoadCode) {
+		if (pendingEditId) {
+			loadRevisionForEdit(pendingEditId);
+			setPendingEditId(null);
+		} else if (pendingLoadCode) {
 			setEditableCode(pendingLoadCode);
 			setLastSavedCode(pendingLoadCode);
 			setPendingLoadCode(null);
-			setShowLoadConfirm(false);
-			setSelectedDiff(null);
 		}
+
+		setShowLoadConfirm(false);
+		setSelectedDiff(null);
 	};
 
 	const cancelLoadVersion = () => {
 		setPendingLoadCode(null);
+		setPendingEditId(null);
 		setShowLoadConfirm(false);
 	};
+
+	const userRevisionCount = changes.filter(
+		(change) => change.userId === currentUserId,
+	).length;
+
+	if (isLoading) {
+		return (
+			<S.Container>
+				<div className="flex items-center justify-center h-full">
+					<div className="flex flex-col items-center gap-3">
+						<Spinner className="h-8 w-8" />
+						<p className="text-sm text-muted-foreground">
+							Loading code block...
+						</p>
+						<p className="text-xs text-muted-foreground">ID: {codeBlockId}</p>
+					</div>
+				</div>
+			</S.Container>
+		);
+	}
+
+	if (error) {
+		return (
+			<S.Container>
+				<div className="flex items-center justify-center h-full">
+					<div className="text-center">
+						<p className="text-destructive text-sm font-medium">{error}</p>
+						<p className="text-muted-foreground text-xs mt-2">
+							Code Block ID: {codeBlockId}
+						</p>
+						<p className="text-muted-foreground text-xs">
+							Channel: {channelId}
+						</p>
+						<p className="text-muted-foreground text-xs">Group: {groupId}</p>
+					</div>
+				</div>
+			</S.Container>
+		);
+	}
 
 	return (
 		<S.Container>
@@ -167,18 +362,6 @@ export default function CodeCollab() {
 					boxShadow: "0 4px 12px rgba(123, 159, 232, 0.12)",
 				}}
 			>
-				<ResizablePanel defaultSize={28} minSize={16} maxSize={35}>
-					<S.ChatPanel>
-						<S.ChatHeader>
-							<S.ChannelName>#channelname</S.ChannelName>
-						</S.ChatHeader>
-
-						<S.ChatContent>
-							<SimplifiedChatArea />
-						</S.ChatContent>
-					</S.ChatPanel>
-				</ResizablePanel>
-
 				<ResizableHandle />
 
 				<ResizablePanel defaultSize={50} minSize={35}>
@@ -186,7 +369,7 @@ export default function CodeCollab() {
 						<ResizablePanel defaultSize={50} minSize={30}>
 							<S.CodeEditorWrapper>
 								<CodeEditor
-									code={ORIGINAL_CODE}
+									code={originalCode}
 									readOnly={true}
 									title="Original Code (Read-only)"
 								/>
@@ -200,10 +383,17 @@ export default function CodeCollab() {
 								<CodeEditor
 									code={editableCode}
 									onChange={setEditableCode}
-									title="Your Edits"
+									title={
+										editingRevisionId
+											? "Editing Revision (changes will update existing version)"
+											: "Your Edits"
+									}
 									showSave={true}
 									onSave={handleSave}
 									hasChanges={hasChanges}
+									isSaving={isSaving}
+									onReset={handleResetConfirm}
+									userRevisionCount={userRevisionCount}
 								/>
 							</S.CodeEditorWrapperBottom>
 						</ResizablePanel>
@@ -217,30 +407,38 @@ export default function CodeCollab() {
 						changes={changes}
 						onChangeClick={setSelectedDiff}
 						onDeleteChange={(changeId) => {
-							setPendingDeleteId(changeId);
-							setShowDeleteConfirm(true);
+							const change = changes.find((c) => c.id === changeId);
+							if (change && change.userId === currentUserId) {
+								setPendingDeleteId(changeId);
+								setShowDeleteConfirm(true);
+							} else {
+								toast.error("You can only delete your own revisions");
+							}
 						}}
-						currentUserName={currentUserName}
+						onEditChange={handleEditRevision}
+						currentUserId={currentUserId}
 					/>
 				</ResizablePanel>
 			</ResizablePanelGroup>
 
 			{selectedDiff && selectedDiff.code && (
 				<DiffViewer
-					original={ORIGINAL_CODE}
+					original={originalCode}
 					modified={selectedDiff.code}
 					userName={selectedDiff.userName}
 					onClose={() => setSelectedDiff(null)}
 					onLoadVersion={() => handleLoadVersion(selectedDiff.code)}
 				/>
 			)}
+
 			{showDeleteConfirm && (
 				<S.ModalOverlay>
 					<S.ModalBackdrop onClick={() => setShowDeleteConfirm(false)} />
 					<S.ModalContent>
 						<S.ModalTitle>Confirm Delete</S.ModalTitle>
 						<S.ModalDescription>
-							Are you sure you want to delete this revision?
+							Are you sure you want to delete this revision? This action cannot
+							be undone.
 						</S.ModalDescription>
 						<S.ModalActions>
 							<S.CancelButton
@@ -248,21 +446,19 @@ export default function CodeCollab() {
 									setShowDeleteConfirm(false);
 									setPendingDeleteId(null);
 								}}
+								disabled={isDeleting}
 							>
 								Cancel
 							</S.CancelButton>
 							<S.DiscardButton
 								onClick={() => {
 									if (pendingDeleteId) {
-										setChanges((prev) =>
-											prev.filter((change) => change.id !== pendingDeleteId),
-										);
-										setPendingDeleteId(null);
+										handleDeleteRevision();
 									}
-									setShowDeleteConfirm(false);
 								}}
+								disabled={isDeleting}
 							>
-								Delete
+								{isDeleting ? "Deleting..." : "Delete"}
 							</S.DiscardButton>
 						</S.ModalActions>
 					</S.ModalContent>
@@ -290,6 +486,25 @@ export default function CodeCollab() {
 							<S.DiscardButton onClick={discardAndLoadVersion}>
 								Discard & Load
 							</S.DiscardButton>
+						</S.ModalActions>
+					</S.ModalContent>
+				</S.ModalOverlay>
+			)}
+
+			{showResetConfirm && (
+				<S.ModalOverlay>
+					<S.ModalBackdrop onClick={() => setShowResetConfirm(false)} />
+					<S.ModalContent>
+						<S.ModalTitle>Reset to Original Code</S.ModalTitle>
+						<S.ModalDescription>
+							Are you sure you want to discard all changes and reset to the
+							original code? This action cannot be undone.
+						</S.ModalDescription>
+						<S.ModalActions>
+							<S.CancelButton onClick={() => setShowResetConfirm(false)}>
+								Cancel
+							</S.CancelButton>
+							<S.DiscardButton onClick={performReset}>Reset</S.DiscardButton>
 						</S.ModalActions>
 					</S.ModalContent>
 				</S.ModalOverlay>

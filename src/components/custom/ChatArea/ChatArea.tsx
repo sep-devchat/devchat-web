@@ -291,6 +291,7 @@ const ChatArea: React.FC = () => {
 	const onServerMessage = useCallback(
 		(payload: any) => {
 			if (!payload) return;
+
 			// filter only current room
 			if (groupId && payload.groupId && payload.groupId !== groupId) return;
 			if (
@@ -1078,6 +1079,7 @@ const ChatArea: React.FC = () => {
 							...baseEmit,
 							content: text,
 							clientTempId: payload.clientTempId || tempId,
+							codeBlock: payload.codeBlock,
 							senderId: senderPayload.id,
 							sender: senderPayload,
 						}
@@ -1086,12 +1088,11 @@ const ChatArea: React.FC = () => {
 							parentMessageId: replyToMessage?.id || null,
 							content: text,
 							clientTempId: payload.clientTempId || tempId,
+							codeBlock: payload.codeBlock,
 							senderId: senderPayload.id,
 							sender: senderPayload,
 						};
 
-				// log payload before emit (very important for debugging)
-				console.debug("[ChatArea] about to emit message", ev, p);
 				const ack = await safeEmit(ev, p);
 				return ack; // allow caller (ChatInput) to access server-assigned messageId for AI ask
 
@@ -1654,7 +1655,6 @@ const ChatArea: React.FC = () => {
 					displayItems.map((item, idx) => {
 						if (item.type === "thread") {
 							const { threadId, latestMessage, threadMeta } = item.payload;
-							// For date header logic, compare with previous displayed item's createdAt
 							const prevItem = displayItems[idx - 1];
 							const prevDate = prevItem
 								? prevItem.type === "msg"
@@ -1697,8 +1697,6 @@ const ChatArea: React.FC = () => {
 							: undefined;
 						const showDateHeader =
 							!prevDate || !isSameDay(prevDate, m.createdAt);
-
-						// Group with previous message if same sender and no date break
 						const isSameSenderAsPrev =
 							!showDateHeader &&
 							prevItem?.type === "msg" &&
@@ -1747,13 +1745,14 @@ const ChatArea: React.FC = () => {
 									handleGoToMessage={handleGoToMessage}
 									existingThreadId={threadsByMessageId[m.id]?.id || null}
 									handleCreateThread={handleCreateThread}
+									codeBlockId={(m as any).codeBlockId}
+									channelId={channelIdParam || ""}
+									groupId={groupId || ""}
 								/>
 							</div>
 						);
 					})
 				)}
-				{/* Keep an anchor at the very end for reliable bottom scrolling */}
-				{/* <div ref={bottomRef} /> */}
 			</MessagesViewport>
 
 			<DeleteMessageDialog

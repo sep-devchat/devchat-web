@@ -1,5 +1,6 @@
 import React from "react";
-import { Play, Code2 } from "lucide-react";
+import { Play, Code2, RotateCcw } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import * as S from "./CodeEditor.styled";
 
 interface CodeEditorProps {
@@ -10,6 +11,9 @@ interface CodeEditorProps {
 	showSave?: boolean;
 	onSave?: () => void;
 	hasChanges?: boolean;
+	isSaving?: boolean;
+	onReset?: () => void;
+	userRevisionCount?: number;
 }
 
 export const CodeEditor: React.FC<CodeEditorProps> = ({
@@ -20,6 +24,9 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
 	showSave = false,
 	onSave,
 	hasChanges = false,
+	isSaving = false,
+	onReset,
+	userRevisionCount,
 }) => {
 	return (
 		<S.Container>
@@ -29,20 +36,54 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
 						<Code2 style={{ width: "100%", height: "100%" }} />
 					</S.CodeIcon>
 					<S.Title>{title}</S.Title>
-					{showSave && hasChanges && (
+
+					{userRevisionCount !== undefined && userRevisionCount > 0 && (
+						<S.RevisionCountBadge>
+							You have saved {userRevisionCount} revision
+							{userRevisionCount !== 1 ? "s" : ""} before.
+						</S.RevisionCountBadge>
+					)}
+
+					{showSave && hasChanges && !isSaving && (
 						<S.UnsavedBadge>Unsaved changes</S.UnsavedBadge>
 					)}
+					{isSaving && (
+						<S.SavingBadge>
+							<Spinner className="h-3 w-3 mr-1" />
+							Saving...
+						</S.SavingBadge>
+					)}
 				</S.HeaderLeft>
+
 				<S.HeaderRight>
+					{showSave && onReset && (
+						<S.ResetButton
+							onClick={onReset}
+							disabled={!hasChanges || isSaving}
+							title="Reset to original code"
+						>
+							<RotateCcw style={{ width: "1rem", height: "1rem" }} />
+							Reset
+						</S.ResetButton>
+					)}
+
 					{showSave && (
 						<S.SaveButton
 							onClick={onSave}
-							disabled={!hasChanges}
-							$disabled={!hasChanges}
+							disabled={!hasChanges || isSaving}
+							$disabled={!hasChanges || isSaving}
 						>
-							Save
+							{isSaving ? (
+								<>
+									<Spinner className="h-4 w-4 mr-2" />
+									Saving...
+								</>
+							) : (
+								"Save"
+							)}
 						</S.SaveButton>
 					)}
+
 					<S.RunButton>
 						<S.PlayIcon>
 							<Play style={{ width: "100%", height: "100%" }} />
@@ -51,6 +92,7 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
 					</S.RunButton>
 				</S.HeaderRight>
 			</S.Header>
+
 			<S.CodeTextarea
 				value={code}
 				onChange={(e) => onChange?.(e.target.value)}

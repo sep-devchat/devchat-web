@@ -29,6 +29,11 @@ export const HeaderLeft = styled.div`
 	gap: 0.625rem;
 	position: relative;
 	z-index: 1;
+
+	@media (max-width: 1220px) {
+		flex-wrap: wrap;
+		gap: 0.5rem;
+	}
 `;
 
 export const CodeIcon = styled.div`
@@ -45,12 +50,16 @@ export const Title = styled.span`
 	font-weight: 600;
 	color: #e2e8f0;
 	text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+
+	@media (max-width: 1220px) {
+		font-size: 0.875rem;
+	}
 `;
 
 export const UnsavedBadge = styled.span`
 	font-size: 0.75rem;
 	padding: 0.25rem 0.625rem;
-	border-radius: 12px;
+	border-radius: 4px;
 	background: linear-gradient(
 		135deg,
 		rgba(251, 146, 60, 0.15) 0%,
@@ -59,6 +68,10 @@ export const UnsavedBadge = styled.span`
 	color: #fb923c;
 	border: 1px solid rgba(251, 146, 60, 0.3);
 	font-weight: 600;
+	@media (max-width: 1220px) {
+		font-size: 0.6875rem;
+		padding: 0.2rem 0.5rem;
+	}
 `;
 
 export const HeaderRight = styled.div`
@@ -67,6 +80,12 @@ export const HeaderRight = styled.div`
 	gap: 0.625rem;
 	position: relative;
 	z-index: 1;
+
+	@media (max-width: 1220px) {
+		justify-content: flex-start;
+		flex-wrap: wrap;
+		gap: 0.5rem;
+	}
 `;
 
 export const SaveButton = styled.button<{ $disabled: boolean }>`
@@ -94,6 +113,10 @@ export const SaveButton = styled.button<{ $disabled: boolean }>`
 	&:focus {
 		outline: none;
 	}
+	@media (max-width: 1220px) {
+		padding: 0.375rem 0.75rem;
+		font-size: 0.75rem;
+	}
 `;
 
 export const RunButton = styled.button`
@@ -116,6 +139,11 @@ export const RunButton = styled.button`
 
 	&:focus {
 		outline: none;
+	}
+
+	@media (max-width: 1220px) {
+		padding: 0.375rem 0.75rem;
+		font-size: 0.75rem;
 	}
 `;
 
@@ -164,5 +192,79 @@ export const CodeTextarea = styled.textarea<{ $readOnly: boolean }>`
 		&:hover {
 			background: rgba(100, 116, 139, 0.8);
 		}
+	}
+
+	@media (max-width: 1220px) {
+		padding: 1rem;
+		font-size: 0.875rem;
+	}
+`;
+
+export const SavingBadge = styled.span`
+	display: inline-flex;
+	align-items: center;
+	padding: 0.25rem 0.5rem;
+	font-size: 0.75rem;
+	font-weight: 500;
+	color: #3b82f6;
+	background-color: #dbeafe;
+	border-radius: 9999px;
+
+	@media (max-width: 1220px) {
+		font-size: 0.6875rem;
+		padding: 0.2rem 0.5rem;
+	}
+`;
+
+export const RevisionCountBadge = styled.span`
+	font-size: 0.75rem;
+	padding: 0.25rem 0.625rem;
+	border-radius: 4px;
+	background: linear-gradient(
+		135deg,
+		rgba(59, 130, 246, 0.15) 0%,
+		rgba(37, 99, 235, 0.15) 100%
+	);
+	color: #3b82f6;
+	border: 1px solid rgba(59, 130, 246, 0.3);
+	font-weight: 600;
+	@media (max-width: 1220px) {
+		font-size: 0.6875rem;
+		padding: 0.2rem 0.5rem;
+	}
+`;
+
+export const ResetButton = styled.button<{ disabled?: boolean }>`
+	display: inline-flex;
+	align-items: center;
+	gap: 0.375rem;
+	padding: 0.5rem 0.875rem;
+	background-color: ${(props) => (props.disabled ? "#f3f4f6" : "#ffffff")};
+	color: ${(props) => (props.disabled ? "#9ca3af" : "#6b7280")};
+	border: 1px solid ${(props) => (props.disabled ? "#e5e7eb" : "#d1d5db")};
+	border-radius: 0.5rem;
+	font-size: 0.875rem;
+	font-weight: 500;
+	cursor: ${(props) => (props.disabled ? "not-allowed" : "pointer")};
+	transition: all 0.2s;
+
+	&:hover:not(:disabled) {
+		background-color: #f9fafb;
+		border-color: #9ca3af;
+		color: #374151;
+	}
+
+	&:active:not(:disabled) {
+		transform: scale(0.98);
+	}
+
+	svg {
+		width: 1rem;
+		height: 1rem;
+	}
+
+	@media (max-width: 1220px) {
+		padding: 0.375rem 0.75rem;
+		font-size: 0.75rem;
 	}
 `;
