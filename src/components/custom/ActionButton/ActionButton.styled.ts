@@ -60,10 +60,9 @@ export const StyledButton = styled.button<BaseProps>`
 		css`
 			background: ${theme.color.primary};
 			color: #fff;
-			border-color: ${theme.color.primary};
 
 			&:hover:not(:disabled) {
-				background: ${theme.color.hoverPrimary};
+				background: ${theme.color.primary80};
 			}
 
 			&:focus {
@@ -84,12 +83,11 @@ export const StyledButton = styled.button<BaseProps>`
   ${({ $variant }) =>
 		$variant === "save" &&
 		css`
-			background: ${theme.color.successBackground};
+			background: ${theme.color.successBackground} !important;
 			color: #fff;
-			border-color: ${theme.color.successBackground};
 
 			&:hover:not(:disabled) {
-				background: ${theme.color.successBackground}60;
+				background: ${theme.color.successBackground80} !important;
 			}
 
 			&:focus {
@@ -110,10 +108,9 @@ export const StyledButton = styled.button<BaseProps>`
 		css`
 			background: ${theme.color.error};
 			color: #fff;
-			border-color: ${theme.color.error};
 
 			&:hover:not(:disabled) {
-				background: ${theme.color.error}60;
+				background: ${theme.color.error60};
 			}
 
 			&:focus {

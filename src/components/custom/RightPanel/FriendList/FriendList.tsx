@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useState } from "react";
 import MemberItem from "../../MemberItem/MemberItem";
 import {
@@ -17,19 +18,38 @@ import {
 } from "./FriendList.styled";
 import { listFriends } from "@/services/friendAPI";
 import { Search, X } from "lucide-react";
+import FriendProfileModal from "@/pages/Friend/AllFriends/FriendProfileModal/FriendProfileModal";
 
 interface Member {
 	id: string;
 	name: string;
 	avatar: string;
 	isOnline: boolean;
+
+	username: string;
+	email: string;
+	firstName: string | null;
+	lastName: string | null;
+	avatarUrl: string;
+	isActive: boolean;
+	emailVerified: boolean;
+	createdAt: string;
+	lastLogin: string | null;
+	isAdmin: boolean;
 }
 
-export default function FriendList() {
+interface Props {
+	onMenuAction: (action: string, name: string, id: string) => void;
+}
+
+const FriendList: React.FC<Props> = ({ onMenuAction }) => {
 	const [friends, setFriends] = useState<Member[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [showSearch, setShowSearch] = useState(false);
 	const [searchQuery, setSearchQuery] = useState("");
+
+	const [selectedFriend, setSelectedFriend] = useState<Member | null>(null);
+	const [isModalOpen, setIsModalOpen] = useState(false);
 
 	const fetchFriends = async () => {
 		try {
@@ -39,6 +59,16 @@ export default function FriendList() {
 			const friendsWithStatus: Member[] = friendsData.map((friend: any) => ({
 				id: friend.id,
 				name: `${friend.firstName} ${friend.lastName}`,
+				username: friend.username,
+				email: friend.email,
+				firstName: friend.firstName,
+				lastName: friend.lastName,
+				avatarUrl: friend.avatarUrl,
+				isActive: friend.isActive,
+				emailVerified: friend.emailVerified,
+				createdAt: friend.createdAt,
+				lastLogin: friend.lastLogin,
+				isAdmin: friend.isAdmin,
 				avatar:
 					friend.avatarUrl ||
 					"https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face",
@@ -72,8 +102,9 @@ export default function FriendList() {
 		console.log(`Send message to member ${memberId}:`, message);
 	};
 
-	const handleButtonClick = (memberId: number | string) => {
-		console.log(`Button clicked for member ${memberId}`);
+	const handleButtonClick = (member: Member) => {
+		setSelectedFriend(member);
+		setIsModalOpen(true);
 	};
 
 	const toggleSearch = () => {
@@ -86,6 +117,10 @@ export default function FriendList() {
 	const filteredFriends = friends.filter((friend) =>
 		friend.name.toLowerCase().includes(searchQuery.toLowerCase()),
 	);
+
+	const handleUnfriend = (id: string, name: string) => {
+		onMenuAction("Unfriend", name, id);
+	};
 
 	return (
 		<PageWrapper>
@@ -131,7 +166,7 @@ export default function FriendList() {
 									member={friend}
 									showTooltip={true}
 									buttonType="more"
-									onButtonClick={handleButtonClick}
+									onButtonClick={() => handleButtonClick(friend)}
 									onMessageSend={handleMessageSend}
 								/>
 							))
@@ -139,6 +174,14 @@ export default function FriendList() {
 					</MembersList>
 				</MemberSection>
 			</MemberContent>
+			<FriendProfileModal
+				isOpen={isModalOpen}
+				onClose={() => setIsModalOpen(false)}
+				friend={selectedFriend}
+				onUnfriend={handleUnfriend}
+			/>
 		</PageWrapper>
 	);
-}
+};
+
+export default FriendList;

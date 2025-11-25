@@ -26,11 +26,11 @@ const DropdownMenuSubTrigger = React.forwardRef<
 		ref={ref}
 		// border color #e5e5e5, bg #fff, text #0a0a0a, hover per-row background
 		className={cn(
-			"flex cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none",
+			"flex cursor-pointer select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none",
 			// base colors
 			"border border-[#e5e5e5] bg-[#ffffff] text-[#0a0a0a]",
 			// hover / focus states: subtle gray background on hover/open/focus
-			"hover:bg-[#f5f5f5] focus:bg-[#f5f5f5] data-[state=open]:bg-[#f5f5f5]",
+			"hover:bg-[#f5f5f5] hover:cursor-pointer focus:bg-[#f5f5f5] data-[state=open]:bg-[#f5f5f5]",
 			inset && "pl-8",
 			className,
 		)}
@@ -97,10 +97,10 @@ const DropdownMenuItem = React.forwardRef<
 		className={cn(
 			// row: white bg, black text, border-bottom subtle using :not(:last-child) cannot be applied easily here,
 			// so we put border on container items individually to mimic separators if desired.
-			"relative flex cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors",
+			"relative flex cursor-pointer select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors",
 			"bg-[#ffffff] text-[#0a0a0a]",
 			// hover / focus: each row gets light gray bg
-			"hover:bg-[#f5f5f5] focus:bg-[#f5f5f5]",
+			"hover:bg-[#f5f5f5] focus:bg-[#f5f5f5] hover:cursor-pointer",
 			// disabled styles
 			"data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
 			inset && "pl-8",
@@ -118,9 +118,9 @@ const DropdownMenuCheckboxItem = React.forwardRef<
 	<DropdownMenuPrimitive.CheckboxItem
 		ref={ref}
 		className={cn(
-			"relative flex cursor-default select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none transition-colors",
+			"relative flex cursor-pointer select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none transition-colors",
 			"bg-[#ffffff] text-[#0a0a0a]",
-			"hover:bg-[#f5f5f5] focus:bg-[#f5f5f5]",
+			"hover:bg-[#f5f5f5] focus:bg-[#f5f5f5] hover:cursor-pointer",
 			"data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
 			className,
 		)}
@@ -145,9 +145,9 @@ const DropdownMenuRadioItem = React.forwardRef<
 	<DropdownMenuPrimitive.RadioItem
 		ref={ref}
 		className={cn(
-			"relative flex cursor-default select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none transition-colors",
+			"relative flex cursor-pointer select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none transition-colors",
 			"bg-[#ffffff] text-[#0a0a0a]",
-			"hover:bg-[#f5f5f5] focus:bg-[#f5f5f5]",
+			"hover:bg-[#f5f5f5] focus:bg-[#f5f5f5] hover:cursor-pointer",
 			"data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
 			className,
 		)}

@@ -71,7 +71,11 @@ export const theme = {
 		indigoLight: "#eef2ff",
 		green: "#10b981",
 		orange: "#f59e0b",
-		successBackground: "#E9FCF6",
+		successBackground: "#12825F",
+		successBackground80: "#0C5A41",
+		primary80: "#133E87",
+		error60: "#B01212",
+		error80: "#8C0000",
 	},
 	transition: {
 		primary: "all 0.25s linear",

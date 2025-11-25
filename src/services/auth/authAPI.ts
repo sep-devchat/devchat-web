@@ -61,3 +61,7 @@ export const confirmResetCode = async (dto: ConfirmResetCodeRequest) => {
 export const resetPassword = async (dto: ResetPasswordRequest) => {
 	return post<{ message?: string }>("/api/auth/reset-password", dto);
 };
+
+export const resendVerifyEmail = async (dto: SendResetCodeRequest) => {
+	return get<{ message?: string }>(`/api/auth/resend-verification-email`, dto);
+};

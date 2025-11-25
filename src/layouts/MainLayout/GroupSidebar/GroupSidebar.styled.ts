@@ -1,4 +1,17 @@
-import styled from "styled-components";
+import { theme } from "@/themes";
+import styled, { keyframes } from "styled-components";
+
+const borderPulse = keyframes`
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+`;
 
 export const GroupSidebarContainer = styled.div`
 	width: 65px;
@@ -18,18 +31,69 @@ export const LogoSection = styled.div`
 export const LogoBox = styled.div`
 	width: 40px;
 	height: 40px;
-	background: #6b7280;
 	border-radius: 50%;
+	background: #6b7280;
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	font-size: 8px;
-	font-weight: bold;
 	color: #fff;
-	text-align: center;
-	line-height: 1;
-	letter-spacing: 0.5px;
-	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+
+	position: relative;
+	transition:
+		box-shadow 300ms ease,
+		transform 250ms ease,
+		opacity 280ms ease,
+		filter 280ms ease;
+
+	/* border gradient animation background */
+	&::before {
+		content: "";
+		position: absolute;
+		inset: -2px;
+		border-radius: inherit;
+
+		background: linear-gradient(
+			120deg,
+			${theme.color.primary},
+			${theme.color.secondary},
+			${theme.color.primary}
+		);
+		background-size: 300% 300%;
+
+		/* mask để background chỉ hiển thị phần viền */
+		-webkit-mask:
+			linear-gradient(#fff 0 0) content-box,
+			linear-gradient(#fff 0 0);
+		-webkit-mask-composite: xor;
+		mask-composite: exclude;
+
+		padding: 2px;
+		opacity: 0; /* mặc định tắt */
+		transition: opacity 350ms ease;
+		pointer-events: none;
+	}
+
+	/* Khi đang ở trang chủ */
+	&[data-focused="true"] {
+		transform: translateY(-2px);
+		filter: brightness(1.05);
+
+		&::before {
+			opacity: 1;
+			animation: ${borderPulse} 3s ease-in-out infinite;
+		}
+	}
+
+	/* Khi KHÔNG focus – animation tắt mượt */
+	&:not([data-focused="true"])::before {
+		animation: none;
+		opacity: 0;
+	}
+
+	&:hover {
+		transform: translateY(-2px);
+		box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12);
+	}
 `;
 
 export const GroupList = styled.ul`

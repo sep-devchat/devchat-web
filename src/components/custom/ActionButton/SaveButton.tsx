@@ -6,7 +6,7 @@ type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
 };
 
 export const SaveButton: React.FC<ButtonProps> = ({
-	children = "Lưu",
+	children,
 	fullWidth,
 	leftIcon,
 	...rest
@@ -18,7 +18,7 @@ export const SaveButton: React.FC<ButtonProps> = ({
 			{...(rest as React.ButtonHTMLAttributes<HTMLButtonElement>)}
 		>
 			{leftIcon}
-			{children}
+			{children || "Save"}
 		</StyledButton>
 	);
 };

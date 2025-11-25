@@ -43,6 +43,20 @@ const getLastChannelForGroup = (groupId: string): string | null => {
 	}
 };
 
+const extractGroupIdFromPath = (path: string): string | null => {
+	// path ví dụ: "/chat/group/abc123", hoặc "/chat/group/abc123/"
+	if (!path) return null;
+	const parts = path.split("/"); // ["", "chat", "group", "abc123"]
+	if (parts[1] === "chat" && parts[2] === "group" && parts[3]) {
+		try {
+			return decodeURIComponent(parts[3]);
+		} catch {
+			return parts[3];
+		}
+	}
+	return null;
+};
+
 const GroupSidebar: React.FC = () => {
 	const [localGroups, setLocalGroups] = useState<SidebarGroup[]>([]);
 	const [activeId, setActiveId] = useState<string | null>(null);
@@ -57,45 +71,76 @@ const GroupSidebar: React.FC = () => {
 		}
 	}, [selectedGroupId, logoMode]);
 
+	const mapGroups = (payload: GroupResponse[] = []) =>
+		(payload || []).map((g) => {
+			const initials = (g.name || "")
+				.split(" ")
+				.map((s) => s[0] ?? "")
+				.join("")
+				.slice(0, 2)
+				.toUpperCase();
+			return {
+				id: g.id,
+				name: g.name,
+				initials,
+				avatarColor: `${theme.color.primary}`,
+				unread: 0,
+				avatar: g.avatar ?? undefined,
+				isActive: g.isActive ?? true,
+			} as SidebarGroup;
+		});
+
+	// fetch groups and determine whether to auto-select a group based on current path
 	const fetchGroups = useCallback(async () => {
 		try {
 			const res = await listGroups();
 			const payload = (res && (res.data ?? res)) as GroupResponse[];
-
-			const mapped = (payload || []).map((g) => {
-				const initials = (g.name || "")
-					.split(" ")
-					.map((s) => s[0] ?? "")
-					.join("")
-					.slice(0, 2)
-					.toUpperCase();
-				return {
-					id: g.id,
-					name: g.name,
-					initials,
-					avatarColor: `${theme.color.primary}`,
-					unread: 0,
-					avatar: g.avatar ?? undefined,
-					isActive: g.isActive ?? true,
-				} as SidebarGroup;
-			});
-
+			const mapped = mapGroups(payload);
 			const onlyActive = mapped.filter((mg) => mg.isActive === true);
 
 			setLocalGroups(onlyActive);
+
+			// decide auto-selection based on current pathname
+			const path = window.location.pathname || "";
+			const groupIdInPath = extractGroupIdFromPath(path);
+
+			// If the URL is /chat/group/<id> and that id exists in groups => select it
+			if (groupIdInPath && onlyActive.some((g) => g.id === groupIdInPath)) {
+				setActiveId(groupIdInPath);
+				setSelectedGroupId(groupIdInPath);
+				setLogoMode(false);
+				return;
+			}
+
+			// If current path is not a group route (e.g., /chat, /chat/friend, etc.), do NOT auto-select first group.
+			// instead, treat as "logo/home" mode so triangle won't show.
+			const isGroupRoute = path.startsWith("/chat/group/");
+			if (!isGroupRoute) {
+				setActiveId(null);
+				setSelectedGroupId(null);
+				setLogoMode(true);
+				return;
+			}
+
+			// If we reach here: we're on a /chat/group/... path but groupId not found in list,
+			// fallback to selecting the first group only if nothing is selected yet.
 			if (onlyActive.length > 0 && !activeId) {
 				setActiveId(onlyActive[0].id);
 				setSelectedGroupId(onlyActive[0].id);
 				setLogoMode(false);
+			} else if (onlyActive.length === 0) {
+				setActiveId(null);
+				setSelectedGroupId(null);
 			}
 		} catch (err) {
 			console.error("Failed to load groups:", err);
 		}
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [activeId]);
 
 	useEffect(() => {
 		fetchGroups();
-	}, []);
+	}, [fetchGroups]);
 
 	useEffect(() => {
 		const handleRefresh = () => {
@@ -108,54 +153,6 @@ const GroupSidebar: React.FC = () => {
 			window.removeEventListener("refreshGroups", handleRefresh);
 		};
 	}, [fetchGroups]);
-
-	useEffect(() => {
-		let mounted = true;
-		const fetch = async () => {
-			try {
-				const res = await listGroups();
-				const payload = (res && (res.data ?? res)) as GroupResponse[];
-				if (!mounted) return;
-
-				const mapped = (payload || []).map((g) => {
-					const initials = (g.name || "")
-						.split(" ")
-						.map((s) => s[0] ?? "")
-						.join("")
-						.slice(0, 2)
-						.toUpperCase();
-					return {
-						id: g.id,
-						name: g.name,
-						initials,
-						avatarColor: `${theme.color.primary}`,
-						unread: 0,
-						avatar: g.avatar ?? undefined,
-						isActive: g.isActive ?? true,
-					} as SidebarGroup;
-				});
-
-				const onlyActive = mapped.filter((mg) => mg.isActive === true);
-
-				setLocalGroups(onlyActive);
-				if (onlyActive.length > 0) {
-					setActiveId(onlyActive[0].id);
-					setSelectedGroupId(onlyActive[0].id);
-					setLogoMode(false);
-				} else {
-					setActiveId(null);
-					setSelectedGroupId(null);
-				}
-			} catch (err) {
-				console.error("Failed to load groups:", err);
-			}
-		};
-
-		fetch();
-		return () => {
-			mounted = false;
-		};
-	}, []);
 
 	const onCreate = (
 		created: GroupResponse | { id: string; name: string; avatar?: string },
@@ -233,7 +230,11 @@ const GroupSidebar: React.FC = () => {
 	return (
 		<GroupSidebarContainer>
 			<LogoSection onClick={handleLogoClick} style={{ cursor: "pointer" }}>
-				<LogoBox>
+				<LogoBox
+					data-focused={logoMode}
+					aria-pressed={logoMode}
+					aria-label="Go to home"
+				>
 					<img src={devchatLogo} className="rounded-full" />
 				</LogoBox>
 			</LogoSection>
@@ -259,13 +260,12 @@ const GroupSidebar: React.FC = () => {
 										aria-hidden="true"
 									>
 										<defs>
-											<linearGradient id="triGradient" x1="0" x2="1">
+											<linearGradient id={`triGradient-${g.id}`} x1="0" x2="1">
 												<stop offset="0" stopColor="#D4D491" />
 												<stop offset="1" stopColor="#4D85E6" />
 											</linearGradient>
 										</defs>
 
-										{/* Path với bo góc (A = arc) — bạn có thể chỉnh rx/ry để thay đổi bán kính */}
 										<path
 											d="
 											M 40 30
@@ -277,7 +277,7 @@ const GroupSidebar: React.FC = () => {
 											L 100 30
 											Z
 										"
-											fill="url(#triGradient)"
+											fill={`url(#triGradient-${g.id})`}
 										/>
 									</Triangle>
 									{g.avatar ? (

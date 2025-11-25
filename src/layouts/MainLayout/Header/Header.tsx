@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import {
+	Info,
 	MessageSquarePlus,
 	NotebookPenIcon,
 	Spool,
@@ -87,7 +88,7 @@ const Header = ({
 
 	const isGroupPage = Boolean(params.groupId);
 	const displayedTitle =
-		isGroupPage && channelData?.name ? `#${channelData.name}` : baseTitle;
+		isGroupPage && channelData?.name ? `# ${channelData.name}` : baseTitle;
 	const [hoveredIcon, setHoveredIcon] = useState<string | null>(null);
 	const compact = iconSelected === "spool" || iconSelected === "code";
 
@@ -223,6 +224,20 @@ const Header = ({
 						>
 							<Users size={20} />
 							<Tooltip visible={hoveredIcon === "users"}>Members</Tooltip>
+						</IconBtn>
+
+						<IconBtn
+							aria-label="info"
+							onMouseEnter={() => setHoveredIcon("info")}
+							onMouseLeave={() =>
+								setHoveredIcon((h) => (h === "info" ? null : h))
+							}
+							onClick={() => onIconClick("info")}
+							onKeyDown={(e) => onIconKeyDown(e, "info")}
+							disabled={loading}
+						>
+							<Info size={20} />
+							<Tooltip visible={hoveredIcon === "info"}>Info</Tooltip>
 						</IconBtn>
 
 						{showThreadDropdown && groupId && channelId && (

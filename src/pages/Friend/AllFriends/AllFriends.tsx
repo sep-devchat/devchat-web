@@ -1,6 +1,7 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { MoreHorizontal, Star, UserMinus } from "lucide-react";
+import { MoreHorizontal, Search, Star, UserMinus } from "lucide-react";
 import {
 	Title,
 	Subtitle,
@@ -23,6 +24,7 @@ import {
 	NoResults,
 } from "../Friend.styled";
 import { getMutualFriends } from "@/services/friendAPI";
+import FriendProfileModal from "./FriendProfileModal/FriendProfileModal";
 
 interface FriendType {
 	id: string;
@@ -32,6 +34,13 @@ interface FriendType {
 	handle: string;
 	avatarUrl: string;
 	mutualFriends: number;
+	username: string;
+	email: string;
+	isActive: boolean;
+	emailVerified: boolean;
+	createdAt: string;
+	lastLogin: string | null;
+	isAdmin: boolean;
 }
 
 interface Props {
@@ -62,18 +71,18 @@ const AllFriends: React.FC<Props> = ({
 		Record<string, number>
 	>({});
 	const [loading, setLoading] = useState(false);
+	const [selectedFriend, setSelectedFriend] = useState<FriendType | null>(null);
+	const [isModalOpen, setIsModalOpen] = useState(false);
 
 	useEffect(() => {
 		const fetchMutualFriends = async () => {
 			setLoading(true);
 			const counts: Record<string, number> = {};
-
 			try {
 				await Promise.all(
 					allFriends.map(async (friend) => {
 						try {
 							const response = await getMutualFriends(friend.id);
-
 							const mutualCount = response.data.count || 0;
 							counts[friend.id] = mutualCount;
 						} catch (error) {
@@ -85,7 +94,6 @@ const AllFriends: React.FC<Props> = ({
 						}
 					}),
 				);
-
 				setMutualFriendsCount(counts);
 			} catch (error) {
 				console.error("Error fetching mutual friends:", error);
@@ -93,7 +101,6 @@ const AllFriends: React.FC<Props> = ({
 				setLoading(false);
 			}
 		};
-
 		if (allFriends.length > 0) {
 			fetchMutualFriends();
 		} else {
@@ -116,12 +123,28 @@ const AllFriends: React.FC<Props> = ({
 	);
 	const totalPages = Math.ceil(filteredFriends.length / friendsPerPage);
 
+	const handleMenuAction = (action: string, name: string, id: string) => {
+		if (action === "Profile") {
+			const friend = allFriends.find((f) => f.id === id);
+			if (friend) {
+				setSelectedFriend(friend);
+				setIsModalOpen(true);
+			}
+		} else {
+			onMenuAction(action, name, id);
+		}
+	};
+
+	const handleUnfriend = (id: string, name: string) => {
+		onMenuAction("Unfriend", name, id);
+	};
+
 	return (
 		<>
 			<Title>All Friend - {allFriends.length}</Title>
 			<Subtitle>Here are your friends.</Subtitle>
-
 			<SearchContainer>
+				<Search size={20} />
 				<SearchInput
 					type="text"
 					placeholder="Search your friends..."
@@ -132,7 +155,6 @@ const AllFriends: React.FC<Props> = ({
 					}}
 				/>
 			</SearchContainer>
-
 			<FriendsGrid
 				className="hide-scrollbar"
 				style={{ scrollbarWidth: "none" }}
@@ -166,7 +188,6 @@ const AllFriends: React.FC<Props> = ({
 										</MutualFriends>
 									</FriendInfo>
 								</div>
-
 								<MenuContainer>
 									<MenuButton
 										onClick={(e) => {
@@ -176,13 +197,13 @@ const AllFriends: React.FC<Props> = ({
 									>
 										<MoreHorizontal size={20} color="#6B7280" />
 									</MenuButton>
-
 									{activeMenu === friend.id && (
 										<MenuDropdown>
 											<MenuItem
 												onClick={(e) => {
 													e.stopPropagation();
-													onMenuAction("Profile", friend.name, friend.id);
+													handleMenuAction("Profile", friend.name, friend.id);
+													onMenuToggle("", e);
 												}}
 											>
 												<Star size={18} style={{ marginRight: "12px" }} />
@@ -191,7 +212,8 @@ const AllFriends: React.FC<Props> = ({
 											<MenuItem
 												onClick={(e) => {
 													e.stopPropagation();
-													onMenuAction("Unfriend", friend.name, friend.id);
+													handleMenuAction("Unfriend", friend.name, friend.id);
+													onMenuToggle("", e);
 												}}
 											>
 												<UserMinus size={18} style={{ marginRight: "12px" }} />
@@ -205,7 +227,6 @@ const AllFriends: React.FC<Props> = ({
 					</FriendCard>
 				))}
 			</FriendsGrid>
-
 			{filteredFriends.length > friendsPerPage && (
 				<PaginationContainer>
 					{Array.from({ length: totalPages }, (_, index) => (
@@ -219,8 +240,13 @@ const AllFriends: React.FC<Props> = ({
 					))}
 				</PaginationContainer>
 			)}
-
 			{filteredFriends.length === 0 && <NoResults>No friends found.</NoResults>}
+			<FriendProfileModal
+				isOpen={isModalOpen}
+				onClose={() => setIsModalOpen(false)}
+				friend={selectedFriend as any}
+				onUnfriend={handleUnfriend}
+			/>
 		</>
 	);
 };

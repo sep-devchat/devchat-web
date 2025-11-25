@@ -438,12 +438,13 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
 									style={{
 										cursor: "pointer",
 										background: isActive ? "#f5f5f5" : undefined,
+										borderRadius: "8px",
 									}}
 								>
 									<MemberItem
 										showTooltip={false}
 										member={member}
-										buttonType="more"
+										// buttonType="more"
 									/>
 								</div>
 							);

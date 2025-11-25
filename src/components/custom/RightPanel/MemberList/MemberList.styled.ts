@@ -72,16 +72,10 @@ export const CPTitle = styled.h2`
 	font-size: 18px;
 `;
 
-export const MemberContent = styled.div<{ isSearchMode: boolean }>`
+export const MemberContent = styled.div`
 	flex: 1;
 	padding: 16px;
 	overflow: visible;
-	${(props) =>
-		props.isSearchMode
-			? `
-		background: ${theme.color.white};
-	`
-			: `background: ${theme.color.grey30};`}
 `;
 
 export const MemberSection = styled.div`

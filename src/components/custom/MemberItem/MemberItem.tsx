@@ -22,6 +22,7 @@ export interface Member {
 	avatar: string;
 	isOnline: boolean;
 	email?: string;
+	createdAt?: string;
 }
 
 interface MemberItemProps {

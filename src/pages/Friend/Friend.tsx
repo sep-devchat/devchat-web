@@ -251,6 +251,10 @@ const Friend: React.FC = () => {
 						u.avatarUrl ||
 						"https://images.unsplash.com/photo-1494790108755-2616b332c-c3?w=100&h=100&fit=crop&crop=face",
 					mutualFriends: 0,
+					createdAt: u.createdAt,
+					email: u.email,
+					username: u.username,
+					isActive: u.isActive,
 				}));
 
 				console.log("Normalized friends:", normalized);

@@ -29,6 +29,10 @@ import TaskGroup from "@/components/custom/RightPanel/TaskGroup/TaskGroup";
 import FriendList from "@/components/custom/RightPanel/FriendList/FriendList";
 import { useSelector } from "react-redux";
 import { RootState } from "@/store";
+import { unfriendUser } from "@/services/friendAPI";
+import { showGlobalAlert } from "@/components/custom/AlertCustom/Alert";
+import ConfirmModal from "@/components/custom/ConfirmModal/ConfirmModal";
+import ChannelInfor from "@/components/custom/RightPanel/ChannelInfor/ChannelInfor";
 
 const MainLayout = () => {
 	const [iconSelected, setIconSelected] = useState<string>("");
@@ -47,6 +51,13 @@ const MainLayout = () => {
 	);
 	const currentUserId = currentUserProfile?.id || "";
 	const [isHalf, setIsHalf] = useState(window.innerWidth < 1220);
+	const [activeMenu, setActiveMenu] = useState<string | null>(null);
+	const [unfriendTarget, setUnfriendTarget] = useState<{
+		id: string;
+		name: string;
+	} | null>(null);
+	const [isUnfriendModalOpen, setIsUnfriendModalOpen] = useState(false);
+	const [isUnfriendLoading, setIsUnfriendLoading] = useState(false);
 
 	console.log("MainLayout - Current IDs:", { groupId, channelId });
 
@@ -66,7 +77,8 @@ const MainLayout = () => {
 	useEffect(() => {
 		if (
 			isHalf &&
-			(iconSelected === "users" ||
+			(iconSelected === "info" ||
+				iconSelected === "users" ||
 				iconSelected === "code" ||
 				iconSelected === "tasks")
 		) {
@@ -74,7 +86,7 @@ const MainLayout = () => {
 			setShowThreadPanel(false);
 			setSelectedThreadId("");
 		}
-	}, [isHalf]);
+	}, [isHalf, iconSelected]);
 
 	// QUAN TRỌNG: Reset tất cả panels khi chuyển group trong chế độ isHalf
 	useEffect(() => {
@@ -221,6 +233,68 @@ const MainLayout = () => {
 		setIconSelected("");
 	};
 
+	const handleMenuAction = (
+		action: string,
+		friendName: string,
+		friendId: string,
+	) => {
+		setActiveMenu(null);
+
+		if (action === "Unfriend") {
+			setUnfriendTarget({ id: friendId, name: friendName });
+			setIsUnfriendModalOpen(true);
+		}
+	};
+
+	useEffect(() => {
+		const handleClickOutside = () => {
+			if (activeMenu) setActiveMenu(null);
+		};
+		document.addEventListener("click", handleClickOutside);
+		return () => document.removeEventListener("click", handleClickOutside);
+	}, [activeMenu]);
+
+	const handleCloseUnfriendModal = () => {
+		setIsUnfriendModalOpen(false);
+		setUnfriendTarget(null);
+	};
+
+	const confirmUnfriendAction = async () => {
+		if (!unfriendTarget || isUnfriendLoading) return;
+
+		setIsUnfriendLoading(true);
+		try {
+			await unfriendUser(unfriendTarget.id);
+
+			// setAllFriends((prev) => prev.filter((f) => f.id !== unfriendTarget.id));
+
+			showGlobalAlert({
+				type: "success",
+				message: `You have unfriended ${unfriendTarget.name}`,
+			});
+
+			window.dispatchEvent(new CustomEvent("friendListUpdated"));
+
+			handleCloseUnfriendModal();
+		} catch (err) {
+			console.error("Unfriend failed", err);
+			showGlobalAlert({
+				type: "error",
+				message: "Unable to unfriend. Please try again!",
+			});
+		} finally {
+			setIsUnfriendLoading(false);
+		}
+	};
+
+	useEffect(() => {
+		const handleClickOutside = () => {
+			if (activeMenu) setActiveMenu(null);
+		};
+		document.addEventListener("click", handleClickOutside);
+		return () => document.removeEventListener("click", handleClickOutside);
+	}, [activeMenu]);
+
 	// Auto show users panel chỉ khi KHÔNG phải isHalf
 	useEffect(() => {
 		if (
@@ -228,14 +302,14 @@ const MainLayout = () => {
 			iconSelected === "" &&
 			!showThreadPanel &&
 			!showCodeListPanel &&
-			!isHalf // CHỈ auto show khi màn hình lớn
+			!isHalf // CHỈ auto show khi màn hình lớn &&
 		) {
 			setIconSelected("users");
 		}
 		if (!groupId && iconSelected === "users") {
 			setIconSelected("");
 		}
-	}, [groupId, iconSelected, showThreadPanel, showCodeListPanel, isHalf]);
+	}, [groupId, showThreadPanel, showCodeListPanel, iconSelected, isHalf]);
 
 	const renderRightPanel = () => {
 		if ((showCodeListPanel || iconSelected === "code") && !showThreadPanel) {
@@ -264,13 +338,17 @@ const MainLayout = () => {
 				return groupId ? (
 					<MemberList onClose={isHalf ? handleClosePanel : undefined} />
 				) : (
-					<FriendList />
+					<FriendList onMenuAction={handleMenuAction} />
 				);
+			case "info":
+				return groupId ? (
+					<ChannelInfor groupId={groupId} channelId={channelId ?? ""} />
+				) : null;
 			default:
 				if (groupId && !isHalf) {
 					return <MemberList />;
 				}
-				return isHalf ? null : <FriendList />;
+				return isHalf ? null : <FriendList onMenuAction={handleMenuAction} />;
 		}
 	};
 
@@ -314,6 +392,19 @@ const MainLayout = () => {
 						</RightSection>
 					</ContentWrapper>
 					<BottomSpacer />
+
+					{isUnfriendModalOpen && unfriendTarget && (
+						<ConfirmModal
+							isOpen={isUnfriendModalOpen}
+							title={`Confirm Unfriend ${unfriendTarget.name}`}
+							message={`Are you sure you want to unfriend ${unfriendTarget.name}? This action cannot be undone.`}
+							confirmText="Unfriend"
+							cancelText="Cancel"
+							onConfirm={confirmUnfriendAction}
+							onCancel={handleCloseUnfriendModal}
+							isLoading={isUnfriendLoading}
+						/>
+					)}
 				</MainLayoutContainer>
 			) : (
 				<GroupSetting setSettingSelect={setSettingSelect} isAdmin={isAdmin} />
