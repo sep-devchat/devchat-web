@@ -56,7 +56,6 @@ export default function CodeCollab({
 	);
 	const [pendingEditId, setPendingEditId] = useState<string | null>(null);
 	const [showResetConfirm, setShowResetConfirm] = useState(false);
-	const [isMobileLayout, setIsMobileLayout] = useState(false);
 
 	const [codeLanguage, setCodeLanguage] = useState<string>("java");
 
@@ -90,16 +89,6 @@ export default function CodeCollab({
 		if (["java"].includes(normalized)) return "java";
 		return normalized;
 	};
-
-	useEffect(() => {
-		const handleResize = () => {
-			setIsMobileLayout(window.innerWidth < 1024);
-		};
-
-		handleResize();
-		window.addEventListener("resize", handleResize);
-		return () => window.removeEventListener("resize", handleResize);
-	}, []);
 
 	useEffect(() => {
 		const fetchData = async () => {
@@ -390,126 +379,78 @@ export default function CodeCollab({
 	}
 
 	return (
-		<S.Container $isMobile={isMobileLayout}>
-			{isMobileLayout ? (
-				<S.MobileStack>
-					<S.MobileSection>
-						<CodeEditor
-							code={originalCode}
-							readOnly={true}
-							title="Original Code (Read-only)"
-							language={codeLanguage}
-						/>
-					</S.MobileSection>
-					<S.MobileSection>
-						<CodeEditor
-							code={editableCode}
-							onChange={setEditableCode}
-							title={
-								editingRevisionId
-									? "Editing Revision (changes will update existing version)"
-									: "Your Edits"
+		<S.Container>
+			<ResizablePanelGroup
+				direction="horizontal"
+				className="h-full"
+				style={{
+					border: "1px solid rgba(209, 224, 253, 0.6)",
+					background: "#ffffff",
+					borderRadius: "12px",
+					overflow: "hidden",
+					boxShadow: "0 4px 12px rgba(123, 159, 232, 0.12)",
+				}}
+			>
+				<ResizableHandle />
+
+				<ResizablePanel defaultSize={50} minSize={35}>
+					<ResizablePanelGroup direction="vertical">
+						<ResizablePanel defaultSize={50} minSize={30}>
+							<S.CodeEditorWrapper>
+								<CodeEditor
+									code={originalCode}
+									readOnly={true}
+									title="Original Code (Read-only)"
+									language={codeLanguage}
+								/>
+							</S.CodeEditorWrapper>
+						</ResizablePanel>
+
+						<ResizableHandle />
+
+						<ResizablePanel defaultSize={50} minSize={30}>
+							<S.CodeEditorWrapperBottom>
+								<CodeEditor
+									code={editableCode}
+									onChange={setEditableCode}
+									title={
+										editingRevisionId
+											? "Editing Revision (changes will update existing version)"
+											: "Your Edits"
+									}
+									showSave={true}
+									onSave={handleSave}
+									hasChanges={hasChanges}
+									isSaving={isSaving}
+									onReset={handleResetConfirm}
+									userRevisionCount={userRevisionCount}
+									language={codeLanguage}
+								/>
+							</S.CodeEditorWrapperBottom>
+						</ResizablePanel>
+					</ResizablePanelGroup>
+				</ResizablePanel>
+
+				<ResizableHandle />
+
+				<ResizablePanel defaultSize={22} minSize={16} maxSize={35}>
+					<ChangeHistory
+						changes={changes}
+						onChangeClick={setSelectedDiff}
+						onDeleteChange={(changeId) => {
+							const change = changes.find((c) => c.id === changeId);
+							if (change && change.userId === currentUserId) {
+								setPendingDeleteId(changeId);
+								setShowDeleteConfirm(true);
+							} else {
+								toast.error("You can only delete your own revisions");
 							}
-							showSave={true}
-							onSave={handleSave}
-							hasChanges={hasChanges}
-							isSaving={isSaving}
-							onReset={handleResetConfirm}
-							userRevisionCount={userRevisionCount}
-							language={codeLanguage}
-						/>
-					</S.MobileSection>
-					<S.MobileHistorySection>
-						<ChangeHistory
-							changes={changes}
-							onChangeClick={setSelectedDiff}
-							onDeleteChange={(changeId) => {
-								const change = changes.find((c) => c.id === changeId);
-								if (change && change.userId === currentUserId) {
-									setPendingDeleteId(changeId);
-									setShowDeleteConfirm(true);
-								} else {
-									toast.error("You can only delete your own revisions");
-								}
-							}}
-							onEditChange={handleEditRevision}
-							currentUserId={currentUserId}
-						/>
-					</S.MobileHistorySection>
-				</S.MobileStack>
-			) : (
-				<ResizablePanelGroup
-					direction="horizontal"
-					className="h-full"
-					style={{
-						border: "1px solid rgba(209, 224, 253, 0.6)",
-						background: "#ffffff",
-						borderRadius: "12px",
-						overflow: "hidden",
-						boxShadow: "0 4px 12px rgba(123, 159, 232, 0.12)",
-					}}
-				>
-					<ResizableHandle />
-
-					<ResizablePanel defaultSize={50} minSize={35}>
-						<ResizablePanelGroup direction="vertical">
-							<ResizablePanel defaultSize={50} minSize={30}>
-								<S.CodeEditorWrapper>
-									<CodeEditor
-										code={originalCode}
-										readOnly={true}
-										title="Original Code (Read-only)"
-										language={codeLanguage}
-									/>
-								</S.CodeEditorWrapper>
-							</ResizablePanel>
-
-							<ResizableHandle />
-
-							<ResizablePanel defaultSize={50} minSize={30}>
-								<S.CodeEditorWrapperBottom>
-									<CodeEditor
-										code={editableCode}
-										onChange={setEditableCode}
-										title={
-											editingRevisionId
-												? "Editing Revision (changes will update existing version)"
-												: "Your Edits"
-										}
-										showSave={true}
-										onSave={handleSave}
-										hasChanges={hasChanges}
-										isSaving={isSaving}
-										onReset={handleResetConfirm}
-										userRevisionCount={userRevisionCount}
-										language={codeLanguage}
-									/>
-								</S.CodeEditorWrapperBottom>
-							</ResizablePanel>
-						</ResizablePanelGroup>
-					</ResizablePanel>
-
-					<ResizableHandle />
-
-					<ResizablePanel defaultSize={22} minSize={16} maxSize={35}>
-						<ChangeHistory
-							changes={changes}
-							onChangeClick={setSelectedDiff}
-							onDeleteChange={(changeId) => {
-								const change = changes.find((c) => c.id === changeId);
-								if (change && change.userId === currentUserId) {
-									setPendingDeleteId(changeId);
-									setShowDeleteConfirm(true);
-								} else {
-									toast.error("You can only delete your own revisions");
-								}
-							}}
-							onEditChange={handleEditRevision}
-							currentUserId={currentUserId}
-						/>
-					</ResizablePanel>
-				</ResizablePanelGroup>
-			)}
+						}}
+						onEditChange={handleEditRevision}
+						currentUserId={currentUserId}
+					/>
+				</ResizablePanel>
+			</ResizablePanelGroup>
 
 			{selectedDiff && selectedDiff.code && (
 				<DiffViewer

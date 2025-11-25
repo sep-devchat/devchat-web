@@ -9,6 +9,7 @@ import React, {
 import Editor, { type Monaco, type OnMount } from "@monaco-editor/react";
 import type { editor as MonacoEditorNS } from "monaco-editor";
 import { X } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 export type CodeEditorRef = {
 	/** Get current editor text value */
@@ -83,16 +84,6 @@ const DEFAULT_LANGUAGES: LanguageOption[] = [
 	// { label: "Shell", value: "shell" },
 ];
 
-const detectTheme = (forced?: "light" | "dark"): "light" | "dark" => {
-	if (forced) return forced;
-	if (typeof window !== "undefined" && window.matchMedia) {
-		return window.matchMedia("(prefers-color-scheme: dark)").matches
-			? "dark"
-			: "light";
-	}
-	return "light";
-};
-
 const CodeEditor = React.forwardRef<CodeEditorRef, CodeEditorProps>(
 	(
 		{
@@ -137,8 +128,7 @@ const CodeEditor = React.forwardRef<CodeEditorRef, CodeEditorProps>(
 			if (language && language !== internalLang) setInternalLang(language);
 		}, [language, internalLang]);
 
-		const resolvedTheme = detectTheme(theme);
-		const monacoTheme = resolvedTheme === "dark" ? "vs-dark" : "light";
+		const monacoTheme = theme === "dark" ? "vs-dark" : "vs";
 
 		// Configure Monaco prior to mount to suppress validation squiggles/markers.
 		const handleBeforeMount = useCallback((m: Monaco) => {
@@ -389,14 +379,20 @@ const CodeEditor = React.forwardRef<CodeEditorRef, CodeEditorProps>(
 		const containerStyle: React.CSSProperties | undefined = fitParent
 			? { display: "flex", flexDirection: "column" as const, height: "100%" }
 			: undefined;
+		const wrapperClassName = cn(
+			"rounded-xl border border-slate-200 bg-white shadow-sm p-3 space-y-3",
+			className,
+		);
 		return (
-			<div className={className} style={containerStyle}>
+			<div className={wrapperClassName} style={containerStyle}>
 				{showLanguageSelector ? (
 					<div className="flex items-center justify-between pb-2">
-						<label className="text-sm font-medium">Code editor</label>
+						<label className="text-sm font-semibold text-slate-900">
+							Code editor
+						</label>
 						<div className="flex items-center gap-2">
 							<select
-								className="rounded-md border border-neutral-300 bg-transparent px-2 py-1 text-sm dark:border-neutral-700"
+								className="rounded-md border border-slate-300 bg-white px-2 py-1 text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-400/60"
 								value={internalLang}
 								onChange={handleLangChange}
 							>
@@ -412,7 +408,7 @@ const CodeEditor = React.forwardRef<CodeEditorRef, CodeEditorProps>(
 									aria-label="Close code editor"
 									title="Close code editor"
 									className={
-										"rounded-md border border-neutral-300 bg-neutral-50 px-2 py-1 text-xs leading-none shadow-sm hover:bg-neutral-100 transition-opacity dark:border-neutral-700 dark:bg-neutral-900 dark:hover:bg-neutral-800 " +
+										"rounded-md border border-slate-300 bg-white px-2 py-1 text-xs font-medium text-slate-600 shadow-sm transition-opacity hover:bg-slate-100 " +
 										(closeButtonWhenFocused && !isFocused
 											? "opacity-0 pointer-events-none"
 											: "opacity-100")
@@ -424,7 +420,7 @@ const CodeEditor = React.forwardRef<CodeEditorRef, CodeEditorProps>(
 										onClose?.();
 									}}
 								>
-									<X size={20} />
+									<X size={20} className="text-slate-500" />
 								</button>
 							) : null}
 						</div>

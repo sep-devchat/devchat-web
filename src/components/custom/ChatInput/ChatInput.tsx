@@ -1091,28 +1091,26 @@ export default function ChatInput({
 
 						{/* Optional code editor appears below the input when triggered */}
 						{showCodeEditor && (
-							<div className="w-full rounded-md border border-neutral-300 p-2 dark:border-neutral-700">
-								<CodeEditor
-									value={codeValue}
-									onChange={setCodeValue}
-									language={codeLang}
-									onLanguageChange={setCodeLang}
-									minLines={5}
-									maxLines={10}
-									onCtrlEnter={() => {
-										// Send message with the current code block
-										void (async () => {
-											await handleSubmit();
-											// Return focus to the plain editor after sending
-											setTimeout(() => editorRef.current?.focus(), 60);
-										})();
-									}}
-									onClose={() => {
-										setShowCodeEditor(false);
-										setTimeout(() => editorRef.current?.focus(), 50);
-									}}
-								/>
-							</div>
+							<CodeEditor
+								value={codeValue}
+								onChange={setCodeValue}
+								language={codeLang}
+								onLanguageChange={setCodeLang}
+								minLines={5}
+								maxLines={10}
+								onCtrlEnter={() => {
+									// Send message with the current code block
+									void (async () => {
+										await handleSubmit();
+										// Return focus to the plain editor after sending
+										setTimeout(() => editorRef.current?.focus(), 60);
+									})();
+								}}
+								onClose={() => {
+									setShowCodeEditor(false);
+									setTimeout(() => editorRef.current?.focus(), 50);
+								}}
+							/>
 						)}
 
 						{/* Mentions dropdown */}

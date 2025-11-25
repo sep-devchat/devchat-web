@@ -1,22 +1,8 @@
 import styled from "styled-components";
 
-export const Container = styled.div<{ $isMobile?: boolean }>`
+export const Container = styled.div`
 	width: 100%;
-	height: ${({ $isMobile }) => ($isMobile ? "auto" : "calc(100vh - 180px)")};
-	min-height: ${({ $isMobile }) => ($isMobile ? "auto" : "640px")};
-	max-height: ${({ $isMobile }) => ($isMobile ? "none" : "1100px")};
-	padding: ${({ $isMobile }) =>
-		$isMobile ? "0" : "clamp(0.5rem, 1.5vw, 1.5rem)"};
-	display: flex;
-	flex-direction: column;
-	gap: 1rem;
-
-	@media (max-width: 1024px) {
-		height: auto;
-		min-height: unset;
-		max-height: none;
-		padding: clamp(0.75rem, 3vw, 1.25rem);
-	}
+	height: 800px;
 `;
 
 export const PanelContainer = styled.div`
@@ -60,25 +46,12 @@ export const ChatContent = styled.div`
 export const CodeEditorWrapper = styled.div`
 	height: 100%;
 	padding: 0.75rem;
-	display: flex;
-	flex-direction: column;
-
-	@media (max-width: 1024px) {
-		height: auto;
-	}
 `;
 
 export const CodeEditorWrapperBottom = styled.div`
 	height: 100%;
 	padding: 0.75rem;
 	padding-top: 0;
-	display: flex;
-	flex-direction: column;
-
-	@media (max-width: 1024px) {
-		height: auto;
-		padding-top: 0.75rem;
-	}
 `;
 
 export const ModalOverlay = styled.div`
@@ -100,17 +73,13 @@ export const ModalBackdrop = styled.div`
 export const ModalContent = styled.div`
 	position: relative;
 	z-index: 10;
-	width: min(440px, calc(100vw - 2rem));
+	width: 440px;
 	background: linear-gradient(to bottom, #ffffff, #f7f9fc);
 	border-radius: 16px;
 	box-shadow: 0 20px 40px rgba(123, 159, 232, 0.25);
 	border: 1px solid rgba(209, 224, 253, 0.6);
 	padding: 2rem;
 	animation: modalSlideIn 0.3s ease-out;
-
-	@media (max-width: 640px) {
-		padding: 1.5rem;
-	}
 
 	@keyframes modalSlideIn {
 		from {
@@ -214,32 +183,5 @@ export const CloseButton = styled.button`
 	&:hover {
 		background: #f1f5f9;
 		color: #475569;
-	}
-`;
-
-export const MobileStack = styled.div`
-	display: flex;
-	flex-direction: column;
-	gap: 1rem;
-`;
-
-export const MobileSection = styled.div`
-	background: #ffffff;
-	border: 1px solid rgba(209, 224, 253, 0.8);
-	border-radius: 12px;
-	box-shadow: 0 6px 20px rgba(123, 159, 232, 0.15);
-	padding: 0.75rem;
-	display: flex;
-	flex-direction: column;
-	gap: 0.75rem;
-`;
-
-export const MobileHistorySection = styled(MobileSection)`
-	padding: 0;
-	min-height: 20rem;
-	overflow: hidden;
-
-	@media (max-width: 640px) {
-		min-height: 16rem;
 	}
 `;
