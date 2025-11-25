@@ -29,9 +29,10 @@ import FriendProfileModal from "@/pages/Friend/AllFriends/FriendProfileModal/Fri
 
 interface MemberListProps {
 	onClose?: () => void;
+	isHalf?: boolean;
 }
 
-export default function MemberList({ onClose }: MemberListProps) {
+export default function MemberList({ onClose, isHalf }: MemberListProps) {
 	const params = useParams({ strict: false }) as { groupId?: string };
 	const groupId = params.groupId;
 	const [isSearchMode, setIsSearchMode] = useState(false);
@@ -50,7 +51,6 @@ export default function MemberList({ onClose }: MemberListProps) {
 	useEffect(() => {
 		if (!groupId) return;
 		dispatch(setCurrentGroup(groupId));
-		// Always fetch on group change; could add cache TTL if desired
 		dispatch(fetchGroupMembers({ groupId }));
 	}, [dispatch, groupId]);
 
@@ -90,21 +90,28 @@ export default function MemberList({ onClose }: MemberListProps) {
 					</CPHeaderLeft>
 					<CPHeaderRight>
 						{!isSearchMode && (
-							<SearchButton
-								onClick={handleSearchToggle}
-								style={{}}
-								onMouseEnter={(e) =>
-									(e.currentTarget.style.backgroundColor = "rgba(0,0,0,0.05)")
-								}
-								onMouseLeave={(e) =>
-									(e.currentTarget.style.backgroundColor = "transparent")
-								}
-							>
-								<Search size={20} color="#1c1e21" />
-							</SearchButton>
+							<>
+								<SearchButton
+									onClick={handleSearchToggle}
+									style={{}}
+									onMouseEnter={(e) =>
+										(e.currentTarget.style.backgroundColor = "rgba(0,0,0,0.05)")
+									}
+									onMouseLeave={(e) =>
+										(e.currentTarget.style.backgroundColor = "transparent")
+									}
+								>
+									<Search size={20} color="#1c1e21" />
+								</SearchButton>
+								{isHalf && onClose && (
+									<CloseButton onClick={onClose}>
+										<X size={20} />
+									</CloseButton>
+								)}
+							</>
 						)}
-						{onClose && (
-							<CloseButton onClick={onClose}>
+						{isSearchMode && (
+							<CloseButton onClick={handleSearchToggle}>
 								<X size={20} />
 							</CloseButton>
 						)}
@@ -137,9 +144,23 @@ export default function MemberList({ onClose }: MemberListProps) {
 						)}
 					</CPHeaderLeft>
 					<CPHeaderRight>
-						<CPHeaderIcon onClick={toggleSearch}>
-							{isSearchMode ? <X size={20} /> : <Search size={20} />}
-						</CPHeaderIcon>
+						{!isSearchMode && (
+							<>
+								<CPHeaderIcon onClick={toggleSearch}>
+									<Search size={20} />
+								</CPHeaderIcon>
+								{isHalf && onClose && (
+									<CloseButton onClick={onClose}>
+										<X size={20} />
+									</CloseButton>
+								)}
+							</>
+						)}
+						{isSearchMode && (
+							<CPHeaderIcon onClick={toggleSearch}>
+								<X size={20} />
+							</CPHeaderIcon>
+						)}
 					</CPHeaderRight>
 				</CPHeader>
 				<MemberContent>
@@ -202,9 +223,23 @@ export default function MemberList({ onClose }: MemberListProps) {
 					)}
 				</CPHeaderLeft>
 				<CPHeaderRight>
-					<CPHeaderIcon onClick={toggleSearch}>
-						{isSearchMode ? <X size={20} /> : <Search size={20} />}
-					</CPHeaderIcon>
+					{!isSearchMode && (
+						<>
+							<CPHeaderIcon onClick={toggleSearch}>
+								<Search size={20} />
+							</CPHeaderIcon>
+							{isHalf && onClose && (
+								<CloseButton onClick={onClose}>
+									<X size={20} />
+								</CloseButton>
+							)}
+						</>
+					)}
+					{isSearchMode && (
+						<CPHeaderIcon onClick={toggleSearch}>
+							<X size={20} />
+						</CPHeaderIcon>
+					)}
 				</CPHeaderRight>
 			</CPHeader>
 
@@ -229,7 +264,6 @@ export default function MemberList({ onClose }: MemberListProps) {
 							</div>
 						) : (
 							filteredMembers.map((member) => {
-								// Tạo object đúng kiểu MemberType trước khi truyền vào component
 								const item: MemberType = {
 									id: member.id,
 									name: member.name,

@@ -47,17 +47,29 @@ const AddFriend: React.FC<Props> = ({
 	isSendingRequest,
 	isUserSelectedFromList,
 }) => {
+	const [localSearchValue, setLocalSearchValue] = useState(searchAdd);
 	const [mutualFriendsCount, setMutualFriendsCount] = useState<
 		Record<string, number>
 	>({});
 	const [loadingMutual, setLoadingMutual] = useState(false);
 
 	useEffect(() => {
+		const timeoutId = setTimeout(() => {
+			onSearchAdd(localSearchValue);
+		}, 700);
+
+		return () => clearTimeout(timeoutId);
+	}, [localSearchValue, onSearchAdd]);
+
+	useEffect(() => {
+		setLocalSearchValue(searchAdd);
+	}, [searchAdd]);
+
+	useEffect(() => {
 		const fetchMutualFriends = async () => {
 			if (searchResults.length === 0) return;
 			setLoadingMutual(true);
 			const counts: Record<string, number> = {};
-
 			try {
 				await Promise.all(
 					searchResults.map(async (user) => {
@@ -81,7 +93,6 @@ const AddFriend: React.FC<Props> = ({
 				setLoadingMutual(false);
 			}
 		};
-
 		fetchMutualFriends();
 	}, [searchResults]);
 
@@ -91,14 +102,13 @@ const AddFriend: React.FC<Props> = ({
 			<Subtitle>
 				You can find and add friends with their email/username
 			</Subtitle>
-
 			<SearchContainer>
 				<Search size={20} />
 				<SearchInput
 					type="text"
 					placeholder="Search by name or username"
-					value={searchAdd}
-					onChange={(e) => onSearchAdd(e.target.value)}
+					value={localSearchValue}
+					onChange={(e) => setLocalSearchValue(e.target.value)}
 					disabled={isLoadingUsers}
 				/>
 				<SendButton
@@ -114,13 +124,11 @@ const AddFriend: React.FC<Props> = ({
 							: "Send request"}
 				</SendButton>
 			</SearchContainer>
-
 			{isLoadingUsers && (
 				<div style={{ textAlign: "center", padding: "20px", color: "#6B7280" }}>
 					Loading users...
 				</div>
 			)}
-
 			{searchResults.length > 0 && !isUserSelectedFromList && (
 				<ResultsList>
 					{searchResults.map((user) => (

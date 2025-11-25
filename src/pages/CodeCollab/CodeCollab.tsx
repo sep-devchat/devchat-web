@@ -56,6 +56,9 @@ export default function CodeCollab({
 	);
 	const [pendingEditId, setPendingEditId] = useState<string | null>(null);
 	const [showResetConfirm, setShowResetConfirm] = useState(false);
+
+	const [codeLanguage, setCodeLanguage] = useState<string>("java");
+
 	const handleResetConfirm = () => {
 		if (hasChanges) {
 			setShowResetConfirm(true);
@@ -79,6 +82,15 @@ export default function CodeCollab({
 		? `${currentUserProfile.firstName} ${currentUserProfile.lastName}`
 		: "Unknown User";
 
+	const normalizeLanguage = (lang?: string): string => {
+		if (!lang) return "java";
+		const normalized = lang.toLowerCase();
+		if (["js", "javascript", "node"].includes(normalized)) return "javascript";
+		if (["py", "python"].includes(normalized)) return "python";
+		if (["java"].includes(normalized)) return "java";
+		return normalized;
+	};
+
 	useEffect(() => {
 		const fetchData = async () => {
 			try {
@@ -100,7 +112,11 @@ export default function CodeCollab({
 				}
 
 				const originalContent = codeBlockResponse.data.content ?? "";
+				const language = codeBlockResponse.data.language || "java";
+				setCodeLanguage(normalizeLanguage(language));
+
 				setOriginalCode(originalContent);
+				setCodeLanguage(normalizeLanguage(language));
 
 				const historyResponse = await getCodeCollaborationHistory(codeBlockId);
 
@@ -372,6 +388,7 @@ export default function CodeCollab({
 									code={originalCode}
 									readOnly={true}
 									title="Original Code (Read-only)"
+									language={codeLanguage}
 								/>
 							</S.CodeEditorWrapper>
 						</ResizablePanel>
@@ -394,6 +411,7 @@ export default function CodeCollab({
 									isSaving={isSaving}
 									onReset={handleResetConfirm}
 									userRevisionCount={userRevisionCount}
+									language={codeLanguage}
 								/>
 							</S.CodeEditorWrapperBottom>
 						</ResizablePanel>
@@ -428,6 +446,7 @@ export default function CodeCollab({
 					userName={selectedDiff.userName}
 					onClose={() => setSelectedDiff(null)}
 					onLoadVersion={() => handleLoadVersion(selectedDiff.code)}
+					language={codeLanguage}
 				/>
 			)}
 

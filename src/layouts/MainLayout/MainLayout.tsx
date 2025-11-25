@@ -73,22 +73,6 @@ const MainLayout = () => {
 		return () => window.removeEventListener("resize", handleResize);
 	}, []);
 
-	// Reset panels khi resize về isHalf
-	useEffect(() => {
-		if (
-			isHalf &&
-			(iconSelected === "info" ||
-				iconSelected === "users" ||
-				iconSelected === "code" ||
-				iconSelected === "tasks")
-		) {
-			setIconSelected("");
-			setShowThreadPanel(false);
-			setSelectedThreadId("");
-		}
-	}, [isHalf, iconSelected]);
-
-	// QUAN TRỌNG: Reset tất cả panels khi chuyển group trong chế độ isHalf
 	useEffect(() => {
 		if (isHalf && groupId) {
 			setIconSelected("");
@@ -302,7 +286,7 @@ const MainLayout = () => {
 			iconSelected === "" &&
 			!showThreadPanel &&
 			!showCodeListPanel &&
-			!isHalf // CHỈ auto show khi màn hình lớn &&
+			!isHalf
 		) {
 			setIconSelected("users");
 		}
@@ -336,7 +320,10 @@ const MainLayout = () => {
 				return <CodeList onClose={handleCloseCodePanel} />;
 			case "users":
 				return groupId ? (
-					<MemberList onClose={isHalf ? handleClosePanel : undefined} />
+					<MemberList
+						isHalf={isHalf}
+						onClose={isHalf ? handleClosePanel : undefined}
+					/>
 				) : (
 					<FriendList onMenuAction={handleMenuAction} />
 				);
