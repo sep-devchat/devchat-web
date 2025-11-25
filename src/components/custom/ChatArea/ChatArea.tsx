@@ -57,6 +57,7 @@ import { DirectMessageHeader } from "./parts/DirectMessageHeader";
 import { MessageRow } from "./parts/MessageRow";
 import { DeleteMessageDialog } from "./parts/DeleteMessageDialog";
 import { ReportUserDialog } from "./parts/ReportUserDialog";
+import { ReportMessageDialog } from "./parts/ReportMessageDialog";
 
 // MessageRow & DirectMessageHeader extracted to ./parts
 
@@ -107,6 +108,9 @@ const ChatArea: React.FC = () => {
 	const [reportDialogOpen, setReportDialogOpen] = useState(false);
 	const [reportSubmitting, setReportSubmitting] = useState(false);
 	const [reportReason, setReportReason] = useState("");
+	const [reportMessageDialogOpen, setReportMessageDialogOpen] = useState(false);
+	const [messagePendingReport, setMessagePendingReport] =
+		useState<MessageResponse | null>(null);
 	// Delete confirmation dialog state
 	const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 	const [messagePendingDelete, setMessagePendingDelete] =
@@ -1430,16 +1434,14 @@ const ChatArea: React.FC = () => {
 
 	const handleReport = useCallback(
 		(m: MessageResponse) => {
-			const reason = window.prompt("Report message - please enter reason:");
-			if (!reason) return;
-			socket?.emit("message:report", {
-				groupId: groupId ?? null,
-				channelId: channelIdParam ?? null,
-				messageId: m.id,
-				reason,
-			});
+			if (!groupId || !channelIdParam) {
+				toast.error("Reporting is only available inside a group channel");
+				return;
+			}
+			setMessagePendingReport(m);
+			setReportMessageDialogOpen(true);
 		},
-		[socket, groupId, channelIdParam],
+		[groupId, channelIdParam],
 	);
 
 	const handleDelete = useCallback(async (m: MessageResponse) => {
@@ -1781,6 +1783,16 @@ const ChatArea: React.FC = () => {
 					} finally {
 						setReportSubmitting(false);
 					}
+				}}
+			/>
+			<ReportMessageDialog
+				open={reportMessageDialogOpen}
+				message={messagePendingReport}
+				groupId={groupId}
+				channelId={channelIdParam}
+				onOpenChange={(open) => {
+					setReportMessageDialogOpen(open);
+					if (!open) setMessagePendingReport(null);
 				}}
 			/>
 
