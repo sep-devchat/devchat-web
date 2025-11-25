@@ -9,6 +9,7 @@ import { useAuth, useSocket } from "@/hooks";
 import cookieUtils from "@/services/cookieUtils";
 import publicRuntimeConfig from "@/config/publicRuntime";
 import { useEffect } from "react";
+import { store } from "@/store";
 
 const loginSearchParamsSchema = z.object({
 	codeChallenge: z.string().optional(),
@@ -31,6 +32,11 @@ function RouteComponent() {
 	const { codeChallenge, codeChallengeMethod } = Route.useSearch();
 	const { socket } = useSocket();
 
+	const getPostLoginRedirect = () => {
+		const latestProfile = store.getState().user.profile;
+		return latestProfile?.isAdmin ? "/admin" : "/";
+	};
+
 	const loginMutation = useMutation({
 		mutationFn: login,
 		onSuccess: async (res) => {
@@ -38,7 +44,7 @@ function RouteComponent() {
 			await refetchProfile();
 			socket.connect();
 			navigate({
-				to: "/chat",
+				to: getPostLoginRedirect(),
 			});
 		},
 	});

@@ -8,6 +8,7 @@ import {
 	Settings,
 	LogOut,
 	LucideIcon,
+	Flag,
 } from "lucide-react";
 import { logout } from "@/services/auth/authAPI";
 import cookieUtils from "@/services/cookieUtils";
@@ -90,6 +91,12 @@ const Sidebar: React.FC = () => {
 			icon: Lock,
 			label: "Permissions",
 			path: "/admin/permission",
+		},
+		{
+			id: "report-category",
+			icon: Flag,
+			label: "Report Categories",
+			path: "/admin/report-category",
 		},
 	];
 

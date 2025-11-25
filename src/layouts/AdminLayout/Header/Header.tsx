@@ -138,6 +138,13 @@ const Header: React.FC = () => {
 			};
 		}
 
+		if (pathname.startsWith("/admin/report-category")) {
+			return {
+				title: "Report Categories",
+				path: "/admin/report-category",
+			};
+		}
+
 		return null;
 	};
 

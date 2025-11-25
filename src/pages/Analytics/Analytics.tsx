@@ -1,4 +1,6 @@
+import { useQuery } from "@tanstack/react-query";
 import { useSearch } from "@tanstack/react-router";
+import { useMemo, useState } from "react";
 import {
 	Activity,
 	Users,
@@ -28,10 +30,203 @@ import DataTable from "@/components/custom/DataTable/DataTable";
 import CustomPieChart from "@/components/custom/PieChart/PieChart";
 import CustomBarChart from "@/components/custom/BarChart/BarChart";
 import LanguageChart from "@/components/custom/LanguageChart/LanguageChart";
+import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc";
+import timezone from "dayjs/plugin/timezone";
+import { useAppSelector } from "@/hooks/useStore";
+import {
+	fetchUserOverviewStats,
+	fetchUserTrendStats,
+	fetchUserLoginStats,
+} from "@/services/adminAnalyticsAPI";
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
+
+type Granularity = "daily" | "monthly";
+
+type RangeState = {
+	start: string;
+	end: string;
+};
+
+const CUSTOM_PRESET_VALUE = "custom";
+
+const formatDateInput = (date: Date) => date.toISOString().split("T")[0];
+
+const formatMonthInput = (date: Date) =>
+	`${date.getFullYear()}-${`${date.getMonth() + 1}`.padStart(2, "0")}`;
+
+const addDays = (date: Date, amount: number) => {
+	const next = new Date(date);
+	next.setDate(next.getDate() + amount);
+	return next;
+};
+
+const addMonths = (date: Date, amount: number) =>
+	new Date(date.getFullYear(), date.getMonth() + amount, 1);
+
+const getDailyPresetRange = (preset: string): RangeState => {
+	const today = new Date();
+	switch (preset) {
+		case "today":
+			return { start: formatDateInput(today), end: formatDateInput(today) };
+		case "yesterday": {
+			const y = addDays(today, -1);
+			return { start: formatDateInput(y), end: formatDateInput(y) };
+		}
+		case "last_7_days":
+		default:
+			return {
+				start: formatDateInput(addDays(today, -6)),
+				end: formatDateInput(today),
+			};
+	}
+};
+
+const getMonthlyPresetRange = (preset: string): RangeState => {
+	const currentMonth = new Date(
+		new Date().getFullYear(),
+		new Date().getMonth(),
+		1,
+	);
+	switch (preset) {
+		case "last_month": {
+			const last = addMonths(currentMonth, -1);
+			return {
+				start: formatMonthInput(last),
+				end: formatMonthInput(last),
+			};
+		}
+		case "last_6_months":
+			return {
+				start: formatMonthInput(addMonths(currentMonth, -5)),
+				end: formatMonthInput(currentMonth),
+			};
+		case "last_12_months":
+			return {
+				start: formatMonthInput(addMonths(currentMonth, -11)),
+				end: formatMonthInput(currentMonth),
+			};
+		case "this_month":
+		default:
+			return {
+				start: formatMonthInput(currentMonth),
+				end: formatMonthInput(currentMonth),
+			};
+	}
+};
+
+const getPresetRange = (mode: Granularity, preset: string): RangeState =>
+	mode === "daily"
+		? getDailyPresetRange(preset)
+		: getMonthlyPresetRange(preset);
+
+const parseMonthInput = (value: string) => {
+	const [yearStr, monthStr] = value.split("-");
+	const year = Number(yearStr);
+	const monthIndex = Number(monthStr) - 1;
+	if (Number.isNaN(year) || Number.isNaN(monthIndex)) {
+		return null;
+	}
+	return new Date(year, monthIndex, 1);
+};
+
+const compareRangeValues = (mode: Granularity, left: string, right: string) => {
+	if (!left || !right) {
+		return 0;
+	}
+	if (mode === "daily") {
+		const a = new Date(left);
+		const b = new Date(right);
+		if (Number.isNaN(a.valueOf()) || Number.isNaN(b.valueOf())) {
+			return 0;
+		}
+		return a.getTime() - b.getTime();
+	}
+	const a = parseMonthInput(left);
+	const b = parseMonthInput(right);
+	if (!a || !b) {
+		return 0;
+	}
+	return a.getTime() - b.getTime();
+};
 
 export default function Analytics() {
 	const search = useSearch({ from: "/admin/dashboard" });
 	const activeTab = search.tab || "user";
+	const [statGranularity, setStatGranularity] = useState<Granularity>("daily");
+	const periodPresets = {
+		daily: [
+			{ label: "Today", value: "today" },
+			{ label: "Yesterday", value: "yesterday" },
+			{ label: "Last 7 days", value: "last_7_days" },
+		],
+		monthly: [
+			{ label: "This month", value: "this_month" },
+			{ label: "Last month", value: "last_month" },
+			{ label: "Last 6 months", value: "last_6_months" },
+			{ label: "Last 12 months", value: "last_12_months" },
+		],
+	} as const;
+	const defaultPreset = periodPresets.daily[0].value;
+	const [selectedPreset, setSelectedPreset] = useState<string>(defaultPreset);
+	const [range, setRange] = useState<RangeState>(() =>
+		getPresetRange("daily", defaultPreset),
+	);
+	const profile = useAppSelector((state) => state.user.profile);
+	const resolvedTimezone = useMemo(() => {
+		if (profile?.timezone) {
+			return profile.timezone;
+		}
+		return dayjs.tz?.guess?.() ?? "UTC";
+	}, [profile?.timezone]);
+	const nowInTimezone = useMemo(
+		() => dayjs().tz(resolvedTimezone),
+		[resolvedTimezone],
+	);
+	const formatCount = (value?: number) =>
+		typeof value === "number" ? value.toLocaleString() : "—";
+
+	const overviewQuery = useQuery({
+		queryKey: ["admin-user-overview", resolvedTimezone],
+		queryFn: async () => {
+			const response = await fetchUserOverviewStats({
+				timezone: resolvedTimezone,
+			});
+			return response.data;
+		},
+	});
+
+	const trendQuery = useQuery({
+		queryKey: [
+			"admin-user-trend",
+			statGranularity,
+			range.start,
+			range.end,
+			resolvedTimezone,
+		],
+		queryFn: async () => {
+			const response = await fetchUserTrendStats({
+				timezone: resolvedTimezone,
+				granularity: statGranularity,
+				start: range.start,
+				end: range.end,
+			});
+			return response.data;
+		},
+		enabled: Boolean(range.start && range.end),
+	});
+
+	const loginStatsQuery = useQuery({
+		queryKey: ["admin-user-login-stats", resolvedTimezone],
+		queryFn: async () => {
+			const response = await fetchUserLoginStats({
+				timezone: resolvedTimezone,
+			});
+			return response.data;
+		},
+	});
 
 	const lineChartData = [
 		{ name: "11h", cpu: 75, memory: 45, response: 30, error: 10 },
@@ -54,133 +249,223 @@ export default function Analytics() {
 		{ name: "50+", value: 2 },
 	];
 
-	const renderUserTab = () => (
-		<>
-			<StatsGrid>
-				<StatAnalytic
-					title="Total Registered Users"
-					value="2,847"
-					change="16.8%"
-					changeType="positive"
-					icon={Users}
-					iconColor="icon-card-1"
-					bgColor="bg-card-1"
-				/>
-				<StatAnalytic
-					title="Daily Active Users"
-					value="1,923"
-					change="76.8%"
-					changeType="positive"
-					icon={Activity}
-					iconColor="icon-card-2"
-					bgColor="bg-card-2"
-				/>
-				<StatAnalytic
-					title="New User Registrations"
-					value="347"
-					change="76.8%"
-					changeType="positive"
-					icon={UserPlus}
-					iconColor="icon-card-3"
-					bgColor="bg-card-3"
-				/>
-				<StatAnalytic
-					title="Avg. Session Duration"
-					value="42m"
-					change="76.8%"
-					changeType="positive"
-					icon={Clock}
-					iconColor="icon-card-4"
-					bgColor="bg-card-4"
-				/>
-			</StatsGrid>
+	const overviewStatsData = overviewQuery.data;
+	const userStats = [
+		{
+			title: "Total Registered Users",
+			value: formatCount(overviewStatsData?.totalUsers),
+			change: "All time",
+			icon: Users,
+			iconColor: "icon-card-1",
+			bgColor: "bg-card-1",
+		},
+		{
+			title: "Daily Registrations",
+			value: formatCount(overviewStatsData?.dailyRegistrations),
+			change: nowInTimezone.format("MMM D, YYYY"),
+			icon: UserPlus,
+			iconColor: "icon-card-2",
+			bgColor: "bg-card-2",
+		},
+		{
+			title: "Monthly Registrations",
+			value: formatCount(overviewStatsData?.monthlyRegistrations),
+			change: nowInTimezone.format("MMMM YYYY"),
+			icon: Activity,
+			iconColor: "icon-card-3",
+			bgColor: "bg-card-3",
+		},
+		{
+			title: "Active Users",
+			value: formatCount(overviewStatsData?.activeUsers),
+			change: "Last 30 days",
+			icon: Clock,
+			iconColor: "icon-card-4",
+			bgColor: "bg-card-4",
+		},
+	];
 
-			<ChartsGrid>
-				<CustomLineChart
-					title="User Growth Over Time"
-					description="Description about this chart and its key insights."
-					data={lineChartData}
-					lines={[
-						{ dataKey: "cpu", stroke: "#3b82f6", name: "New registrations" },
-						{ dataKey: "response", stroke: "#f97316", name: "Churn rate" },
-						{ dataKey: "memory", stroke: "#10b981", name: "Active users" },
-					]}
-					timeButtons={["1D", "1M", "1Y", "Max"]}
-				/>
-				<CustomPieChart
-					title="User Activity Distribution"
-					description="Description about this chart and its key insights."
-					data={userActivityData}
-					innerRadius={0}
-					outerRadius={100}
-					height={300}
-				/>
-			</ChartsGrid>
-
-			<TablesGrid>
-				<DataTable
-					title="Most Active Users"
-					columns={[
-						{ key: "username", header: "Username", align: "left" },
-						{ key: "messages", header: "Messages", align: "center" },
-						{ key: "onlineTime", header: "Online Time", align: "center" },
-						{
-							key: "status",
-							header: "Status",
-							align: "center",
-							render: (value) => (
-								<Badge variant={value === "Online" ? "success" : "error"}>
-									{value}
-								</Badge>
-							),
-						},
-					]}
-					data={[
-						{
-							username: "mike_frontend",
-							messages: "2,847",
-							onlineTime: "127h",
-							status: "Online",
-						},
-						{
-							username: "john_backend",
-							messages: "2,234",
-							onlineTime: "98h",
-							status: "Online",
-						},
-						{
-							username: "sarah_dev",
-							messages: "1,987",
-							onlineTime: "89h",
-							status: "Online",
-						},
-					]}
-				/>
-				<DataTable
-					title="User Engagement Metrics"
-					columns={[
-						{ key: "metric", header: "Metric", align: "left" },
-						{ key: "value", header: "Value", align: "center" },
-						{
-							key: "change",
-							header: "Change",
-							align: "right",
-							render: (value) => (
-								<Badge variant={value.startsWith("+") ? "success" : "error"}>
-									{value}
-								</Badge>
-							),
-						},
-					]}
-					data={[
-						{ metric: "Avg. Messages/Day", value: "23.4", change: "+12.3%" },
-						{ metric: "Peak Concurrent Users", value: "456", change: "+3.2%" },
-						{ metric: "User Return Rate", value: "67.8%", change: "-2.1%" },
-					]}
-				/>
-			</TablesGrid>
-		</>
+	const loginStats = useMemo(
+		() =>
+			(loginStatsQuery.data ?? []).map((stat) => ({
+				period: stat.periodLabel,
+				success: formatCount(stat.successfulLogins),
+				peakHour: stat.peakHour ?? "—",
+			})),
+		[loginStatsQuery.data],
 	);
+
+	const chartData = useMemo(
+		() =>
+			(trendQuery.data ?? []).map((item) => ({
+				name: item.label,
+				registrations: item.registrations,
+				active: item.activeUsers,
+				logins: item.logins,
+			})),
+		[trendQuery.data],
+	);
+
+	const handleGranularityChange = (mode: Granularity) => {
+		setStatGranularity(mode);
+		const nextDefault = periodPresets[mode][0].value;
+		setSelectedPreset(nextDefault);
+		setRange(getPresetRange(mode, nextDefault));
+	};
+
+	const handlePresetChange = (value: string) => {
+		setSelectedPreset(value);
+		if (value === CUSTOM_PRESET_VALUE) {
+			return;
+		}
+		setRange(getPresetRange(statGranularity, value));
+	};
+
+	const handleRangeChange = (field: keyof RangeState, value: string) => {
+		setRange((previous) => {
+			const next: RangeState = { ...previous, [field]: value };
+			if (
+				next.start &&
+				next.end &&
+				compareRangeValues(statGranularity, next.start, next.end) > 0
+			) {
+				if (field === "start") {
+					next.end = next.start;
+				} else {
+					next.start = next.end;
+				}
+			}
+			return next;
+		});
+		setSelectedPreset(CUSTOM_PRESET_VALUE);
+	};
+
+	const renderUserTab = () => {
+		const rangeInputType = statGranularity === "daily" ? "date" : "month";
+		return (
+			<div className="space-y-6">
+				<StatsGrid>
+					{userStats.map((stat) => (
+						<StatAnalytic
+							key={stat.title}
+							title={stat.title}
+							value={stat.value}
+							change={stat.change}
+							changeType="positive"
+							icon={stat.icon}
+							iconColor={stat.iconColor}
+							bgColor={stat.bgColor}
+						/>
+					))}
+				</StatsGrid>
+
+				<div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+					<div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+						<h3 className="text-lg font-semibold text-slate-900">
+							User registration & activity trend
+						</h3>
+						<div className="flex flex-col gap-3 md:flex-row md:items-center">
+							<div className="flex rounded-full bg-slate-100 p-1 text-sm font-medium">
+								<button
+									type="button"
+									className={`rounded-full px-4 py-1 transition ${statGranularity === "daily" ? "bg-white shadow" : "text-slate-500"}`}
+									onClick={() => handleGranularityChange("daily")}
+								>
+									Daily
+								</button>
+								<button
+									type="button"
+									className={`rounded-full px-4 py-1 transition ${statGranularity === "monthly" ? "bg-white shadow" : "text-slate-500"}`}
+									onClick={() => handleGranularityChange("monthly")}
+								>
+									Monthly
+								</button>
+							</div>
+							<select
+								className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm text-slate-700 focus:border-indigo-500 focus:outline-none"
+								value={selectedPreset}
+								onChange={(event) => handlePresetChange(event.target.value)}
+							>
+								{periodPresets[statGranularity].map((option) => (
+									<option key={option.value} value={option.value}>
+										{option.label}
+									</option>
+								))}
+								<option value={CUSTOM_PRESET_VALUE}>Custom range</option>
+							</select>
+						</div>
+					</div>
+					<div className="mt-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+						<div className="flex flex-wrap gap-3 text-sm text-slate-600">
+							<label className="flex flex-col gap-1">
+								<span className="text-xs font-medium uppercase tracking-wide">
+									From
+								</span>
+								<input
+									type={rangeInputType}
+									className="rounded-xl border border-slate-200 px-3 py-2 focus:border-indigo-500 focus:outline-none"
+									value={range.start}
+									onChange={(event) =>
+										handleRangeChange("start", event.target.value)
+									}
+									max={range.end || undefined}
+								/>
+							</label>
+							<label className="flex flex-col gap-1">
+								<span className="text-xs font-medium uppercase tracking-wide">
+									To
+								</span>
+								<input
+									type={rangeInputType}
+									className="rounded-xl border border-slate-200 px-3 py-2 focus:border-indigo-500 focus:outline-none"
+									value={range.end}
+									onChange={(event) =>
+										handleRangeChange("end", event.target.value)
+									}
+									min={range.start || undefined}
+								/>
+							</label>
+						</div>
+					</div>
+					<div className="mt-4">
+						<CustomLineChart
+							data={chartData}
+							lines={[
+								{
+									dataKey: "registrations",
+									stroke: "#6366f1",
+									name: "Registrations",
+								},
+								{
+									dataKey: "active",
+									stroke: "#10b981",
+									name: "Active users",
+								},
+								{
+									dataKey: "logins",
+									stroke: "#f97316",
+									name: "Logins",
+								},
+							]}
+							timeButtons={null as unknown as string[]}
+						/>
+					</div>
+				</div>
+
+				<TablesGrid>
+					<DataTable
+						title="User Login Statistics"
+						columns={[
+							{ key: "period", header: "Period", align: "left" },
+							{ key: "success", header: "Successful Logins", align: "center" },
+							{ key: "peakHour", header: "Peak Hour", align: "right" },
+						]}
+						data={loginStats}
+					/>
+				</TablesGrid>
+			</div>
+		);
+	};
 
 	const renderLanguageTab = () => (
 		<>

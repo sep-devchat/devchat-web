@@ -5,6 +5,7 @@ import { useMutation } from "@tanstack/react-query";
 import { zodValidator } from "@tanstack/zod-adapter";
 import { useEffect, useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { store } from "@/store";
 import {
 	Github,
 	Loader2,
@@ -31,6 +32,11 @@ function RouteComponent() {
 	const { refetchProfile } = useAuth();
 	const { socket } = useSocket();
 
+	const getPostLoginRedirect = () => {
+		const latestProfile = store.getState().user.profile;
+		return latestProfile?.isAdmin ? "/admin" : "/";
+	};
+
 	const loginMutation = useMutation({
 		mutationFn: login,
 		onSuccess: async (data) => {
@@ -39,7 +45,7 @@ function RouteComponent() {
 			await refetchProfile();
 			socket.connect();
 			navigate({
-				to: "/chat",
+				to: getPostLoginRedirect(),
 			});
 		},
 		onError: (error) => {
