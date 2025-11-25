@@ -47,7 +47,6 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
 	hasChanges = false,
 	isSaving = false,
 	onReset,
-	userRevisionCount,
 	language = "",
 	onRun,
 }) => {
@@ -151,13 +150,6 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
 							<Code2 style={{ width: "100%", height: "100%" }} />
 						</S.CodeIcon>
 						<S.Title>{title}</S.Title>
-
-						{userRevisionCount !== undefined && userRevisionCount > 0 && (
-							<S.RevisionCountBadge>
-								You have saved {userRevisionCount} revision
-								{userRevisionCount !== 1 ? "s" : ""} before.
-							</S.RevisionCountBadge>
-						)}
 
 						{showSave && hasChanges && !isSaving && (
 							<S.UnsavedBadge>Unsaved changes</S.UnsavedBadge>
