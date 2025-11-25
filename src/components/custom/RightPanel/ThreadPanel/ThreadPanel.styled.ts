@@ -78,7 +78,6 @@ export const CPTitle = styled.h2`
 export const MessagesArea = styled.div`
 	flex: 1;
 	min-height: 0; /* critical for flex child scrolling */
-	padding: 16px;
 	overflow-y: auto;
 	overflow-x: hidden;
 	scrollbar-width: thin;
@@ -102,7 +101,6 @@ export const MessagesArea = styled.div`
 		display: flex;
 		flex-direction: column;
 		justify-content: end;
-		padding: 32px 24px;
 	}
 `;
 

@@ -4,6 +4,7 @@ import React, {
 	useCallback,
 	useEffect,
 	useMemo,
+	useLayoutEffect,
 } from "react";
 import { useSelector } from "react-redux";
 import { X, Hash, Plus, Smile, Send, Folder } from "lucide-react";
@@ -25,12 +26,12 @@ import {
 	MessageHeader,
 	AuthorName,
 	MessageTime,
-	MessageText,
 	DividerWrapper,
 	Line,
 	DateText,
 	CloseButton,
 } from "./ThreadPanel.styled";
+import MarkdownPreview from "@/components/custom/MarkdownPreview";
 import MentionModal from "@/components/custom/MentionModal/MentionModal";
 import { detailThread } from "@/services/threadAPI";
 import { MessageResponse } from "@/services/messageAPI";
@@ -62,25 +63,6 @@ interface ThreadPanelProps {
 	onClose?: () => void;
 	onThreadCreated?: (threadId: string) => void;
 }
-
-const MentionText: React.FC<{ content: string }> = ({ content }) => {
-	const mentionRegex = /(@[\w_]+|@everyone|@here)/g;
-	const parts = content.split(mentionRegex);
-	return (
-		<span>
-			{parts.map((part, index) => {
-				if (part.match(mentionRegex)) {
-					return (
-						<span key={index} style={{ fontWeight: "bold", color: "#133E87" }}>
-							{part}
-						</span>
-					);
-				}
-				return <span key={index}>{part}</span>;
-			})}
-		</span>
-	);
-};
 
 const useMention = (inputRef: React.RefObject<HTMLInputElement>) => {
 	const [showMentionModal, setShowMentionModal] = useState(false);
@@ -198,6 +180,7 @@ const ThreadPanel: React.FC<ThreadPanelProps> = ({
 	const profile = useSelector((state: RootState) => state.user.profile);
 
 	const messageInputRef = useRef<HTMLInputElement>(null);
+	const bottomRef = useRef<HTMLDivElement | null>(null);
 	const {
 		showMentionModal,
 		mentionSearchTerm,
@@ -227,10 +210,15 @@ const ThreadPanel: React.FC<ThreadPanelProps> = ({
 				try {
 					const raw = resp?.data ?? resp;
 					if (Array.isArray(raw)) {
-						setBaseMessages(raw as MessageResponse[]);
+						const sortRaw = raw.sort(
+							(a, b) =>
+								new Date(a.createdAt).getTime() -
+								new Date(b.createdAt).getTime(),
+						);
+						setBaseMessages(sortRaw as MessageResponse[]);
 						queryClient.setQueryData(
 							["thread_messages", groupId, channelId, threadId],
-							raw,
+							sortRaw,
 						);
 					}
 				} catch (e) {
@@ -257,6 +245,8 @@ const ThreadPanel: React.FC<ThreadPanelProps> = ({
 		);
 	}, [baseMessages, realtimeMessages]);
 
+	console.log("mergedMessages:", mergedMessages);
+
 	// Auto scroll handling: stay pinned to bottom unless user scrolled up significantly
 	useEffect(() => {
 		const el = messagesContainerRef.current;
@@ -275,6 +265,23 @@ const ThreadPanel: React.FC<ThreadPanelProps> = ({
 		// If user more than 200px away from bottom, mark scrolled up
 		setUserScrolledUp(distanceFromBottom > 200);
 	};
+
+	const scrollToBottomInstant = useCallback(() => {
+		const container = messagesContainerRef.current;
+		try {
+			if (container) {
+				container.scrollTop = container.scrollHeight;
+			}
+			// Anchor-based fallback for cases where direct scrollTop is ignored due to layout timing
+			bottomRef.current?.scrollIntoView({ behavior: "auto" });
+		} catch {
+			/* noop */
+		}
+	}, []);
+
+	useLayoutEffect(() => {
+		scrollToBottomInstant();
+	}, [baseMessages, mergedMessages, scrollToBottomInstant]);
 
 	const uiMessages: UIMessage[] = useMemo(() => {
 		return mergedMessages.map((m) => {
@@ -616,9 +623,7 @@ const ThreadPanel: React.FC<ThreadPanelProps> = ({
 					ref={messagesContainerRef}
 					onScroll={handleMessagesScroll}
 				>
-					<div
-						style={{ textAlign: "center", padding: "40px", color: "#6b7280" }}
-					>
+					<div className="p-10 text-center text-gray-500">
 						Loading thread...
 					</div>
 				</MessagesArea>
@@ -645,186 +650,125 @@ const ThreadPanel: React.FC<ThreadPanelProps> = ({
 					)}
 				</CPHeader>
 
-				<MessagesArea
-					ref={messagesContainerRef}
-					onScroll={handleMessagesScroll}
-				>
-					<div
-						style={{
-							display: "flex",
-							flexDirection: "row",
-							textAlign: "center",
-							marginBottom: "20px",
-							alignItems: "center",
-							gap: "6px",
-						}}
-					>
+				<MessagesArea>
+					<div className="mb-5 flex flex-row items-center gap-1.5 text-center p-3">
 						<ThreadIcon>
 							<Hash size={24} />
 						</ThreadIcon>
-						<CPTitle style={{ fontSize: "24px", fontWeight: "bold" }}>
-							{threadName}
-						</CPTitle>
+						<CPTitle className="!text-2xl !font-bold">{threadName}</CPTitle>
 					</div>
 
-					{Object.entries(groupedMessages).map(([date, dateMessages]) => (
-						<div key={date}>
-							<DividerWrapper>
-								<Line />
-								<DateText>{date}</DateText>
-								<Line />
-							</DividerWrapper>
+					<div
+						ref={messagesContainerRef}
+						onScroll={handleMessagesScroll}
+						className="flex flex-col gap-6 overflow-y-auto behave-scroll px-5"
+					>
+						{Object.entries(groupedMessages).map(([date, dateMessages]) => (
+							<div key={date}>
+								<DividerWrapper>
+									<Line />
+									<DateText>{date}</DateText>
+									<Line />
+								</DividerWrapper>
 
-							{dateMessages.map((msg) => {
-								const bubbleStyle: React.CSSProperties = msg.isCurrentUser
-									? {
-											background: "linear-gradient(135deg,#133E87,#0F2D5C)",
-											color: "#fff",
-											borderRadius: 16,
-											padding: "8px 12px",
-											alignSelf: "flex-end",
-											maxWidth: "78%",
-											boxShadow: "0 2px 6px rgba(0,0,0,0.2)",
-										}
-									: {
-											background: "#F3F4F6",
-											color: "#111",
-											borderRadius: 16,
-											padding: "8px 12px",
-											alignSelf: "flex-start",
-											maxWidth: "78%",
-										};
-								const authorLabel = msg.isCurrentUser ? "You" : msg.author;
-								const headerStyle: React.CSSProperties = msg.isCurrentUser
-									? { flexDirection: "row-reverse", gap: 6 }
-									: {};
-								return (
-									<Message
-										key={msg.id}
-										style={msg.optimistic ? { opacity: 0.55 } : undefined}
-									>
-										<Avatar
-											style={
-												msg.isCurrentUser
-													? { order: 2, boxShadow: "0 0 0 2px #133E87" }
-													: { boxShadow: "0 0 0 2px #CBD5E1" }
-											}
-										>
-											<img
-												src={msg.avatarUrl}
-												alt={authorLabel}
-												style={{
-													width: "100%",
-													height: "100%",
-													borderRadius: "50%",
-													objectFit: "cover",
-												}}
-											/>
-										</Avatar>
-										<MessageContent
-											style={
-												msg.isCurrentUser
-													? { alignItems: "flex-end" }
-													: undefined
-											}
-										>
-											<MessageHeader style={headerStyle}>
-												<AuthorName
-													style={
-														msg.isCurrentUser ? { color: "#fff" } : undefined
-													}
-												>
-													{authorLabel}
-												</AuthorName>
-												<MessageTime style={{ fontSize: 11, opacity: 0.7 }}>
-													{msg.time}
-												</MessageTime>
-											</MessageHeader>
-											<div style={bubbleStyle}>
-												<MessageText style={{ margin: 0 }}>
-													<MentionText content={msg.content} />
-												</MessageText>
-												{msg.codeBlock && (
-													<div style={{ marginTop: 6 }}>
-														<pre
-															style={{
-																background: msg.isCurrentUser
-																	? "#0B254A"
-																	: "#E2E8F0",
-																padding: "8px 10px",
-																borderRadius: 8,
-																overflowX: "auto",
-																fontSize: 13,
-															}}
-														>
-															<code>{msg.codeBlock.content}</code>
-														</pre>
-														{msg.codeBlock.language && (
-															<div
-																style={{
-																	fontSize: 11,
-																	opacity: 0.7,
-																	marginTop: 4,
-																}}
-															>
-																Language: {msg.codeBlock.language}
-															</div>
-														)}
-													</div>
-												)}
-												{msg.attachments && msg.attachments.length > 0 && (
-													<ul
-														style={{
-															listStyle: "none",
-															padding: 0,
-															margin: "6px 0 0",
-															display: "flex",
-															flexDirection: "column",
-															gap: 4,
-														}}
+								{dateMessages.map((msg) => {
+									const authorLabel = msg.isCurrentUser ? "You" : msg.author;
+									const headerClassName = msg.isCurrentUser
+										? "flex-row-reverse gap-1.5"
+										: "";
+									const bubbleClasses = msg.isCurrentUser
+										? "max-w-[78%] items-center rounded-2xl bg-[#D2E0F9] px-3 py-2 flex self-end"
+										: "max-w-[78%] flex self-start rounded-2xl bg-[#eff2f5] px-3 py-2 text-[#111111]";
+									const avatarClassName = msg.isCurrentUser
+										? "order-2 ring-2 ring-[#133E87]"
+										: "ring-2 ring-slate-300";
+									const messageClassName = msg.optimistic
+										? "opacity-[0.55] overflow-auto"
+										: undefined;
+									const codeBlockClasses = msg.isCurrentUser
+										? "mt-1.5 overflow-x-auto rounded-lg bg-[#0B254A] px-2.5 py-2 text-[13px] text-white"
+										: "mt-1.5 overflow-x-auto rounded-lg bg-gray-200 px-2.5 py-2 text-[13px] text-gray-900";
+									const attachmentChipClass = msg.isCurrentUser
+										? "max-w-[220px] truncate rounded-md bg-[#0B254A] px-1.5 py-0.5 text-white"
+										: "max-w-[220px] truncate rounded-md bg-gray-200 px-1.5 py-0.5 text-gray-900";
+									const markdownPreviewClassName = msg.isCurrentUser
+										? "prose-invert text-black text-sm"
+										: "text-sm text-slate-900";
+									return (
+										<Message key={msg.id} className={messageClassName}>
+											<Avatar className={avatarClassName}>
+												<img
+													src={msg.avatarUrl}
+													alt={authorLabel}
+													className="h-full w-full rounded-full object-cover"
+												/>
+											</Avatar>
+											<MessageContent
+												className={
+													msg.isCurrentUser
+														? "flex flex-col align-end gap-1.5"
+														: "flex flex-col gap-1.5"
+												}
+											>
+												<MessageHeader className={headerClassName}>
+													<AuthorName
+														className={
+															msg.isCurrentUser ? "text-white" : undefined
+														}
 													>
-														{msg.attachments.map((att) => (
-															<li
-																key={att.name}
-																style={{
-																	fontSize: 12,
-																	display: "flex",
-																	alignItems: "center",
-																	gap: 6,
-																}}
-															>
-																<span
-																	style={{
-																		background: msg.isCurrentUser
-																			? "#0B254A"
-																			: "#E2E8F0",
-																		padding: "2px 6px",
-																		borderRadius: 6,
-																		maxWidth: 220,
-																		whiteSpace: "nowrap",
-																		overflow: "hidden",
-																		textOverflow: "ellipsis",
-																	}}
+														{authorLabel}
+													</AuthorName>
+													<MessageTime className="text-[11px] opacity-70">
+														{msg.time}
+													</MessageTime>
+												</MessageHeader>
+												<div className={bubbleClasses}>
+													<MarkdownPreview
+														content={msg.content}
+														className={markdownPreviewClassName}
+													/>
+													{msg.codeBlock && (
+														<div>
+															<pre className={codeBlockClasses}>
+																<code>{msg.codeBlock.content}</code>
+															</pre>
+															{msg.codeBlock.language && (
+																<div className="mt-1 text-[11px] opacity-70">
+																	Language: {msg.codeBlock.language}
+																</div>
+															)}
+														</div>
+													)}
+													{msg.attachments && msg.attachments.length > 0 && (
+														<ul className="mt-1.5 flex list-none flex-col gap-1 p-0">
+															{msg.attachments.map((att) => (
+																<li
+																	key={att.name}
+																	className="flex items-center gap-1.5 text-xs"
 																>
-																	{att.name}
-																</span>
-																<span style={{ fontSize: 10, opacity: 0.6 }}>
-																	{Math.round(att.size / 1024)}KB
-																</span>
-															</li>
-														))}
-													</ul>
-												)}
-											</div>
-										</MessageContent>
-									</Message>
-								);
-							})}
-						</div>
-					))}
+																	<span className={attachmentChipClass}>
+																		{att.name}
+																	</span>
+																	<span className="text-[10px] opacity-60">
+																		{Math.round(att.size / 1024)}KB
+																	</span>
+																</li>
+															))}
+														</ul>
+													)}
+												</div>
+											</MessageContent>
+										</Message>
+									);
+								})}
+							</div>
+						))}
+
+						<div ref={bottomRef} />
+					</div>
 				</MessagesArea>
 
-				<MessageInput style={{ position: "relative" }}>
+				<MessageInput className="relative">
 					<InputContainer>
 						<IconButton onClick={openFilePicker}>
 							<Plus size={20} />
@@ -845,30 +789,18 @@ const ThreadPanel: React.FC<ThreadPanelProps> = ({
 						</IconButton>
 						<input
 							ref={fileInputRef}
-							style={{ display: "none" }}
+							className="hidden"
 							type="file"
 							multiple
 							onChange={handleFilesSelected}
 						/>
 					</InputContainer>
 					{attachments.length > 0 && (
-						<div
-							style={{
-								marginTop: 8,
-								display: "flex",
-								flexWrap: "wrap",
-								gap: 6,
-							}}
-						>
+						<div className="mt-2 flex flex-wrap gap-1.5">
 							{attachments.map((f) => (
 								<div
 									key={f.name}
-									style={{
-										fontSize: 11,
-										background: "#E2E8F0",
-										padding: "2px 6px",
-										borderRadius: 6,
-									}}
+									className="rounded-md bg-gray-200 px-1.5 py-0.5 text-[11px]"
 								>
 									{f.name} ({Math.round(f.size / 1024)}KB)
 								</div>
@@ -903,7 +835,7 @@ const ThreadPanel: React.FC<ThreadPanelProps> = ({
 				)}
 			</CPHeader>
 			<MessagesArea ref={messagesContainerRef} onScroll={handleMessagesScroll}>
-				<div style={{ textAlign: "center", padding: "40px", color: "#6b7280" }}>
+				<div className="p-10 text-center text-gray-500">
 					No thread selected.
 				</div>
 			</MessagesArea>
