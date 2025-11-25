@@ -113,6 +113,7 @@ export default function CodeCollab({
 
 				const originalContent = codeBlockResponse.data.content ?? "";
 				const language = codeBlockResponse.data.language || "java";
+				setCodeLanguage(normalizeLanguage(language));
 
 				setOriginalCode(originalContent);
 				setCodeLanguage(normalizeLanguage(language));
@@ -445,6 +446,7 @@ export default function CodeCollab({
 					userName={selectedDiff.userName}
 					onClose={() => setSelectedDiff(null)}
 					onLoadVersion={() => handleLoadVersion(selectedDiff.code)}
+					language={codeLanguage}
 				/>
 			)}
 

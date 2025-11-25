@@ -106,11 +106,30 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
 
 			const endTime = performance.now();
 			setExecutionTime(endTime - startTime);
-			setRunOutput(res.data.output ?? "");
+
+			const output = res.data.output ?? "";
+
+			// Detect error patterns
+			const isError =
+				output.includes("error:") ||
+				output.includes("Error:") ||
+				output.includes("Exception") ||
+				output.includes("SyntaxError") ||
+				output.includes("Traceback") ||
+				(output.includes("Main.java:") && output.includes("error:"));
+
+			if (isError) {
+				setRunError(output);
+				setRunOutput("");
+			} else {
+				setRunOutput(output);
+				setRunError("");
+			}
+
 			setIsResultOpen(true);
 			onRun?.();
 		} catch (e: any) {
-			console.error("❌ Run code error:", e);
+			// Network errors
 			const endTime = performance.now();
 			setExecutionTime(endTime - startTime);
 			const errorMsg =
@@ -220,10 +239,17 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
 				</div>
 			</S.Container>
 
-			<Dialog open={isResultOpen} onOpenChange={setIsResultOpen}>
+			<Dialog
+				open={isResultOpen}
+				onOpenChange={(open) => {
+					if (!open) return;
+				}}
+			>
 				<DialogContent
 					className="max-w-4xl bg-slate-900 border-slate-700 [&>button]:hidden"
 					style={{ zIndex: 10000 }}
+					onPointerDownOutside={(e) => e.preventDefault()}
+					onEscapeKeyDown={(e) => e.preventDefault()}
 				>
 					<DialogHeader className="space-y-3 pb-4 border-b border-slate-700">
 						<div className="flex items-center gap-3">
@@ -235,7 +261,7 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
 									Execution Result
 								</DialogTitle>
 								<DialogDescription className="text-slate-400 text-sm mt-1">
-									{language.toUpperCase()} •{" "}
+									{language?.toUpperCase() || "UNKNOWN"} •{" "}
 									{executionTime > 0 ? `${executionTime.toFixed(0)}ms` : "—"}
 								</DialogDescription>
 							</div>
@@ -273,7 +299,9 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
 										<p className="text-sm font-semibold text-red-300 mb-1">
 											Error
 										</p>
-										<p className="text-sm text-red-200">{runError}</p>
+										<p className="text-sm text-red-200 whitespace-pre-wrap">
+											{runError}
+										</p>
 									</div>
 								</div>
 							</div>
@@ -283,10 +311,7 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
 									<span className="text-xs font-medium text-slate-400 uppercase tracking-wider">
 										Output
 									</span>
-									<span className="text-xs text-slate-500">
-										{runOutput.split("\n").length} line
-										{runOutput.split("\n").length !== 1 ? "s" : ""}
-									</span>
+									<span className="text-xs text-slate-500"></span>
 								</div>
 								<pre className="max-h-[50vh] overflow-auto rounded-b-lg bg-slate-950 p-4 text-sm font-mono text-slate-200 border border-slate-800 whitespace-pre-wrap">
 									{runOutput || (

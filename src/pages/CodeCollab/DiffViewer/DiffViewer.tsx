@@ -41,7 +41,7 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({
 	modified,
 	onClose,
 	userName,
-	language = "",
+	language,
 }) => {
 	const diffEditorRef = useRef<editor.IStandaloneDiffEditor | null>(null);
 	const [isHalf, setIsHalf] = useState(window.innerWidth <= 1220);
@@ -97,7 +97,7 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({
 	};
 
 	const handleRunCode = async (code: string, type: "original" | "modified") => {
-		const enumLang = toEnumLanguage(language);
+		const enumLang = toEnumLanguage(language || "");
 
 		if (!enumLang) {
 			setRunError(
@@ -124,14 +124,41 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({
 		setRunning(true);
 		setRunError("");
 		setActiveRunType(type);
+		const startTime = performance.now();
 
 		try {
 			const res = await runCode({ code, language: enumLang });
 
-			setRunOutput(res.data.output ?? "");
+			const endTime = performance.now();
+			setExecutionTime(endTime - startTime);
+
+			const output = res.data.output ?? "";
+
+			const isError =
+				output.includes("error:") ||
+				output.includes("Error:") ||
+				output.includes("Exception") ||
+				output.includes("SyntaxError") ||
+				output.includes("Traceback") ||
+				output.includes("TypeError") ||
+				output.includes("ReferenceError") ||
+				output.includes("RuntimeError") ||
+				(output.includes(".java:") && output.includes("error:")) ||
+				output.includes("Caused by:");
+
+			if (isError) {
+				setRunError(output);
+				setRunOutput("");
+			} else {
+				setRunOutput(output);
+				setRunError("");
+			}
+
 			setIsResultOpen(true);
 		} catch (e: any) {
 			console.error("❌ Run code error:", e);
+			const endTime = performance.now();
+			setExecutionTime(endTime - startTime);
 			const errorMsg =
 				e?.response?.data?.message || e?.message || "Error running code";
 			setRunError(errorMsg);
@@ -289,7 +316,7 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({
 									</div>
 								</div>
 
-								<div className="h-full pt-11">
+								<div className="h-full pt-14">
 									<DiffEditor
 										height="100%"
 										language={language}
@@ -320,18 +347,23 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({
 
 					<S.Footer>
 						<S.FooterContent>
-							<S.DiffInfo>
-								Comparing code changes • Monaco Diff Viewer
-							</S.DiffInfo>
+							<S.DiffInfo>Comparing code changes</S.DiffInfo>
 						</S.FooterContent>
 					</S.Footer>
 				</S.ModalContent>
 			</S.ModalOverlay>
 
-			<Dialog open={isResultOpen} onOpenChange={setIsResultOpen}>
+			<Dialog
+				open={isResultOpen}
+				onOpenChange={(open) => {
+					if (!open) return;
+				}}
+			>
 				<DialogContent
 					className="max-w-4xl bg-slate-900 border-slate-700 [&>button]:hidden"
 					style={{ zIndex: 10000 }}
+					onPointerDownOutside={(e) => e.preventDefault()}
+					onEscapeKeyDown={(e) => e.preventDefault()}
 				>
 					<DialogHeader className="space-y-3 pb-4 border-b border-slate-700">
 						<div className="flex items-center gap-3">
@@ -352,7 +384,7 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({
 											Modified Code
 										</span>
 									)}{" "}
-									• {language.toUpperCase()} •{" "}
+									• {language?.toUpperCase() || "UNKNOWN"} •{" "}
 									{executionTime > 0 ? `${executionTime.toFixed(0)}ms` : "—"}
 								</DialogDescription>
 							</div>
@@ -400,10 +432,7 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({
 									<span className="text-xs font-medium text-slate-400 uppercase tracking-wider">
 										Output
 									</span>
-									<span className="text-xs text-slate-500">
-										{runOutput.split("\n").length} line
-										{runOutput.split("\n").length !== 1 ? "s" : ""}
-									</span>
+									<span className="text-xs text-slate-500"></span>
 								</div>
 								<pre className="max-h-[50vh] overflow-auto rounded-b-lg bg-slate-950 p-4 text-sm font-mono text-slate-200 border border-slate-800 whitespace-pre-wrap">
 									{runOutput || (
