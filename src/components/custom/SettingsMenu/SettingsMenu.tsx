@@ -1,16 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import bgImage from "@/assets/image/loginBackground.png";
 import { useNavigate } from "@tanstack/react-router";
-import {
-	Bell,
-	CircleX,
-	LogOut,
-	Palette,
-	Search,
-	Settings,
-	Shield,
-	User,
-} from "lucide-react";
+import { Bell, CircleX, LogOut, Search, Shield, User } from "lucide-react";
 import React, { useEffect, useRef } from "react";
 import {
 	ContentWrapper,
@@ -36,11 +27,9 @@ import cookieUtils from "@/services/cookieUtils";
 import { useSocket } from "@/hooks";
 
 type SettingsSection =
-	| "general"
-	| "appearance"
-	| "notification"
-	| "account"
-	| "privacy";
+	// | "general"
+	// | "appearance"
+	"notification" | "account" | "privacy";
 
 interface MenuItemType {
 	id: SettingsSection;
@@ -64,20 +53,12 @@ export const SettingsMenu: React.FC<SettingsMenuProps> = ({
 	const { socket } = useSocket();
 
 	const menuItems: MenuItemType[] = [
-		{ id: "general", label: "General", icon: Settings },
-		{ id: "appearance", label: "Appearance", icon: Palette },
-		{ id: "notification", label: "Notification and activity", icon: Bell },
+		// { id: "general", label: "General", icon: Settings },
 		{ id: "account", label: "Account", icon: User },
+		// { id: "appearance", label: "Appearance", icon: Palette },
+		{ id: "notification", label: "Notification and activity", icon: Bell },
 		{ id: "privacy", label: "Privacy", icon: Shield },
 	];
-
-	// const icons = [
-	// 	{ Icon: Home, selected: false },
-	// 	{ Icon: User, selected: false },
-	// 	{ Icon: MessageCircle, selected: false },
-	// 	{ Icon: Bell, selected: false },
-	// 	{ Icon: Settings, selected: true },
-	// ];
 
 	useEffect(() => {
 		if (contentWrapperRef.current) {

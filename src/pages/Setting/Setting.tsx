@@ -2,20 +2,17 @@ import React, { useState } from "react";
 import { SettingsMenu } from "@/components/custom/SettingsMenu/SettingsMenu";
 import NotificationSettings from "./components/NotificationSettings";
 import GeneralSettings from "./components/GeneralSettings";
-import AppearanceSettings from "./components/AppearanceSettings";
 import PrivacySettings from "./components/PrivacySettings";
 import AccountSettings from "./components/AccountSettings";
 
 type SettingsSection =
-	| "general"
-	| "appearance"
-	| "notification"
-	| "account"
-	| "privacy";
+	// | "general"
+	// | "appearance"
+	"notification" | "account" | "privacy";
 
 export const SettingPage: React.FC = () => {
 	const [activeSection, setActiveSection] =
-		useState<SettingsSection>("general");
+		useState<SettingsSection>("account");
 
 	// notification state
 	const [muteAll, setMuteAll] = useState(false);
@@ -31,7 +28,7 @@ export const SettingPage: React.FC = () => {
 	const [keepAppBarVisible, setKeepAppBarVisible] = useState(false);
 
 	// appearance
-	const [selectedTimeFormat, setSelectedTimeFormat] = useState("Auto");
+	// const [selectedTimeFormat, setSelectedTimeFormat] = useState("Auto");
 
 	// privacy
 	const [keepAllowReadReceipts, setKeepAllowReadReceipts] = useState(true);
@@ -49,11 +46,11 @@ export const SettingPage: React.FC = () => {
 		{ value: "Custom", label: "Custom" },
 	];
 
-	const timeFormatOptions = [
-		{ value: "Auto", label: "Auto" },
-		{ value: "12-hour", label: "12-hour" },
-		{ value: "24-hour", label: "24-hour" },
-	];
+	// const timeFormatOptions = [
+	// 	{ value: "Auto", label: "Auto" },
+	// 	{ value: "12-hour", label: "12-hour" },
+	// 	{ value: "24-hour", label: "24-hour" },
+	// ];
 
 	const languageOptions = [
 		{ value: "English (United States)", label: "English (United States)" },
@@ -98,13 +95,13 @@ export const SettingPage: React.FC = () => {
 		/>
 	);
 
-	const renderAppearanceSettings = () => (
-		<AppearanceSettings
-			selectedTimeFormat={selectedTimeFormat}
-			setSelectedTimeFormat={setSelectedTimeFormat}
-			timeFormatOptions={timeFormatOptions}
-		/>
-	);
+	// const renderAppearanceSettings = () => (
+	// 	<AppearanceSettings
+	// 		selectedTimeFormat={selectedTimeFormat}
+	// 		setSelectedTimeFormat={setSelectedTimeFormat}
+	// 		timeFormatOptions={timeFormatOptions}
+	// 	/>
+	// );
 
 	const renderPrivacySettings = () => (
 		<PrivacySettings
@@ -126,10 +123,10 @@ export const SettingPage: React.FC = () => {
 		switch (activeSection) {
 			case "notification":
 				return renderNotificationSettings();
-			case "general":
-				return renderGeneralSettings();
-			case "appearance":
-				return renderAppearanceSettings();
+			// case "general":
+			// 	return renderGeneralSettings();
+			// case "appearance":
+			// 	return renderAppearanceSettings();
 			case "account":
 				return renderAccountSettings();
 			case "privacy":

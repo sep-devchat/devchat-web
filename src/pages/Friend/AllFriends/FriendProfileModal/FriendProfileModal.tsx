@@ -10,6 +10,7 @@ import {
 	UserMinus,
 	UserPlus,
 	MoreVertical,
+	Edit,
 } from "lucide-react";
 import { toast } from "sonner";
 import { inviteToGroup } from "@/services/userGroupAPI";
@@ -62,6 +63,9 @@ import {
 } from "./FriendProfileModal.styled";
 import { listFriends, sendFriendRequest } from "@/services/friendAPI";
 import { InfoButton } from "@/components/custom/ActionButton/InfoButton";
+import { useSelector } from "react-redux";
+import { RootState } from "@/store";
+import { SaveButton } from "@/components/custom/ActionButton/SaveButton";
 
 interface Group {
 	id: string;
@@ -109,6 +113,11 @@ const FriendProfileModal: React.FC<FriendProfileModalProps> = ({
 	// New: isFriend state (true if friend is in my friend list)
 	const [isFriend, setIsFriend] = useState(false);
 	const [addingFriend, setAddingFriend] = useState(false);
+	const currentUserProfile = useSelector(
+		(state: RootState) => state.user.profile,
+	);
+	const currentUserId = currentUserProfile?.id || "";
+	const [isYou, setIsYou] = useState(false);
 
 	useEffect(() => {
 		if (!isOpen) {
@@ -151,17 +160,37 @@ const FriendProfileModal: React.FC<FriendProfileModalProps> = ({
 		}
 	};
 
+	const checkIsYou = async () => {
+		if (!friend) {
+			setIsYou(false);
+			return;
+		}
+		try {
+			if (friend.id === currentUserId) {
+				setIsYou(true);
+				return;
+			}
+			setIsYou(false);
+		} catch (err) {
+			console.error("Failed to check isYou:", err);
+			// default to false on error
+			setIsYou(false);
+		}
+	};
+
 	useEffect(() => {
 		if (isOpen && friend) {
-			if (groupId) {
-				checkIsFriend().catch((e) => console.error(e));
-			} else {
-				checkIsFriend().catch((e) => console.error(e));
-			}
+			// check both flags when modal opens
+			checkIsYou().catch((e) => console.error(e));
+			checkIsFriend().catch((e) => console.error(e));
+		} else {
+			// reset isYou/isFriend when modal is closed or friend missing
+			setIsYou(false);
+			setIsFriend(false);
 		}
 
 		console.log("friend", friend);
-	}, [isOpen, friend?.id, groupId]);
+	}, [isOpen, friend?.id, groupId, currentUserId]);
 
 	useEffect(() => {
 		if (menuOpen && groups.length === 0) {
@@ -296,6 +325,12 @@ const FriendProfileModal: React.FC<FriendProfileModalProps> = ({
 		}
 	};
 
+	// NEW: navigate to settings when user edits own profile
+	const handleEditProfile = () => {
+		// using full page navigation for simplicity; replace with your router navigate if needed
+		window.location.href = "/settings";
+	};
+
 	return (
 		<ModalOverlay onClick={onClose}>
 			<ModalContainer onClick={(e) => e.stopPropagation()}>
@@ -395,18 +430,19 @@ const FriendProfileModal: React.FC<FriendProfileModalProps> = ({
 								<UserName>{friend.name}</UserName>
 								<Username>@{friend.username}</Username>
 
-								{/* StatusBadge now shows Friend / Not Friend based on isFriend (no longer uses active) */}
-								<StatusBadge $isActive={isFriend}>
-									<span
-										style={{
-											width: "6px",
-											height: "6px",
-											borderRadius: "50%",
-											background: isFriend ? "#16a34a" : "#6b7280",
-										}}
-									/>
-									{isFriend ? "Friend" : "Not Friend"}
-								</StatusBadge>
+								{isYou ?? (
+									<StatusBadge $isActive={isFriend}>
+										<span
+											style={{
+												width: "6px",
+												height: "6px",
+												borderRadius: "50%",
+												background: isFriend ? "#16a34a" : "#6b7280",
+											}}
+										/>
+										{isFriend ? "Friend" : "Not Friend"}
+									</StatusBadge>
+								)}
 							</AvatarSection>
 
 							<InfoSection>
@@ -448,8 +484,15 @@ const FriendProfileModal: React.FC<FriendProfileModalProps> = ({
 								)}
 							</InfoSection>
 
-							{/* Show Unfriend if isFriend, otherwise Add Friend - with feedback */}
-							{isFriend ? (
+							{/* Show Edit Profile if isYou, otherwise Unfriend/Add Friend */}
+							{isYou ? (
+								<InfoButton
+									leftIcon={<Edit size={18} />}
+									onClick={handleEditProfile}
+									children={"Edit Profile"}
+									style={{ marginTop: "12px", width: "100%" }}
+								/>
+							) : isFriend ? (
 								<DeleteButton
 									onClick={handleUnfriend}
 									leftIcon={<UserMinus size={18} />}
@@ -457,7 +500,7 @@ const FriendProfileModal: React.FC<FriendProfileModalProps> = ({
 									style={{ marginTop: "12px", width: "100%" }}
 								/>
 							) : (
-								<InfoButton
+								<SaveButton
 									onClick={handleAddFriend}
 									leftIcon={<UserPlus size={18} />}
 									children={addingFriend ? "Sending..." : "Add Friend"}
