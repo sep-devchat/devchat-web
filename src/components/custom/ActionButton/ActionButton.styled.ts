@@ -83,16 +83,25 @@ export const StyledButton = styled.button<BaseProps>`
   ${({ $variant }) =>
 		$variant === "save" &&
 		css`
+<<<<<<< HEAD
 			background: ${theme.color.successBackground} !important;
 			color: #fff;
 
 			&:hover:not(:disabled) {
 				background: ${theme.color.successBackground80} !important;
+=======
+			background: ${theme.color.successBackground};
+			color: ${theme.color.success};
+			border-color: ${theme.color.success};
+
+			&:hover:not(:disabled) {
+				background: #d2f7eb;
+>>>>>>> fb8e9f9 (feat: report category)
 			}
 
 			&:focus {
 				outline: none;
-				box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.15);
+				box-shadow: 0 0 0 4px rgba(18, 130, 95, 0.15);
 			}
 
 			&:disabled {

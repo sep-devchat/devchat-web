@@ -9,6 +9,7 @@ export interface UserResponse {
 	lastName: string;
 	avatarUrl: string | null;
 	isActive: true;
+	isAdmin?: boolean;
 	emailVerified: false;
 	createdAt: Date;
 	updatedAt: Date;
@@ -46,4 +47,8 @@ export const updateUser = (id: string, data: UserPostRequest) => {
 
 export const deleteUser = (id: string) => {
 	return remove<UserResponse>(`/api/user/${id}`);
+};
+
+export const setUserActive = (id: string, isActive: boolean) => {
+	return put<UserResponse>(`/api/user/${id}/active`, { isActive });
 };
