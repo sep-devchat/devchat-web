@@ -1,5 +1,5 @@
 import React from "react";
-import { Clock, User, GitCompare, Trash2 } from "lucide-react";
+import { Clock, User, GitCompare, Trash2, Edit2 } from "lucide-react";
 import { Change } from "../types";
 import { formatTime } from "../utils";
 import * as S from "./ChangeHistory.styled";
@@ -8,14 +8,18 @@ interface ChangeHistoryItemProps {
 	change: Change;
 	onClick: () => void;
 	onDelete?: () => void;
+	onEdit?: () => void;
 	canDelete: boolean;
+	canEdit: boolean;
 }
 
 const ChangeHistoryItem: React.FC<ChangeHistoryItemProps> = ({
 	change,
 	onClick,
 	onDelete,
+	onEdit,
 	canDelete,
+	canEdit,
 }) => {
 	const handleDelete = (e: React.MouseEvent) => {
 		e.stopPropagation();
@@ -24,11 +28,26 @@ const ChangeHistoryItem: React.FC<ChangeHistoryItemProps> = ({
 		}
 	};
 
+	const handleEdit = (e: React.MouseEvent) => {
+		e.stopPropagation();
+		if (onEdit) {
+			onEdit();
+		}
+	};
+
 	return (
 		<S.ChangeButton onClick={onClick}>
 			<S.ChangeContent>
 				<S.UserIconContainer>
-					<User style={{ width: "1rem", height: "1rem" }} />
+					{change.avatarUrl ? (
+						<img
+							src={change.avatarUrl}
+							alt={change.userName}
+							style={{ borderRadius: "50%" }}
+						/>
+					) : (
+						<User style={{ width: "1.5rem", height: "1.5rem" }} />
+					)}
 				</S.UserIconContainer>
 				<S.UserInfo>
 					<S.UserName>{change.userName}</S.UserName>
@@ -37,15 +56,25 @@ const ChangeHistoryItem: React.FC<ChangeHistoryItemProps> = ({
 						<span>{formatTime(change.timestamp)}</span>
 					</S.TimeInfo>
 				</S.UserInfo>
-				{canDelete ? (
-					<S.DeleteButton onClick={handleDelete}>
-						<Trash2 style={{ width: "1rem", height: "1rem" }} />
-					</S.DeleteButton>
-				) : (
-					<S.CompareIcon>
-						<GitCompare style={{ width: "1rem", height: "1rem" }} />
-					</S.CompareIcon>
-				)}
+
+				<div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+					{canEdit && onEdit && (
+						<S.EditButton onClick={handleEdit}>
+							<Edit2 style={{ width: "1rem", height: "1rem" }} />
+						</S.EditButton>
+					)}
+					{canDelete && onDelete ? (
+						<S.DeleteButton onClick={handleDelete}>
+							<Trash2 style={{ width: "1rem", height: "1rem" }} />
+						</S.DeleteButton>
+					) : (
+						!canEdit && (
+							<S.CompareIcon>
+								<GitCompare style={{ width: "1rem", height: "1rem" }} />
+							</S.CompareIcon>
+						)
+					)}
+				</div>
 			</S.ChangeContent>
 		</S.ChangeButton>
 	);
@@ -55,14 +84,16 @@ interface ChangeHistoryProps {
 	changes: Change[];
 	onChangeClick: (change: Change) => void;
 	onDeleteChange?: (changeId: string) => void;
-	currentUserName?: string;
+	onEditChange?: (changeId: string) => void;
+	currentUserId?: string;
 }
 
 export const ChangeHistory: React.FC<ChangeHistoryProps> = ({
 	changes,
 	onChangeClick,
 	onDeleteChange,
-	currentUserName,
+	onEditChange,
+	currentUserId,
 }) => {
 	return (
 		<S.Container>
@@ -71,24 +102,32 @@ export const ChangeHistory: React.FC<ChangeHistoryProps> = ({
 				<S.HeaderSubtitle>{changes.length} revision(s)</S.HeaderSubtitle>
 			</S.Header>
 			<S.ListContainer>
-				{changes.map((change) => (
-					<ChangeHistoryItem
-						key={change.id}
-						change={change}
-						onClick={() => onChangeClick(change)}
-						onDelete={
-							onDeleteChange &&
-							currentUserName &&
-							change.userName === currentUserName
-								? () => onDeleteChange(change.id)
-								: undefined
-						}
-						canDelete={
-							currentUserName !== undefined &&
-							change.userName === currentUserName
-						}
-					/>
-				))}
+				{changes.map((change) => {
+					const isOwner =
+						currentUserId !== undefined && change.userId === currentUserId;
+					const canDelete = isOwner;
+					const canEdit = isOwner;
+
+					return (
+						<ChangeHistoryItem
+							key={change.id}
+							change={change}
+							onClick={() => onChangeClick(change)}
+							onDelete={
+								onDeleteChange && canDelete
+									? () => onDeleteChange(change.id)
+									: undefined
+							}
+							onEdit={
+								onEditChange && canEdit
+									? () => onEditChange(change.id)
+									: undefined
+							}
+							canDelete={canDelete}
+							canEdit={canEdit}
+						/>
+					);
+				})}
 			</S.ListContainer>
 		</S.Container>
 	);

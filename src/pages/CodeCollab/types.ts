@@ -2,6 +2,8 @@
 export interface Change {
 	id: string;
 	userName: string;
+	avatarUrl?: string;
+	userId: string;
 	timestamp: Date;
 	code: string;
 }
@@ -13,6 +15,7 @@ export interface MessageResponse {
 	channelId?: string;
 	threadId?: string | null;
 	groupId?: string;
+	codeBlockId?: string;
 	sender?: {
 		id: string;
 		firstName?: string;
@@ -21,4 +24,9 @@ export interface MessageResponse {
 		avatarUrl?: string;
 	};
 	attachments?: any[];
+	parentMessageId?: string;
+	parentMessage?: MessageResponse;
+	thread?: {
+		id: string;
+	};
 }

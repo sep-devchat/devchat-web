@@ -27,7 +27,10 @@ import { runCode } from "@/services/code/code.api";
 import { ProgrammingLanguageEnum } from "@/utils/enum";
 import { MockPage } from "@/components/custom/MockPage";
 import CodeCollab from "@/pages/CodeCollab/CodeCollab";
-// import 'highlight.js/styles/github.css';
+import {
+	CodeBlock as CodeBlockData,
+	getCodeBlockById,
+} from "@/services/codeCollabAPI";
 
 export interface CodeBlockProps
 	extends HTMLAttributes<HTMLPreElement>,
@@ -36,6 +39,9 @@ export interface CodeBlockProps
 	onRun?: (code: string, language: string) => void;
 	showEditButton?: boolean;
 	showRunButton?: boolean;
+	codeBlockId?: string;
+	channelId?: string;
+	groupId?: string;
 }
 
 const CodeBlock = ({
@@ -44,6 +50,9 @@ const CodeBlock = ({
 	onRun,
 	showEditButton = true,
 	showRunButton = true,
+	codeBlockId,
+	channelId,
+	groupId,
 	...props
 }: CodeBlockProps) => {
 	const preRef = useRef<HTMLPreElement>(null);
@@ -54,6 +63,32 @@ const CodeBlock = ({
 	const [runOutput, setRunOutput] = useState<string>("");
 	const [runError, setRunError] = useState<string>("");
 	const [isEditOpen, setIsEditOpen] = useState<boolean>(false);
+
+	const [fetchedCodeBlock, setFetchedCodeBlock] =
+		useState<CodeBlockData | null>(null);
+	const [isLoadingCodeBlock, setIsLoadingCodeBlock] = useState(false);
+
+	useEffect(() => {
+		if (codeBlockId && channelId && groupId) {
+			setIsLoadingCodeBlock(true);
+
+			getCodeBlockById(codeBlockId, channelId, groupId)
+				.then((response) => {
+					if (response?.data) {
+						setFetchedCodeBlock(response.data);
+					} else {
+						console.warn("⚠️ No data in response (possibly 304 cached)");
+					}
+				})
+				.catch((error) => {
+					console.error("❌ Failed to fetch code block:", error);
+					setFetchedCodeBlock(null);
+				})
+				.finally(() => {
+					setIsLoadingCodeBlock(false);
+				});
+		}
+	}, [codeBlockId, channelId, groupId]);
 
 	const normalizeLang = (raw?: string) => {
 		const v = (raw || "").toLowerCase();
@@ -110,19 +145,16 @@ const CodeBlock = ({
 		if (codeEl) {
 			try {
 				hljs.highlightElement(codeEl as HTMLElement);
-			} catch {
-				// silent fail; highlighting is non-critical
-			}
+			} catch {}
 
-			// Extract language from code class e.g. language-ts, lang-ts, or data-language
 			const cls = codeEl.getAttribute("class") || "";
 			const m = cls.match(/(?:language|lang)-([a-zA-Z0-9_+-]+)/);
 			const dataLang = codeEl.getAttribute("data-language") || "";
 			const rawLang = (m && m[1]) || dataLang || "";
 			setLanguage(normalizeLang(rawLang));
 
-			// Extract raw text content
-			setCodeText(codeEl.textContent || "");
+			const extractedCode = codeEl.textContent || "";
+			setCodeText(extractedCode);
 		}
 	}, [props.children]);
 
@@ -161,13 +193,24 @@ const CodeBlock = ({
 		}
 	};
 
+	const handleEditClick = () => {
+		if (!codeBlockId || !channelId || !groupId) {
+			console.warn("⚠️ Missing required params for edit");
+			return;
+		}
+
+		onEdit?.(codeText, language || "");
+		setIsEditOpen(true);
+	};
+
 	return (
 		<>
 			<Card className="min-w-[360px] overflow-hidden isolate z-10 mix-blend-normal">
 				<CardHeader className="py-2 px-3 bg-card border-b border-border">
 					<div className="flex items-center justify-between gap-2 relative z-10">
 						<CardTitle className="text-xs font-semibold uppercase tracking-wide text-card-foreground/80">
-							{language || "Code"}
+							{fetchedCodeBlock?.language || language || "Code"}
+							{isLoadingCodeBlock && " (loading...)"}
 						</CardTitle>
 						<div className="flex items-center gap-2">
 							<TooltipProvider delayDuration={200}>
@@ -179,16 +222,18 @@ const CodeBlock = ({
 												size="sm"
 												className="h-7 w-7 p-0 grid place-items-center"
 												aria-label="Edit code"
-												onClick={() => {
-													onEdit?.(codeText, language || "");
-													setIsEditOpen(true);
-												}}
+												onClick={handleEditClick}
+												disabled={!codeBlockId || !channelId || !groupId}
 											>
 												<Pencil className="h-4 w-4" />
 												<span className="sr-only">Edit code</span>
 											</Button>
 										</TooltipTrigger>
-										<TooltipContent side="bottom">Edit code</TooltipContent>
+										<TooltipContent side="bottom">
+											{codeBlockId && channelId && groupId
+												? "Collaborate on code"
+												: "Code block info not available"}
+										</TooltipContent>
 									</Tooltip>
 								)}
 								{showRunButton && (
@@ -224,9 +269,7 @@ const CodeBlock = ({
 					<pre
 						ref={preRef}
 						className={cn(
-							// Keep minimal structural styling; defer colors/background to hljs theme CSS
 							"text-sm font-medium overflow-x-auto p-3",
-							// Remove any Tailwind prose code background overrides inside <pre>
 							"[&_code]:p-0 [&_code]:text-inherit",
 							className,
 						)}
@@ -234,7 +277,6 @@ const CodeBlock = ({
 					/>
 				</CardContent>
 
-				{/* Run Result Dialog */}
 				<Dialog open={isResultOpen} onOpenChange={setIsResultOpen}>
 					<DialogContent className="bg-card text-card-foreground">
 						<DialogHeader>
@@ -253,7 +295,6 @@ const CodeBlock = ({
 				</Dialog>
 			</Card>
 
-			{/* Inline MockPage controlled by visible prop (no dialog overlay) */}
 			<MockPage
 				visible={isEditOpen}
 				title="Code Collaboration"
@@ -270,7 +311,27 @@ const CodeBlock = ({
 				contentPadding={false}
 				padded={false}
 			>
-				<CodeCollab />
+				{codeBlockId && channelId && groupId ? (
+					<CodeCollab
+						key={isEditOpen ? "open" : "closed"}
+						codeBlockId={codeBlockId}
+						channelId={channelId}
+						groupId={groupId}
+					/>
+				) : (
+					<div className="flex items-center justify-center h-full">
+						<div className="text-center">
+							<p className="text-sm text-muted-foreground">
+								Required information not available
+							</p>
+							<p className="text-xs text-muted-foreground mt-1">
+								Missing: {!codeBlockId && "codeBlockId"}
+								{!channelId && " channelId"}
+								{!groupId && " groupId"}
+							</p>
+						</div>
+					</div>
+				)}
 			</MockPage>
 		</>
 	);

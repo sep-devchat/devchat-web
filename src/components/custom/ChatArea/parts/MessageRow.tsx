@@ -21,9 +21,12 @@ export type MessageRowProps = {
 	reactionPickerFor: string | null;
 	setReactionPickerFor: (v: string | null) => void;
 	formatMessageTime: (d: any) => string;
-	handleGoToMessage?: (id: string) => void; // optional navigation to parent
+	handleGoToMessage?: (id: string) => void;
 	handleCreateThread: (m: MessageResponse) => void;
 	existingThreadId: string | null;
+	codeBlockId?: string;
+	channelId: string;
+	groupId: string;
 };
 
 const MarkdownPreviewMemo = React.memo(MarkdownPreview);
@@ -51,6 +54,9 @@ export const MessageRow: React.FC<MessageRowProps> = React.memo(
 		handleGoToMessage,
 		handleCreateThread,
 		existingThreadId,
+		codeBlockId,
+		channelId,
+		groupId,
 	}) => {
 		const [hovered, setHovered] = useState(false);
 
@@ -127,7 +133,13 @@ export const MessageRow: React.FC<MessageRowProps> = React.memo(
 										</div>
 									</button>
 								)}
-								<MarkdownPreviewMemo content={m.content || ""} />
+
+								<MarkdownPreviewMemo
+									content={m.content || ""}
+									codeBlockId={codeBlockId}
+									channelId={channelId}
+									groupId={groupId}
+								/>
 
 								{existingThreadId && !m.thread?.id && (
 									<button

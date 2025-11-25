@@ -16,6 +16,8 @@ export interface MessageResponse {
 	createdAt: Date;
 	updatedAt: Date;
 	sender: Profile;
+	codeBlockId?: string;
+	groupId?: string;
 }
 
 export interface ThreadMessageResponse
