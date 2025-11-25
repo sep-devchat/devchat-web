@@ -14,9 +14,7 @@ export interface CreateReportPayload {
 }
 
 export const createReport = (
-	groupId: string,
-	channelId: string,
 	payload: CreateReportPayload,
 ): Promise<ApiResponseDto<unknown>> => {
-	return post("/api/report", payload, { groupId, channelId });
+	return post("/api/report", payload);
 };

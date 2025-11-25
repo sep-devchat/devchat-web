@@ -58,6 +58,7 @@ import { MessageRow } from "./parts/MessageRow";
 import { DeleteMessageDialog } from "./parts/DeleteMessageDialog";
 import { ReportUserDialog } from "./parts/ReportUserDialog";
 import { ReportMessageDialog } from "./parts/ReportMessageDialog";
+import { MessageReportType } from "@/services/reportAPI";
 
 // MessageRow & DirectMessageHeader extracted to ./parts
 
@@ -111,6 +112,8 @@ const ChatArea: React.FC = () => {
 	const [reportMessageDialogOpen, setReportMessageDialogOpen] = useState(false);
 	const [messagePendingReport, setMessagePendingReport] =
 		useState<MessageResponse | null>(null);
+	const [reportMessageType, setReportMessageType] =
+		useState<MessageReportType | null>(null);
 	// Delete confirmation dialog state
 	const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 	const [messagePendingDelete, setMessagePendingDelete] =
@@ -1434,14 +1437,19 @@ const ChatArea: React.FC = () => {
 
 	const handleReport = useCallback(
 		(m: MessageResponse) => {
-			if (!groupId || !channelIdParam) {
-				toast.error("Reporting is only available inside a group channel");
+			let type: MessageReportType | null = null;
+			if (isDirectMode) type = MessageReportType.DIRECT_MESSAGE;
+			else if (threadIdParam) type = MessageReportType.THREAD_MESSAGE;
+			else type = MessageReportType.CHANNEL_MESSAGE;
+			if (!type) {
+				toast.error("Cannot determine message type to report");
 				return;
 			}
 			setMessagePendingReport(m);
+			setReportMessageType(type);
 			setReportMessageDialogOpen(true);
 		},
-		[groupId, channelIdParam],
+		[isDirectMode, threadIdParam],
 	);
 
 	const handleDelete = useCallback(async (m: MessageResponse) => {
@@ -1788,11 +1796,13 @@ const ChatArea: React.FC = () => {
 			<ReportMessageDialog
 				open={reportMessageDialogOpen}
 				message={messagePendingReport}
-				groupId={groupId}
-				channelId={channelIdParam}
+				messageType={reportMessageType ?? undefined}
 				onOpenChange={(open) => {
 					setReportMessageDialogOpen(open);
-					if (!open) setMessagePendingReport(null);
+					if (!open) {
+						setMessagePendingReport(null);
+						setReportMessageType(null);
+					}
 				}}
 			/>
 

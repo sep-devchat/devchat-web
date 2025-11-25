@@ -24,16 +24,14 @@ import { Checkbox } from "@/components/ui/checkbox";
 interface ReportMessageDialogProps {
 	open: boolean;
 	message: MessageResponse | null;
-	groupId?: string;
-	channelId?: string;
+	messageType?: MessageReportType;
 	onOpenChange: (open: boolean) => void;
 }
 
 export const ReportMessageDialog: React.FC<ReportMessageDialogProps> = ({
 	open,
 	message,
-	groupId,
-	channelId,
+	messageType,
 	onOpenChange,
 }) => {
 	const [notes, setNotes] = useState("");
@@ -100,8 +98,8 @@ export const ReportMessageDialog: React.FC<ReportMessageDialogProps> = ({
 			toast.error("No message selected to report");
 			return;
 		}
-		if (!groupId || !channelId) {
-			toast.error("Join a group channel before reporting a message");
+		if (!messageType) {
+			toast.error("Cannot determine report type for this message");
 			return;
 		}
 		if (!selectedCategories.length) {
@@ -113,10 +111,10 @@ export const ReportMessageDialog: React.FC<ReportMessageDialogProps> = ({
 			setSubmitting(true);
 			setFormError(null);
 
-			await createReport(groupId, channelId, {
+			await createReport({
 				messageId: message.id,
 				reportCategoryIds: Array.from(new Set(selectedCategories)),
-				messageType: MessageReportType.CHANNEL_MESSAGE,
+				messageType,
 				content: notes.trim() ? notes.trim() : undefined,
 			});
 
