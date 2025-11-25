@@ -66,6 +66,7 @@ import { InfoButton } from "@/components/custom/ActionButton/InfoButton";
 import { useSelector } from "react-redux";
 import { RootState } from "@/store";
 import { SaveButton } from "@/components/custom/ActionButton/SaveButton";
+import { theme } from "@/themes";
 
 interface Group {
 	id: string;
@@ -405,6 +406,7 @@ const FriendProfileModal: React.FC<FriendProfileModalProps> = ({
 													e.stopPropagation();
 													handleReport();
 												}}
+												style={{ color: `${theme.color.error}` }}
 											>
 												<AlertTriangle size={16} />
 												<span style={{ marginLeft: 8 }}>Report</span>
