@@ -63,6 +63,7 @@ const CodeBlock = ({
 	const [runOutput, setRunOutput] = useState<string>("");
 	const [runError, setRunError] = useState<string>("");
 	const [isEditOpen, setIsEditOpen] = useState<boolean>(false);
+	const [lastRunAt, setLastRunAt] = useState<string>("");
 
 	const [fetchedCodeBlock, setFetchedCodeBlock] =
 		useState<CodeBlockData | null>(null);
@@ -175,6 +176,7 @@ const CodeBlock = ({
 			);
 			setRunOutput("");
 			setIsResultOpen(true);
+			setLastRunAt(new Date().toLocaleString());
 			return;
 		}
 		if (!codeText?.trim()) return;
@@ -184,10 +186,12 @@ const CodeBlock = ({
 			const res = await runCode({ code: codeText, language: enumLang });
 			setRunOutput(res.data.output ?? "");
 			setIsResultOpen(true);
+			setLastRunAt(new Date().toLocaleString());
 		} catch (e) {
 			setRunError("Error running code");
 			setRunOutput("");
 			setIsResultOpen(true);
+			setLastRunAt(new Date().toLocaleString());
 		} finally {
 			setIsRunning(false);
 		}
@@ -205,10 +209,10 @@ const CodeBlock = ({
 
 	return (
 		<>
-			<Card className="min-w-[360px] overflow-hidden isolate z-10 mix-blend-normal">
-				<CardHeader className="py-2 px-3 bg-card border-b border-border">
+			<Card className="min-w-[360px] overflow-hidden isolate z-10 mix-blend-normal border border-slate-200 bg-white shadow-lg">
+				<CardHeader className="py-2 px-3 bg-slate-50 border-b border-slate-200">
 					<div className="flex items-center justify-between gap-2 relative z-10">
-						<CardTitle className="text-xs font-semibold uppercase tracking-wide text-card-foreground/80">
+						<CardTitle className="text-xs font-semibold uppercase tracking-wide text-slate-600">
 							{fetchedCodeBlock?.language || language || "Code"}
 							{isLoadingCodeBlock && " (loading...)"}
 						</CardTitle>
@@ -265,11 +269,11 @@ const CodeBlock = ({
 						</div>
 					</div>
 				</CardHeader>
-				<CardContent className="p-0 bg-card relative z-10">
+				<CardContent className="p-0 bg-slate-50 relative z-10">
 					<pre
 						ref={preRef}
 						className={cn(
-							"text-sm font-medium overflow-x-auto p-3",
+							"text-sm font-medium overflow-x-auto p-3 bg-white text-slate-900",
 							"[&_code]:p-0 [&_code]:text-inherit",
 							className,
 						)}
@@ -278,15 +282,23 @@ const CodeBlock = ({
 				</CardContent>
 
 				<Dialog open={isResultOpen} onOpenChange={setIsResultOpen}>
-					<DialogContent className="bg-card text-card-foreground">
-						<DialogHeader>
-							<DialogTitle>Execution Result</DialogTitle>
+					<DialogContent className="w-full max-w-[min(95vw,720px)] p-0 overflow-hidden border border-slate-200 bg-white text-slate-900">
+						<DialogHeader className="px-4 py-3 border-b border-slate-200 bg-slate-50">
+							<DialogTitle className="text-base font-semibold tracking-tight text-slate-900">
+								Execution Result
+							</DialogTitle>
+							<div className="text-xs text-slate-500">
+								{language ? `${language} • ` : ""}
+								{lastRunAt || "Just now"}
+							</div>
 						</DialogHeader>
-						<div className="mt-2">
+						<div className="p-4 space-y-3 max-h-[70vh] overflow-y-auto bg-white">
 							{runError ? (
-								<p className="text-destructive text-sm">{runError}</p>
+								<div className="rounded-lg border border-red-200 bg-red-50 text-red-700 text-sm p-3 whitespace-pre-wrap break-words">
+									{runError}
+								</div>
 							) : (
-								<pre className="max-h-[60vh] overflow-auto rounded bg-muted p-3 text-sm">
+								<pre className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs sm:text-sm text-slate-900 whitespace-pre-wrap break-words max-h-[55vh] overflow-auto">
 									{runOutput || ""}
 								</pre>
 							)}

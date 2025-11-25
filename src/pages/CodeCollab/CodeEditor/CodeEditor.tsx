@@ -224,6 +224,7 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
 						value={code}
 						onChange={handleEditorChange}
 						onMount={handleEditorMount}
+						theme="vs-light"
 						options={{
 							readOnly: readOnly,
 							minimap: { enabled: true },
@@ -233,7 +234,6 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
 							automaticLayout: true,
 							tabSize: 2,
 							wordWrap: "on",
-							theme: "vs-light",
 						}}
 					/>
 				</div>
@@ -246,60 +246,60 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
 				}}
 			>
 				<DialogContent
-					className="max-w-4xl bg-slate-900 border-slate-700 [&>button]:hidden"
+					className="max-w-4xl bg-white border border-slate-200 shadow-xl [&>button]:hidden"
 					style={{ zIndex: 10000 }}
 					onPointerDownOutside={(e) => e.preventDefault()}
 					onEscapeKeyDown={(e) => e.preventDefault()}
 				>
-					<DialogHeader className="space-y-3 pb-4 border-b border-slate-700">
+					<DialogHeader className="space-y-3 pb-4 border-b border-slate-200">
 						<div className="flex items-center gap-3">
-							<div className="p-2 rounded-lg bg-slate-800">
-								<Terminal className="h-5 w-5 text-blue-400" />
+							<div className="p-2 rounded-lg bg-blue-50">
+								<Terminal className="h-5 w-5 text-blue-500" />
 							</div>
 							<div className="flex-1">
-								<DialogTitle className="text-xl font-semibold text-slate-100">
+								<DialogTitle className="text-xl font-semibold text-slate-900">
 									Execution Result
 								</DialogTitle>
-								<DialogDescription className="text-slate-400 text-sm mt-1">
+								<DialogDescription className="text-slate-500 text-sm mt-1">
 									{language?.toUpperCase() || "UNKNOWN"} •{" "}
 									{executionTime > 0 ? `${executionTime.toFixed(0)}ms` : "—"}
 								</DialogDescription>
 							</div>
 							{runError ? (
-								<div className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-red-950/50 border border-red-800">
-									<XCircle className="h-4 w-4 text-red-400" />
-									<span className="text-sm font-medium text-red-300">
+								<div className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-red-50 border border-red-200">
+									<XCircle className="h-4 w-4 text-red-600" />
+									<span className="text-sm font-medium text-red-700">
 										Failed
 									</span>
 								</div>
 							) : (
-								<div className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-green-950/50 border border-green-800">
-									<CheckCircle2 className="h-4 w-4 text-green-400" />
-									<span className="text-sm font-medium text-green-300">
+								<div className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-green-50 border border-green-200">
+									<CheckCircle2 className="h-4 w-4 text-green-600" />
+									<span className="text-sm font-medium text-green-700">
 										Success
 									</span>
 								</div>
 							)}
 							<button
 								onClick={() => setIsResultOpen(false)}
-								className="p-2 rounded-lg hover:bg-slate-800 transition-colors group outline-none"
+								className="p-2 rounded-lg hover:bg-slate-100 transition-colors group outline-none"
 								aria-label="Close dialog"
 							>
-								<X className="h-5 w-5 text-slate-200 group-hover:text-white" />
+								<X className="h-5 w-5 text-slate-600 group-hover:text-slate-900" />
 							</button>
 						</div>
 					</DialogHeader>
 
 					<div className="mt-4">
 						{runError ? (
-							<div className="rounded-lg bg-red-950/30 border border-red-800/50 p-4">
+							<div className="rounded-lg bg-red-50 border border-red-200 p-4">
 								<div className="flex items-start gap-3">
-									<XCircle className="h-5 w-5 text-red-400 flex-shrink-0 mt-0.5" />
+									<XCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
 									<div>
-										<p className="text-sm font-semibold text-red-300 mb-1">
+										<p className="text-sm font-semibold text-red-700 mb-1">
 											Error
 										</p>
-										<p className="text-sm text-red-200 whitespace-pre-wrap">
+										<p className="text-sm text-red-700 whitespace-pre-wrap">
 											{runError}
 										</p>
 									</div>
@@ -307,15 +307,15 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
 							</div>
 						) : (
 							<div className="space-y-2">
-								<div className="flex items-center justify-between px-3 py-2 bg-slate-800/50 rounded-t-lg border-b border-slate-700">
-									<span className="text-xs font-medium text-slate-400 uppercase tracking-wider">
+								<div className="flex items-center justify-between px-3 py-2 bg-slate-100 rounded-t-lg border-b border-slate-200">
+									<span className="text-xs font-medium text-slate-500 uppercase tracking-wider">
 										Output
 									</span>
 									<span className="text-xs text-slate-500"></span>
 								</div>
-								<pre className="max-h-[50vh] overflow-auto rounded-b-lg bg-slate-950 p-4 text-sm font-mono text-slate-200 border border-slate-800 whitespace-pre-wrap">
+								<pre className="max-h-[50vh] overflow-auto rounded-b-lg bg-slate-50 p-4 text-sm font-mono text-slate-800 border border-slate-200 whitespace-pre-wrap">
 									{runOutput || (
-										<span className="text-slate-500 italic">(No output)</span>
+										<span className="text-slate-400 italic">(No output)</span>
 									)}
 								</pre>
 							</div>

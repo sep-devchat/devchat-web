@@ -4,11 +4,11 @@ export const Container = styled.div`
 	height: 100%;
 	display: flex;
 	flex-direction: column;
-	border: 1px solid rgba(209, 224, 253, 0.6);
+	border: 1px solid rgba(15, 23, 42, 0.12);
 	border-radius: 12px;
 	overflow: hidden;
-	background: #0f172a;
-	box-shadow: 0 4px 12px rgba(15, 23, 42, 0.3);
+	background: #ffffff;
+	box-shadow: 0 15px 35px rgba(15, 23, 42, 0.12);
 `;
 
 export const Header = styled.div`
@@ -16,8 +16,8 @@ export const Header = styled.div`
 	align-items: center;
 	justify-content: space-between;
 	padding: 0.75rem 1rem;
-	border-bottom: 1px solid rgba(100, 116, 139, 0.3);
-	background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+	border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+	background: linear-gradient(135deg, #f8fafc 0%, #e8edf7 100%);
 	flex-shrink: 0;
 	position: relative;
 	overflow: hidden;
@@ -39,7 +39,7 @@ export const HeaderLeft = styled.div`
 export const CodeIcon = styled.div`
 	width: 1.125rem;
 	height: 1.125rem;
-	color: #94a3b8;
+	color: #475569;
 	display: flex;
 	align-items: center;
 	justify-content: center;
@@ -48,8 +48,8 @@ export const CodeIcon = styled.div`
 export const Title = styled.span`
 	font-size: 0.9375rem;
 	font-weight: 600;
-	color: #e2e8f0;
-	text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+	color: #0f172a;
+	text-shadow: none;
 
 	@media (max-width: 1220px) {
 		font-size: 0.875rem;
@@ -60,14 +60,28 @@ export const UnsavedBadge = styled.span`
 	font-size: 0.75rem;
 	padding: 0.25rem 0.625rem;
 	border-radius: 4px;
-	background: linear-gradient(
-		135deg,
-		rgba(251, 146, 60, 0.15) 0%,
-		rgba(249, 115, 22, 0.15) 100%
-	);
-	color: #fb923c;
-	border: 1px solid rgba(251, 146, 60, 0.3);
+	background: rgba(251, 146, 60, 0.12);
+	color: #b45309;
+	border: 1px solid rgba(251, 146, 60, 0.24);
 	font-weight: 600;
+	@media (max-width: 1220px) {
+		font-size: 0.6875rem;
+		padding: 0.2rem 0.5rem;
+	}
+`;
+
+export const RevisionCountBadge = styled.span`
+	display: inline-flex;
+	align-items: center;
+	font-size: 0.75rem;
+	padding: 0.25rem 0.6rem;
+	border-radius: 9999px;
+	background: rgba(59, 130, 246, 0.12);
+	color: #1d4ed8;
+	border: 1px solid rgba(59, 130, 246, 0.24);
+	font-weight: 600;
+	white-space: nowrap;
+
 	@media (max-width: 1220px) {
 		font-size: 0.6875rem;
 		padding: 0.2rem 0.5rem;
@@ -125,7 +139,7 @@ export const RunButton = styled.button`
 	gap: 0.375rem;
 	padding: 0.5rem 1rem;
 	border-radius: 8px;
-	background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+	background: linear-gradient(135deg, #16a34a 0%, #22c55e 100%);
 	color: #ffffff;
 	font-size: 0.8125rem;
 	font-weight: 600;
@@ -161,8 +175,8 @@ export const CodeTextarea = styled.textarea<{ $readOnly: boolean }>`
 	padding: 1.25rem;
 	font-family: "JetBrains Mono", "Fira Code", "Courier New", monospace;
 	font-size: 0.9375rem;
-	background: #0f172a;
-	color: #e2e8f0;
+	background: #f8fafc;
+	color: #0f172a;
 	resize: none;
 	border: none;
 	outline: none;
@@ -206,28 +220,10 @@ export const SavingBadge = styled.span`
 	padding: 0.25rem 0.5rem;
 	font-size: 0.75rem;
 	font-weight: 500;
-	color: #3b82f6;
-	background-color: #dbeafe;
+	color: #1d4ed8;
+	background-color: #e0edff;
 	border-radius: 9999px;
 
-	@media (max-width: 1220px) {
-		font-size: 0.6875rem;
-		padding: 0.2rem 0.5rem;
-	}
-`;
-
-export const RevisionCountBadge = styled.span`
-	font-size: 0.75rem;
-	padding: 0.25rem 0.625rem;
-	border-radius: 4px;
-	background: linear-gradient(
-		135deg,
-		rgba(59, 130, 246, 0.15) 0%,
-		rgba(37, 99, 235, 0.15) 100%
-	);
-	color: #3b82f6;
-	border: 1px solid rgba(59, 130, 246, 0.3);
-	font-weight: 600;
 	@media (max-width: 1220px) {
 		font-size: 0.6875rem;
 		padding: 0.2rem 0.5rem;

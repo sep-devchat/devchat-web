@@ -56,6 +56,7 @@ export default function CodeCollab({
 	);
 	const [pendingEditId, setPendingEditId] = useState<string | null>(null);
 	const [showResetConfirm, setShowResetConfirm] = useState(false);
+	const [isMobileLayout, setIsMobileLayout] = useState(false);
 
 	const [codeLanguage, setCodeLanguage] = useState<string>("java");
 
@@ -68,12 +69,11 @@ export default function CodeCollab({
 	};
 
 	const performReset = () => {
-		setEditableCode(originalCode);
-		setLastSavedCode(originalCode);
-		setEditingRevisionId(null);
+		const resetTarget = lastSavedCode ?? originalCode;
+		setEditableCode(resetTarget);
 		setSelectedDiff(null);
 		setShowResetConfirm(false);
-		toast.info("Code reset to original");
+		toast.info("Code reverted to last saved version");
 	};
 
 	const hasChanges = editableCode !== lastSavedCode;
@@ -90,6 +90,16 @@ export default function CodeCollab({
 		if (["java"].includes(normalized)) return "java";
 		return normalized;
 	};
+
+	useEffect(() => {
+		const handleResize = () => {
+			setIsMobileLayout(window.innerWidth < 1024);
+		};
+
+		handleResize();
+		window.addEventListener("resize", handleResize);
+		return () => window.removeEventListener("resize", handleResize);
+	}, []);
 
 	useEffect(() => {
 		const fetchData = async () => {
@@ -113,27 +123,42 @@ export default function CodeCollab({
 
 				const originalContent = codeBlockResponse.data.content ?? "";
 				const language = codeBlockResponse.data.language || "java";
-				setCodeLanguage(normalizeLanguage(language));
-
+				const normalizedLanguage = normalizeLanguage(language);
+				setCodeLanguage(normalizedLanguage);
 				setOriginalCode(originalContent);
-				setCodeLanguage(normalizeLanguage(language));
 
 				const historyResponse = await getCodeCollaborationHistory(codeBlockId);
 
+				let historyChanges: Change[] = [];
 				if (historyResponse?.data && Array.isArray(historyResponse.data)) {
-					const historyChanges: Change[] = historyResponse.data.map((item) => ({
-						id: item.id,
-						userName: `${item.createdBy.firstName} ${item.createdBy.lastName}`,
-						avatarUrl: item.createdBy.avatarUrl,
-						userId: item.createdBy.id,
-						timestamp: new Date(item.createdAt),
-						code: item.content,
-					}));
-					setChanges(historyChanges);
+					historyChanges = historyResponse.data
+						.map((item) => ({
+							id: item.id,
+							userName: `${item.createdBy.firstName} ${item.createdBy.lastName}`,
+							avatarUrl: item.createdBy.avatarUrl,
+							userId: item.createdBy.id,
+							timestamp: new Date(item.createdAt),
+							code: item.content,
+						}))
+						.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
 				}
+				setChanges(historyChanges);
 
-				setEditableCode(originalContent);
-				setLastSavedCode(originalContent);
+				const latestOwnRevision = historyChanges.find(
+					(change) => change.userId === currentUserId,
+				);
+				if (latestOwnRevision) {
+					setEditableCode(latestOwnRevision.code);
+					setLastSavedCode(latestOwnRevision.code);
+					setEditingRevisionId(latestOwnRevision.id);
+					setSelectedDiff(null);
+					toast.info("Resuming your last collaboration revision");
+				} else {
+					setEditableCode(originalContent);
+					setLastSavedCode(originalContent);
+					setEditingRevisionId(null);
+					setSelectedDiff(null);
+				}
 			} catch (err: any) {
 				console.error("💥 Fetch error:", err);
 				setError(err?.message || "Failed to load data");
@@ -204,7 +229,6 @@ export default function CodeCollab({
 				);
 
 				setLastSavedCode(editableCode);
-				setEditingRevisionId(null);
 
 				toast.success("Revision updated successfully");
 			} else {
@@ -221,26 +245,26 @@ export default function CodeCollab({
 
 				setChanges((prev) => [newChange, ...prev]);
 				setLastSavedCode(editableCode);
+				setEditingRevisionId(newChange.id);
 
 				toast.success("Changes saved successfully");
 			}
 
-			setEditableCode(originalCode);
-			setLastSavedCode(originalCode);
-			setEditingRevisionId(null);
 			setSelectedDiff(null);
 
 			try {
 				const historyResponse = await getCodeCollaborationHistory(codeBlockId);
 				if (historyResponse?.data && Array.isArray(historyResponse.data)) {
-					const historyChanges: Change[] = historyResponse.data.map((item) => ({
-						id: item.id,
-						userName: `${item.createdBy.firstName} ${item.createdBy.lastName}`,
-						userId: item.createdBy.id,
-						avatarUrl: item.createdBy.avatarUrl,
-						timestamp: new Date(item.createdAt),
-						code: item.content,
-					}));
+					const historyChanges: Change[] = historyResponse.data
+						.map((item) => ({
+							id: item.id,
+							userName: `${item.createdBy.firstName} ${item.createdBy.lastName}`,
+							userId: item.createdBy.id,
+							avatarUrl: item.createdBy.avatarUrl,
+							timestamp: new Date(item.createdAt),
+							code: item.content,
+						}))
+						.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
 					setChanges(historyChanges);
 				}
 			} catch (refreshErr) {
@@ -366,78 +390,126 @@ export default function CodeCollab({
 	}
 
 	return (
-		<S.Container>
-			<ResizablePanelGroup
-				direction="horizontal"
-				className="h-full"
-				style={{
-					border: "1px solid rgba(209, 224, 253, 0.6)",
-					background: "#ffffff",
-					borderRadius: "12px",
-					overflow: "hidden",
-					boxShadow: "0 4px 12px rgba(123, 159, 232, 0.12)",
-				}}
-			>
-				<ResizableHandle />
-
-				<ResizablePanel defaultSize={50} minSize={35}>
-					<ResizablePanelGroup direction="vertical">
-						<ResizablePanel defaultSize={50} minSize={30}>
-							<S.CodeEditorWrapper>
-								<CodeEditor
-									code={originalCode}
-									readOnly={true}
-									title="Original Code (Read-only)"
-									language={codeLanguage}
-								/>
-							</S.CodeEditorWrapper>
-						</ResizablePanel>
-
-						<ResizableHandle />
-
-						<ResizablePanel defaultSize={50} minSize={30}>
-							<S.CodeEditorWrapperBottom>
-								<CodeEditor
-									code={editableCode}
-									onChange={setEditableCode}
-									title={
-										editingRevisionId
-											? "Editing Revision (changes will update existing version)"
-											: "Your Edits"
-									}
-									showSave={true}
-									onSave={handleSave}
-									hasChanges={hasChanges}
-									isSaving={isSaving}
-									onReset={handleResetConfirm}
-									userRevisionCount={userRevisionCount}
-									language={codeLanguage}
-								/>
-							</S.CodeEditorWrapperBottom>
-						</ResizablePanel>
-					</ResizablePanelGroup>
-				</ResizablePanel>
-
-				<ResizableHandle />
-
-				<ResizablePanel defaultSize={22} minSize={16} maxSize={35}>
-					<ChangeHistory
-						changes={changes}
-						onChangeClick={setSelectedDiff}
-						onDeleteChange={(changeId) => {
-							const change = changes.find((c) => c.id === changeId);
-							if (change && change.userId === currentUserId) {
-								setPendingDeleteId(changeId);
-								setShowDeleteConfirm(true);
-							} else {
-								toast.error("You can only delete your own revisions");
+		<S.Container $isMobile={isMobileLayout}>
+			{isMobileLayout ? (
+				<S.MobileStack>
+					<S.MobileSection>
+						<CodeEditor
+							code={originalCode}
+							readOnly={true}
+							title="Original Code (Read-only)"
+							language={codeLanguage}
+						/>
+					</S.MobileSection>
+					<S.MobileSection>
+						<CodeEditor
+							code={editableCode}
+							onChange={setEditableCode}
+							title={
+								editingRevisionId
+									? "Editing Revision (changes will update existing version)"
+									: "Your Edits"
 							}
-						}}
-						onEditChange={handleEditRevision}
-						currentUserId={currentUserId}
-					/>
-				</ResizablePanel>
-			</ResizablePanelGroup>
+							showSave={true}
+							onSave={handleSave}
+							hasChanges={hasChanges}
+							isSaving={isSaving}
+							onReset={handleResetConfirm}
+							userRevisionCount={userRevisionCount}
+							language={codeLanguage}
+						/>
+					</S.MobileSection>
+					<S.MobileHistorySection>
+						<ChangeHistory
+							changes={changes}
+							onChangeClick={setSelectedDiff}
+							onDeleteChange={(changeId) => {
+								const change = changes.find((c) => c.id === changeId);
+								if (change && change.userId === currentUserId) {
+									setPendingDeleteId(changeId);
+									setShowDeleteConfirm(true);
+								} else {
+									toast.error("You can only delete your own revisions");
+								}
+							}}
+							onEditChange={handleEditRevision}
+							currentUserId={currentUserId}
+						/>
+					</S.MobileHistorySection>
+				</S.MobileStack>
+			) : (
+				<ResizablePanelGroup
+					direction="horizontal"
+					className="h-full"
+					style={{
+						border: "1px solid rgba(209, 224, 253, 0.6)",
+						background: "#ffffff",
+						borderRadius: "12px",
+						overflow: "hidden",
+						boxShadow: "0 4px 12px rgba(123, 159, 232, 0.12)",
+					}}
+				>
+					<ResizableHandle />
+
+					<ResizablePanel defaultSize={50} minSize={35}>
+						<ResizablePanelGroup direction="vertical">
+							<ResizablePanel defaultSize={50} minSize={30}>
+								<S.CodeEditorWrapper>
+									<CodeEditor
+										code={originalCode}
+										readOnly={true}
+										title="Original Code (Read-only)"
+										language={codeLanguage}
+									/>
+								</S.CodeEditorWrapper>
+							</ResizablePanel>
+
+							<ResizableHandle />
+
+							<ResizablePanel defaultSize={50} minSize={30}>
+								<S.CodeEditorWrapperBottom>
+									<CodeEditor
+										code={editableCode}
+										onChange={setEditableCode}
+										title={
+											editingRevisionId
+												? "Editing Revision (changes will update existing version)"
+												: "Your Edits"
+										}
+										showSave={true}
+										onSave={handleSave}
+										hasChanges={hasChanges}
+										isSaving={isSaving}
+										onReset={handleResetConfirm}
+										userRevisionCount={userRevisionCount}
+										language={codeLanguage}
+									/>
+								</S.CodeEditorWrapperBottom>
+							</ResizablePanel>
+						</ResizablePanelGroup>
+					</ResizablePanel>
+
+					<ResizableHandle />
+
+					<ResizablePanel defaultSize={22} minSize={16} maxSize={35}>
+						<ChangeHistory
+							changes={changes}
+							onChangeClick={setSelectedDiff}
+							onDeleteChange={(changeId) => {
+								const change = changes.find((c) => c.id === changeId);
+								if (change && change.userId === currentUserId) {
+									setPendingDeleteId(changeId);
+									setShowDeleteConfirm(true);
+								} else {
+									toast.error("You can only delete your own revisions");
+								}
+							}}
+							onEditChange={handleEditRevision}
+							currentUserId={currentUserId}
+						/>
+					</ResizablePanel>
+				</ResizablePanelGroup>
+			)}
 
 			{selectedDiff && selectedDiff.code && (
 				<DiffViewer
