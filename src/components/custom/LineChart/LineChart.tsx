@@ -7,7 +7,7 @@ import {
 	Tooltip,
 	ResponsiveContainer,
 } from "recharts";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 interface LineConfig {
 	dataKey: string;
@@ -54,6 +54,30 @@ export default function CustomLineChart({
 	timeButtons = ["1D", "1M", "1Y", "Max"],
 }: LineChartProps) {
 	const [activeButton, setActiveButton] = useState(3);
+	const yDomain = useMemo(() => {
+		const values: number[] = [];
+		data.forEach((item) => {
+			lines.forEach(({ dataKey }) => {
+				const rawValue = item?.[dataKey];
+				const numericValue =
+					typeof rawValue === "number" ? rawValue : Number(rawValue);
+				if (!Number.isNaN(numericValue)) {
+					values.push(numericValue);
+				}
+			});
+		});
+		if (values.length === 0) {
+			return { min: 0, max: 10 };
+		}
+		const minValue = Math.min(...values);
+		const maxValue = Math.max(...values);
+		const range = maxValue - minValue;
+		const padding = Math.max(range * 0.1, 2);
+		return {
+			min: Math.min(minValue - padding, 0),
+			max: maxValue + padding,
+		};
+	}, [data, lines]);
 
 	return (
 		<div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
@@ -109,7 +133,7 @@ export default function CustomLineChart({
 							tick={{ fill: "#9ca3af", fontSize: 11 }}
 							axisLine={false}
 							tickLine={false}
-							ticks={[50, 100, 150, 200]}
+							domain={[yDomain.min, yDomain.max]}
 						/>
 						<Tooltip content={<CustomTooltip />} />
 						{lines.map((line) => (

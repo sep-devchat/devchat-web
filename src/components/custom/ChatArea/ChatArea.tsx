@@ -57,6 +57,8 @@ import { DirectMessageHeader } from "./parts/DirectMessageHeader";
 import { MessageRow } from "./parts/MessageRow";
 import { DeleteMessageDialog } from "./parts/DeleteMessageDialog";
 import { ReportUserDialog } from "./parts/ReportUserDialog";
+import { ReportMessageDialog } from "./parts/ReportMessageDialog";
+import { MessageReportType } from "@/services/reportAPI";
 
 // MessageRow & DirectMessageHeader extracted to ./parts
 
@@ -107,6 +109,11 @@ const ChatArea: React.FC = () => {
 	const [reportDialogOpen, setReportDialogOpen] = useState(false);
 	const [reportSubmitting, setReportSubmitting] = useState(false);
 	const [reportReason, setReportReason] = useState("");
+	const [reportMessageDialogOpen, setReportMessageDialogOpen] = useState(false);
+	const [messagePendingReport, setMessagePendingReport] =
+		useState<MessageResponse | null>(null);
+	const [reportMessageType, setReportMessageType] =
+		useState<MessageReportType | null>(null);
 	// Delete confirmation dialog state
 	const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 	const [messagePendingDelete, setMessagePendingDelete] =
@@ -1430,16 +1437,19 @@ const ChatArea: React.FC = () => {
 
 	const handleReport = useCallback(
 		(m: MessageResponse) => {
-			const reason = window.prompt("Report message - please enter reason:");
-			if (!reason) return;
-			socket?.emit("message:report", {
-				groupId: groupId ?? null,
-				channelId: channelIdParam ?? null,
-				messageId: m.id,
-				reason,
-			});
+			let type: MessageReportType | null = null;
+			if (isDirectMode) type = MessageReportType.DIRECT_MESSAGE;
+			else if (threadIdParam) type = MessageReportType.THREAD_MESSAGE;
+			else type = MessageReportType.CHANNEL_MESSAGE;
+			if (!type) {
+				toast.error("Cannot determine message type to report");
+				return;
+			}
+			setMessagePendingReport(m);
+			setReportMessageType(type);
+			setReportMessageDialogOpen(true);
 		},
-		[socket, groupId, channelIdParam],
+		[isDirectMode, threadIdParam],
 	);
 
 	const handleDelete = useCallback(async (m: MessageResponse) => {
@@ -1780,6 +1790,18 @@ const ChatArea: React.FC = () => {
 						setReportReason("");
 					} finally {
 						setReportSubmitting(false);
+					}
+				}}
+			/>
+			<ReportMessageDialog
+				open={reportMessageDialogOpen}
+				message={messagePendingReport}
+				messageType={reportMessageType ?? undefined}
+				onOpenChange={(open) => {
+					setReportMessageDialogOpen(open);
+					if (!open) {
+						setMessagePendingReport(null);
+						setReportMessageType(null);
 					}
 				}}
 			/>
