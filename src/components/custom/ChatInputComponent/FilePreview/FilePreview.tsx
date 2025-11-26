@@ -7,14 +7,14 @@ type Props = {
 export default function FilePreview({ files, imagePreviews, onRemove }: Props) {
 	if (!files || files.length === 0) return null;
 	return (
-		<div style={{ marginTop: 8 }}>
+		<div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap" }}>
 			{files.map((f, i) => (
 				<div key={i} style={{ marginBottom: 8 }}>
 					{f.type.startsWith("image/") ? (
 						<div
 							style={{
-								width: 96,
-								height: 64,
+								width: 100,
+								height: 100,
 								position: "relative",
 								borderRadius: 6,
 								overflow: "hidden",

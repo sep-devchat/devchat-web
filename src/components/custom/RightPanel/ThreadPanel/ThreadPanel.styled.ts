@@ -184,7 +184,6 @@ export const CheckboxDescription = styled.p`
 `;
 
 export const MessageInput = styled.div`
-	padding: 16px;
 	border-top: 1px solid ${theme.color.grey200};
 `;
 

@@ -33,6 +33,7 @@ import { unfriendUser } from "@/services/friendAPI";
 import { showGlobalAlert } from "@/components/custom/AlertCustom/Alert";
 import ConfirmModal from "@/components/custom/ConfirmModal/ConfirmModal";
 import ChannelInfor from "@/components/custom/RightPanel/ChannelInfor/ChannelInfor";
+import { Toaster } from "@/components/ui/sonner";
 
 const MainLayout = () => {
 	const [iconSelected, setIconSelected] = useState<string>("");
@@ -343,6 +344,7 @@ const MainLayout = () => {
 		<AuthLayout>
 			<MainBg />
 			<TodoFloatingManager groups={localGroups} />
+			<Toaster richColors />
 
 			{!settingSelect ? (
 				<MainLayoutContainer>
