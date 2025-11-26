@@ -23,11 +23,17 @@ export interface CodeBlock {
 	};
 }
 
-export interface GetCodeBlocksParams {
+export interface ListChannelCodeBlocksParams {
 	page?: number;
 	limit?: number;
 	channelId: string;
 	groupId: string;
+}
+
+export interface ListDirectCodeBlocksParams {
+	page?: number;
+	limit?: number;
+	targetUserId: string;
 }
 
 export interface CodeBlocksResponse {
@@ -99,23 +105,64 @@ export interface UpdateCollaborationResponse {
 	message: string;
 }
 
-export const getCodeBlocks = async (
-	params: GetCodeBlocksParams,
+const normalizeListResponse = (
+	response: {
+		data?: CodeBlock[];
+		pagination?: CodeBlocksResponse["pagination"];
+		message?: string;
+	},
+	page: number,
+	limit: number,
+): CodeBlocksResponse => ({
+	data: response.data ?? [],
+	pagination: {
+		page: response.pagination?.page ?? page,
+		take: response.pagination?.take ?? limit,
+		totalRecord: response.pagination?.totalRecord ?? 0,
+		totalPage: response.pagination?.totalPage ?? 0,
+	},
+	message: response.message ?? "",
+});
+
+export const listChannelCodeBlocks = async (
+	params: ListChannelCodeBlocksParams,
 ): Promise<CodeBlocksResponse> => {
 	const { page = 1, limit = 100, channelId, groupId } = params;
 
-	const response = await get<{
-		data: CodeBlock[];
-		pagination: {
-			page: number;
-			take: number;
-			totalRecord: number;
-			totalPage: number;
-		};
-	}>(`/api/group/${groupId}/channel/${channelId}/code-block`, { page, limit });
+	const response = await get<CodeBlock[]>(
+		`/api/group/${groupId}/channel/${channelId}/code-block`,
+		{ page, limit },
+	);
 
-	return response as unknown as CodeBlocksResponse;
+	return normalizeListResponse(response, page, limit);
 };
+
+export const listDirectCodeBlocks = async (
+	params: ListDirectCodeBlocksParams,
+): Promise<CodeBlocksResponse> => {
+	const { targetUserId, page = 1, limit = 100 } = params;
+
+	const response = await get<CodeBlock[]>(
+		`/api/direct-message/${targetUserId}/code-block`,
+		{ page, limit },
+	);
+
+	return normalizeListResponse(response, page, limit);
+};
+
+export const getDirectCodeBlockById = async (
+	targetUserId: string,
+	id: string,
+): Promise<CodeBlockResponse> => {
+	const response = await get<CodeBlock>(
+		`/api/direct-message/${targetUserId}/code-block/${id}`,
+	);
+
+	return response as unknown as CodeBlockResponse;
+};
+
+// Backward compatible alias
+export const getCodeBlocks = listChannelCodeBlocks;
 
 export const getCodeBlockById = async (
 	id: string,

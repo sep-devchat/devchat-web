@@ -50,9 +50,13 @@ const Header = ({
 	const [channelData, setChannelData] = useState<ChannelResponse | null>(null);
 	const [loading, setLoading] = useState(false);
 	const [showThreadDropdown, setShowThreadDropdown] = useState(false);
-	const params = useParams({ strict: false }) as { groupId?: string };
+	const params = useParams({ strict: false }) as {
+		groupId?: string;
+		userId?: string;
+	};
 	const groupId = params.groupId;
 	const channelId = search.channel;
+	const directUserId = params.userId;
 
 	useEffect(() => {
 		const fetchChannelData = async () => {
@@ -249,6 +253,34 @@ const Header = ({
 								onThreadSelect={handleThreadSelectFromDropdown}
 							/>
 						)}
+					</div>
+				) : directUserId ? (
+					<div className="flex gap-2">
+						<IconBtn
+							aria-label="code"
+							onMouseEnter={() => setHoveredIcon("code")}
+							onMouseLeave={() =>
+								setHoveredIcon((h) => (h === "code" ? null : h))
+							}
+							onClick={() => onIconClick("code")}
+							onKeyDown={(e) => onIconKeyDown(e, "code")}
+						>
+							<SquareCode size={20} />
+							<Tooltip visible={hoveredIcon === "code"}>Code</Tooltip>
+						</IconBtn>
+
+						<IconBtn
+							aria-label="info"
+							onMouseEnter={() => setHoveredIcon("info")}
+							onMouseLeave={() =>
+								setHoveredIcon((h) => (h === "info" ? null : h))
+							}
+							onClick={() => onIconClick("info")}
+							onKeyDown={(e) => onIconKeyDown(e, "info")}
+						>
+							<Info size={20} />
+							<Tooltip visible={hoveredIcon === "info"}>Attachments</Tooltip>
+						</IconBtn>
 					</div>
 				) : (
 					<Button className="shadow-none">

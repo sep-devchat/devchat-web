@@ -122,7 +122,7 @@ export const CPContent = styled.div`
 	overflow-y: auto;
 	display: flex;
 	flex-direction: column;
-	gap: 16px; // Khoảng cách giữa các item code
+	gap: 16px;
 `;
 
 export const CPCodeItem = styled.div<{ $isDark?: boolean }>`
@@ -148,11 +148,20 @@ export const CPCodeItemInfo = styled.div`
 	gap: 10px;
 `;
 
-export const CPCodeItemTitle = styled.span<{ $isDark?: boolean }>`
+export const CPCodeItemTitle = styled.div<{ $isDark?: boolean }>`
+	display: flex;
+	flex-direction: column;
 	font-size: 14px;
 	font-weight: 500;
-	// color: #e2e8f0;
 	color: ${(p) => (p.$isDark ? theme.color.grey10 : theme.color.grey90)};
+	line-height: 1.2;
+`;
+
+export const CPCodeItemSubtitle = styled.span<{ $isDark?: boolean }>`
+	font-size: 12px;
+	font-weight: 400;
+	color: ${(p) => (p.$isDark ? theme.color.grey40 : theme.color.grey500)};
+	margin-top: 2px;
 `;
 
 export const CPRunButton = styled.button`
@@ -220,5 +229,52 @@ export const CPModalContent = styled.div`
 		padding: 16px;
 		border-radius: 8px;
 		overflow-x: auto;
+	}
+`;
+
+export const EmptyMessage = styled.div`
+	margin-top: 48px;
+	text-align: center;
+	color: ${theme.color.grey500};
+	font-size: 14px;
+	line-height: 1.5;
+`;
+
+export const StatusText = styled.div`
+	text-align: center;
+	font-size: 13px;
+	color: ${theme.color.grey500};
+`;
+
+export const ErrorText = styled(StatusText)`
+	color: ${theme.color.error};
+`;
+
+export const Footer = styled.div`
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	margin-top: auto;
+`;
+
+export const FooterButton = styled.button`
+	align-self: center;
+	padding: 8px 18px;
+	border-radius: 999px;
+	border: none;
+	background: ${theme.color.primary};
+	color: ${theme.color.white};
+	font-size: 13px;
+	font-weight: 600;
+	cursor: pointer;
+	transition: background 0.2s ease;
+
+	&:hover {
+		background: ${theme.color.primary80};
+	}
+
+	&:disabled {
+		opacity: 0.6;
+		cursor: not-allowed;
 	}
 `;

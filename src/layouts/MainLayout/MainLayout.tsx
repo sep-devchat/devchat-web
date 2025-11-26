@@ -40,9 +40,13 @@ const MainLayout = () => {
 	const [settingSelect, setSettingSelect] = useState<boolean>(false);
 	const [showThreadPanel, setShowThreadPanel] = useState<boolean>(false);
 	const [selectedThreadId, setSelectedThreadId] = useState<string>("");
-	const params = useParams({ strict: false }) as { groupId?: string };
+	const params = useParams({ strict: false }) as {
+		groupId?: string;
+		userId?: string;
+	};
 	const search = useSearch({ strict: false }) as { channel?: string };
 	const groupId = params.groupId;
+	const directUserId = params.userId;
 	const channelId = search.channel;
 	const [localGroups, setLocalGroups] = useState<any[]>([]);
 	const [isAdmin, setIsAdmin] = useState<boolean>(false);
@@ -298,7 +302,14 @@ const MainLayout = () => {
 
 	const renderRightPanel = () => {
 		if ((showCodeListPanel || iconSelected === "code") && !showThreadPanel) {
-			return <CodeList onClose={handleCloseCodePanel} />;
+			return (
+				<CodeList
+					onClose={handleCloseCodePanel}
+					groupId={groupId}
+					channelId={channelId}
+					directUserId={directUserId}
+				/>
+			);
 		}
 
 		if (showThreadPanel && groupId && channelId && !showCodeListPanel) {
@@ -318,7 +329,14 @@ const MainLayout = () => {
 			case "tasks":
 				return <TaskGroup groupId={groupId} onClose={handleClosePanel} />;
 			case "code":
-				return <CodeList onClose={handleCloseCodePanel} />;
+				return (
+					<CodeList
+						onClose={handleCloseCodePanel}
+						groupId={groupId}
+						channelId={channelId}
+						directUserId={directUserId}
+					/>
+				);
 			case "users":
 				return groupId ? (
 					<MemberList
@@ -329,9 +347,13 @@ const MainLayout = () => {
 					<FriendList onMenuAction={handleMenuAction} />
 				);
 			case "info":
-				return groupId ? (
-					<ChannelInfor groupId={groupId} channelId={channelId ?? ""} />
-				) : null;
+				if (groupId) {
+					return <ChannelInfor groupId={groupId} channelId={channelId} />;
+				}
+				if (directUserId) {
+					return <ChannelInfor directUserId={directUserId} />;
+				}
+				return null;
 			default:
 				if (groupId && !isHalf) {
 					return <MemberList />;

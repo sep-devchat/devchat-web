@@ -1,10 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { Search, Hash, X } from "lucide-react";
 import {
 	Avatar,
 	ChannelIcon,
 	ChannelName,
+	ChannelSubtitle,
 	ContentArea,
 	EmptyState,
 	ExpandedContent,
@@ -43,12 +44,18 @@ import {
 import IconButton from "../../ActionButton/IconButton";
 import SearchInput from "../../SearchInput/SearchInput";
 import { detailChannel } from "@/services/channelAPI";
-import { listAttachments, AttachmentResponse } from "@/services/attachmentAPI";
+import {
+	listChannelAttachments,
+	listDirectAttachments,
+	AttachmentResponse,
+} from "@/services/attachmentAPI";
+import { detailUser, type UserResponse } from "@/services/userAPI";
 
 interface Props {
-	groupId: string;
-	channelId: string;
+	groupId?: string;
+	channelId?: string;
 	channelName?: string;
+	directUserId?: string;
 }
 
 const mockMessages = [
@@ -102,10 +109,30 @@ const mockMessages = [
 	},
 ];
 
+const getUserDisplayName = (user?: UserResponse | null) => {
+	if (!user) return "Direct Message";
+	const fullName = [user.firstName, user.lastName]
+		.filter((part) => !!part && part.trim().length > 0)
+		.join(" ")
+		.trim();
+	return fullName || user.username || "Direct Message";
+};
+
+const getUserInitials = (user?: UserResponse | null) => {
+	if (!user) return "?";
+	const initials = [user.firstName?.[0], user.lastName?.[0]]
+		.filter(Boolean)
+		.join("");
+	if (initials) return initials.toUpperCase();
+	if (user.username) return user.username.slice(0, 2).toUpperCase();
+	return "?";
+};
+
 const ChannelInfor = ({
 	groupId,
 	channelId,
 	channelName = "general",
+	directUserId,
 }: Props) => {
 	const [isSearchMode, setIsSearchMode] = useState(false);
 	const [searchQuery, setSearchQuery] = useState("");
@@ -113,11 +140,15 @@ const ChannelInfor = ({
 		"images",
 	);
 	const [channelInfo, setChannelInfo] = useState<any>({});
-	const [loading, setLoading] = useState(true);
+	const [directUser, setDirectUser] = useState<UserResponse | null>(null);
+	const [, setInfoLoading] = useState(false);
 	const [attachments, setAttachments] = useState<AttachmentResponse[]>([]);
 	const [attachmentLimit, setAttachmentLimit] = useState(10);
 	const [totalAttachments, setTotalAttachments] = useState(0);
 	const [loadingAttachments, setLoadingAttachments] = useState(false);
+	const isChannelMode = Boolean(groupId && channelId);
+	const isDirectMode = Boolean(directUserId) && !isChannelMode;
+	const canFetchAttachments = isChannelMode || isDirectMode;
 
 	// Lightbox / modal state
 	const [isModalOpen, setIsModalOpen] = useState(false);
@@ -142,44 +173,113 @@ const ChannelInfor = ({
 		return imageFormats.includes(format.toLowerCase());
 	};
 
-	const fetchChannelInfor = async (groupId: string, channelId: string) => {
+	const fetchChannelInfor = useCallback(async () => {
+		if (!isChannelMode || !groupId || !channelId) return;
 		try {
-			setLoading(true);
+			setInfoLoading(true);
 			const response = await detailChannel(groupId, channelId);
-			setChannelInfo(response.data);
+			const payload = (response as any)?.data ?? response ?? {};
+			setChannelInfo(payload);
 		} catch (error) {
 			console.error("Error fetching channel info:", error);
 		} finally {
-			setLoading(false);
+			setInfoLoading(false);
 		}
-	};
+	}, [channelId, groupId, isChannelMode]);
 
-	const fetchAttachments = async (limit: number) => {
+	const fetchDirectInfor = useCallback(async () => {
+		if (!isDirectMode || !directUserId) return;
 		try {
-			setLoadingAttachments(true);
-			const response = await listAttachments(groupId, channelId, 1, limit);
-			const data = response?.data;
-			setAttachments(Array.isArray(data) ? data : data ? [data] : []);
-			setTotalAttachments(response?.pagination?.totalRecord || 0);
+			setInfoLoading(true);
+			const response = await detailUser(directUserId);
+			const payload = (response as any)?.data ?? response ?? null;
+			setDirectUser(payload);
 		} catch (error) {
-			console.error("Error fetching attachments:", error);
+			console.error("Error fetching direct user info:", error);
 		} finally {
-			setLoadingAttachments(false);
+			setInfoLoading(false);
 		}
-	};
+	}, [directUserId, isDirectMode]);
+
+	const fetchAttachments = useCallback(
+		async (limit: number) => {
+			if (!canFetchAttachments) return;
+			try {
+				setLoadingAttachments(true);
+				let response: any;
+				if (isDirectMode && directUserId) {
+					response = await listDirectAttachments(directUserId, 1, limit);
+				} else if (isChannelMode && groupId && channelId) {
+					response = await listChannelAttachments({
+						groupId,
+						channelId,
+						page: 1,
+						size: limit,
+					});
+				} else {
+					return;
+				}
+				const payload =
+					(response as any)?.data !== undefined
+						? (response as any).data
+						: response;
+				const normalized: AttachmentResponse[] = Array.isArray(payload)
+					? payload
+					: payload
+						? [payload]
+						: [];
+				const pagination = (response as any)?.pagination;
+				setAttachments(normalized);
+				setTotalAttachments(
+					pagination?.totalRecord ??
+						pagination?.total ??
+						(normalized ? normalized.length : 0),
+				);
+			} catch (error) {
+				console.error("Error fetching attachments:", error);
+			} finally {
+				setLoadingAttachments(false);
+			}
+		},
+		[
+			canFetchAttachments,
+			channelId,
+			directUserId,
+			groupId,
+			isChannelMode,
+			isDirectMode,
+		],
+	);
 
 	useEffect(() => {
-		console.log("Fetching channel info...", loading);
-		fetchChannelInfor(groupId, channelId);
-		fetchAttachments(10); // Initial load with 10 items
-	}, [groupId, channelId]);
+		setAttachments([]);
+		setAttachmentLimit(10);
+		setTotalAttachments(0);
+		if (isDirectMode) {
+			setChannelInfo({});
+			fetchDirectInfor();
+		} else if (isChannelMode) {
+			setDirectUser(null);
+			fetchChannelInfor();
+		}
+		if (canFetchAttachments) {
+			fetchAttachments(10);
+		}
+	}, [
+		isDirectMode,
+		isChannelMode,
+		canFetchAttachments,
+		fetchDirectInfor,
+		fetchChannelInfor,
+		fetchAttachments,
+	]);
 
 	// Fetch attachments when limit changes
 	useEffect(() => {
-		if (attachmentLimit > 10) {
+		if (attachmentLimit > 10 && canFetchAttachments) {
 			fetchAttachments(attachmentLimit);
 		}
-	}, [attachmentLimit]);
+	}, [attachmentLimit, canFetchAttachments, fetchAttachments]);
 
 	// close modal on ESC
 	useEffect(() => {
@@ -235,6 +335,17 @@ const ChannelInfor = ({
 		if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(2)} KB`;
 		return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
 	};
+
+	const directDisplayName = getUserDisplayName(directUser);
+	const headerTitle = isDirectMode
+		? directDisplayName
+		: channelInfo?.name || channelName;
+	const headerSubtitle = isDirectMode
+		? directUser?.username
+			? `@${directUser.username}`
+			: undefined
+		: (channelInfo?.description ?? channelInfo?.topic ?? undefined);
+	const directInitials = getUserInitials(directUser);
 
 	// Scroll handler for infinite loading
 	const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
@@ -315,10 +426,21 @@ const ChannelInfor = ({
 					)}
 				</HeaderTop>
 				<HeaderChannelInfo>
-					<ChannelIcon>
-						<Hash size={26} />
+					<ChannelIcon $isDirect={isDirectMode}>
+						{isDirectMode ? (
+							directUser?.avatarUrl ? (
+								<img src={directUser.avatarUrl} alt={headerTitle} />
+							) : (
+								<span>{directInitials}</span>
+							)
+						) : (
+							<Hash size={26} />
+						)}
 					</ChannelIcon>
-					<ChannelName>{channelInfo.name || channelName}</ChannelName>
+					<ChannelName>{headerTitle}</ChannelName>
+					{headerSubtitle && (
+						<ChannelSubtitle>{headerSubtitle}</ChannelSubtitle>
+					)}
 				</HeaderChannelInfo>
 			</Header>
 			<ContentArea>

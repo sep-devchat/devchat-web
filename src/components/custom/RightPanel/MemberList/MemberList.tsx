@@ -42,6 +42,7 @@ export default function MemberList({ onClose, isHalf }: MemberListProps) {
 	const bucket = useSelector((s: RootState) =>
 		groupId ? s.groupMembers.byGroupId[groupId] : undefined,
 	);
+	const currentUserId = useSelector((s: RootState) => s.user.profile?.id);
 	const members = bucket?.members || [];
 	const loading = bucket?.loading || false;
 	const error = bucket?.error || null;
@@ -53,10 +54,6 @@ export default function MemberList({ onClose, isHalf }: MemberListProps) {
 		dispatch(setCurrentGroup(groupId));
 		dispatch(fetchGroupMembers({ groupId }));
 	}, [dispatch, groupId]);
-
-	const handleMessageSend = (memberId: number | string, message: string) => {
-		console.log(`Send message to member ${memberId}:`, message);
-	};
 
 	const handleSearchToggle = () => {
 		setIsSearchMode(!isSearchMode);
@@ -280,7 +277,7 @@ export default function MemberList({ onClose, isHalf }: MemberListProps) {
 										showTooltip={true}
 										buttonType="more"
 										onButtonClick={() => handleButtonClick(member)}
-										onMessageSend={handleMessageSend}
+										currentUserId={currentUserId}
 									/>
 								);
 							})

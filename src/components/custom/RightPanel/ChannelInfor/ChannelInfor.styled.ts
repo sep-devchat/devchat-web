@@ -50,20 +50,41 @@ export const ChannelInfo = styled.div`
 	gap: 12px;
 `;
 
-export const ChannelIcon = styled.div`
+export const ChannelIcon = styled.div<{ $isDirect?: boolean }>`
 	width: 48px;
 	height: 48px;
 	background-color: #dbeafe;
-	border-radius: 8px;
+	border-radius: ${(props) => (props.$isDirect ? "9999px" : "8px")};
 	display: flex;
 	align-items: center;
 	justify-content: center;
+	overflow: hidden;
 
 	svg {
 		color: #2563eb;
 		width: 28px;
 		height: 28px;
 	}
+
+	img {
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+		border-radius: inherit;
+	}
+
+	span {
+		font-size: 18px;
+		font-weight: 600;
+		color: #1f2937;
+	}
+`;
+
+export const ChannelSubtitle = styled.p`
+	font-size: 13px;
+	color: #6b7280;
+	margin: 0;
+	text-align: center;
 `;
 
 export const ChannelName = styled.h1`
