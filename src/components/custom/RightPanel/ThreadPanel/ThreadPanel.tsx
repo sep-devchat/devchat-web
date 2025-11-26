@@ -7,7 +7,7 @@ import React, {
 	useLayoutEffect,
 } from "react";
 import { useSelector } from "react-redux";
-import { X, Hash, Plus, Smile, Send, Folder } from "lucide-react";
+import { X, Hash, Folder } from "lucide-react";
 import {
 	PageWrapper,
 	CPHeader,
@@ -15,10 +15,7 @@ import {
 	CPHeaderLeft,
 	CPTitle,
 	ThreadIcon,
-	Input,
 	MessageInput,
-	InputContainer,
-	IconButton,
 	MessagesArea,
 	Message,
 	Avatar,
@@ -32,7 +29,7 @@ import {
 	CloseButton,
 } from "./ThreadPanel.styled";
 import MarkdownPreview from "@/components/custom/MarkdownPreview";
-import MentionModal from "@/components/custom/MentionModal/MentionModal";
+import ChatInput from "@/components/custom/ChatInput/ChatInput";
 import { detailThread } from "@/services/threadAPI";
 import { MessageResponse } from "@/services/messageAPI";
 import { SocketEvents } from "@/utils/constants";
@@ -41,6 +38,7 @@ import useSocket from "@/hooks/useSocket";
 import useSocketEvent from "@/hooks/useSocketEvent";
 import { RootState } from "@/store";
 import { detailUser } from "@/services/userAPI";
+import { ChatInputPayload } from "@/components/custom/ChatInputComponent/ChatTypeModal/InboxType";
 // Removed thread creation, no need for add/invalidate actions
 
 interface UIMessage {
@@ -64,92 +62,6 @@ interface ThreadPanelProps {
 	onThreadCreated?: (threadId: string) => void;
 }
 
-const useMention = (inputRef: React.RefObject<HTMLInputElement>) => {
-	const [showMentionModal, setShowMentionModal] = useState(false);
-	const [mentionSearchTerm, setMentionSearchTerm] = useState("");
-	const [mentionStartIndex, setMentionStartIndex] = useState(-1);
-
-	const handleInputChange = useCallback(
-		(value: string, cursorPosition: number) => {
-			let atIndex = -1;
-			for (let i = cursorPosition - 1; i >= 0; i--) {
-				if (value[i] === "@") {
-					if (i === 0 || value[i - 1] === " " || value[i - 1] === "\n") {
-						atIndex = i;
-						break;
-					}
-				} else if (value[i] === " " || value[i] === "\n") {
-					break;
-				}
-			}
-
-			if (atIndex !== -1) {
-				const searchTerm = value.slice(atIndex + 1, cursorPosition);
-
-				if (!searchTerm.includes(" ") && !searchTerm.includes("\n")) {
-					setMentionSearchTerm(searchTerm);
-					setMentionStartIndex(atIndex);
-					setShowMentionModal(true);
-					return;
-				}
-			}
-
-			setShowMentionModal(false);
-			setMentionSearchTerm("");
-			setMentionStartIndex(-1);
-		},
-		[inputRef],
-	);
-
-	const handleMentionSelect = useCallback(
-		(
-			mention: string,
-			currentValue: string,
-			onValueChange: (value: string) => void,
-		) => {
-			if (mentionStartIndex !== -1) {
-				const beforeMention = currentValue.slice(0, mentionStartIndex);
-				const afterMention = currentValue.slice(
-					mentionStartIndex + 1 + mentionSearchTerm.length,
-				);
-				const newValue = beforeMention + mention + " " + afterMention;
-
-				onValueChange(newValue);
-
-				setTimeout(() => {
-					if (inputRef.current) {
-						const newCursorPosition = beforeMention.length + mention.length + 1;
-						inputRef.current.setSelectionRange(
-							newCursorPosition,
-							newCursorPosition,
-						);
-						inputRef.current.focus();
-					}
-				}, 0);
-			}
-
-			setShowMentionModal(false);
-			setMentionSearchTerm("");
-			setMentionStartIndex(-1);
-		},
-		[mentionStartIndex, mentionSearchTerm, inputRef],
-	);
-
-	const closeMentionModal = useCallback(() => {
-		setShowMentionModal(false);
-		setMentionSearchTerm("");
-		setMentionStartIndex(-1);
-	}, []);
-
-	return {
-		showMentionModal,
-		mentionSearchTerm,
-		handleInputChange,
-		handleMentionSelect,
-		closeMentionModal,
-	};
-};
-
 const ThreadPanel: React.FC<ThreadPanelProps> = ({
 	groupId,
 	channelId,
@@ -159,8 +71,6 @@ const ThreadPanel: React.FC<ThreadPanelProps> = ({
 	// Creation removed: dispatch and channelKey no longer needed
 
 	const [threadName, setThreadName] = useState<string>("Thread");
-	const [message, setMessage] = useState<string>("");
-	const [attachments, setAttachments] = useState<File[]>([]);
 	const [realtimeMessages, setRealtimeMessages] = useState<MessageResponse[]>(
 		[],
 	);
@@ -179,15 +89,7 @@ const ThreadPanel: React.FC<ThreadPanelProps> = ({
 
 	const profile = useSelector((state: RootState) => state.user.profile);
 
-	const messageInputRef = useRef<HTMLInputElement>(null);
 	const bottomRef = useRef<HTMLDivElement | null>(null);
-	const {
-		showMentionModal,
-		mentionSearchTerm,
-		handleInputChange,
-		handleMentionSelect,
-		closeMentionModal,
-	} = useMention(messageInputRef);
 
 	useEffect(() => {
 		if (threadId && groupId && channelId) {
@@ -310,6 +212,11 @@ const ThreadPanel: React.FC<ThreadPanelProps> = ({
 				const inner = full.replace(/^```(\w+)?\n/, "").replace(/```$/, "");
 				codeBlock = { language, content: inner };
 			}
+			const optimisticFlag = Boolean(
+				(m as any)?.optimistic ||
+					(typeof m.id === "string" && m.id.startsWith("optimistic-")) ||
+					(typeof m.id === "string" && m.id.startsWith("optimistic-preview")),
+			);
 			return {
 				id: m.id,
 				author: name,
@@ -326,7 +233,7 @@ const ThreadPanel: React.FC<ThreadPanelProps> = ({
 					day: "numeric",
 					year: "numeric",
 				}),
-				optimistic: m.id.startsWith("optimistic-"),
+				optimistic: optimisticFlag,
 				isCurrentUser: !!profile?.id && sender?.id === profile?.id,
 				attachments: parsedAttachments,
 				codeBlock,
@@ -426,9 +333,13 @@ const ThreadPanel: React.FC<ThreadPanelProps> = ({
 			setRealtimeMessages((prev) => {
 				const filtered = prev.filter((m) => {
 					if (m.id === incoming.id) return false;
+					const isOptimistic = Boolean(
+						(m as any)?.optimistic ||
+							(typeof m.id === "string" && m.id.startsWith("optimistic-")),
+					);
 					if (
-						m.id.startsWith("optimistic-") &&
-						m.content === incoming.content &&
+						isOptimistic &&
+						m.content?.trim() === incoming.content?.trim() &&
 						m.senderId === incoming.senderId
 					)
 						return false;
@@ -511,86 +422,110 @@ const ThreadPanel: React.FC<ThreadPanelProps> = ({
 
 	// Creation removed: component now only views existing thread content.
 
-	const handleSendMessage = (): void => {
-		if (!socket) return;
-		if (!message.trim() && attachments.length === 0) return;
-		if (!threadId || !groupId || !channelId) return;
-		// extract fenced code block if present
-		let codeBlock: { language?: string; content: string } | null = null;
-		let plainContent = message.trim();
-		const fenced = plainContent.match(/```(\w+)?\n([\s\S]*?)```/);
-		if (fenced) {
-			const lang = fenced[1];
-			const inner = fenced[2];
-			codeBlock = { language: lang, content: inner };
-			// remove fenced block from content (optional: keep preceding text)
-			plainContent = plainContent.replace(fenced[0], "").trim();
-		}
-		const optimistic: MessageResponse = {
-			id: `optimistic-${Date.now()}`,
-			channelId: channelId,
-			thread: { id: threadId } as any,
-			senderId: profile?.id || "unknown",
-			parentMessageId: null,
-			parentMessage: null as any,
-			content: plainContent || (codeBlock ? `Code snippet` : ""),
-			createdAt: new Date(),
-			updatedAt: new Date(),
-			sender: profile as any,
-			attachments: attachments.map((f) => ({
-				name: f.name,
-				size: f.size,
-				type: f.type,
-			})),
-			codeBlock,
-		} as any;
-		setRealtimeMessages((prev) => [...prev, optimistic]);
-		const payload: any = {
-			groupId,
-			channelId,
-			threadId,
-			content: plainContent,
-			attachments: attachments.map((f) => ({
-				name: f.name,
-				size: f.size,
-				type: f.type,
-			})),
-			codeBlock,
-		};
-		try {
-			socket.emit(SocketEvents.SEND_THREAD_MESSAGE, payload);
-		} catch {}
-		setMessage("");
-		setAttachments([]);
-		closeMentionModal();
-	};
+	const handleChatInputSend = useCallback(
+		async (payload: ChatInputPayload) => {
+			if (!payload) return;
+			if (!threadId || !groupId || !channelId) return;
+			if (!socket) return;
 
-	const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>): void => {
-		if (showMentionModal) return;
-		if (e.key === "Enter") handleSendMessage();
-	};
+			if (payload.type === "preview") {
+				const previewId =
+					payload.clientTempId ||
+					`optimistic-preview-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+				const optimistic: MessageResponse = {
+					id: previewId,
+					channelId,
+					thread: { id: threadId } as any,
+					content: payload.text?.trim() || "Uploading attachments...",
+					createdAt: new Date(),
+					updatedAt: new Date(),
+					parentMessageId: null,
+					parentMessage: null as any,
+					sender: profile as any,
+					senderId: profile?.id || "unknown",
+					attachments: [],
+				} as any;
+				(optimistic as any).optimistic = true;
+				(optimistic as any).clientTempId = payload.clientTempId || previewId;
+				setRealtimeMessages((prev) => [...prev, optimistic]);
+				return;
+			}
 
-	const handleMessageChange = (
-		e: React.ChangeEvent<HTMLInputElement>,
-	): void => {
-		const newValue = e.target.value;
-		const cursorPosition = e.target.selectionStart || 0;
-		setMessage(newValue);
-		handleInputChange(newValue, cursorPosition);
-	};
+			if (payload.type === "text") {
+				const text = payload.text?.trim() ?? "";
+				if (!text && !payload.codeBlock) return;
+				const optimisticId = payload.clientTempId
+					? `optimistic-${payload.clientTempId}`
+					: `optimistic-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+				const optimistic: MessageResponse = {
+					id: optimisticId,
+					channelId,
+					thread: { id: threadId } as any,
+					content: text,
+					createdAt: new Date(),
+					updatedAt: new Date(),
+					parentMessageId: null,
+					parentMessage: null as any,
+					sender: profile as any,
+					senderId: profile?.id || "unknown",
+					attachments: [],
+				} as any;
+				if (payload.codeBlock) {
+					(optimistic as any).codeBlock = payload.codeBlock;
+				}
+				(optimistic as any).optimistic = true;
+				(optimistic as any).clientTempId = payload.clientTempId ?? null;
+				setRealtimeMessages((prev) => {
+					const filtered = payload.clientTempId
+						? prev.filter((m) => m.id !== payload.clientTempId)
+						: prev;
+					return [...filtered, optimistic];
+				});
 
-	const fileInputRef = useRef<HTMLInputElement>(null);
-	const openFilePicker = () => fileInputRef.current?.click();
-	const handleFilesSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
-		const files = Array.from(e.target.files || []);
-		if (files.length) setAttachments((prev) => [...prev, ...files]);
-		// reset value so selecting same file again triggers change
-		e.target.value = "";
-	};
+				const emitPayload: Record<string, unknown> = {
+					groupId,
+					channelId,
+					threadId,
+					content: text,
+					attachmentIds: payload.attachmentIds,
+					codeBlock: payload.codeBlock,
+				};
 
-	const handleMentionSelectWrapper = (mention: string): void => {
-		handleMentionSelect(mention, message, setMessage);
-	};
+				try {
+					socket.emit(SocketEvents.SEND_THREAD_MESSAGE, emitPayload);
+				} catch (err) {
+					console.error(
+						"[ThreadPanel] failed to emit SEND_THREAD_MESSAGE",
+						err,
+					);
+				}
+				return;
+			}
+
+			if (payload.type === "files" && payload.files?.length) {
+				const optimistic: MessageResponse = {
+					id: `optimistic-files-${Date.now()}`,
+					channelId,
+					thread: { id: threadId } as any,
+					content: "Uploading attachments...",
+					createdAt: new Date(),
+					updatedAt: new Date(),
+					parentMessageId: null,
+					parentMessage: null as any,
+					sender: profile as any,
+					senderId: profile?.id || "unknown",
+					attachments: payload.files.map((file) => ({
+						name: file.name,
+						size: file.size,
+						type: file.type,
+					})),
+				} as any;
+				(optimistic as any).optimistic = true;
+				setRealtimeMessages((prev) => [...prev, optimistic]);
+			}
+		},
+		[threadId, groupId, channelId, socket, profile, setRealtimeMessages],
+	);
 
 	const groupMessagesByDate = (messages: UIMessage[]) => {
 		const grouped: { [key: string]: UIMessage[] } = {};
@@ -685,12 +620,6 @@ const ThreadPanel: React.FC<ThreadPanelProps> = ({
 									const messageClassName = msg.optimistic
 										? "opacity-[0.55] overflow-auto"
 										: undefined;
-									const codeBlockClasses = msg.isCurrentUser
-										? "mt-1.5 overflow-x-auto rounded-lg bg-[#0B254A] px-2.5 py-2 text-[13px] text-white"
-										: "mt-1.5 overflow-x-auto rounded-lg bg-gray-200 px-2.5 py-2 text-[13px] text-gray-900";
-									const attachmentChipClass = msg.isCurrentUser
-										? "max-w-[220px] truncate rounded-md bg-[#0B254A] px-1.5 py-0.5 text-white"
-										: "max-w-[220px] truncate rounded-md bg-gray-200 px-1.5 py-0.5 text-gray-900";
 									const markdownPreviewClassName = msg.isCurrentUser
 										? "prose-invert text-black text-sm"
 										: "text-sm text-slate-900";
@@ -727,35 +656,6 @@ const ThreadPanel: React.FC<ThreadPanelProps> = ({
 														content={msg.content}
 														className={markdownPreviewClassName}
 													/>
-													{msg.codeBlock && (
-														<div>
-															<pre className={codeBlockClasses}>
-																<code>{msg.codeBlock.content}</code>
-															</pre>
-															{msg.codeBlock.language && (
-																<div className="mt-1 text-[11px] opacity-70">
-																	Language: {msg.codeBlock.language}
-																</div>
-															)}
-														</div>
-													)}
-													{msg.attachments && msg.attachments.length > 0 && (
-														<ul className="mt-1.5 flex list-none flex-col gap-1 p-0">
-															{msg.attachments.map((att) => (
-																<li
-																	key={att.name}
-																	className="flex items-center gap-1.5 text-xs"
-																>
-																	<span className={attachmentChipClass}>
-																		{att.name}
-																	</span>
-																	<span className="text-[10px] opacity-60">
-																		{Math.round(att.size / 1024)}KB
-																	</span>
-																</li>
-															))}
-														</ul>
-													)}
 												</div>
 											</MessageContent>
 										</Message>
@@ -769,50 +669,9 @@ const ThreadPanel: React.FC<ThreadPanelProps> = ({
 				</MessagesArea>
 
 				<MessageInput className="relative">
-					<InputContainer>
-						<IconButton onClick={openFilePicker}>
-							<Plus size={20} />
-						</IconButton>
-						<Input
-							ref={messageInputRef}
-							type="text"
-							placeholder="Enter message"
-							value={message}
-							onChange={handleMessageChange}
-							onKeyPress={handleKeyPress}
-						/>
-						<IconButton>
-							<Smile size={20} />
-						</IconButton>
-						<IconButton onClick={handleSendMessage}>
-							<Send size={20} />
-						</IconButton>
-						<input
-							ref={fileInputRef}
-							className="hidden"
-							type="file"
-							multiple
-							onChange={handleFilesSelected}
-						/>
-					</InputContainer>
-					{attachments.length > 0 && (
-						<div className="mt-2 flex flex-wrap gap-1.5">
-							{attachments.map((f) => (
-								<div
-									key={f.name}
-									className="rounded-md bg-gray-200 px-1.5 py-0.5 text-[11px]"
-								>
-									{f.name} ({Math.round(f.size / 1024)}KB)
-								</div>
-							))}
-						</div>
-					)}
-
-					<MentionModal
-						show={showMentionModal}
-						searchTerm={mentionSearchTerm}
-						onSelect={handleMentionSelectWrapper}
-						onClose={closeMentionModal}
+					<ChatInput
+						onSend={handleChatInputSend}
+						placeholder="Type your message in the thread..."
 					/>
 				</MessageInput>
 			</PageWrapper>
