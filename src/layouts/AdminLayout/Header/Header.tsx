@@ -34,15 +34,9 @@ const Header: React.FC = () => {
 				tabs: [
 					{ id: "user", label: "User", path: "/admin/dashboard?tab=user" },
 					{
-						id: "language",
-						label: "Language",
-						path: "/admin/dashboard?tab=language",
-					},
-					{ id: "group", label: "Group", path: "/admin/dashboard?tab=group" },
-					{
-						id: "system",
-						label: "System",
-						path: "/admin/dashboard?tab=system",
+						id: "report",
+						label: "Report",
+						path: "/admin/dashboard?tab=report",
 					},
 				],
 			};

@@ -3,10 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 
 const dashboardSearchSchema = z.object({
-	tab: z
-		.enum(["user", "language", "group", "system"])
-		.optional()
-		.default("user"),
+	tab: z.enum(["user", "report"]).optional().default("user"),
 });
 
 export const Route = createFileRoute("/admin/dashboard")({
@@ -19,12 +16,6 @@ export const routeInfo = {
 	path: "/admin/dashboard",
 	tabs: [
 		{ id: "user", label: "User", path: "/admin/dashboard?tab=user" },
-		{
-			id: "language",
-			label: "Language",
-			path: "/admin/dashboard?tab=language",
-		},
-		{ id: "group", label: "Group", path: "/admin/dashboard?tab=group" },
-		{ id: "system", label: "System", path: "/admin/dashboard?tab=system" },
+		{ id: "report", label: "Report", path: "/admin/dashboard?tab=report" },
 	],
 };
