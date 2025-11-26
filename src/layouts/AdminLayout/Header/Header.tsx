@@ -89,6 +89,13 @@ const Header: React.FC = () => {
 			};
 		}
 
+		if (pathname.startsWith("/admin/programming-languages")) {
+			return {
+				title: "Programming Languages",
+				path: "/admin/programming-languages",
+			};
+		}
+
 		if (pathname.startsWith("/admin/permission")) {
 			return {
 				title: "Permissions",

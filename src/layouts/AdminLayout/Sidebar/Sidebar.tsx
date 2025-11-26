@@ -8,6 +8,7 @@ import {
 	LucideIcon,
 	Flag,
 	FileWarning,
+	Code,
 } from "lucide-react";
 import { logout } from "@/services/auth/authAPI";
 import cookieUtils from "@/services/cookieUtils";
@@ -78,6 +79,12 @@ const Sidebar: React.FC = () => {
 			icon: Users,
 			label: "User Management",
 			path: "/admin/user-management",
+		},
+		{
+			id: "programming-languages",
+			icon: Code,
+			label: "Programming Languages",
+			path: "/admin/programming-languages",
 		},
 		{
 			id: "report-category",
