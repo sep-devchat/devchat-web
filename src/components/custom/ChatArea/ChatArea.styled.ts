@@ -13,9 +13,11 @@ export const ChatAreaContainer = styled.div`
 	overflow: hidden; /* keep rounded corners clean */
 `;
 
-type Variant = "normal" | "quillCode" | "image" | "file";
+export type MessagesViewportVariant = "normal" | "quillCode" | "image" | "file";
 
-export const MessagesViewport = styled.div<{ variant?: Variant }>`
+export const MessagesViewport = styled.div<{
+	variant?: MessagesViewportVariant;
+}>`
 	padding: 0.75rem;
 	display: flex;
 	flex-direction: column;

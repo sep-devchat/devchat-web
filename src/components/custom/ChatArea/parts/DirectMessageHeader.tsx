@@ -12,7 +12,7 @@ import {
 	DialogTitle,
 } from "@/components/ui/dialog";
 
-interface DirectMessageHeaderProps {
+export interface DirectMessageHeaderProps {
 	opponent: UserResponse | null | undefined;
 	loading: boolean;
 	error: boolean;
