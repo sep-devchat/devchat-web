@@ -62,6 +62,7 @@ export interface Task {
 	description: string | null;
 	status: TaskStatus;
 	priority: TaskPriority;
+	startDate: string | null;
 	dueDate: string | null; // Dates are serialized as strings over the wire.
 	createdAt: string;
 	updatedAt: string;

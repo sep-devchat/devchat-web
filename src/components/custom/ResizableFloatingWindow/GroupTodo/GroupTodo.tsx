@@ -36,7 +36,11 @@ import {
 	DropdownItem,
 	DragHandle,
 } from "../PersonalTodo/PersonalTodo.styled";
-import { taskAPI, GroupTodoUpdateRequest } from "@/services/taskAPI";
+import {
+	taskAPI,
+	GroupTodoUpdateRequest,
+	UpdateTaskStatusRequest,
+} from "@/services/taskAPI";
 import { Task as ApiTask, TaskStatus } from "@/types/task";
 
 /* ---------- types ---------- */
@@ -46,6 +50,7 @@ type Task = {
 	description?: string;
 	priority?: number;
 	status?: number;
+	startDate?: string;
 	dueDate?: string;
 	createdAt?: number;
 	done?: boolean;
@@ -62,6 +67,7 @@ function convertApiTaskToLocalTask(apiTask: ApiTask): Task {
 			description: apiTask.description || undefined,
 			priority: apiTask.priority,
 			status: apiTask.status,
+			startDate: apiTask.startDate || undefined,
 			dueDate: apiTask.dueDate || undefined,
 			createdAt: new Date(apiTask.createdAt).getTime(),
 			done: apiTask.status === TaskStatus.DONE,
@@ -75,6 +81,7 @@ function convertApiTaskToLocalTask(apiTask: ApiTask): Task {
 			description: apiTask.description || undefined,
 			priority: apiTask.priority || 3,
 			status: apiTask.status || TaskStatus.TODO,
+			startDate: apiTask.startDate || undefined,
 			dueDate: apiTask.dueDate || undefined,
 			createdAt: apiTask.createdAt
 				? new Date(apiTask.createdAt).getTime()
@@ -119,6 +126,8 @@ export default function GroupTodo({ groupId, groupName }: Props) {
 		queryFn: () => taskAPI.getUserTasksByGroup(gid),
 		enabled: !!groupId && groupId !== "unknown",
 		refetchOnWindowFocus: false,
+		refetchInterval: groupId && groupId !== "unknown" ? 10000 : false,
+		refetchIntervalInBackground: true,
 	});
 
 	// Convert API tasks to local task format
@@ -133,6 +142,19 @@ export default function GroupTodo({ groupId, groupName }: Props) {
 	const updateTaskMutation = useMutation({
 		mutationFn: ({ taskId, data }: { taskId: string; data: any }) =>
 			taskAPI.updateTask(gid, taskId, data),
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ["userTasks", gid] });
+		},
+	});
+
+	const updateTaskStatusMutation = useMutation({
+		mutationFn: ({
+			taskId,
+			data,
+		}: {
+			taskId: string;
+			data: UpdateTaskStatusRequest;
+		}) => taskAPI.updateTaskStatus(gid, taskId, data),
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["userTasks", gid] });
 		},
@@ -212,6 +234,8 @@ export default function GroupTodo({ groupId, groupName }: Props) {
 				updateData.status = editFields.status;
 			if (editFields.priority !== undefined)
 				updateData.priority = editFields.priority;
+			if (editFields.startDate !== undefined)
+				updateData.startDate = editFields.startDate;
 			if (editFields.dueDate !== undefined)
 				updateData.dueDate = editFields.dueDate;
 
@@ -241,7 +265,7 @@ export default function GroupTodo({ groupId, groupName }: Props) {
 			const currentTask = tasks.find((t) => t.id === id);
 			if (currentTask) {
 				const newStatus = currentTask.done ? TaskStatus.TODO : TaskStatus.DONE;
-				updateTaskMutation.mutate(
+				updateTaskStatusMutation.mutate(
 					{
 						taskId: id,
 						data: { status: newStatus },
@@ -513,6 +537,20 @@ export default function GroupTodo({ groupId, groupName }: Props) {
 													)}
 												</div>
 
+												<div
+													style={{
+														marginTop: 4,
+														color: "#94a3b8",
+														fontSize: 12,
+														textAlign: "right",
+													}}
+												>
+													Start:{" "}
+													{t.startDate
+														? formatDateShort(t.startDate)
+														: "Not set"}
+												</div>
+
 												<div style={{ marginTop: 8 }}>
 													{isEditing ? (
 														<Select
@@ -567,7 +605,7 @@ export default function GroupTodo({ groupId, groupName }: Props) {
 														marginTop: 8,
 														display: "flex",
 														gap: 8,
-														alignItems: "center",
+														alignItems: "flex-start",
 														justifyContent: "space-between",
 													}}
 												>
@@ -586,17 +624,58 @@ export default function GroupTodo({ groupId, groupName }: Props) {
 														<option value={0}>None</option>
 													</Select>
 
+													<div
+														style={{
+															display: "flex",
+															flexDirection: "column",
+															gap: 4,
+														}}
+													>
+														<span style={{ fontSize: 12, color: "#475569" }}>
+															Due date
+														</span>
+														<TextInput
+															type="datetime-local"
+															value={
+																editFields.dueDate
+																	? isoToDatetimeLocal(editFields.dueDate)
+																	: ""
+															}
+															onChange={(e) =>
+																setEditFields((p) => ({
+																	...p,
+																	dueDate: e.target.value
+																		? new Date(e.target.value).toISOString()
+																		: undefined,
+																}))
+															}
+															style={{ width: 180 }}
+														/>
+													</div>
+												</div>
+
+												<div
+													style={{
+														marginTop: 8,
+														display: "flex",
+														flexDirection: "column",
+														gap: 4,
+													}}
+												>
+													<span style={{ fontSize: 12, color: "#475569" }}>
+														Start date
+													</span>
 													<TextInput
 														type="datetime-local"
 														value={
-															editFields.dueDate
-																? isoToDatetimeLocal(editFields.dueDate)
+															editFields.startDate
+																? isoToDatetimeLocal(editFields.startDate)
 																: ""
 														}
 														onChange={(e) =>
 															setEditFields((p) => ({
 																...p,
-																dueDate: e.target.value
+																startDate: e.target.value
 																	? new Date(e.target.value).toISOString()
 																	: undefined,
 															}))

@@ -12,6 +12,7 @@ export interface CreateTaskRequest {
 	description?: string;
 	priority?: number;
 	status?: TaskStatus;
+	startDate?: string;
 	dueDate?: string;
 	assigneeId?: string;
 }
@@ -25,6 +26,7 @@ export interface UpdateTaskRequest {
 	description?: string;
 	priority?: number;
 	status?: TaskStatus;
+	startDate?: string;
 	dueDate?: string;
 	assigneeId?: string;
 }
@@ -38,7 +40,12 @@ export interface GroupTodoUpdateRequest {
 	description?: string;
 	priority?: number;
 	status?: TaskStatus;
+	startDate?: string;
 	dueDate?: string;
+}
+
+export interface UpdateTaskStatusRequest {
+	status: TaskStatus;
 }
 
 /**
@@ -53,7 +60,10 @@ export interface TaskQuery {
 	status?: TaskStatus;
 	assigneeId?: string;
 	priority?: number;
-	dueDate?: string;
+	startDateFrom?: string;
+	startDateTo?: string;
+	dueDateFrom?: string;
+	dueDateTo?: string;
 	search?: string;
 	overdue?: boolean | null;
 	unassigned?: boolean | null;
@@ -115,6 +125,14 @@ const updateTask = (
 	return put(`/api/group/${groupId}/task/${taskId}`, data);
 };
 
+const updateTaskStatus = (
+	groupId: string,
+	taskId: string,
+	data: UpdateTaskStatusRequest,
+) => {
+	return put(`/api/group/${groupId}/task/${taskId}/status`, data);
+};
+
 /**
  * Deletes a task.
  * Corresponds to `DELETE /group/:groupId/task/:id`.
@@ -141,6 +159,7 @@ export const taskAPI = {
 	getTasks,
 	getTaskById,
 	updateTask,
+	updateTaskStatus,
 	deleteTask,
 	getUserTasksByGroup,
 };

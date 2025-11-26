@@ -17,6 +17,7 @@ type AppliedFilters = {
 	assigneeId?: string | undefined;
 	unassigned?: boolean | undefined;
 	priority?: number | undefined;
+	startDate?: string | undefined;
 	dueDate?: string | undefined;
 	overdue?: boolean | undefined;
 };
@@ -58,6 +59,7 @@ const SearchFilter: React.FC<Props> = ({
 				: (appliedFilters.assigneeId ?? ""),
 			unassigned: !!appliedFilters.unassigned,
 			priority: appliedFilters.priority,
+			startDate: appliedFilters.startDate ?? "",
 			// nếu appliedFilters.overdue = true thì không giữ dueDate
 			dueDate: appliedFilters.overdue ? "" : (appliedFilters.dueDate ?? ""),
 			overdue: !!appliedFilters.overdue,
@@ -183,6 +185,16 @@ const SearchFilter: React.FC<Props> = ({
 							</S.ChipClose>
 						</S.FilterChip>
 					)}
+					{appliedFilters.startDate && (
+						<S.FilterChip bg="#eef2ff" color="#4338ca">
+							<span>
+								<strong>Start from:</strong> {appliedFilters.startDate}
+							</span>
+							<S.ChipClose onClick={() => removeFilter("startDate")}>
+								×
+							</S.ChipClose>
+						</S.FilterChip>
+					)}
 				</S.FilterTags>
 			</S.FilterRow>
 
@@ -284,6 +296,19 @@ const SearchFilter: React.FC<Props> = ({
 
 								<S.FormColumn>
 									<S.FormGroup>
+										<S.Label>Start from</S.Label>
+										<CustomDatePicker
+											value={tempFilters.startDate ?? ""}
+											onChange={(val: string) =>
+												setTempFilters((t) => ({ ...t, startDate: val }))
+											}
+											allowClear
+										/>
+									</S.FormGroup>
+								</S.FormColumn>
+
+								<S.FormColumn>
+									<S.FormGroup>
 										<S.Label>Due to</S.Label>
 										{/* DISABLED nếu tick Only overdue */}
 										<CustomDatePicker
@@ -334,6 +359,7 @@ const SearchFilter: React.FC<Props> = ({
 												: tempFilters.assigneeId || undefined,
 											unassigned: !!tempFilters.unassigned,
 											priority: tempFilters.priority,
+											startDate: tempFilters.startDate || undefined,
 											dueDate: tempFilters.overdue
 												? undefined
 												: tempFilters.dueDate || undefined,
