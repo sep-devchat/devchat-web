@@ -84,7 +84,7 @@ const ChatArea: React.FC = () => {
 
 	const listRef = useRef<HTMLDivElement | null>(null);
 	const bottomRef = useRef<HTMLDivElement | null>(null);
-	const { socket } = useSocket();
+	const { socket, waitUntilReady } = useSocket();
 	const [filesFromModal, setFilesFromModal] = useState<File[] | undefined>(
 		undefined,
 	);
@@ -92,7 +92,6 @@ const ChatArea: React.FC = () => {
 	const viewportVariant = inboxTypeSelected ?? undefined;
 	const [emitQueue, setEmitQueue] = useState<any[]>([]);
 	const [socketLoading, setSocketLoading] = useState<boolean>(false);
-	const [socketReady, setSocketReady] = useState<boolean>(false);
 	// track the last room we attempted to join to avoid redundant joins
 	const lastJoinKeyRef = useRef<string | null>(null);
 	// moved hovered state to per-row component to avoid whole list re-renders on hover
@@ -383,7 +382,6 @@ const ChatArea: React.FC = () => {
 
 	useSocketEvent(SocketEvents.MESSAGE, onServerMessage);
 	// mark socket as authenticated/ready before DM fetches
-	useSocketEvent(SocketEvents.SOCKET_READY, () => setSocketReady(true));
 
 	// Direct message realtime handler (capture globally)
 	const onServerDirectMessage = useCallback(
@@ -548,71 +546,96 @@ const ChatArea: React.FC = () => {
 		if (isDirectMode) return; // skip room join logic in direct mode
 		if (!groupId || !channelIdParam) return;
 
-		const joinKey = `${groupId}:${channelIdParam}`;
-		// If we're already in this room and socket is connected, skip
-		if (lastJoinKeyRef.current === joinKey && socket?.connected) return;
-		lastJoinKeyRef.current = joinKey;
+		let cancelled = false;
 
-		const payload = { groupId, channelId: channelIdParam };
+		const joinRoomFlow = async () => {
+			await waitUntilReady();
+			if (cancelled) return;
 
-		try {
-			if (!socket || !socket.connected) throw new Error("socket-not-ready");
-			setSocketLoading(true);
-			socket.emit(SocketEvents.JOIN_ROOM, payload);
-			console.debug("[ChatArea] emitted JOIN_ROOM", payload);
-			// Fallback: request messages immediately as well (in case JOINED_ROOM isn't fired)
-			const req = { groupId, channelId: channelIdParam };
-			socket.emit(SocketEvents.FETCH_MESSAGES, req, (resp: any) => {
-				try {
-					if (resp && (resp.error || resp.code)) {
-						console.error(
-							"[ChatArea] FETCH_MESSAGES ack error (fallback)",
-							resp,
+			const joinKey = `${groupId}:${channelIdParam}`;
+			// If we're already in this room and socket is connected, skip
+			if (lastJoinKeyRef.current === joinKey && socket?.connected) return;
+			lastJoinKeyRef.current = joinKey;
+
+			const payload = { groupId, channelId: channelIdParam };
+
+			try {
+				if (!socket || !socket.connected) throw new Error("socket-not-ready");
+				setSocketLoading(true);
+				socket.emit(SocketEvents.JOIN_ROOM, payload);
+				console.debug("[ChatArea] emitted JOIN_ROOM", payload);
+				// Fallback: request messages immediately as well (in case JOINED_ROOM isn't fired)
+				const req = { groupId, channelId: channelIdParam };
+				socket.emit(SocketEvents.FETCH_MESSAGES, req, (resp: any) => {
+					if (cancelled) return;
+					try {
+						if (resp && (resp.error || resp.code)) {
+							console.error(
+								"[ChatArea] FETCH_MESSAGES ack error (fallback)",
+								resp,
+							);
+							setSocketLoading(false);
+							return;
+						}
+						const itemsRaw = Array.isArray(resp)
+							? resp
+							: Array.isArray(resp?.data)
+								? resp.data
+								: Array.isArray(resp?.messages)
+									? resp.messages
+									: [];
+						const items = itemsRaw
+							.slice()
+							.sort(
+								(a: any, b: any) =>
+									new Date(a.createdAt).getTime() -
+									new Date(b.createdAt).getTime(),
+							);
+						queryClient.setQueryData(
+							["messages", groupId, channelIdParam],
+							items,
+						);
+						console.debug(
+							"[ChatArea] FETCH_MESSAGES fallback -> set messages",
+							items.length,
 						);
 						setSocketLoading(false);
-						return;
-					}
-					const itemsRaw = Array.isArray(resp)
-						? resp
-						: Array.isArray(resp?.data)
-							? resp.data
-							: Array.isArray(resp?.messages)
-								? resp.messages
-								: [];
-					const items = itemsRaw
-						.slice()
-						.sort(
-							(a: any, b: any) =>
-								new Date(a.createdAt).getTime() -
-								new Date(b.createdAt).getTime(),
+					} catch (e) {
+						console.error(
+							"[ChatArea] error handling FETCH_MESSAGES fallback",
+							e,
 						);
-					queryClient.setQueryData(
-						["messages", groupId, channelIdParam],
-						items,
-					);
-					console.debug(
-						"[ChatArea] FETCH_MESSAGES fallback -> set messages",
-						items.length,
-					);
-					setSocketLoading(false);
-				} catch (e) {
-					console.error("[ChatArea] error handling FETCH_MESSAGES fallback", e);
-					setSocketLoading(false);
-				}
-			});
-		} catch (err) {
-			console.debug("[ChatArea] queue JOIN_ROOM due to", err);
-			setEmitQueue((q) => [
-				...q,
-				{ event: SocketEvents.JOIN_ROOM, payload },
-				{
-					event: SocketEvents.FETCH_MESSAGES,
-					payload: { groupId, channelId: channelIdParam },
-				},
-			]);
-			setSocketLoading(true);
-		}
-	}, [groupId, channelIdParam, socket, queryClient]);
+						setSocketLoading(false);
+					}
+				});
+			} catch (err) {
+				if (cancelled) return;
+				console.debug("[ChatArea] queue JOIN_ROOM due to", err);
+				setEmitQueue((q) => [
+					...q,
+					{ event: SocketEvents.JOIN_ROOM, payload },
+					{
+						event: SocketEvents.FETCH_MESSAGES,
+						payload: { groupId, channelId: channelIdParam },
+					},
+				]);
+				setSocketLoading(true);
+			}
+		};
+
+		joinRoomFlow();
+
+		return () => {
+			cancelled = true;
+		};
+	}, [
+		groupId,
+		channelIdParam,
+		socket,
+		queryClient,
+		isDirectMode,
+		waitUntilReady,
+	]);
 
 	// Reset optimistics when switching room
 	useEffect(() => {
@@ -680,59 +703,81 @@ const ChatArea: React.FC = () => {
 
 	// Fetch direct messages when entering direct mode or target user changes
 	useEffect(() => {
-		if (!isDirectMode || !directUserIdParam || !socketReady) return;
-		if (!socket) {
-			return;
-		}
-		setSocketLoading(true);
-		try {
-			socket.emit(
-				SocketEvents.FETCH_DIRECT_MESSAGES,
-				{ targetUserId: directUserIdParam },
-				(resp: any) => {
-					try {
-						if (resp && (resp.error || resp.code)) {
-							console.error("[ChatArea] FETCH_DIRECT_MESSAGES ack error", resp);
-							setSocketLoading(false);
-							return;
-						}
-						const itemsRaw = Array.isArray(resp)
-							? resp
-							: Array.isArray(resp?.data)
-								? resp.data
-								: Array.isArray(resp?.messages)
-									? resp.messages
-									: [];
-						const mapped = itemsRaw.map((dm: any) => ({
-							id: dm.id,
-							content: dm.content ?? "",
-							createdAt: dm.createdAt,
-							sender: dm.from ?? null,
-						}));
-						const items = mapped.slice().sort((a: any, b: any) => {
-							const ta = new Date(a.createdAt).getTime();
-							const tb = new Date(b.createdAt).getTime();
-							return ta - tb;
-						});
-						queryClient.setQueryData(
-							["direct_messages", directUserIdParam],
-							items,
-						);
-						setSocketLoading(false);
-					} catch (e) {
-						console.error(
-							"[ChatArea] error handling FETCH_DIRECT_MESSAGES ack",
-							e,
-						);
-						setSocketLoading(false);
-					}
-				},
-			);
-		} catch (err) {
-			console.debug("[ChatArea] queue FETCH_DIRECT_MESSAGES due to", err);
+		if (!isDirectMode || !directUserIdParam) return;
+
+		let cancelled = false;
+
+		const fetchDirectMessages = async () => {
+			await waitUntilReady();
+			if (cancelled || !socket) return;
 			setSocketLoading(true);
-		}
-	}, [isDirectMode, directUserIdParam, socket, queryClient, socketReady]);
+			try {
+				socket.emit(
+					SocketEvents.FETCH_DIRECT_MESSAGES,
+					{ targetUserId: directUserIdParam },
+					(resp: any) => {
+						if (cancelled) return;
+						try {
+							if (resp && (resp.error || resp.code)) {
+								console.error(
+									"[ChatArea] FETCH_DIRECT_MESSAGES ack error",
+									resp,
+								);
+								setSocketLoading(false);
+								return;
+							}
+							const itemsRaw = Array.isArray(resp)
+								? resp
+								: Array.isArray(resp?.data)
+									? resp.data
+									: Array.isArray(resp?.messages)
+										? resp.messages
+										: [];
+							const mapped = itemsRaw.map((dm: any) => ({
+								id: dm.id,
+								content: dm.content ?? "",
+								createdAt: dm.createdAt,
+								sender: dm.from ?? null,
+							}));
+							const items = mapped.slice().sort((a: any, b: any) => {
+								const ta = new Date(a.createdAt).getTime();
+								const tb = new Date(b.createdAt).getTime();
+								return ta - tb;
+							});
+							queryClient.setQueryData(
+								["direct_messages", directUserIdParam],
+								items,
+							);
+							setSocketLoading(false);
+						} catch (e) {
+							console.error(
+								"[ChatArea] error handling FETCH_DIRECT_MESSAGES ack",
+								e,
+							);
+							setSocketLoading(false);
+						}
+					},
+				);
+			} catch (err) {
+				if (cancelled) return;
+				console.debug("[ChatArea] queue FETCH_DIRECT_MESSAGES due to", err);
+				setEmitQueue((q) => [
+					...q,
+					{
+						event: SocketEvents.FETCH_DIRECT_MESSAGES,
+						payload: { targetUserId: directUserIdParam },
+					},
+				]);
+				setSocketLoading(true);
+			}
+		};
+
+		fetchDirectMessages();
+
+		return () => {
+			cancelled = true;
+		};
+	}, [isDirectMode, directUserIdParam, socket, queryClient, waitUntilReady]);
 
 	// Queue flush & connect handling
 	useEffect(() => {
@@ -743,14 +788,24 @@ const ChatArea: React.FC = () => {
 			return;
 		}
 
-		if (socket.connected && emitQueue.length > 0) {
-			const queued = [...emitQueue];
-			setEmitQueue([]);
+		let cancelled = false;
+
+		const flushQueuedEmits = async (queued: any[]) => {
+			if (!queued.length) return;
+			try {
+				await waitUntilReady();
+			} catch (err) {
+				console.error(
+					"[ChatArea] waitUntilReady failed while flushing queue",
+					err,
+				);
+				return;
+			}
+			if (cancelled) return;
 			queued.forEach((item) => {
 				try {
 					socket.emit(item.event, item.payload, (ack: any) => {
-						// Special handling for FETCH_MESSAGES queued while offline
-						if (item.event === SocketEvents.FETCH_MESSAGES) {
+						const handleFetchMessagesAck = () => {
 							try {
 								if (ack && (ack.error || ack.code)) {
 									console.error(
@@ -790,6 +845,57 @@ const ChatArea: React.FC = () => {
 								);
 								setSocketLoading(false);
 							}
+						};
+
+						const handleFetchDirectMessagesAck = () => {
+							try {
+								if (ack && (ack.error || ack.code)) {
+									console.error(
+										"[ChatArea] flush FETCH_DIRECT_MESSAGES ack error",
+										ack,
+									);
+									setSocketLoading(false);
+									return;
+								}
+								const itemsRaw = Array.isArray(ack)
+									? ack
+									: Array.isArray(ack?.data)
+										? ack.data
+										: Array.isArray(ack?.messages)
+											? ack.messages
+											: [];
+								const mapped = itemsRaw.map((dm: any) => ({
+									id: dm.id,
+									content: dm.content ?? "",
+									createdAt: dm.createdAt,
+									sender: dm.from ?? null,
+								}));
+								const items = mapped.slice().sort((a: any, b: any) => {
+									const ta = new Date(a.createdAt).getTime();
+									const tb = new Date(b.createdAt).getTime();
+									return ta - tb;
+								});
+								const targetUserId = (item.payload as any)?.targetUserId;
+								if (targetUserId) {
+									queryClient.setQueryData(
+										["direct_messages", targetUserId],
+										items,
+									);
+								}
+								setSocketLoading(false);
+							} catch (e) {
+								console.error(
+									"[ChatArea] flush FETCH_DIRECT_MESSAGES handling error",
+									e,
+								);
+								setSocketLoading(false);
+							}
+						};
+
+						if (item.event === SocketEvents.FETCH_MESSAGES) {
+							handleFetchMessagesAck();
+						} else if (item.event === SocketEvents.FETCH_DIRECT_MESSAGES) {
+							handleFetchDirectMessagesAck();
 						} else {
 							console.debug("[ChatArea] flush ack", item.event, ack);
 						}
@@ -799,132 +905,109 @@ const ChatArea: React.FC = () => {
 					setEmitQueue((q) => [...q, item]);
 				}
 			});
+		};
+
+		if (socket.connected && emitQueue.length > 0) {
+			const queued = [...emitQueue];
+			setEmitQueue([]);
+			flushQueuedEmits(queued);
 		}
 
 		const onConnect = () => {
-			// Flush queued emits
-			if (emitQueue.length) {
-				const queued = [...emitQueue];
-				setEmitQueue([]);
-				queued.forEach((item) => {
+			const handleConnectAsync = async () => {
+				try {
+					await waitUntilReady();
+				} catch (err) {
+					console.error("[ChatArea] waitUntilReady failed on connect", err);
+					return;
+				}
+				if (cancelled) return;
+
+				if (emitQueue.length) {
+					const queued = [...emitQueue];
+					setEmitQueue([]);
+					await flushQueuedEmits(queued);
+				}
+
+				// Re-join the current room on reconnect (group mode only)
+				if (!isDirectMode && groupId && channelIdParam) {
+					const payload = { groupId, channelId: channelIdParam };
 					try {
-						socket.emit(item.event, item.payload, (ack: any) => {
-							if (item.event === SocketEvents.FETCH_MESSAGES) {
-								try {
-									if (ack && (ack.error || ack.code)) {
-										console.error(
-											"[ChatArea] flush FETCH_MESSAGES ack error",
-											ack,
-										);
-										setSocketLoading(false);
-										return;
-									}
-									const itemsRaw = Array.isArray(ack)
-										? ack
-										: Array.isArray(ack?.data)
-											? ack.data
-											: Array.isArray(ack?.messages)
-												? ack.messages
-												: [];
-									const items = itemsRaw.slice().sort((a: any, b: any) => {
-										const ta = new Date(a.createdAt).getTime();
-										const tb = new Date(b.createdAt).getTime();
-										return ta - tb;
-									});
-									if (groupId && channelIdParam) {
-										queryClient.setQueryData(
-											["messages", groupId, channelIdParam],
-											items,
-										);
-									}
-									console.debug(
-										"[ChatArea] flush(onConnect) FETCH_MESSAGES -> set messages",
-										items.length,
-									);
-									setSocketLoading(false);
-								} catch (e) {
+						socket.emit(SocketEvents.JOIN_ROOM, payload);
+						console.debug("[ChatArea] re-joined room after connect", payload);
+						lastJoinKeyRef.current = `${groupId}:${channelIdParam}`;
+						// Proactively fetch messages in case server doesn't emit JOINED_ROOM
+						setSocketLoading(true);
+						const req = { groupId, channelId: channelIdParam };
+						socket.emit(SocketEvents.FETCH_MESSAGES, req, (resp: any) => {
+							try {
+								if (resp && (resp.error || resp.code)) {
 									console.error(
-										"[ChatArea] flush(onConnect) FETCH_MESSAGES handling error",
-										e,
+										"[ChatArea] FETCH_MESSAGES ack error (onConnect)",
+										resp,
 									);
 									setSocketLoading(false);
+									return;
 								}
-							} else {
-								console.debug("[ChatArea] flush ack", item.event, ack);
+								const itemsRaw = Array.isArray(resp)
+									? resp
+									: Array.isArray(resp?.data)
+										? resp.data
+										: Array.isArray(resp?.messages)
+											? resp.messages
+											: [];
+								const items = itemsRaw.slice().sort((a: any, b: any) => {
+									const ta = new Date(a.createdAt).getTime();
+									const tb = new Date(b.createdAt).getTime();
+									return ta - tb;
+								});
+								queryClient.setQueryData(
+									["messages", groupId, channelIdParam],
+									items,
+								);
+								console.debug(
+									"[ChatArea] FETCH_MESSAGES (onConnect) -> set messages",
+									items.length,
+								);
+								setSocketLoading(false);
+							} catch (e) {
+								console.error(
+									"[ChatArea] error handling FETCH_MESSAGES (onConnect)",
+									e,
+								);
+								setSocketLoading(false);
 							}
 						});
 					} catch (err) {
-						console.error("[ChatArea] emit flush error", err);
-						setEmitQueue((q) => [...q, item]);
+						console.debug("[ChatArea] queue re-join due to", err);
+						setEmitQueue((q) => [
+							...q,
+							{ event: SocketEvents.JOIN_ROOM, payload },
+						]);
 					}
-				});
-			}
-
-			// Re-join the current room on reconnect (group mode only)
-			if (!isDirectMode && groupId && channelIdParam) {
-				const payload = { groupId, channelId: channelIdParam };
-				try {
-					socket.emit(SocketEvents.JOIN_ROOM, payload);
-					console.debug("[ChatArea] re-joined room after connect", payload);
-					lastJoinKeyRef.current = `${groupId}:${channelIdParam}`;
-					// Proactively fetch messages in case server doesn't emit JOINED_ROOM
-					setSocketLoading(true);
-					const req = { groupId, channelId: channelIdParam };
-					socket.emit(SocketEvents.FETCH_MESSAGES, req, (resp: any) => {
-						try {
-							if (resp && (resp.error || resp.code)) {
-								console.error(
-									"[ChatArea] FETCH_MESSAGES ack error (onConnect)",
-									resp,
-								);
-								setSocketLoading(false);
-								return;
-							}
-							const itemsRaw = Array.isArray(resp)
-								? resp
-								: Array.isArray(resp?.data)
-									? resp.data
-									: Array.isArray(resp?.messages)
-										? resp.messages
-										: [];
-							const items = itemsRaw.slice().sort((a: any, b: any) => {
-								const ta = new Date(a.createdAt).getTime();
-								const tb = new Date(b.createdAt).getTime();
-								return ta - tb;
-							});
-							queryClient.setQueryData(
-								["messages", groupId, channelIdParam],
-								items,
-							);
-							console.debug(
-								"[ChatArea] FETCH_MESSAGES (onConnect) -> set messages",
-								items.length,
-							);
-							setSocketLoading(false);
-						} catch (e) {
-							console.error(
-								"[ChatArea] error handling FETCH_MESSAGES (onConnect)",
-								e,
-							);
-							setSocketLoading(false);
-						}
-					});
-				} catch (err) {
-					console.debug("[ChatArea] queue re-join due to", err);
-					setEmitQueue((q) => [
-						...q,
-						{ event: SocketEvents.JOIN_ROOM, payload },
-					]);
 				}
-			}
+			};
+
+			handleConnectAsync().catch((err) =>
+				console.error("[ChatArea] onConnect handler error", err),
+			);
 		};
 
 		socket.on?.("connect", onConnect);
 
 		return () => {
+			cancelled = true;
 			socket.off?.("connect", onConnect);
 		};
-	}, [socket, emitQueue, groupId, channelIdParam, queryClient, isDirectMode]);
+	}, [
+		socket,
+		emitQueue,
+		groupId,
+		channelIdParam,
+		queryClient,
+		isDirectMode,
+		waitUntilReady,
+	]);
 
 	const send = useCallback(
 		async (payload?: ChatInputPayload) => {
