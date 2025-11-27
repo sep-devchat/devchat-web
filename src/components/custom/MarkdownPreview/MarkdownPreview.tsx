@@ -16,6 +16,7 @@ import React, {
 	useMemo,
 	useState,
 } from "react";
+import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 const Markdown = React.lazy(() => import("react-markdown"));
 import CodeBlock from "../CodeBlock";
@@ -421,30 +422,36 @@ const MarkdownPreview = ({
 				)}
 			</div>
 
-			{previewImage && (
-				<div
-					className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 p-4"
-					onClick={() => setPreviewImage(null)}
-				>
-					<div
-						className="relative max-h-[90vh] w-full max-w-5xl"
-						onClick={(e) => e.stopPropagation()}
-					>
-						<button
-							type="button"
+			{previewImage && typeof document !== "undefined"
+				? createPortal(
+						<div
+							className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/85"
 							onClick={() => setPreviewImage(null)}
-							className="absolute right-3 top-3 rounded-full bg-black/60 p-1 text-white transition hover:bg-black/80"
 						>
-							<X size={20} />
-						</button>
-						<img
-							src={previewImage.src}
-							alt={previewImage.alt}
-							className="mx-auto block max-h-[80vh] max-w-full rounded-lg object-contain"
-						/>
-					</div>
-				</div>
-			)}
+							<button
+								type="button"
+								onClick={(e) => {
+									e.stopPropagation();
+									setPreviewImage(null);
+								}}
+								className="absolute right-6 top-6 rounded-full bg-black/70 p-2 text-white transition hover:bg-black/90"
+							>
+								<X size={22} />
+							</button>
+							<div
+								className="flex h-full w-full items-center justify-center p-4"
+								onClick={(e) => e.stopPropagation()}
+							>
+								<img
+									src={previewImage.src}
+									alt={previewImage.alt}
+									className="block max-h-full max-w-full object-contain"
+								/>
+							</div>
+						</div>,
+						document.body,
+					)
+				: null}
 		</>
 	);
 };

@@ -23,7 +23,6 @@ export interface DirectMessageHeaderProps {
 	onRemoveFriend: () => Promise<void> | void;
 	onAcceptInvite: () => Promise<void> | void;
 	onDenyInvite: () => Promise<void> | void;
-	onBlock: () => void;
 }
 
 export const DirectMessageHeader: React.FC<DirectMessageHeaderProps> = ({
@@ -37,7 +36,6 @@ export const DirectMessageHeader: React.FC<DirectMessageHeaderProps> = ({
 	onRemoveFriend,
 	onAcceptInvite,
 	onDenyInvite,
-	onBlock,
 }) => {
 	const [confirmOpen, setConfirmOpen] = React.useState(false);
 	const [removing, setRemoving] = React.useState(false);
@@ -190,9 +188,6 @@ export const DirectMessageHeader: React.FC<DirectMessageHeaderProps> = ({
 							Add friend
 						</Button>
 					)}
-					<Button variant="secondary" size="sm" onClick={onBlock}>
-						Block
-					</Button>
 				</div>
 			</div>
 			<Separator />

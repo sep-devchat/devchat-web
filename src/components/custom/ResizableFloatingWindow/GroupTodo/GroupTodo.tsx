@@ -1,20 +1,7 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useRef, useState } from "react";
-import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { AlertCircle, Calendar, Flag, GripVertical } from "lucide-react";
 import {
-	Calendar,
-	Edit3,
-	Check,
-	AlertCircle,
-	MoreHorizontal,
-	GripVertical,
-	Trash2,
-	X,
-	Flag,
-} from "lucide-react";
-import {
-	Checkbox,
-	ControlsCol,
 	Desc,
 	Header,
 	Meta,
@@ -26,759 +13,451 @@ import {
 	Title,
 } from "./GroupTodo.styled";
 import {
-	Textarea,
-	TextInput,
-	Select,
-	PriorityBadge,
-	MoreWrap,
-	MoreButton,
-	Dropdown,
-	DropdownItem,
+	Checkbox,
 	DragHandle,
+	PriorityBadge,
+	Select,
 } from "../PersonalTodo/PersonalTodo.styled";
-import {
-	taskAPI,
-	GroupTodoUpdateRequest,
-	UpdateTaskStatusRequest,
-} from "@/services/taskAPI";
+import { taskAPI } from "@/services/taskAPI";
 import { Task as ApiTask, TaskStatus } from "@/types/task";
 
-/* ---------- types ---------- */
-type Task = {
+type DisplayTask = {
 	id: string;
 	name: string;
-	description?: string;
-	priority?: number;
-	status?: number;
-	startDate?: string;
-	dueDate?: string;
+	description?: string | null;
+	priority?: number | null;
+	status?: TaskStatus;
+	startDate?: string | null;
+	dueDate?: string | null;
 	createdAt?: number;
 	done?: boolean;
 };
 
-type Props = { groupId?: string; groupName?: string };
+type Props = {
+	groupId?: string;
+	groupName?: string;
+};
 
-/* ---------- utils ---------- */
-function convertApiTaskToLocalTask(apiTask: ApiTask): Task {
+const now = Date.now();
+const SAMPLE_TASKS: DisplayTask[] = [
+	{
+		id: "sample-1",
+		name: "Share product update",
+		description: "Summarize launch decisions with the design guild.",
+		priority: 1,
+		status: TaskStatus.TODO,
+		startDate: new Date(now - 1000 * 60 * 60 * 24).toISOString(),
+		dueDate: new Date(now + 1000 * 60 * 60 * 24 * 2).toISOString(),
+		createdAt: now - 1000 * 60 * 60 * 12,
+		done: false,
+	},
+	{
+		id: "sample-2",
+		name: "Prep weekly sync",
+		description: "Collect blockers before Friday's check-in.",
+		priority: 2,
+		status: TaskStatus.IN_PROGRESS,
+		startDate: new Date(now - 1000 * 60 * 60 * 6).toISOString(),
+		dueDate: new Date(now + 1000 * 60 * 60 * 24 * 5).toISOString(),
+		createdAt: now - 1000 * 60 * 60 * 3,
+		done: false,
+	},
+	{
+		id: "sample-3",
+		name: "Close retro items",
+		description: "Mark the last sprint's retro tasks as done.",
+		priority: 3,
+		status: TaskStatus.DONE,
+		startDate: new Date(now - 1000 * 60 * 60 * 24 * 3).toISOString(),
+		dueDate: new Date(now - 1000 * 60 * 60 * 24).toISOString(),
+		createdAt: now - 1000 * 60 * 60 * 24,
+		done: true,
+	},
+];
+
+function convertApiTaskToLocalTask(apiTask: ApiTask): DisplayTask {
 	try {
 		return {
 			id: apiTask.id,
 			name: apiTask.name,
-			description: apiTask.description || undefined,
+			description: apiTask.description,
 			priority: apiTask.priority,
 			status: apiTask.status,
-			startDate: apiTask.startDate || undefined,
-			dueDate: apiTask.dueDate || undefined,
+			startDate: apiTask.startDate,
+			dueDate: apiTask.dueDate,
 			createdAt: new Date(apiTask.createdAt).getTime(),
 			done: apiTask.status === TaskStatus.DONE,
 		};
 	} catch (error) {
-		console.warn("Error converting API task:", error, apiTask);
-		// Fallback with safe defaults
+		console.warn("Unable to convert task", error, apiTask);
 		return {
-			id: apiTask.id || "unknown",
-			name: apiTask.name || "Untitled Task",
-			description: apiTask.description || undefined,
-			priority: apiTask.priority || 3,
-			status: apiTask.status || TaskStatus.TODO,
-			startDate: apiTask.startDate || undefined,
-			dueDate: apiTask.dueDate || undefined,
-			createdAt: apiTask.createdAt
-				? new Date(apiTask.createdAt).getTime()
-				: Date.now(),
+			id: apiTask.id || crypto.randomUUID(),
+			name: apiTask.name || "Untitled task",
+			description: apiTask.description,
+			priority: apiTask.priority ?? 3,
+			status: apiTask.status ?? TaskStatus.TODO,
+			startDate: apiTask.startDate,
+			dueDate: apiTask.dueDate,
+			createdAt: Date.now(),
 			done: apiTask.status === TaskStatus.DONE,
 		};
 	}
 }
 
-function isoToDatetimeLocal(iso?: string) {
-	if (!iso) return "";
-	const d = new Date(iso);
-	const pad = (n: number) => String(n).padStart(2, "0");
-	return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-}
-function formatDateShort(iso?: string) {
-	if (!iso) return "";
+function formatDateShort(iso?: string | null) {
+	if (!iso) return "Not set";
 	return new Date(iso).toLocaleDateString();
 }
-function daysDiffFromNow(iso?: string) {
+
+function daysDiffFromNow(iso?: string | null) {
 	if (!iso) return null;
-	const d = new Date(iso).getTime();
-	const now = Date.now();
-	const diff = d - now;
+	const deadline = new Date(iso).getTime();
+	const diff = deadline - Date.now();
 	return Math.ceil(diff / (1000 * 60 * 60 * 24));
 }
 
-/* ---------- component ---------- */
+function getStatusLabel(status?: TaskStatus) {
+	switch (status) {
+		case TaskStatus.IN_PROGRESS:
+			return "In Progress";
+		case TaskStatus.DONE:
+			return "Done";
+		default:
+			return "To Do";
+	}
+}
+
+function getStatusColor(status?: TaskStatus) {
+	switch (status) {
+		case TaskStatus.DONE:
+			return "#16a34a";
+		case TaskStatus.IN_PROGRESS:
+			return "#0ea5e9";
+		default:
+			return "#475569";
+	}
+}
+
 export default function GroupTodo({ groupId, groupName }: Props) {
-	const gid = groupId ?? "unknown";
-	const gname = groupName ?? "Group";
+	const [sampleTasks, setSampleTasks] = useState<DisplayTask[]>(SAMPLE_TASKS);
+	const [draggingId, setDraggingId] = useState<string | null>(null);
+	const dragItemIdRef = useRef<string | null>(null);
 	const queryClient = useQueryClient();
+	const hasValidGroup = Boolean(groupId);
 
-	// Fetch tasks from API
+	const queryKey = ["group-todo", "user", groupId];
 	const {
-		data: apiTasksData,
+		data: apiTasks = [],
 		isLoading,
+		isFetching,
 		isError,
-		error,
 	} = useQuery({
-		queryKey: ["userTasks", gid],
-		queryFn: () => taskAPI.getUserTasksByGroup(gid),
-		enabled: !!groupId && groupId !== "unknown",
-		refetchOnWindowFocus: false,
-		refetchInterval: groupId && groupId !== "unknown" ? 10000 : false,
-		refetchIntervalInBackground: true,
-	});
-
-	// Convert API tasks to local task format
-	const apiTasks = Array.isArray(apiTasksData?.data)
-		? apiTasksData.data
-		: Array.isArray(apiTasksData)
-			? apiTasksData
-			: [];
-	const convertedTasks = apiTasks.map(convertApiTaskToLocalTask);
-
-	// Mutations for task operations
-	const updateTaskMutation = useMutation({
-		mutationFn: ({ taskId, data }: { taskId: string; data: any }) =>
-			taskAPI.updateTask(gid, taskId, data),
-		onSuccess: () => {
-			queryClient.invalidateQueries({ queryKey: ["userTasks", gid] });
+		queryKey,
+		queryFn: async () => {
+			if (!groupId) return [];
+			const response = await taskAPI.getUserTasksByGroup(groupId);
+			const payload = Array.isArray(response)
+				? response
+				: (response?.data ?? []);
+			return payload.map(convertApiTaskToLocalTask);
 		},
+		enabled: hasValidGroup,
+		refetchInterval: hasValidGroup ? 5000 : false,
+		refetchIntervalInBackground: true,
+		staleTime: 1000,
 	});
 
 	const updateTaskStatusMutation = useMutation({
-		mutationFn: ({
+		mutationFn: async ({
 			taskId,
-			data,
+			status,
 		}: {
 			taskId: string;
-			data: UpdateTaskStatusRequest;
-		}) => taskAPI.updateTaskStatus(gid, taskId, data),
+			status: TaskStatus;
+		}) => {
+			if (!groupId) return;
+			await taskAPI.updateTaskStatus(groupId, taskId, { status });
+		},
 		onSuccess: () => {
-			queryClient.invalidateQueries({ queryKey: ["userTasks", gid] });
-		},
-	});
-
-	const deleteTaskMutation = useMutation({
-		mutationFn: (taskId: string) => taskAPI.deleteTask(gid, taskId),
-		onSuccess: () => {
-			queryClient.invalidateQueries({ queryKey: ["userTasks", gid] });
-		},
-	});
-
-	// Fallback sample tasks for when no groupId or API fails
-	const SAMPLE_TASKS: Task[] = [
-		{
-			id: `g-${gid}-1`,
-			name: `Prepare release for ${gname}`,
-			description: "Check checklist and docs",
-			priority: 1,
-			status: 0,
-			dueDate: undefined,
-			createdAt: Date.now() - 1000 * 60 * 60 * 24,
-			done: false,
-		},
-		{
-			id: `g-${gid}-2`,
-			name: `Review PRs for ${gname}`,
-			description: "",
-			priority: 2,
-			status: 0,
-			dueDate: undefined,
-			createdAt: Date.now() - 1000 * 60 * 60 * 2,
-			done: false,
-		},
-	];
-
-	// Local state for sample tasks when API is not available
-	const [sampleTasks, setSampleTasks] = useState<Task[]>(() => {
-		if (groupId && groupId !== "unknown") {
-			// For real groups, start with empty array and let API load
-			return [];
-		}
-		// For sample/unknown groups, use sample data
-		return SAMPLE_TASKS;
-	});
-
-	// Use API data if available, otherwise use sample data
-	const isUsingApiData =
-		!isError && apiTasks.length > 0 && groupId !== "unknown";
-	const tasks = isUsingApiData ? convertedTasks : sampleTasks;
-
-	/* ---------- inline edit ---------- */
-	const [editingId, setEditingId] = useState<string | null>(null);
-	const [editFields, setEditFields] = useState<Partial<Task>>({});
-
-	function startEditInline(id: string) {
-		const t = tasks.find((x) => x.id === id);
-		if (!t) return;
-		setEditingId(id);
-		setEditFields({ ...t });
-	}
-	function cancelInlineEdit() {
-		setEditingId(null);
-		setEditFields({});
-	}
-	function saveInlineEdit(id: string) {
-		const text = (editFields.name ?? "").trim();
-		if (!text) return;
-
-		if (isUsingApiData) {
-			// Update via API - use correct field names
-			const updateData: GroupTodoUpdateRequest = {};
-			if (editFields.name !== undefined) updateData.name = editFields.name;
-			if (editFields.description !== undefined)
-				updateData.description = editFields.description || "";
-			if (editFields.status !== undefined)
-				updateData.status = editFields.status;
-			if (editFields.priority !== undefined)
-				updateData.priority = editFields.priority;
-			if (editFields.startDate !== undefined)
-				updateData.startDate = editFields.startDate;
-			if (editFields.dueDate !== undefined)
-				updateData.dueDate = editFields.dueDate;
-
-			updateTaskMutation.mutate(
-				{ taskId: id, data: updateData },
-				{
-					onError: (error) => {
-						console.error("Failed to update task:", error);
-						alert("Failed to update task. Please try again.");
-					},
-				},
-			);
-		} else {
-			// Update local state for sample data
-			setSampleTasks((s) =>
-				s.map((x) => (x.id === id ? { ...x, ...(editFields as Task) } : x)),
-			);
-		}
-
-		setEditingId(null);
-		setEditFields({});
-	}
-
-	/* ---------- toggle / delete ---------- */
-	function toggleDone(id: string) {
-		if (isUsingApiData) {
-			const currentTask = tasks.find((t) => t.id === id);
-			if (currentTask) {
-				const newStatus = currentTask.done ? TaskStatus.TODO : TaskStatus.DONE;
-				updateTaskStatusMutation.mutate(
-					{
-						taskId: id,
-						data: { status: newStatus },
-					},
-					{
-						onError: (error) => {
-							console.error("Failed to toggle task status:", error);
-							alert("Failed to update task status. Please try again.");
-						},
-					},
-				);
+			if (groupId) {
+				queryClient.invalidateQueries({ queryKey });
 			}
-		} else {
-			setSampleTasks((s) =>
-				s.map((x) => (x.id === id ? { ...x, done: !x.done } : x)),
+		},
+	});
+
+	const usingSampleData = !hasValidGroup;
+	const tasksToRender = usingSampleData ? sampleTasks : apiTasks;
+	const isRefreshing = !usingSampleData && isFetching && !isLoading;
+	const statusControlDisabled =
+		!usingSampleData && updateTaskStatusMutation.isPending;
+
+	const handleStatusChange = (taskId: string, status: TaskStatus) => {
+		if (usingSampleData || !groupId) {
+			setSampleTasks((prev) =>
+				prev.map((task: DisplayTask) =>
+					task.id === taskId
+						? { ...task, status, done: status === TaskStatus.DONE }
+						: task,
+				),
 			);
+			return;
 		}
-	}
 
-	function deleteTask(id: string) {
-		const ok = window.confirm("Are you sure you want to delete this task?");
-		if (!ok) return;
+		updateTaskStatusMutation.mutate({ taskId, status });
+	};
 
-		if (isUsingApiData) {
-			deleteTaskMutation.mutate(id, {
-				onError: (error) => {
-					console.error("Failed to delete task:", error);
-					alert("Failed to delete task. Please try again.");
-				},
-			});
-		} else {
-			setSampleTasks((s) => s.filter((x) => x.id !== id));
-		}
-	}
+	const toggleDone = (taskId: string) => {
+		const source = usingSampleData ? sampleTasks : apiTasks;
+		const target = source.find((task: DisplayTask) => task.id === taskId);
+		if (!target) return;
+		const nextStatus = target.done ? TaskStatus.TODO : TaskStatus.DONE;
+		handleStatusChange(taskId, nextStatus);
+	};
 
-	/* ---------- drag & drop reorder (match PersonalTodo behavior) ---------- */
-	const dragItemIdRef = useRef<string | null>(null);
-	const [dragOverId, setDragOverId] = useState<string | null>(null);
-	const [draggingId, setDraggingId] = useState<string | null>(null);
-
-	function onDragStart(e: React.DragEvent, id: string) {
+	const onDragStart = (event: React.DragEvent, id: string) => {
+		if (!usingSampleData) return;
 		dragItemIdRef.current = id;
 		setDraggingId(id);
-		if (e.dataTransfer) {
-			e.dataTransfer.effectAllowed = "move";
-			try {
-				e.dataTransfer.setData("text/plain", id);
-			} catch {
-				// ignore
-			}
-		}
-	}
-	function onDragOver(e: React.DragEvent, overId: string) {
-		e.preventDefault();
-		try {
-			if (e.dataTransfer) e.dataTransfer.dropEffect = "move";
-		} catch {
-			// ignore
-		}
-		if (dragOverId !== overId) setDragOverId(overId);
-	}
-	function onDrop(e: React.DragEvent, targetId: string) {
-		e.preventDefault();
-		const fromId = dragItemIdRef.current;
-		const toId = targetId;
-		if (!fromId || !toId || fromId === toId) {
+		event.dataTransfer?.setData("text/plain", id);
+	};
+
+	const onDragOver = (event: React.DragEvent, overId: string) => {
+		if (!usingSampleData) return;
+		event.preventDefault();
+		if (dragItemIdRef.current === overId) return;
+	};
+
+	const onDrop = (event: React.DragEvent, targetId: string) => {
+		if (!usingSampleData) return;
+		event.preventDefault();
+		const sourceId = dragItemIdRef.current;
+		if (!sourceId || sourceId === targetId) {
 			cleanupDrag();
 			return;
 		}
 
-		if (!isUsingApiData) {
-			// Only allow reordering for sample data
-			setSampleTasks((s) => {
-				const arr = s.slice();
-				const fromIndex = arr.findIndex((x) => x.id === fromId);
-				let toIndex = arr.findIndex((x) => x.id === toId);
-				if (fromIndex === -1 || toIndex === -1) return s;
+		setSampleTasks((prev) => {
+			const next = [...prev];
+			const fromIndex = next.findIndex((task) => task.id === sourceId);
+			let toIndex = next.findIndex((task) => task.id === targetId);
+			if (fromIndex === -1 || toIndex === -1) return prev;
+			const [moved] = next.splice(fromIndex, 1);
+			if (fromIndex < toIndex) {
+				toIndex -= 1;
+			}
+			next.splice(toIndex, 0, moved);
+			return next;
+		});
 
-				const [item] = arr.splice(fromIndex, 1);
-				// Adjust toIndex when moving downward
-				if (fromIndex < toIndex) toIndex = toIndex - 1;
-				arr.splice(toIndex, 0, item);
-				return arr;
-			});
+		cleanupDrag();
+	};
+
+	const onDragEnd = () => {
+		if (!usingSampleData) return;
+		cleanupDrag();
+	};
+
+	const cleanupDrag = () => {
+		dragItemIdRef.current = null;
+		setDraggingId(null);
+	};
+
+	const renderList = () => {
+		if (isLoading && !usingSampleData) {
+			return <Note>Loading tasks…</Note>;
 		}
 
-		cleanupDrag();
-	}
-	function onDragEnd() {
-		cleanupDrag();
-	}
-	function cleanupDrag() {
-		dragItemIdRef.current = null;
-		setDragOverId(null);
-		setDraggingId(null);
-	}
-
-	/* ---------- dropdown control ---------- */
-	const [openDropdownFor, setOpenDropdownFor] = useState<string | null>(null);
-
-	/* ---------- render ---------- */
-	return (
-		<Root>
-			<Header>
-				<div style={{ fontSize: 14 }}>
-					Tasks for group <strong>{gname}</strong>
-				</div>
+		if (!tasksToRender.length) {
+			return (
 				<Note>
-					{groupId === "unknown" || !groupId
-						? "No group selected - showing sample tasks"
-						: isLoading
-							? "Loading tasks..."
-							: isError
-								? `Error loading tasks: ${error?.message || "Unknown error"}`
-								: isUsingApiData
-									? `Loaded from API - changes will sync with server ${
-											updateTaskMutation.isPending ||
-											deleteTaskMutation.isPending
-												? "(Saving...)"
-												: ""
-										}`
-									: "Edit / reorder / delete only (no create)"}
+					{usingSampleData
+						? "Select a group to load your assigned tasks. Sample tasks show here for reference."
+						: "No tasks found for this group yet."}
 				</Note>
-			</Header>
+			);
+		}
 
+		return (
 			<TaskList>
-				{isLoading ? (
-					<div
-						style={{ color: "#64748b", textAlign: "center", padding: "20px" }}
-					>
-						Loading tasks...
-					</div>
-				) : tasks.length === 0 ? (
-					<div style={{ color: "#64748b" }}>
-						{isError ? "Failed to load tasks." : "No tasks in this group."}
-					</div>
-				) : (
-					tasks
-						.slice()
-						.sort((a, b) => (a.priority ?? 99) - (b.priority ?? 99))
-						.map((t) => {
-							const daysLeft = daysDiffFromNow(t.dueDate);
-							const isDueSoon =
-								daysLeft !== null && daysLeft <= 2 && daysLeft >= 0;
-							const isOverdue = daysLeft !== null && daysLeft < 0;
-							const priorityLevel = t.priority ?? 3;
-							const priorityLabel =
-								priorityLevel === 1 ? "P1" : priorityLevel === 2 ? "P2" : "P3";
-							const isEditing = editingId === t.id;
+				{tasksToRender.map((task: DisplayTask) => {
+					const daysLeft = daysDiffFromNow(task.dueDate);
+					const isDueSoon = daysLeft !== null && daysLeft <= 2 && daysLeft >= 0;
+					const isOverdue = daysLeft !== null && daysLeft < 0;
+					const priorityLevel = task.priority ?? 3;
+					const priorityLabel =
+						priorityLevel === 1 ? "P1" : priorityLevel === 2 ? "P2" : "P3";
+					const statusLabel = getStatusLabel(task.status);
+					const statusColor = getStatusColor(task.status);
 
-							// style for edit panel (copy from Personal)
-							const editPanelStyle: React.CSSProperties = {
-								position: "absolute",
-								right: 12,
-								top: 12,
-								zIndex: 30,
-								background: "white",
-								boxShadow: "0 6px 18px rgba(15,23,42,0.12)",
-								borderRadius: 10,
-								padding: 12,
-								minWidth: 360,
-							};
+					return (
+						<TaskItem
+							key={task.id}
+							draggable={usingSampleData}
+							onDragStart={(event) => onDragStart(event, task.id)}
+							onDragOver={(event) => onDragOver(event, task.id)}
+							onDrop={(event) => onDrop(event, task.id)}
+							onDragEnd={onDragEnd}
+							dragging={draggingId === task.id}
+						>
+							<DragHandle
+								title={
+									usingSampleData
+										? "Drag to reorder sample tasks"
+										: "Reordering disabled for synced tasks"
+								}
+								style={{
+									opacity: usingSampleData ? 1 : 0.35,
+									cursor: usingSampleData ? "grab" : "not-allowed",
+								}}
+							>
+								<GripVertical size={16} color="#94a3b8" />
+							</DragHandle>
 
-							return (
-								<TaskItem
-									key={t.id}
-									draggable
-									onDragStart={(e) => onDragStart(e, t.id)}
-									onDragOver={(e) => onDragOver(e, t.id)}
-									onDrop={(e) => onDrop(e, t.id)}
-									onDragEnd={onDragEnd}
-									dragging={draggingId === t.id}
-									style={{ position: "relative" }} // needed for absolute edit panel
+							<div>
+								<Checkbox
+									type="checkbox"
+									checked={!!task.done}
+									onChange={() => toggleDone(task.id)}
+								/>
+							</div>
+
+							<TaskMain>
+								<div
+									style={{
+										display: "flex",
+										justifyContent: "space-between",
+										gap: 12,
+										opacity: statusControlDisabled ? 0.9 : 1,
+									}}
 								>
-									<DragHandle title="Drag to reorder">
-										<GripVertical size={16} color="#94a3b8" />
-									</DragHandle>
-
-									<div>
-										<Checkbox
-											type="checkbox"
-											checked={!!t.done}
-											onChange={() => toggleDone(t.id)}
-										/>
+									<div style={{ flex: 1 }}>
+										<Title done={task.done}>{task.name}</Title>
+										<Desc>{task.description || ""}</Desc>
 									</div>
 
-									{/* ---------- Main display (always visible) ---------- */}
-									<TaskMain>
+									<Meta>
 										<div
 											style={{
 												display: "flex",
-												justifyContent: "space-between",
-												gap: 12,
-												opacity:
-													updateTaskMutation.isPending ||
-													deleteTaskMutation.isPending
-														? 0.6
-														: 1,
+												gap: 8,
+												justifyContent: "flex-end",
 											}}
 										>
-											<div style={{ flex: 1 }}>
-												<Title done={t.done}>{t.name}</Title>
-												<Desc>{t.description}</Desc>
-											</div>
-
-											<Meta>
-												<div
-													style={{
-														display: "flex",
-														gap: 8,
-														alignItems: "center",
-														justifyContent: "flex-end",
-													}}
-												>
-													{/* Hide priority badge when priority === 0 */}
-													{priorityLevel !== 0 && (
-														<PriorityBadge level={priorityLevel}>
-															<Flag size={14} />
-															{priorityLabel}
-														</PriorityBadge>
-													)}
-												</div>
-
-												<div style={{ marginTop: 8 }}>
-													{t.dueDate ? (
-														<div
-															title={
-																isOverdue
-																	? "Overdue"
-																	: isDueSoon
-																		? `Due in ${Math.max(daysLeft ?? 0, 0)} days`
-																		: `Due: ${new Date(t.dueDate).toLocaleString()}`
-															}
-															style={{
-																display: "inline-flex",
-																gap: 8,
-																alignItems: "center",
-																padding: "6px 8px",
-																borderRadius: 8,
-																background: isDueSoon
-																	? "rgba(254,226,226,0.6)"
-																	: "rgba(241,245,249,1)",
-																color: isDueSoon ? "#991b1b" : "#334155",
-																fontSize: 12,
-																justifyContent: "flex-end",
-															}}
-														>
-															{isOverdue ? (
-																<AlertCircle size={16} color="#dc2626" />
-															) : (
-																<Calendar size={14} color="#64748b" />
-															)}
-															<span>
-																{isDueSoon
-																	? `Due in ${Math.max(daysLeft ?? 0, 0)} days`
-																	: formatDateShort(t.dueDate)}
-															</span>
-														</div>
-													) : (
-														<div
-															style={{
-																color: "#94a3b8",
-																fontSize: 12,
-																textAlign: "right",
-															}}
-														>
-															No due date
-														</div>
-													)}
-												</div>
-
-												<div
-													style={{
-														marginTop: 4,
-														color: "#94a3b8",
-														fontSize: 12,
-														textAlign: "right",
-													}}
-												>
-													Start:{" "}
-													{t.startDate
-														? formatDateShort(t.startDate)
-														: "Not set"}
-												</div>
-
-												<div style={{ marginTop: 8 }}>
-													{isEditing ? (
-														<Select
-															value={editFields.status ?? t.status ?? 0}
-															onChange={(e) =>
-																setEditFields((p) => ({
-																	...p,
-																	status: Number(e.target.value),
-																}))
-															}
-														>
-															<option value={0}>To do</option>
-															<option value={1}>Done</option>
-															<option value={2}>Blocked</option>
-														</Select>
-													) : null}
-												</div>
-											</Meta>
+											{priorityLevel !== 0 && (
+												<PriorityBadge level={priorityLevel}>
+													<Flag size={14} />
+													{priorityLabel}
+												</PriorityBadge>
+											)}
 										</div>
 
-										{/* ---------- Edit panel separated into its own div (absolute) ---------- */}
-										{isEditing && (
-											<div style={editPanelStyle}>
-												<div style={{ display: "flex", gap: 8 }}>
-													<TextInput
-														value={editFields.name ?? ""}
-														onChange={(e) =>
-															setEditFields((p) => ({
-																...p,
-																name: e.target.value,
-															}))
-														}
-														placeholder="Task name"
-													/>
-												</div>
-
-												<div style={{ marginTop: 8 }}>
-													<Textarea
-														value={editFields.description ?? ""}
-														onChange={(e) =>
-															setEditFields((p) => ({
-																...p,
-																description: e.target.value,
-															}))
-														}
-														rows={3}
-													/>
-												</div>
-
+										<div style={{ marginTop: 8 }}>
+											{task.dueDate ? (
 												<div
+													title={
+														isOverdue
+															? "Deadline passed"
+															: isDueSoon
+																? `Due in ${Math.max(daysLeft ?? 0, 0)} days`
+																: `Due: ${new Date(task.dueDate).toLocaleString()}`
+													}
 													style={{
-														marginTop: 8,
-														display: "flex",
+														display: "inline-flex",
 														gap: 8,
-														alignItems: "flex-start",
-														justifyContent: "space-between",
+														alignItems: "center",
+														padding: "6px 8px",
+														borderRadius: 8,
+														background: isDueSoon
+															? "rgba(254,226,226,0.6)"
+															: "rgba(241,245,249,1)",
+														color: isDueSoon ? "#991b1b" : "#334155",
+														fontSize: 12,
 													}}
 												>
-													<Select
-														value={editFields.priority ?? priorityLevel}
-														onChange={(e) =>
-															setEditFields((p) => ({
-																...p,
-																priority: Number(e.target.value),
-															}))
-														}
-													>
-														<option value={1}>Priority 1 (High)</option>
-														<option value={2}>Priority 2</option>
-														<option value={3}>Priority 3 (Low)</option>
-														<option value={0}>None</option>
-													</Select>
-
-													<div
-														style={{
-															display: "flex",
-															flexDirection: "column",
-															gap: 4,
-														}}
-													>
-														<span style={{ fontSize: 12, color: "#475569" }}>
-															Due date
-														</span>
-														<TextInput
-															type="datetime-local"
-															value={
-																editFields.dueDate
-																	? isoToDatetimeLocal(editFields.dueDate)
-																	: ""
-															}
-															onChange={(e) =>
-																setEditFields((p) => ({
-																	...p,
-																	dueDate: e.target.value
-																		? new Date(e.target.value).toISOString()
-																		: undefined,
-																}))
-															}
-															style={{ width: 180 }}
-														/>
-													</div>
-												</div>
-
-												<div
-													style={{
-														marginTop: 8,
-														display: "flex",
-														flexDirection: "column",
-														gap: 4,
-													}}
-												>
-													<span style={{ fontSize: 12, color: "#475569" }}>
-														Start date
+													{isOverdue ? (
+														<AlertCircle size={16} color="#dc2626" />
+													) : (
+														<Calendar size={14} color="#64748b" />
+													)}
+													<span>
+														{isDueSoon
+															? `Due in ${Math.max(daysLeft ?? 0, 0)} days`
+															: formatDateShort(task.dueDate)}
 													</span>
-													<TextInput
-														type="datetime-local"
-														value={
-															editFields.startDate
-																? isoToDatetimeLocal(editFields.startDate)
-																: ""
-														}
-														onChange={(e) =>
-															setEditFields((p) => ({
-																...p,
-																startDate: e.target.value
-																	? new Date(e.target.value).toISOString()
-																	: undefined,
-															}))
-														}
-														style={{ width: 180 }}
-													/>
 												</div>
-
-												<div style={{ marginTop: 10, display: "flex", gap: 8 }}>
-													<button
-														onClick={() => saveInlineEdit(t.id)}
-														disabled={updateTaskMutation.isPending}
-														style={{
-															background: updateTaskMutation.isPending
-																? "#94a3b8"
-																: "#16a34a",
-															color: "white",
-															padding: 8,
-															borderRadius: 8,
-															border: "none",
-															cursor: updateTaskMutation.isPending
-																? "not-allowed"
-																: "pointer",
-															display: "flex",
-															gap: 8,
-															alignItems: "center",
-															opacity: updateTaskMutation.isPending ? 0.6 : 1,
-														}}
-													>
-														<Check size={14} />
-														{updateTaskMutation.isPending
-															? "Saving..."
-															: "Save"}
-													</button>
-													<button
-														onClick={cancelInlineEdit}
-														style={{
-															background: "transparent",
-															color: "#dc2626",
-															padding: 8,
-															borderRadius: 8,
-															border: "1px solid rgba(226,232,240,1)",
-															cursor: "pointer",
-															display: "flex",
-															gap: 8,
-															alignItems: "center",
-														}}
-													>
-														<X size={14} /> Cancel
-													</button>
+											) : (
+												<div style={{ color: "#94a3b8", fontSize: 12 }}>
+													No due date
 												</div>
-											</div>
-										)}
-									</TaskMain>
-
-									<ControlsCol>
-										<MoreWrap>
-											<MoreButton
-												onClick={() =>
-													setOpenDropdownFor((s) => (s === t.id ? null : t.id))
-												}
-												aria-haspopup
-											>
-												<MoreHorizontal size={16} />
-											</MoreButton>
-
-											{openDropdownFor === t.id && (
-												<Dropdown>
-													<DropdownItem
-														onClick={() => {
-															setOpenDropdownFor(null);
-															startEditInline(t.id);
-														}}
-													>
-														<Edit3 size={14} /> Edit
-													</DropdownItem>
-
-													<DropdownItem
-														onClick={() => {
-															setOpenDropdownFor(null);
-															deleteTask(t.id);
-														}}
-														style={{
-															opacity: deleteTaskMutation.isPending ? 0.6 : 1,
-															pointerEvents: deleteTaskMutation.isPending
-																? "none"
-																: "auto",
-														}}
-													>
-														<Trash2 size={14} />
-														{deleteTaskMutation.isPending
-															? "Deleting..."
-															: "Delete"}
-													</DropdownItem>
-												</Dropdown>
 											)}
-										</MoreWrap>
-									</ControlsCol>
-								</TaskItem>
-							);
-						})
-				)}
+										</div>
+
+										<div
+											style={{ marginTop: 4, fontSize: 12, color: "#94a3b8" }}
+										>
+											Start: {formatDateShort(task.startDate)}
+										</div>
+
+										<div style={{ marginTop: 8 }}>
+											<div
+												style={{
+													fontSize: 12,
+													color: statusColor,
+													marginBottom: 4,
+												}}
+											>
+												Status: <strong>{statusLabel}</strong>
+											</div>
+											<Select
+												value={task.status ?? TaskStatus.TODO}
+												onChange={(event) =>
+													handleStatusChange(
+														task.id,
+														Number(event.target.value) as TaskStatus,
+													)
+												}
+												disabled={statusControlDisabled}
+											>
+												<option value={TaskStatus.TODO}>To Do</option>
+												<option value={TaskStatus.IN_PROGRESS}>
+													In Progress
+												</option>
+												<option value={TaskStatus.DONE}>Done</option>
+											</Select>
+										</div>
+									</Meta>
+								</div>
+							</TaskMain>
+						</TaskItem>
+					);
+				})}
 			</TaskList>
+		);
+	};
+
+	return (
+		<Root>
+			<Header>
+				<div>
+					<div style={{ fontWeight: 600, color: "#0f172a" }}>
+						{groupName ? `${groupName} tasks` : "Group tasks"}
+					</div>
+					<Note>
+						{usingSampleData
+							? "Select a group to load your assigned tasks."
+							: "Auto refresh runs every 5 seconds while this window is open."}
+					</Note>
+				</div>
+				{isRefreshing && <Note>Syncing latest updates…</Note>}
+			</Header>
+
+			{isError && (
+				<Note style={{ color: "#dc2626" }}>
+					Unable to load tasks right now.
+				</Note>
+			)}
+
+			{renderList()}
 		</Root>
 	);
 }

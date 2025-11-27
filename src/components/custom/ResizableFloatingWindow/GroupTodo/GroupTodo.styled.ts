@@ -35,7 +35,6 @@ export const TaskItem = styled.li<{ dragging?: boolean }>`
 		box-shadow 0.15s ease,
 		transform 0.12s ease;
 `;
-export const Checkbox = styled.input``;
 export const TaskMain = styled.div`
 	flex: 1;
 `;
@@ -58,4 +57,45 @@ export const ControlsCol = styled.div`
 	display: flex;
 	flex-direction: column;
 	gap: 8px;
+`;
+
+export const HeaderActions = styled.div`
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	flex-wrap: wrap;
+	justify-content: flex-end;
+`;
+
+export const TaskBoardButton = styled.button`
+	border: 1px solid #c7d2fe;
+	background: #eef2ff;
+	color: #4338ca;
+	border-radius: 999px;
+	padding: 6px 14px;
+	font-size: 12px;
+	font-weight: 600;
+	cursor: pointer;
+	transition:
+		background 0.2s ease,
+		color 0.2s ease,
+		opacity 0.2s ease;
+	&:hover:enabled {
+		background: #dbeafe;
+		color: #3730a3;
+	}
+	&:disabled {
+		opacity: 0.5;
+		cursor: not-allowed;
+	}
+`;
+
+export const StatusSelect = styled.select`
+	border: 1px solid #cbd5f5;
+	background: #ffffff;
+	border-radius: 8px;
+	padding: 4px 10px;
+	font-size: 12px;
+	color: #0f172a;
+	min-width: 130px;
 `;

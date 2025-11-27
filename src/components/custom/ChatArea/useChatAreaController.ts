@@ -1474,14 +1474,12 @@ export const useChatAreaController = (): ChatAreaControllerResult => {
 						detail: { threadId: existing.id },
 					}),
 				);
-				toast.info("Opening thread…");
 				return;
 			}
 			createThread(groupId, channelIdParam, { messageId: m.id })
 				.then((resp: any) => {
 					const threadData = resp?.data || resp;
 					if (threadData?.id) {
-						toast.success("Thread created");
 						queryClient.invalidateQueries({
 							queryKey: ["threads", groupId, channelIdParam],
 						});
@@ -1491,12 +1489,11 @@ export const useChatAreaController = (): ChatAreaControllerResult => {
 							}),
 						);
 					} else {
-						toast.error("Thread create response missing id");
+						console.warn("Thread create response missing id", threadData);
 					}
 				})
 				.catch((err) => {
 					console.error("Failed to create thread", err);
-					toast.error("Failed to create thread");
 				});
 		},
 		[groupId, channelIdParam, threadsByMessageId, queryClient],
@@ -1629,7 +1626,6 @@ export const useChatAreaController = (): ChatAreaControllerResult => {
 					return { ...old, data: next };
 				},
 			);
-			toast.success("Thread created");
 		},
 		[groupId, channelIdParam, queryClient],
 	);
@@ -1651,7 +1647,6 @@ export const useChatAreaController = (): ChatAreaControllerResult => {
 					return { ...old, data: next };
 				},
 			);
-			toast.info("Thread updated");
 		},
 		[groupId, channelIdParam, queryClient],
 	);
@@ -1672,7 +1667,6 @@ export const useChatAreaController = (): ChatAreaControllerResult => {
 					return { ...old, data: next };
 				},
 			);
-			toast.warning("Thread deleted");
 		},
 		[groupId, channelIdParam, queryClient],
 	);
@@ -1713,10 +1707,6 @@ export const useChatAreaController = (): ChatAreaControllerResult => {
 		queryClient.invalidateQueries({ queryKey: ["friends"] });
 	}, [isFriend, directUserIdParam, queryClient]);
 
-	const handleBlock = useCallback(() => {
-		toast("Block user is not available yet");
-	}, []);
-
 	const directHeaderProps: DirectMessageHeaderProps | null = isDirectMode
 		? {
 				opponent: opponent as UserResponse | null,
@@ -1729,7 +1719,6 @@ export const useChatAreaController = (): ChatAreaControllerResult => {
 				onDenyInvite: handleDenyInvite,
 				onAddFriend: handleAddFriend,
 				onRemoveFriend: handleRemoveFriend,
-				onBlock: handleBlock,
 			}
 		: null;
 
