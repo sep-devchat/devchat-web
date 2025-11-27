@@ -135,6 +135,33 @@ const ThreadPanel: React.FC<ThreadPanelProps> = ({
 		}
 	}, [socket, threadId, groupId, channelId, queryClient]);
 
+	useEffect(() => {
+		if (!socket) return;
+		if (!threadId || !groupId || !channelId) {
+			socket.emit(SocketEvents.CHAT_VIEW, {
+				type: "thread",
+				active: false,
+			});
+			return;
+		}
+		socket.emit(SocketEvents.CHAT_VIEW, {
+			type: "thread",
+			groupId,
+			channelId,
+			threadId,
+			active: true,
+		});
+		return () => {
+			socket.emit(SocketEvents.CHAT_VIEW, {
+				type: "thread",
+				groupId,
+				channelId,
+				threadId,
+				active: false,
+			});
+		};
+	}, [socket, threadId, groupId, channelId]);
+
 	const mergedMessages: MessageResponse[] = useMemo(() => {
 		const base = baseMessages;
 		if (realtimeMessages.length === 0) return base;

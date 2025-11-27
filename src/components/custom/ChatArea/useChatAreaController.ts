@@ -625,6 +625,53 @@ export const useChatAreaController = (): ChatAreaControllerResult => {
 		waitUntilReady,
 	]);
 
+	useEffect(() => {
+		if (!socket) return;
+		if (isDirectMode) {
+			if (!directUserIdParam) {
+				socket.emit(SocketEvents.CHAT_VIEW, {
+					type: "direct",
+					active: false,
+				});
+				return;
+			}
+			socket.emit(SocketEvents.CHAT_VIEW, {
+				type: "direct",
+				peerUserId: directUserIdParam,
+				active: true,
+			});
+			return () => {
+				socket.emit(SocketEvents.CHAT_VIEW, {
+					type: "direct",
+					peerUserId: directUserIdParam,
+					active: false,
+				});
+			};
+		}
+
+		if (groupId && channelIdParam) {
+			socket.emit(SocketEvents.CHAT_VIEW, {
+				type: "group",
+				groupId,
+				channelId: channelIdParam,
+				active: true,
+			});
+			return () => {
+				socket.emit(SocketEvents.CHAT_VIEW, {
+					type: "group",
+					groupId,
+					channelId: channelIdParam,
+					active: false,
+				});
+			};
+		}
+
+		return () => {
+			socket.emit(SocketEvents.CHAT_VIEW, { type: "group", active: false });
+			socket.emit(SocketEvents.CHAT_VIEW, { type: "direct", active: false });
+		};
+	}, [socket, isDirectMode, groupId, channelIdParam, directUserIdParam]);
+
 	// Reset optimistics when switching room
 	useEffect(() => {
 		setRealtimeMessages([]);
