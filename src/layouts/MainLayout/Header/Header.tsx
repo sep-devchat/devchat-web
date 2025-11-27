@@ -2,11 +2,9 @@
 import {
 	ArrowLeft,
 	Info,
-	MessageSquarePlus,
 	NotebookPenIcon,
 	Spool,
 	SquareCode,
-	UserPlus2,
 	Users,
 } from "lucide-react";
 import {
@@ -19,7 +17,6 @@ import {
 	BackButton,
 } from "./Header.styled";
 import { useNavigate, useParams, useSearch } from "@tanstack/react-router";
-import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
 import { ChannelResponse, detailChannel } from "@/services/channelAPI";
 import ThreadList from "@/components/custom/ThreadList/ThreadList";
@@ -183,7 +180,7 @@ const Header = ({
 				) : (
 					<div className="flex items-center gap-2">
 						<NavTabTitle>
-							<UserPlus2 size={18} />
+							<Users size={18} />
 							Friend
 						</NavTabTitle>
 						{actions.map(({ id, title, isPrimary }) => (
@@ -311,9 +308,7 @@ const Header = ({
 						</IconBtn>
 					</div>
 				) : (
-					<Button className="shadow-none">
-						<MessageSquarePlus />
-					</Button>
+					<></>
 				)}
 			</div>
 		</HeaderContainer>
