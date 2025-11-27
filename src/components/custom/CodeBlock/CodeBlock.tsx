@@ -27,6 +27,7 @@ import {
 import {
 	CodeBlock as CodeBlockData,
 	getCodeBlockById,
+	getDirectCodeBlockById,
 } from "@/services/codeCollabAPI";
 
 export interface CodeBlockProps
@@ -39,6 +40,7 @@ export interface CodeBlockProps
 	codeBlockId?: string;
 	channelId?: string;
 	groupId?: string;
+	directUserId?: string;
 }
 
 const CodeBlock = ({
@@ -50,6 +52,7 @@ const CodeBlock = ({
 	codeBlockId,
 	channelId,
 	groupId,
+	directUserId,
 	...props
 }: CodeBlockProps) => {
 	const preRef = useRef<HTMLPreElement>(null);
@@ -65,26 +68,33 @@ const CodeBlock = ({
 	const [isLoadingCodeBlock, setIsLoadingCodeBlock] = useState(false);
 
 	useEffect(() => {
-		if (codeBlockId && channelId && groupId) {
-			setIsLoadingCodeBlock(true);
+		const fetchBlock = async () => {
+			if (!codeBlockId) return;
+			const hasChannelContext = Boolean(channelId && groupId);
+			const hasDirectContext = Boolean(directUserId);
+			if (!hasChannelContext && !hasDirectContext) return;
 
-			getCodeBlockById(codeBlockId, channelId, groupId)
-				.then((response) => {
-					if (response?.data) {
-						setFetchedCodeBlock(response.data);
-					} else {
-						console.warn("⚠️ No data in response (possibly 304 cached)");
-					}
-				})
-				.catch((error) => {
-					console.error("❌ Failed to fetch code block:", error);
-					setFetchedCodeBlock(null);
-				})
-				.finally(() => {
-					setIsLoadingCodeBlock(false);
-				});
-		}
-	}, [codeBlockId, channelId, groupId]);
+			setIsLoadingCodeBlock(true);
+			try {
+				const response =
+					hasDirectContext && directUserId
+						? await getDirectCodeBlockById(directUserId, codeBlockId)
+						: await getCodeBlockById(codeBlockId!, channelId!, groupId!);
+				if (response?.data) {
+					setFetchedCodeBlock(response.data);
+				} else {
+					console.warn("⚠️ No data in response (possibly 304 cached)");
+				}
+			} catch (error) {
+				console.error("❌ Failed to fetch code block:", error);
+				setFetchedCodeBlock(null);
+			} finally {
+				setIsLoadingCodeBlock(false);
+			}
+		};
+
+		fetchBlock();
+	}, [codeBlockId, channelId, groupId, directUserId]);
 
 	const normalizeLang = (raw?: string) => {
 		const v = (raw || "").toLowerCase();
@@ -141,7 +151,9 @@ const CodeBlock = ({
 		if (codeEl) {
 			try {
 				hljs.highlightElement(codeEl as HTMLElement);
-			} catch {}
+			} catch (error) {
+				console.warn("Failed to highlight code block", error);
+			}
 
 			const cls = codeEl.getAttribute("class") || "";
 			const m = cls.match(/(?:language|lang)-([a-zA-Z0-9_+-]+)/);
@@ -161,8 +173,15 @@ const CodeBlock = ({
 	};
 
 	const handleEditClick = () => {
-		if (!codeBlockId || !channelId || !groupId) {
-			console.warn("⚠️ Missing required params for edit");
+		if (!codeBlockId) {
+			console.warn("⚠️ Missing codeBlockId for edit");
+			return;
+		}
+
+		const hasChannelContext = Boolean(channelId && groupId);
+		const hasDirectContext = Boolean(directUserId);
+		if (!hasChannelContext && !hasDirectContext) {
+			console.warn("⚠️ Missing conversation context for edit");
 			return;
 		}
 
@@ -170,18 +189,38 @@ const CodeBlock = ({
 		const title = buildCodeBlockTitle(fetchedCodeBlock?.language || language);
 		const subtitle = buildCodeBlockSubtitleFromBlock(fetchedCodeBlock);
 
-		navigate({
-			to: "/chat/collab/$codeBlockId",
-			params: { codeBlockId },
-			search: {
-				mode: "channel",
-				groupId,
-				channelId,
-				title,
-				subtitle,
-			},
-		});
+		if (hasChannelContext) {
+			navigate({
+				to: "/chat/collab/$codeBlockId",
+				params: { codeBlockId },
+				search: {
+					mode: "channel",
+					groupId: groupId!,
+					channelId: channelId!,
+					title,
+					subtitle,
+				},
+			});
+			return;
+		}
+
+		if (hasDirectContext && directUserId) {
+			navigate({
+				to: "/chat/collab/$codeBlockId",
+				params: { codeBlockId },
+				search: {
+					mode: "direct",
+					directUserId,
+					title,
+					subtitle,
+				},
+			});
+		}
 	};
+
+	const hasChannelContext = Boolean(channelId && groupId);
+	const hasDirectContext = Boolean(directUserId);
+	const hasCollabContext = hasChannelContext || hasDirectContext;
 
 	return (
 		<>
@@ -203,14 +242,14 @@ const CodeBlock = ({
 												className="h-7 w-7 p-0 grid place-items-center"
 												aria-label="Edit code"
 												onClick={handleEditClick}
-												disabled={!codeBlockId || !channelId || !groupId}
+												disabled={!codeBlockId || !hasCollabContext}
 											>
 												<Pencil className="h-4 w-4" />
 												<span className="sr-only">Edit code</span>
 											</Button>
 										</TooltipTrigger>
 										<TooltipContent side="bottom">
-											{codeBlockId && channelId && groupId
+											{codeBlockId && hasCollabContext
 												? "Collaborate on code"
 												: "Code block info not available"}
 										</TooltipContent>

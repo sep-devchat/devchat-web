@@ -27,6 +27,7 @@ export interface MarkdownPreviewProps {
 	codeBlockId?: string;
 	channelId?: string;
 	groupId?: string;
+	directUserId?: string;
 }
 
 const MarkdownPreview = ({
@@ -35,6 +36,7 @@ const MarkdownPreview = ({
 	codeBlockId,
 	channelId,
 	groupId,
+	directUserId,
 }: MarkdownPreviewProps) => {
 	const [remarkPlugins, setRemarkPlugins] = useState<any[]>([]);
 	const [previewImage, setPreviewImage] = useState<{
@@ -178,10 +180,11 @@ const MarkdownPreview = ({
 					codeBlockId={extractedId}
 					channelId={channelId}
 					groupId={groupId}
+					directUserId={directUserId}
 				/>
 			);
 		};
-	}, [extractedId, channelId, groupId]);
+	}, [extractedId, channelId, groupId, directUserId]);
 
 	const parsedImages = useMemo(() => {
 		const regex = /!\[([^\]]*)\]\(([^)]+)\)/g;

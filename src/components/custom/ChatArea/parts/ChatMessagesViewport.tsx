@@ -55,6 +55,7 @@ export interface ChatMessagesViewportProps {
 	onCreateThread: (m: MessageResponse) => void;
 	channelId?: string;
 	groupId?: string;
+	directUserId?: string;
 	currentUserId?: string | null;
 }
 
@@ -86,6 +87,7 @@ const ChatMessagesViewport: React.FC<ChatMessagesViewportProps> = ({
 	onCreateThread,
 	channelId,
 	groupId,
+	directUserId,
 	currentUserId,
 }) => {
 	const displayItems = useMemo<ChatDisplayItem[]>(() => {
@@ -247,6 +249,7 @@ const ChatMessagesViewport: React.FC<ChatMessagesViewportProps> = ({
 						codeBlockId={m.codeBlockId}
 						channelId={channelId || ""}
 						groupId={groupId || ""}
+						directUserId={directUserId}
 					/>
 				</div>
 			);

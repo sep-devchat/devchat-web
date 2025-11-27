@@ -27,6 +27,7 @@ export type MessageRowProps = {
 	codeBlockId?: string;
 	channelId: string;
 	groupId: string;
+	directUserId?: string;
 };
 
 const MarkdownPreviewMemo = React.memo(MarkdownPreview);
@@ -57,6 +58,7 @@ export const MessageRow: React.FC<MessageRowProps> = React.memo(
 		codeBlockId,
 		channelId,
 		groupId,
+		directUserId,
 	}) => {
 		const [hovered, setHovered] = useState(false);
 
@@ -139,6 +141,7 @@ export const MessageRow: React.FC<MessageRowProps> = React.memo(
 									codeBlockId={codeBlockId}
 									channelId={channelId}
 									groupId={groupId}
+									directUserId={directUserId}
 								/>
 
 								{existingThreadId && !m.thread?.id && (

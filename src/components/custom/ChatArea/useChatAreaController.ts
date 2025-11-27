@@ -773,6 +773,7 @@ export const useChatAreaController = (): ChatAreaControllerResult => {
 								content: dm.content ?? "",
 								createdAt: dm.createdAt,
 								sender: dm.from ?? null,
+								codeBlockId: dm.codeBlockId,
 							}));
 							const items = mapped.slice().sort((a: any, b: any) => {
 								const ta = new Date(a.createdAt).getTime();
@@ -1759,6 +1760,7 @@ export const useChatAreaController = (): ChatAreaControllerResult => {
 		onCreateThread: handleCreateThread,
 		channelId: channelIdParam,
 		groupId,
+		directUserId: directUserIdParam,
 		currentUserId: profile?.id,
 	};
 
