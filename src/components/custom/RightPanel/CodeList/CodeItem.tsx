@@ -1,7 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React from "react";
 import { useTheme } from "styled-components";
-import { Code2, Play } from "lucide-react";
+import { Code2, Pencil, Play } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import {
 	CPCodeItem,
 	CPCodeItemHeader,
@@ -9,6 +10,8 @@ import {
 	CPCodeItemTitle,
 	CPCodeItemSubtitle,
 	CPRunButton,
+	CPActionButtons,
+	CPCollaborateButton,
 	CPCodeEditorWrapper,
 } from "./CodeList.styled";
 
@@ -63,6 +66,10 @@ interface CodeItemProps {
 	code: string;
 	language?: string;
 	onRun: () => void;
+	isRunning?: boolean;
+	disabled?: boolean;
+	onCollaborate?: () => void;
+	collaborateDisabled?: boolean;
 }
 
 const CodeItem: React.FC<CodeItemProps> = ({
@@ -71,6 +78,10 @@ const CodeItem: React.FC<CodeItemProps> = ({
 	code,
 	language,
 	onRun,
+	isRunning = false,
+	disabled = false,
+	onCollaborate,
+	collaborateDisabled = false,
 }) => {
 	const highlightLanguage = language
 		? normalizeLanguage(language)
@@ -101,9 +112,34 @@ const CodeItem: React.FC<CodeItemProps> = ({
 					</CPCodeItemTitle>
 				</CPCodeItemInfo>
 
-				<CPRunButton onClick={onRun} title="Run">
-					<Play size={18} />
-				</CPRunButton>
+				<CPActionButtons>
+					{onCollaborate && (
+						<CPCollaborateButton
+							onClick={() => {
+								if (!disabled && !collaborateDisabled) {
+									onCollaborate();
+								}
+							}}
+							title="Collaborate"
+							aria-label="Open in code collaboration"
+							disabled={disabled || collaborateDisabled}
+						>
+							<Pencil size={18} />
+						</CPCollaborateButton>
+					)}
+					<CPRunButton
+						onClick={() => {
+							if (!disabled) {
+								onRun();
+							}
+						}}
+						title="Run"
+						aria-label="Run code"
+						disabled={disabled}
+					>
+						{isRunning ? <Spinner className="h-4 w-4" /> : <Play size={18} />}
+					</CPRunButton>
+				</CPActionButtons>
 			</CPCodeItemHeader>
 
 			<CPCodeEditorWrapper $isDark={isDark}>

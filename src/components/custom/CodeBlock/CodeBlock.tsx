@@ -16,15 +16,9 @@ import {
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Pencil, Play } from "lucide-react";
-import {
-	Dialog,
-	DialogContent,
-	DialogHeader,
-	DialogTitle,
-} from "@/components/ui/dialog";
 import { Spinner } from "@/components/ui/spinner";
-import { runCode } from "@/services/code/code.api";
-import { ProgrammingLanguageEnum } from "@/utils/enum";
+import CodeRunResultDialog from "@/components/custom/CodeRunResultDialog";
+import useCodeRunner from "@/hooks/useCodeRunner";
 import { MockPage } from "@/components/custom/MockPage";
 import CodeCollab from "@/pages/CodeCollab/CodeCollab";
 import {
@@ -58,12 +52,10 @@ const CodeBlock = ({
 	const preRef = useRef<HTMLPreElement>(null);
 	const [language, setLanguage] = useState<string>("");
 	const [codeText, setCodeText] = useState<string>("");
-	const [isRunning, setIsRunning] = useState<boolean>(false);
 	const [isResultOpen, setIsResultOpen] = useState<boolean>(false);
-	const [runOutput, setRunOutput] = useState<string>("");
-	const [runError, setRunError] = useState<string>("");
 	const [isEditOpen, setIsEditOpen] = useState<boolean>(false);
-	const [lastRunAt, setLastRunAt] = useState<string>("");
+	const { isRunning, runOutput, runError, lastRunAt, runSnippet } =
+		useCodeRunner();
 
 	const [fetchedCodeBlock, setFetchedCodeBlock] =
 		useState<CodeBlockData | null>(null);
@@ -159,42 +151,10 @@ const CodeBlock = ({
 		}
 	}, [props.children]);
 
-	const toEnumLanguage = (lang: string): ProgrammingLanguageEnum | null => {
-		const val = (lang || "").toLowerCase();
-		if (["javascript", "js", "node", "nodejs"].includes(val))
-			return ProgrammingLanguageEnum.JAVASCRIPT;
-		if (["python", "py"].includes(val)) return ProgrammingLanguageEnum.PYTHON;
-		if (["java"].includes(val)) return ProgrammingLanguageEnum.JAVA;
-		return null;
-	};
-
 	const handleRun = async () => {
-		const enumLang = toEnumLanguage(language);
-		if (!enumLang) {
-			setRunError(
-				`Running not supported for language: ${language || "Unknown"}`,
-			);
-			setRunOutput("");
-			setIsResultOpen(true);
-			setLastRunAt(new Date().toLocaleString());
-			return;
-		}
 		if (!codeText?.trim()) return;
-		setIsRunning(true);
-		setRunError("");
-		try {
-			const res = await runCode({ code: codeText, language: enumLang });
-			setRunOutput(res.data.output ?? "");
-			setIsResultOpen(true);
-			setLastRunAt(new Date().toLocaleString());
-		} catch (e) {
-			setRunError("Error running code");
-			setRunOutput("");
-			setIsResultOpen(true);
-			setLastRunAt(new Date().toLocaleString());
-		} finally {
-			setIsRunning(false);
-		}
+		await runSnippet({ code: codeText, language });
+		setIsResultOpen(true);
 	};
 
 	const handleEditClick = () => {
@@ -281,30 +241,14 @@ const CodeBlock = ({
 					/>
 				</CardContent>
 
-				<Dialog open={isResultOpen} onOpenChange={setIsResultOpen}>
-					<DialogContent className="w-full max-w-[min(95vw,720px)] p-0 overflow-hidden border border-slate-200 bg-white text-slate-900">
-						<DialogHeader className="px-4 py-3 border-b border-slate-200 bg-slate-50">
-							<DialogTitle className="text-base font-semibold tracking-tight text-slate-900">
-								Execution Result
-							</DialogTitle>
-							<div className="text-xs text-slate-500">
-								{language ? `${language} • ` : ""}
-								{lastRunAt || "Just now"}
-							</div>
-						</DialogHeader>
-						<div className="p-4 space-y-3 max-h-[70vh] overflow-y-auto bg-white">
-							{runError ? (
-								<div className="rounded-lg border border-red-200 bg-red-50 text-red-700 text-sm p-3 whitespace-pre-wrap break-words">
-									{runError}
-								</div>
-							) : (
-								<pre className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs sm:text-sm text-slate-900 whitespace-pre-wrap break-words max-h-[55vh] overflow-auto">
-									{runOutput || ""}
-								</pre>
-							)}
-						</div>
-					</DialogContent>
-				</Dialog>
+				<CodeRunResultDialog
+					open={isResultOpen}
+					onOpenChange={setIsResultOpen}
+					language={language}
+					lastRunAt={lastRunAt}
+					output={runOutput}
+					error={runError}
+				/>
 			</Card>
 
 			<MockPage

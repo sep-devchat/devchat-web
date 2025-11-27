@@ -2,7 +2,6 @@ import React from "react";
 import { MessageResponse } from "@/services/messageAPI";
 import { MessageReportType } from "@/services/reportAPI";
 import { DeleteMessageDialog } from "./DeleteMessageDialog";
-import { ReportUserDialog } from "./ReportUserDialog";
 import { ReportMessageDialog } from "./ReportMessageDialog";
 
 export interface ChatDialogsProps {
@@ -11,13 +10,6 @@ export interface ChatDialogsProps {
 	messagePendingDelete: MessageResponse | null;
 	onDeleteDialogOpenChange: (open: boolean) => void;
 	onConfirmDelete: () => void;
-
-	reportDialogOpen: boolean;
-	reportReason: string;
-	reportSubmitting: boolean;
-	onReportDialogOpenChange: (open: boolean) => void;
-	onReportReasonChange: (value: string) => void;
-	onReportSubmit: () => Promise<void> | void;
 
 	reportMessageDialogOpen: boolean;
 	messagePendingReport: MessageResponse | null;
@@ -31,12 +23,6 @@ const ChatDialogs: React.FC<ChatDialogsProps> = ({
 	messagePendingDelete,
 	onDeleteDialogOpenChange,
 	onConfirmDelete,
-	reportDialogOpen,
-	reportReason,
-	reportSubmitting,
-	onReportDialogOpenChange,
-	onReportReasonChange,
-	onReportSubmit,
 	reportMessageDialogOpen,
 	messagePendingReport,
 	reportMessageType,
@@ -50,14 +36,6 @@ const ChatDialogs: React.FC<ChatDialogsProps> = ({
 				submitting={deleteSubmitting}
 				onOpenChange={onDeleteDialogOpenChange}
 				onConfirm={onConfirmDelete}
-			/>
-			<ReportUserDialog
-				open={reportDialogOpen}
-				reason={reportReason}
-				submitting={reportSubmitting}
-				onOpenChange={onReportDialogOpenChange}
-				onReasonChange={onReportReasonChange}
-				onSubmit={onReportSubmit}
 			/>
 			<ReportMessageDialog
 				open={reportMessageDialogOpen}

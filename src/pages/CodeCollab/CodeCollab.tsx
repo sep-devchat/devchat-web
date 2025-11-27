@@ -15,6 +15,7 @@ import * as S from "./CodeCollab.styled";
 import { Spinner } from "@/components/ui/spinner";
 import {
 	getCodeBlockById,
+	getDirectCodeBlockById,
 	getCodeCollaborationHistory,
 	saveCodeCollaboration,
 	deleteCodeCollaboration,
@@ -24,14 +25,16 @@ import { toast } from "sonner";
 
 interface CodeCollabProps {
 	codeBlockId: string;
-	channelId: string;
-	groupId: string;
+	channelId?: string;
+	groupId?: string;
+	directUserId?: string;
 }
 
 export default function CodeCollab({
 	codeBlockId,
 	channelId,
 	groupId,
+	directUserId,
 }: CodeCollabProps) {
 	const currentUserProfile = useSelector(
 		(state: RootState) => state.user.profile,
@@ -90,21 +93,23 @@ export default function CodeCollab({
 		return normalized;
 	};
 
+	const isChannelContext = Boolean(channelId && groupId);
+	const isDirectContext = Boolean(directUserId);
+
 	useEffect(() => {
 		const fetchData = async () => {
 			try {
 				setIsLoading(true);
 				setError(null);
 
-				if (!codeBlockId || !channelId || !groupId) {
+				if (!codeBlockId || (!isChannelContext && !isDirectContext)) {
 					throw new Error("Missing required params");
 				}
 
-				const codeBlockResponse = await getCodeBlockById(
-					codeBlockId,
-					channelId,
-					groupId,
-				);
+				const codeBlockResponse =
+					isDirectContext && directUserId
+						? await getDirectCodeBlockById(directUserId, codeBlockId)
+						: await getCodeBlockById(codeBlockId, channelId!, groupId!);
 
 				if (!codeBlockResponse?.data) {
 					throw new Error("Failed to load code block");
@@ -156,10 +161,17 @@ export default function CodeCollab({
 			}
 		};
 
-		if (codeBlockId && channelId && groupId) {
+		if (codeBlockId && (isChannelContext || isDirectContext)) {
 			fetchData();
 		}
-	}, [codeBlockId, channelId, groupId]);
+	}, [
+		codeBlockId,
+		channelId,
+		groupId,
+		directUserId,
+		isChannelContext,
+		isDirectContext,
+	]);
 
 	const handleEditRevision = (changeId: string) => {
 		const change = changes.find((c) => c.id === changeId);
@@ -368,10 +380,21 @@ export default function CodeCollab({
 						<p className="text-muted-foreground text-xs mt-2">
 							Code Block ID: {codeBlockId}
 						</p>
-						<p className="text-muted-foreground text-xs">
-							Channel: {channelId}
-						</p>
-						<p className="text-muted-foreground text-xs">Group: {groupId}</p>
+						{isChannelContext && (
+							<>
+								<p className="text-muted-foreground text-xs">
+									Channel: {channelId}
+								</p>
+								<p className="text-muted-foreground text-xs">
+									Group: {groupId}
+								</p>
+							</>
+						)}
+						{isDirectContext && (
+							<p className="text-muted-foreground text-xs">
+								Direct user: {directUserId}
+							</p>
+						)}
 					</div>
 				</div>
 			</S.Container>

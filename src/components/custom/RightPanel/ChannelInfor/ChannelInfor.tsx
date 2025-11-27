@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Search, Hash, X } from "lucide-react";
 import {
 	Avatar,
@@ -109,6 +109,8 @@ const mockMessages = [
 	},
 ];
 
+const ATTACHMENT_REFRESH_INTERVAL_MS = 5000;
+
 const getUserDisplayName = (user?: UserResponse | null) => {
 	if (!user) return "Direct Message";
 	const fullName = [user.firstName, user.lastName]
@@ -146,6 +148,7 @@ const ChannelInfor = ({
 	const [attachmentLimit, setAttachmentLimit] = useState(10);
 	const [totalAttachments, setTotalAttachments] = useState(0);
 	const [loadingAttachments, setLoadingAttachments] = useState(false);
+	const loadingAttachmentsRef = useRef(false);
 	const isChannelMode = Boolean(groupId && channelId);
 	const isDirectMode = Boolean(directUserId) && !isChannelMode;
 	const canFetchAttachments = isChannelMode || isDirectMode;
@@ -274,11 +277,24 @@ const ChannelInfor = ({
 		fetchAttachments,
 	]);
 
+	useEffect(() => {
+		loadingAttachmentsRef.current = loadingAttachments;
+	}, [loadingAttachments]);
+
 	// Fetch attachments when limit changes
 	useEffect(() => {
 		if (attachmentLimit > 10 && canFetchAttachments) {
 			fetchAttachments(attachmentLimit);
 		}
+	}, [attachmentLimit, canFetchAttachments, fetchAttachments]);
+
+	useEffect(() => {
+		if (!canFetchAttachments) return;
+		const intervalId = window.setInterval(() => {
+			if (loadingAttachmentsRef.current) return;
+			fetchAttachments(attachmentLimit);
+		}, ATTACHMENT_REFRESH_INTERVAL_MS);
+		return () => window.clearInterval(intervalId);
 	}, [attachmentLimit, canFetchAttachments, fetchAttachments]);
 
 	// close modal on ESC

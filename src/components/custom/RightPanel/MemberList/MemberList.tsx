@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams } from "@tanstack/react-router";
 import { Search, X } from "lucide-react";
 import MemberItem, {
@@ -27,6 +27,8 @@ import { fetchGroupMembers, setCurrentGroup } from "@/store/groupMembers.slice";
 import { SearchContainer, SearchInput } from "../FriendList/FriendList.styled";
 import FriendProfileModal from "@/pages/Friend/AllFriends/FriendProfileModal/FriendProfileModal";
 
+const REFRESH_INTERVAL_MS = 5000;
+
 interface MemberListProps {
 	onClose?: () => void;
 	isHalf?: boolean;
@@ -46,6 +48,7 @@ export default function MemberList({ onClose, isHalf }: MemberListProps) {
 	const members = bucket?.members || [];
 	const loading = bucket?.loading || false;
 	const error = bucket?.error || null;
+	const loadingRef = useRef(false);
 	const [isModalOpen, setIsModalOpen] = useState(false);
 	const [selectedFriend, setSelectedFriend] = useState<any | null>(null);
 
@@ -53,6 +56,19 @@ export default function MemberList({ onClose, isHalf }: MemberListProps) {
 		if (!groupId) return;
 		dispatch(setCurrentGroup(groupId));
 		dispatch(fetchGroupMembers({ groupId }));
+	}, [dispatch, groupId]);
+
+	useEffect(() => {
+		loadingRef.current = loading;
+	}, [loading]);
+
+	useEffect(() => {
+		if (!groupId) return;
+		const intervalId = window.setInterval(() => {
+			if (loadingRef.current) return;
+			dispatch(fetchGroupMembers({ groupId }));
+		}, REFRESH_INTERVAL_MS);
+		return () => window.clearInterval(intervalId);
 	}, [dispatch, groupId]);
 
 	const handleSearchToggle = () => {

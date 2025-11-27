@@ -94,10 +94,6 @@ export const useChatAreaController = (): ChatAreaControllerResult => {
 	const [reactionPickerFor, setReactionPickerFor] = useState<string | null>(
 		null,
 	);
-	// Report user dialog state (DM header)
-	const [reportDialogOpen, setReportDialogOpen] = useState(false);
-	const [reportSubmitting, setReportSubmitting] = useState(false);
-	const [reportReason, setReportReason] = useState("");
 	const [reportMessageDialogOpen, setReportMessageDialogOpen] = useState(false);
 	const [messagePendingReport, setMessagePendingReport] =
 		useState<MessageResponse | null>(null);
@@ -1533,22 +1529,6 @@ export const useChatAreaController = (): ChatAreaControllerResult => {
 		}
 	}, []);
 
-	const handleReportDialogOpenChange = useCallback((open: boolean) => {
-		setReportDialogOpen(open);
-	}, []);
-
-	const handleReportSubmit = useCallback(async () => {
-		try {
-			setReportSubmitting(true);
-			console.debug("Report user", directUserIdParam, reportReason);
-			toast.success("Report submitted");
-			setReportDialogOpen(false);
-			setReportReason("");
-		} finally {
-			setReportSubmitting(false);
-		}
-	}, [directUserIdParam, reportReason]);
-
 	const handleReportMessageDialogOpenChange = useCallback((open: boolean) => {
 		setReportMessageDialogOpen(open);
 		if (!open) {
@@ -1688,10 +1668,6 @@ export const useChatAreaController = (): ChatAreaControllerResult => {
 		toast("Block user is not available yet");
 	}, []);
 
-	const handleOpenReport = useCallback(() => {
-		setReportDialogOpen(true);
-	}, [setReportDialogOpen]);
-
 	const directHeaderProps: DirectMessageHeaderProps | null = isDirectMode
 		? {
 				opponent: opponent as UserResponse | null,
@@ -1705,7 +1681,6 @@ export const useChatAreaController = (): ChatAreaControllerResult => {
 				onAddFriend: handleAddFriend,
 				onRemoveFriend: handleRemoveFriend,
 				onBlock: handleBlock,
-				onOpenReport: handleOpenReport,
 			}
 		: null;
 
@@ -1746,12 +1721,6 @@ export const useChatAreaController = (): ChatAreaControllerResult => {
 		messagePendingDelete,
 		onDeleteDialogOpenChange: handleDeleteDialogOpenChange,
 		onConfirmDelete: confirmDelete,
-		reportDialogOpen,
-		reportReason,
-		reportSubmitting,
-		onReportDialogOpenChange: handleReportDialogOpenChange,
-		onReportReasonChange: setReportReason,
-		onReportSubmit: handleReportSubmit,
 		reportMessageDialogOpen,
 		messagePendingReport,
 		reportMessageType,

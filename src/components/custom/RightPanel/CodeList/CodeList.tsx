@@ -1,14 +1,12 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { SquareCode, X } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { X } from "lucide-react";
+import CodeRunResultDialog from "@/components/custom/CodeRunResultDialog";
 import CodeItem from "./CodeItem";
 import {
 	CloseButton,
 	CPContent,
 	CPHeader,
-	CPHeaderIcon,
 	CPHeaderLeft,
-	CPModalContent,
-	CPModalOverlay,
 	CPTitle,
 	EmptyMessage,
 	ErrorText,
@@ -22,6 +20,10 @@ import {
 	listChannelCodeBlocks,
 	listDirectCodeBlocks,
 } from "@/services/codeCollabAPI";
+import useCodeRunner from "@/hooks/useCodeRunner";
+import { MockPage } from "@/components/custom/MockPage";
+import CodeCollab from "@/pages/CodeCollab";
+import { Button } from "@/components/ui/button";
 
 interface CodeListProps {
 	onClose?: () => void;
@@ -30,14 +32,8 @@ interface CodeListProps {
 	directUserId?: string;
 }
 
-interface RunCodeModalProps {
-	code: string;
-	title?: string;
-	language?: string;
-	onClose: () => void;
-}
-
 const PAGE_SIZE = 20;
+const REFRESH_INTERVAL_MS = 5000;
 
 const getDisplayName = (user?: CodeBlock["user"]) => {
 	if (!user) return "Unknown author";
@@ -59,26 +55,24 @@ const buildItemSubtitle = (block: CodeBlock) => {
 	return [owner, timestamp].filter(Boolean).join(" • ");
 };
 
-const RunCodeModal = ({
-	code,
-	title,
-	language,
-	onClose,
-}: RunCodeModalProps) => {
-	const stop = (e: React.MouseEvent) => e.stopPropagation();
-	return (
-		<CPModalOverlay onClick={onClose}>
-			<CPModalContent onClick={stop}>
-				<h3>{title || "Snippet preview"}</h3>
-				{language && <p>Language: {language}</p>}
-				<pre>{code}</pre>
-				<button onClick={onClose} style={{ marginTop: 16 }}>
-					Close
-				</button>
-			</CPModalContent>
-		</CPModalOverlay>
-	);
-};
+type CollaborateContext =
+	| {
+			mode: "channel";
+			codeBlockId: string;
+			title: string;
+			subtitle?: string;
+			language?: string;
+			groupId: string;
+			channelId: string;
+	  }
+	| {
+			mode: "direct";
+			codeBlockId: string;
+			title: string;
+			subtitle?: string;
+			language?: string;
+			directUserId: string;
+	  };
 
 const CodeList = ({
 	onClose,
@@ -86,8 +80,6 @@ const CodeList = ({
 	channelId,
 	directUserId,
 }: CodeListProps) => {
-	const [isModalOpen, setIsModalOpen] = useState(false);
-	const [runningCode, setRunningCode] = useState("");
 	const [modalMeta, setModalMeta] = useState<{
 		title?: string;
 		language?: string;
@@ -98,6 +90,19 @@ const CodeList = ({
 	const [hasMore, setHasMore] = useState(false);
 	const [currentPage, setCurrentPage] = useState(1);
 	const [initialLoaded, setInitialLoaded] = useState(false);
+	const [isResultOpen, setIsResultOpen] = useState(false);
+	const [runningBlockId, setRunningBlockId] = useState<string | null>(null);
+	const [collabContext, setCollabContext] = useState<CollaborateContext | null>(
+		null,
+	);
+	const isLoadingRef = useRef(false);
+	const {
+		runOutput,
+		runError,
+		lastRunAt,
+		runSnippet,
+		reset: resetRunner,
+	} = useCodeRunner();
 
 	const isChannelMode = Boolean(groupId && channelId);
 	const isDirectMode = Boolean(directUserId) && !isChannelMode;
@@ -165,24 +170,82 @@ const CodeList = ({
 		}
 	}, [canFetch, fetchCodeBlocks]);
 
-	const handleRunCode = (block: CodeBlock) => {
-		setRunningCode(block.content || "");
+	useEffect(() => {
+		isLoadingRef.current = isLoading;
+	}, [isLoading]);
+
+	useEffect(() => {
+		if (!canFetch) return;
+		const intervalId = window.setInterval(() => {
+			if (isLoadingRef.current) return;
+			fetchCodeBlocks(1, true);
+		}, REFRESH_INTERVAL_MS);
+		return () => window.clearInterval(intervalId);
+	}, [canFetch, fetchCodeBlocks]);
+
+	useEffect(() => {
+		setCollabContext(null);
+	}, [groupId, channelId, directUserId, isChannelMode]);
+
+	const handleRunCode = async (block: CodeBlock) => {
+		if (runningBlockId) return;
+		const code = block.content || "";
 		setModalMeta({
 			title: buildItemTitle(block),
 			language: block.language,
 		});
-		setIsModalOpen(true);
+		resetRunner();
+		setIsResultOpen(false);
+		setRunningBlockId(block.id);
+
+		try {
+			await runSnippet({ code, language: block.language });
+		} finally {
+			setRunningBlockId(null);
+			setIsResultOpen(true);
+		}
 	};
 
-	const handleCloseModal = () => {
-		setIsModalOpen(false);
-		setRunningCode("");
-		setModalMeta(null);
+	const handleResultDialogChange = (open: boolean) => {
+		setIsResultOpen(open);
+		if (!open) {
+			resetRunner();
+		}
 	};
 
 	const handleLoadMore = () => {
 		if (!hasMore || isLoading) return;
 		fetchCodeBlocks(currentPage + 1);
+	};
+
+	const handleCollaborate = (block: CodeBlock) => {
+		if (isChannelMode && groupId && channelId) {
+			setCollabContext({
+				mode: "channel",
+				codeBlockId: block.id,
+				title: buildItemTitle(block),
+				subtitle: buildItemSubtitle(block),
+				language: block.language,
+				groupId,
+				channelId,
+			});
+			return;
+		}
+
+		if (isDirectMode && directUserId) {
+			setCollabContext({
+				mode: "direct",
+				codeBlockId: block.id,
+				title: buildItemTitle(block),
+				subtitle: buildItemSubtitle(block),
+				language: block.language,
+				directUserId,
+			});
+		}
+	};
+
+	const handleCloseCollaborate = () => {
+		setCollabContext(null);
 	};
 
 	const handleRetry = () => {
@@ -194,13 +257,14 @@ const CodeList = ({
 	const shouldShowFooter =
 		canFetch && (hasMore || isLoading || codeBlocks.length > 0);
 
+	const canCollaborate = Boolean(
+		(isChannelMode && groupId && channelId) || (isDirectMode && directUserId),
+	);
+
 	return (
 		<PageWrapper>
 			<CPHeader>
 				<CPHeaderLeft>
-					<CPHeaderIcon>
-						<SquareCode />
-					</CPHeaderIcon>
 					<CPTitle>{headerTitle}</CPTitle>
 				</CPHeaderLeft>
 
@@ -222,6 +286,12 @@ const CodeList = ({
 								language={block.language}
 								code={block.content}
 								onRun={() => handleRunCode(block)}
+								isRunning={runningBlockId === block.id}
+								disabled={Boolean(runningBlockId)}
+								onCollaborate={
+									canCollaborate ? () => handleCollaborate(block) : undefined
+								}
+								collaborateDisabled={Boolean(runningBlockId)}
 							/>
 						))}
 
@@ -262,14 +332,53 @@ const CodeList = ({
 				)}
 			</CPContent>
 
-			{isModalOpen && (
-				<RunCodeModal
-					code={runningCode}
-					title={modalMeta?.title}
-					language={modalMeta?.language}
-					onClose={handleCloseModal}
-				/>
-			)}
+			<CodeRunResultDialog
+				open={isResultOpen}
+				onOpenChange={handleResultDialogChange}
+				language={modalMeta?.language}
+				lastRunAt={lastRunAt}
+				output={runOutput}
+				error={runError}
+				title={modalMeta?.title}
+			/>
+
+			<MockPage
+				visible={Boolean(collabContext)}
+				title={collabContext?.title || "Code Collaboration"}
+				description={collabContext?.subtitle}
+				actions={
+					<Button variant="outline" size="sm" onClick={handleCloseCollaborate}>
+						Close
+					</Button>
+				}
+				contentPadding={false}
+				padded={false}
+			>
+				{collabContext ? (
+					collabContext.mode === "channel" ? (
+						<CodeCollab
+							key={`${collabContext.codeBlockId}-channel`}
+							codeBlockId={collabContext.codeBlockId}
+							channelId={collabContext.channelId}
+							groupId={collabContext.groupId}
+						/>
+					) : (
+						<CodeCollab
+							key={`${collabContext.codeBlockId}-direct`}
+							codeBlockId={collabContext.codeBlockId}
+							directUserId={collabContext.directUserId}
+						/>
+					)
+				) : (
+					<div className="flex items-center justify-center h-full">
+						<div className="text-center">
+							<p className="text-sm text-muted-foreground">
+								Select a code block to collaborate on.
+							</p>
+						</div>
+					</div>
+				)}
+			</MockPage>
 		</PageWrapper>
 	);
 };

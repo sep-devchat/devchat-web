@@ -1,44 +1,22 @@
 import { theme } from "@/themes";
 import styled from "styled-components";
 
-export const PageWrapper = styled.div`
-	height: 100%;
-	width: 600px;
-	position: relative;
+export const PageWrapper = styled.div<{ $isDark?: boolean }>`
 	display: flex;
 	flex-direction: column;
-	margin-right: 18px;
-	background: ${theme.color.grey30};
-	border-radius: 10px;
-	margin-right: 18px;
-	margin-left: 12px;
-
-	@media (max-width: 1220px) {
-		width: 100%;
-		margin: 0;
-		border-radius: 0px 10px 10px 0px;
-	}
+	height: 100%;
+	background: ${(p) => (p.$isDark ? "#1f2937" : "#ffffff")};
+	color: ${(p) => (p.$isDark ? theme.color.grey10 : theme.color.grey90)};
+	border-left: 1px solid ${theme.color.grey30};
 `;
 
 export const CPHeader = styled.div`
 	display: flex;
+	align-items: center;
 	justify-content: space-between;
-	align-items: center;
-	height: 52px;
-	padding: 14px 12px;
-	background: ${theme.color.grey30};
-	border-top-left-radius: 10px;
-	border-top-right-radius: 10px;
-`;
-
-export const CPHeaderIcon = styled.div`
-	width: 44px;
-	height: 44px;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	font-weight: 700;
-	// color: #4338ca;
+	padding: 16px 20px;
+	border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+	background: rgba(248, 250, 252, 0.9);
 `;
 
 export const CPHeaderLeft = styled.div`
@@ -47,99 +25,70 @@ export const CPHeaderLeft = styled.div`
 	gap: 12px;
 `;
 
-export const CPHeaderRight = styled.div`
-	display: flex;
-	align-items: center;
-	gap: 12px;
-`;
-
-export const CPChatArea = styled.div`
-	height: 100%;
-	background: ${theme.color.grey10};
-	border-bottom-left-radius: 10px;
-	border-bottom-right-radius: 10px;
-`;
-
-export const CPHash = styled.div`
-	width: 44px;
-	height: 44px;
-	border-radius: 999px;
-	background: #eef2ff;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	font-weight: 700;
-	color: #4338ca;
+export const CPHeaderIcon = styled.div`
+	width: 36px;
+	height: 36px;
+	border-radius: 10px;
+	background: linear-gradient(135deg, #2563eb, #9333ea);
+	color: #fff;
+	display: grid;
+	place-items: center;
+	box-shadow: 0 4px 12px rgba(79, 70, 229, 0.25);
 `;
 
 export const CPTitle = styled.h2`
 	margin: 0;
-	font-size: 18px;
+	font-size: 16px;
+	font-weight: 600;
+	color: #0f172a;
 `;
 
 export const CloseButton = styled.button`
-	background: none;
 	border: none;
+	background: transparent;
+	color: #475569;
+	width: 34px;
+	height: 34px;
+	border-radius: 50%;
+	display: grid;
+	place-items: center;
 	cursor: pointer;
-	padding: 8px;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	color: #888;
-	transition: color 0.2s;
+	transition:
+		background 0.2s ease,
+		color 0.2s ease;
 
 	&:hover {
-		color: #fff;
-	}
-
-	&:focus {
-		outline: none;
+		background: rgba(148, 163, 184, 0.2);
+		color: #0f172a;
 	}
 `;
-
-export const IconButton = styled.button`
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	padding: 4px;
-	background: none;
-	border: none;
-	color: ${theme.color.grey400};
-	cursor: pointer;
-	border-radius: 4px;
-
-	&:hover {
-		color: ${theme.color.grey600};
-		background: ${theme.color.grey100};
-	}
-`;
-
-// ------------------------------ Code Item
 
 export const CPContent = styled.div`
 	flex: 1;
 	padding: 16px;
-	overflow-y: auto;
 	display: flex;
 	flex-direction: column;
 	gap: 16px;
+	overflow-y: auto;
+	background: #f8fafc;
 `;
 
-export const CPCodeItem = styled.div<{ $isDark?: boolean }>`
-	background: ${(p) => (p.$isDark ? "#334155" : "#f4f4f5")};
-	border-radius: 8px;
-	border: 1px solid ${theme.color.grey30};
-	height: 201px;
+export const CPCodeItem = styled.div`
+	background: #ffffff;
+	color: #0f172a;
+	border-radius: 14px;
+	box-shadow: 0 12px 20px rgba(15, 23, 42, 0.08);
+	overflow: hidden;
+	border: 1px solid rgba(15, 23, 42, 0.08);
 `;
 
-export const CPCodeItemHeader = styled.div<{ $isDark?: boolean }>`
+export const CPCodeItemHeader = styled.div`
 	display: flex;
-	justify-content: space-between;
 	align-items: center;
-	padding: 8px 16px;
-	background: ${(p) => (p.$isDark ? "#334155" : "#f4f4f5")};
-	color: ${(p) => (p.$isDark ? theme.color.grey10 : theme.color.grey90)};
-	border-bottom: 1px solid ${theme.color.grey30};
+	justify-content: space-between;
+	padding: 12px 16px;
+	background: linear-gradient(90deg, #e2e8f0, #f8fafc);
+	border-bottom: 1px solid rgba(15, 23, 42, 0.08);
 `;
 
 export const CPCodeItemInfo = styled.div`
@@ -179,17 +128,32 @@ export const CPRunButton = styled.button`
 		background: #475569;
 		color: #e2e8f0; // Màu icon khi hover
 	}
+
+	&:disabled {
+		opacity: 0.5;
+		cursor: not-allowed;
+		background: transparent;
+	}
 `;
+
+export const CPActionButtons = styled.div`
+	display: flex;
+	align-items: center;
+	gap: 4px;
+`;
+
+export const CPCollaborateButton = styled(CPRunButton)``;
 
 // ... other imports
 export const CPCodeEditorWrapper = styled.div<{ $isDark?: boolean }>`
-	height: calc(100% - 42.57px);
+	background: ${(p) => (p.$isDark ? "#1e293b" : "#fdfdfd")};
+	border-top: 1px solid rgba(15, 23, 42, 0.04);
 
 	& > pre {
 		border: none;
 		margin: 0;
 		padding: 16px;
-		background: ${(p) => (p.$isDark ? "#0f172a" : "#f4f4f5")};
+		background: transparent;
 		color: ${(p) => (p.$isDark ? "#e2e8f0" : "#0f172a")};
 		overflow-y: auto;
 	}
@@ -218,6 +182,10 @@ export const CPModalContent = styled.div`
 	max-width: 90%;
 	color: #0f172a; // Màu chữ tối
 	box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+	display: flex;
+	flex-direction: column;
+	max-height: 90vh;
+	overflow-y: auto;
 
 	h3 {
 		margin-top: 0;
@@ -229,6 +197,83 @@ export const CPModalContent = styled.div`
 		padding: 16px;
 		border-radius: 8px;
 		overflow-x: auto;
+	}
+`;
+
+export const ModalHeader = styled.div`
+	display: flex;
+	justify-content: space-between;
+	align-items: flex-start;
+	gap: 16px;
+	margin-bottom: 12px;
+	border-bottom: 1px solid ${theme.color.grey30};
+	padding-bottom: 12px;
+`;
+
+export const ModalMeta = styled.p`
+	margin: 4px 0 0;
+	font-size: 13px;
+	color: ${theme.color.grey500};
+`;
+
+export const ModalSection = styled.div`
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	margin-top: 16px;
+`;
+
+export const ModalLabel = styled.span`
+	font-size: 12px;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+	color: ${theme.color.grey500};
+`;
+
+export const ModalActions = styled.div`
+	display: flex;
+	justify-content: flex-end;
+	gap: 12px;
+	margin-top: 24px;
+`;
+
+export const ModalSecondaryButton = styled.button`
+	padding: 10px 18px;
+	border-radius: 8px;
+	border: 1px solid ${theme.color.grey200};
+	background: ${theme.color.white};
+	color: ${theme.color.grey600};
+	font-weight: 600;
+	cursor: pointer;
+	transition: background 0.2s ease;
+
+	&:hover {
+		background: ${theme.color.grey50};
+	}
+`;
+
+export const ModalRunButton = styled.button`
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+	padding: 10px 20px;
+	border-radius: 8px;
+	border: none;
+	background: ${theme.color.primary};
+	color: ${theme.color.white};
+	font-weight: 600;
+	cursor: pointer;
+	transition: background 0.2s ease;
+
+	&:hover {
+		background: ${theme.color.primary80};
+	}
+
+	&:disabled {
+		opacity: 0.6;
+		cursor: not-allowed;
 	}
 `;
 
