@@ -5,6 +5,7 @@ import { z } from "zod";
 const groupChatSearchSchema = z.object({
 	channel: z.string().optional(),
 	tab: z.enum(["tasks", "thread", "code", "users", "info"]).optional(),
+	thread: z.string().optional(),
 });
 
 export type GroupChatSearch = z.infer<typeof groupChatSearchSchema>;

@@ -1,4 +1,4 @@
-import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { zodValidator } from "@tanstack/zod-adapter";
 import { useMutation } from "@tanstack/react-query";
 import z from "zod";
@@ -27,7 +27,6 @@ export const Route = createFileRoute("/auth/login")({
 });
 
 function RouteComponent() {
-	const navigate = useNavigate();
 	const { refetchProfile } = useAuth();
 	const { codeChallenge, codeChallengeMethod } = Route.useSearch();
 	const { socket } = useSocket();
@@ -43,9 +42,7 @@ function RouteComponent() {
 			cookieUtils.setToken(res.data.accessToken);
 			await refetchProfile();
 			socket.connect();
-			navigate({
-				to: getPostLoginRedirect(),
-			});
+			window.location.href = getPostLoginRedirect();
 		},
 	});
 

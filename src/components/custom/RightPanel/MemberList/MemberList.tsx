@@ -47,6 +47,7 @@ export default function MemberList({ onClose, isHalf }: MemberListProps) {
 	const currentUserId = useSelector((s: RootState) => s.user.profile?.id);
 	const members = bucket?.members || [];
 	const loading = bucket?.loading || false;
+	const backgroundLoading = bucket?.backgroundLoading || false;
 	const error = bucket?.error || null;
 	const loadingRef = useRef(false);
 	const [isModalOpen, setIsModalOpen] = useState(false);
@@ -59,14 +60,14 @@ export default function MemberList({ onClose, isHalf }: MemberListProps) {
 	}, [dispatch, groupId]);
 
 	useEffect(() => {
-		loadingRef.current = loading;
-	}, [loading]);
+		loadingRef.current = loading || backgroundLoading;
+	}, [loading, backgroundLoading]);
 
 	useEffect(() => {
 		if (!groupId) return;
 		const intervalId = window.setInterval(() => {
 			if (loadingRef.current) return;
-			dispatch(fetchGroupMembers({ groupId }));
+			dispatch(fetchGroupMembers({ groupId, silent: true }));
 		}, REFRESH_INTERVAL_MS);
 		return () => window.clearInterval(intervalId);
 	}, [dispatch, groupId]);

@@ -111,6 +111,39 @@ const mockMessages = [
 
 const ATTACHMENT_REFRESH_INTERVAL_MS = 5000;
 
+const areAttachmentsEqual = (
+	prev: AttachmentResponse,
+	next: AttachmentResponse,
+) => {
+	return (
+		prev.id === next.id &&
+		prev.updatedAt === next.updatedAt &&
+		prev.filePath === next.filePath &&
+		prev.fileSize === next.fileSize &&
+		prev.fileType === next.fileType
+	);
+};
+
+const mergeAttachments = (
+	previous: AttachmentResponse[],
+	incoming: AttachmentResponse[],
+) => {
+	if (!previous.length) return incoming;
+	let changed = previous.length !== incoming.length;
+	const prevMap = new Map(
+		previous.map((attachment) => [attachment.id, attachment]),
+	);
+	const merged = incoming.map((attachment) => {
+		const existing = prevMap.get(attachment.id);
+		if (existing && areAttachmentsEqual(existing, attachment)) {
+			return existing;
+		}
+		changed = true;
+		return attachment;
+	});
+	return changed ? merged : previous;
+};
+
 const getUserDisplayName = (user?: UserResponse | null) => {
 	if (!user) return "Direct Message";
 	const fullName = [user.firstName, user.lastName]
@@ -149,6 +182,7 @@ const ChannelInfor = ({
 	const [totalAttachments, setTotalAttachments] = useState(0);
 	const [loadingAttachments, setLoadingAttachments] = useState(false);
 	const loadingAttachmentsRef = useRef(false);
+	const backgroundAttachmentRef = useRef(false);
 	const isChannelMode = Boolean(groupId && channelId);
 	const isDirectMode = Boolean(directUserId) && !isChannelMode;
 	const canFetchAttachments = isChannelMode || isDirectMode;
@@ -204,11 +238,21 @@ const ChannelInfor = ({
 		}
 	}, [directUserId, isDirectMode]);
 
+	type FetchAttachmentsOptions = {
+		silent?: boolean;
+	};
+
 	const fetchAttachments = useCallback(
-		async (limit: number) => {
+		async (limit: number, options: FetchAttachmentsOptions = {}) => {
+			const { silent = false } = options;
 			if (!canFetchAttachments) return;
 			try {
-				setLoadingAttachments(true);
+				if (silent) {
+					backgroundAttachmentRef.current = true;
+				} else {
+					setLoadingAttachments(true);
+				}
+				loadingAttachmentsRef.current = true;
 				let response: any;
 				if (isDirectMode && directUserId) {
 					response = await listDirectAttachments(directUserId, 1, limit);
@@ -232,7 +276,7 @@ const ChannelInfor = ({
 						? [payload]
 						: [];
 				const pagination = (response as any)?.pagination;
-				setAttachments(normalized);
+				setAttachments((prev) => mergeAttachments(prev, normalized));
 				setTotalAttachments(
 					pagination?.totalRecord ??
 						pagination?.total ??
@@ -241,7 +285,12 @@ const ChannelInfor = ({
 			} catch (error) {
 				console.error("Error fetching attachments:", error);
 			} finally {
-				setLoadingAttachments(false);
+				loadingAttachmentsRef.current = false;
+				if (silent) {
+					backgroundAttachmentRef.current = false;
+				} else {
+					setLoadingAttachments(false);
+				}
 			}
 		},
 		[
@@ -277,10 +326,6 @@ const ChannelInfor = ({
 		fetchAttachments,
 	]);
 
-	useEffect(() => {
-		loadingAttachmentsRef.current = loadingAttachments;
-	}, [loadingAttachments]);
-
 	// Fetch attachments when limit changes
 	useEffect(() => {
 		if (attachmentLimit > 10 && canFetchAttachments) {
@@ -292,7 +337,7 @@ const ChannelInfor = ({
 		if (!canFetchAttachments) return;
 		const intervalId = window.setInterval(() => {
 			if (loadingAttachmentsRef.current) return;
-			fetchAttachments(attachmentLimit);
+			fetchAttachments(attachmentLimit, { silent: true });
 		}, ATTACHMENT_REFRESH_INTERVAL_MS);
 		return () => window.clearInterval(intervalId);
 	}, [attachmentLimit, canFetchAttachments, fetchAttachments]);

@@ -58,13 +58,16 @@ export const useChatAreaController = (): ChatAreaControllerResult => {
 		id?: string;
 		userId?: string; // direct message target user id when on /chat/user/$userId route
 	};
-	const search = useSearch({ strict: false }) as { channel?: string };
+	const search = useSearch({ strict: false }) as {
+		channel?: string;
+		thread?: string;
+	};
 	// const navigate = useNavigate();
 	const groupId = params.groupId ?? undefined;
 	const channelIdParam = search.channel ?? undefined;
-	const threadIdParam = params.id ?? undefined; // if present => show thread
+	const threadIdParam = search.thread ?? params.id ?? undefined; // prefer query param for threads
 	const directUserIdParam = params.userId ?? undefined; // if present => in direct message mode
-	const isDirectMode = !!directUserIdParam && !groupId && !channelIdParam; // heuristic: DM route has userId only
+	const isDirectMode = !!directUserIdParam && !groupId; // treat any route with userId (and without group) as DM, even if channel search lingers
 	const queryClient = useQueryClient();
 	const profile = useSelector((state: RootState) => state.user.profile);
 	const [realtimeMessages, setRealtimeMessages] = useState<MessageResponse[]>(
@@ -1219,11 +1222,9 @@ export const useChatAreaController = (): ChatAreaControllerResult => {
 							sender: senderPayload,
 						};
 
-				const ack = await safeEmit(ev, p);
-				return ack; // allow caller (ChatInput) to access server-assigned messageId for AI ask
-
+				const ackPromise = safeEmit(ev, p);
 				setReplyToMessage(null);
-				return;
+				return ackPromise; // allow caller (ChatInput) to access server-assigned messageId for AI ask
 			}
 
 			if (payload.type === "files") {

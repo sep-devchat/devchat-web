@@ -1,9 +1,12 @@
 import React, { useState } from "react";
 import { CornerUpLeft } from "lucide-react";
 import { MessageResponse } from "@/services/messageAPI";
+import { getReplyPreviewText, truncatePreview } from "@/utils/replyPreview";
 import { MessageItem, MessageBubbleStyle } from "../ChatArea.styled";
 import MarkdownPreview from "../../MarkdownPreview";
 import MessageActions from "../../MessageActions/MessageActions";
+
+const MarkdownPreviewMemo = React.memo(MarkdownPreview);
 
 export type MessageRowProps = {
 	m: MessageResponse;
@@ -29,11 +32,6 @@ export type MessageRowProps = {
 	groupId: string;
 	directUserId?: string;
 };
-
-const MarkdownPreviewMemo = React.memo(MarkdownPreview);
-
-const truncate = (s: string, n: number) =>
-	s.length > n ? s.slice(0, n) + "…" : s;
 
 export const MessageRow: React.FC<MessageRowProps> = React.memo(
 	({
@@ -61,6 +59,10 @@ export const MessageRow: React.FC<MessageRowProps> = React.memo(
 		directUserId,
 	}) => {
 		const [hovered, setHovered] = useState(false);
+
+		const parentPreviewText = truncatePreview(
+			getReplyPreviewText(m.parentMessage ?? null),
+		);
 
 		return (
 			<div
@@ -126,10 +128,7 @@ export const MessageRow: React.FC<MessageRowProps> = React.memo(
 														"Original message"}
 												</span>
 												<span className="text-muted-foreground/70 group-hover/parent:text-muted-foreground/90 truncate">
-													{truncate(
-														m.parentMessage?.content || "(no longer available)",
-														80,
-													)}
+													{parentPreviewText}
 												</span>
 											</div>
 										</div>

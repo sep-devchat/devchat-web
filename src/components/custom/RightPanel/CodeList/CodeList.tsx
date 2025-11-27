@@ -37,6 +37,34 @@ interface CodeListProps {
 const PAGE_SIZE = 20;
 const REFRESH_INTERVAL_MS = 5000;
 
+const areBlocksEqual = (a: CodeBlock, b: CodeBlock) => {
+	return (
+		a.id === b.id &&
+		a.updatedAt === b.updatedAt &&
+		a.content === b.content &&
+		a.language === b.language &&
+		a.userId === b.userId
+	);
+};
+
+const mergeCodeBlocks = (
+	previous: CodeBlock[],
+	incoming: CodeBlock[],
+): CodeBlock[] => {
+	if (!previous.length) return incoming;
+	let changed = previous.length !== incoming.length;
+	const previousById = new Map(previous.map((block) => [block.id, block]));
+	const merged = incoming.map((block) => {
+		const existing = previousById.get(block.id);
+		if (existing && areBlocksEqual(existing, block)) {
+			return existing;
+		}
+		changed = true;
+		return block;
+	});
+	return changed ? merged : previous;
+};
+
 const CodeList = ({
 	onClose,
 	groupId,
@@ -56,6 +84,7 @@ const CodeList = ({
 	const [isResultOpen, setIsResultOpen] = useState(false);
 	const [runningBlockId, setRunningBlockId] = useState<string | null>(null);
 	const isLoadingRef = useRef(false);
+	const backgroundRefreshRef = useRef(false);
 	const navigate = useNavigate();
 	const {
 		runOutput,
@@ -75,10 +104,20 @@ const CodeList = ({
 		return "Code blocks";
 	}, [isChannelMode, isDirectMode]);
 
+	type FetchOptions = {
+		replace?: boolean;
+		silent?: boolean;
+	};
+
 	const fetchCodeBlocks = useCallback(
-		async (pageToLoad: number, replace = false) => {
+		async (pageToLoad: number, options: FetchOptions = {}) => {
+			const { replace = false, silent = false } = options;
 			if (!canFetch) return;
-			setIsLoading(true);
+			if (silent) {
+				backgroundRefreshRef.current = true;
+			} else {
+				setIsLoading(true);
+			}
 			setError(null);
 			try {
 				const response =
@@ -96,7 +135,12 @@ const CodeList = ({
 							});
 
 				const payload = Array.isArray(response?.data) ? response.data : [];
-				setCodeBlocks((prev) => (replace ? payload : [...prev, ...payload]));
+				setCodeBlocks((prev) => {
+					if (replace || pageToLoad === 1) {
+						return mergeCodeBlocks(prev, payload);
+					}
+					return [...prev, ...payload];
+				});
 
 				const pagination = response?.pagination;
 				const totalPage = pagination?.totalPage ?? 0;
@@ -113,11 +157,15 @@ const CodeList = ({
 				console.error("Failed to fetch code blocks", err);
 				setError("Unable to load code blocks. Please try again.");
 			} finally {
-				setIsLoading(false);
-				setInitialLoaded(true);
+				if (silent) {
+					backgroundRefreshRef.current = false;
+				} else {
+					setIsLoading(false);
+					setInitialLoaded(true);
+				}
 			}
 		},
-		[canFetch, isChannelMode, isDirectMode, directUserId, groupId, channelId],
+		[canFetch, isDirectMode, directUserId, groupId, channelId],
 	);
 
 	useEffect(() => {
@@ -127,7 +175,7 @@ const CodeList = ({
 		setInitialLoaded(false);
 		setCurrentPage(1);
 		if (canFetch) {
-			fetchCodeBlocks(1, true);
+			fetchCodeBlocks(1, { replace: true });
 		}
 	}, [canFetch, fetchCodeBlocks]);
 
@@ -138,8 +186,8 @@ const CodeList = ({
 	useEffect(() => {
 		if (!canFetch) return;
 		const intervalId = window.setInterval(() => {
-			if (isLoadingRef.current) return;
-			fetchCodeBlocks(1, true);
+			if (isLoadingRef.current || backgroundRefreshRef.current) return;
+			fetchCodeBlocks(1, { replace: true, silent: true });
 		}, REFRESH_INTERVAL_MS);
 		return () => window.clearInterval(intervalId);
 	}, [canFetch, fetchCodeBlocks]);
@@ -213,7 +261,7 @@ const CodeList = ({
 	const handleRetry = () => {
 		if (isLoading) return;
 		setInitialLoaded(false);
-		fetchCodeBlocks(1, true);
+		fetchCodeBlocks(1, { replace: true });
 	};
 
 	const shouldShowFooter =

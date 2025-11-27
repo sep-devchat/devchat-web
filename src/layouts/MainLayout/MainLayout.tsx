@@ -44,6 +44,7 @@ import { Toaster } from "@/components/ui/sonner";
 type SearchState = {
 	channel?: string;
 	tab?: string;
+	thread?: string;
 	[key: string]: unknown;
 };
 
@@ -62,6 +63,8 @@ const MainLayout = () => {
 	const directUserId = params.userId;
 	const isCodeCollabRoute = Boolean(params.codeBlockId);
 	const channelId = search.channel as string | undefined;
+	const threadQuery =
+		typeof search.thread === "string" ? (search.thread as string) : undefined;
 	const activeTab =
 		typeof search.tab === "string" ? (search.tab as string) : "";
 	const isConversationRoute =
@@ -77,6 +80,25 @@ const MainLayout = () => {
 						nextSearch.tab = nextTab;
 					} else {
 						delete nextSearch.tab;
+					}
+					return nextSearch;
+				},
+				replace: true,
+			});
+		},
+		[navigate],
+	);
+
+	const setThreadSearch = useCallback(
+		(nextThread?: string) => {
+			navigate({
+				to: ".",
+				search: (prev: SearchState | undefined) => {
+					const nextSearch: SearchState = { ...(prev || {}) };
+					if (nextThread) {
+						nextSearch.thread = nextThread;
+					} else {
+						delete nextSearch.thread;
 					}
 					return nextSearch;
 				},
@@ -120,8 +142,9 @@ const MainLayout = () => {
 			setPanelTab(undefined);
 			setShowThreadPanel(false);
 			setSelectedThreadId("");
+			setThreadSearch(undefined);
 		}
-	}, [groupId, isHalf, setPanelTab]);
+	}, [groupId, isHalf, setPanelTab, setThreadSearch]);
 
 	// Load groups
 	useEffect(() => {
@@ -190,6 +213,15 @@ const MainLayout = () => {
 		}
 	}, [showThreadPanel, panelTab, setPanelTab]);
 
+	useEffect(() => {
+		if (!groupId || !channelId || !threadQuery) {
+			return;
+		}
+		setSelectedThreadId(threadQuery);
+		setShowThreadPanel(true);
+		setPanelTab(undefined);
+	}, [groupId, channelId, threadQuery, setPanelTab]);
+
 	// Listen for thread selection requests coming from ChatArea (message thread button)
 	useEffect(() => {
 		const onThreadSelected = (e: Event) => {
@@ -200,6 +232,7 @@ const MainLayout = () => {
 					setSelectedThreadId(tid);
 					setShowThreadPanel(true);
 					setPanelTab(undefined);
+					setThreadSearch(tid);
 				}
 			} catch {
 				/* noop */
@@ -221,11 +254,13 @@ const MainLayout = () => {
 		setSelectedThreadId("");
 		setShowThreadPanel(true);
 		setPanelTab(undefined);
+		setThreadSearch(undefined);
 	};
 
 	const handleThreadCreated = (threadId: string) => {
 		setSelectedThreadId(threadId);
 		setShowThreadPanel(true);
+		setThreadSearch(threadId);
 		window.dispatchEvent(new CustomEvent("app:threadCreated"));
 	};
 
@@ -233,12 +268,14 @@ const MainLayout = () => {
 		setSelectedThreadId(threadId);
 		setShowThreadPanel(true);
 		setPanelTab(undefined);
+		setThreadSearch(threadId);
 	};
 
 	const handleClosePanel = () => {
 		setPanelTab(undefined);
 		setShowThreadPanel(false);
 		setSelectedThreadId("");
+		setThreadSearch(undefined);
 	};
 
 	const handleCloseCodePanel = () => {
@@ -260,6 +297,7 @@ const MainLayout = () => {
 		if (showThreadPanel) {
 			setShowThreadPanel(false);
 			setSelectedThreadId("");
+			setThreadSearch(undefined);
 		}
 	};
 

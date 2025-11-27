@@ -1,14 +1,14 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+import { MessageResponse } from "@/services/messageAPI";
+import { getReplyPreviewText, truncatePreview } from "@/utils/replyPreview";
 
 type Props = {
-	replyTo: any | null;
+	replyTo: MessageResponse | null;
 	onCancelReply?: () => void;
 };
 
 export default function ReplyPreview({ replyTo, onCancelReply }: Props) {
 	if (!replyTo) return null;
-	const truncate = (s?: string, n = 160) =>
-		!s ? "" : s.length > n ? s.slice(0, n - 1) + "…" : s;
+	const previewText = truncatePreview(getReplyPreviewText(replyTo));
 	return (
 		<div
 			style={{
@@ -27,9 +27,7 @@ export default function ReplyPreview({ replyTo, onCancelReply }: Props) {
 				<div style={{ fontSize: 12, fontWeight: 600 }}>
 					Replying to {replyTo.sender?.firstName || replyTo.sender?.username}
 				</div>
-				<div style={{ fontSize: 12, color: "#6b7280" }}>
-					{truncate(replyTo.content)}
-				</div>
+				<div style={{ fontSize: 12, color: "#6b7280" }}>{previewText}</div>
 			</div>
 			<div style={{ display: "flex", gap: 6 }}>
 				<button
