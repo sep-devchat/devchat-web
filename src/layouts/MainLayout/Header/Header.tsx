@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import {
+	ArrowLeft,
 	Info,
 	MessageSquarePlus,
 	NotebookPenIcon,
@@ -14,6 +15,8 @@ import {
 	IconBtn,
 	Tooltip,
 	TabButton,
+	TitleSection,
+	BackButton,
 } from "./Header.styled";
 import { useNavigate, useParams, useSearch } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
@@ -34,6 +37,8 @@ type Props = {
 	iconSelected?: string;
 	onCreateThread?: () => void;
 	onThreadSelect?: (threadId: string) => void;
+	showBackButton?: boolean;
+	onBackClick?: () => void;
 };
 
 const Header = ({
@@ -41,6 +46,8 @@ const Header = ({
 	iconSelected,
 	onCreateThread,
 	onThreadSelect,
+	showBackButton,
+	onBackClick,
 }: Props) => {
 	const navigate = useNavigate();
 	const search = useSearch({ strict: false }) as {
@@ -57,6 +64,7 @@ const Header = ({
 	const groupId = params.groupId;
 	const channelId = search.channel;
 	const directUserId = params.userId;
+	const isDirectPage = Boolean(directUserId);
 
 	useEffect(() => {
 		const fetchChannelData = async () => {
@@ -137,6 +145,12 @@ const Header = ({
 		}
 	};
 
+	const handleBackClick = () => {
+		if (onBackClick) {
+			onBackClick();
+		}
+	};
+
 	return (
 		<HeaderContainer
 			className="rounded-tr-lg"
@@ -144,32 +158,46 @@ const Header = ({
 				borderTopRightRadius: compact ? "10px" : "0",
 			}}
 		>
-			{isGroupPage && search.channel ? (
-				loading ? (
-					<div className="flex items-center gap-2">
-						<div className="animate-spin h-4 w-4 border-2 border-gray-300 border-t-blue-500 rounded-full" />
-						<div className="h-5 w-32 bg-gray-200 animate-pulse rounded" />
-					</div>
+			<TitleSection>
+				{showBackButton && (
+					<BackButton
+						type="button"
+						aria-label="Back to chat"
+						onClick={handleBackClick}
+					>
+						<ArrowLeft size={16} />
+						<span>Back</span>
+					</BackButton>
+				)}
+				{isGroupPage && search.channel ? (
+					loading ? (
+						<div className="flex items-center gap-2">
+							<div className="animate-spin h-4 w-4 border-2 border-gray-300 border-t-blue-500 rounded-full" />
+							<div className="h-5 w-32 bg-gray-200 animate-pulse rounded" />
+						</div>
+					) : (
+						<h2 className="text-lg font-semibold">{displayedTitle}</h2>
+					)
+				) : isDirectPage ? (
+					<h2 className="text-lg font-semibold">Direct Message</h2>
 				) : (
-					<h2 className="text-lg font-semibold">{displayedTitle}</h2>
-				)
-			) : (
-				<div className="flex items-center gap-2">
-					<NavTabTitle>
-						<UserPlus2 size={18} />
-						Friend
-					</NavTabTitle>
-					{actions.map(({ id, title, isPrimary }) => (
-						<TabButton
-							key={id}
-							isActive={isPrimary || search.tab === id}
-							onClick={() => handleTabClick(id)}
-						>
-							{title}
-						</TabButton>
-					))}
-				</div>
-			)}
+					<div className="flex items-center gap-2">
+						<NavTabTitle>
+							<UserPlus2 size={18} />
+							Friend
+						</NavTabTitle>
+						{actions.map(({ id, title, isPrimary }) => (
+							<TabButton
+								key={id}
+								isActive={isPrimary || search.tab === id}
+								onClick={() => handleTabClick(id)}
+							>
+								{title}
+							</TabButton>
+						))}
+					</div>
+				)}
+			</TitleSection>
 
 			<div className="flex items-center gap-2" style={{ position: "relative" }}>
 				{isGroupPage ? (

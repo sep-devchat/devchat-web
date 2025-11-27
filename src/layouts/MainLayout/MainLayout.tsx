@@ -1,6 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import MainBg from "@/components/custom/MainBackground/MainBg";
-import { Outlet, useParams, useSearch } from "@tanstack/react-router";
+import {
+	Outlet,
+	useNavigate,
+	useParams,
+	useSearch,
+} from "@tanstack/react-router";
 import {
 	CenterPanel,
 	MainLayoutContainer,
@@ -10,12 +15,13 @@ import {
 	BottomSpacer,
 	RightPanelWrapper,
 	LeftSection,
+	CollapsedHeaderBar,
 } from "./MainLayout.styled";
 import TitleBar from "./TitleBar/TitleBar";
 import { User } from "lucide-react";
 import GroupSidebar from "./GroupSidebar";
 import AuthLayout from "../AuthLayout";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import ThreadPanel from "@/components/custom/RightPanel/ThreadPanel/ThreadPanel";
 import CodeList from "@/components/custom/RightPanel/CodeList/CodeList";
 import MemberList from "@/components/custom/RightPanel/MemberList/MemberList";
@@ -35,8 +41,13 @@ import ConfirmModal from "@/components/custom/ConfirmModal/ConfirmModal";
 import ChannelInfor from "@/components/custom/RightPanel/ChannelInfor/ChannelInfor";
 import { Toaster } from "@/components/ui/sonner";
 
+type SearchState = {
+	channel?: string;
+	tab?: string;
+	[key: string]: unknown;
+};
+
 const MainLayout = () => {
-	const [iconSelected, setIconSelected] = useState<string>("");
 	const [settingSelect, setSettingSelect] = useState<boolean>(false);
 	const [showThreadPanel, setShowThreadPanel] = useState<boolean>(false);
 	const [selectedThreadId, setSelectedThreadId] = useState<string>("");
@@ -44,13 +55,35 @@ const MainLayout = () => {
 		groupId?: string;
 		userId?: string;
 	};
-	const search = useSearch({ strict: false }) as { channel?: string };
+	const navigate = useNavigate();
+	const search = useSearch({ strict: false }) as SearchState;
 	const groupId = params.groupId;
 	const directUserId = params.userId;
-	const channelId = search.channel;
+	const channelId = search.channel as string | undefined;
+	const activeTab =
+		typeof search.tab === "string" ? (search.tab as string) : "";
+	const isConversationRoute = Boolean(groupId || directUserId);
+	const panelTab = isConversationRoute ? activeTab : "";
+	const setPanelTab = useCallback(
+		(nextTab?: string) => {
+			navigate({
+				to: ".",
+				search: (prev: SearchState | undefined) => {
+					const nextSearch: SearchState = { ...(prev || {}) };
+					if (nextTab) {
+						nextSearch.tab = nextTab;
+					} else {
+						delete nextSearch.tab;
+					}
+					return nextSearch;
+				},
+				replace: true,
+			});
+		},
+		[navigate],
+	);
 	const [localGroups, setLocalGroups] = useState<any[]>([]);
 	const [isAdmin, setIsAdmin] = useState<boolean>(false);
-	const [showCodeListPanel, setShowCodeListPanel] = useState<boolean>(false);
 	const currentUserProfile = useSelector(
 		(state: RootState) => state.user.profile,
 	);
@@ -64,12 +97,10 @@ const MainLayout = () => {
 	const [isUnfriendModalOpen, setIsUnfriendModalOpen] = useState(false);
 	const [isUnfriendLoading, setIsUnfriendLoading] = useState(false);
 
-	console.log("MainLayout - Current IDs:", { groupId, channelId });
-
-	const hasOpenPanel = isHalf && (showThreadPanel || iconSelected !== "");
+	const hasOpenPanel = isHalf && (showThreadPanel || Boolean(panelTab));
 
 	const shouldShowBorderRadius =
-		(showThreadPanel || iconSelected !== "") && iconSelected !== "users";
+		(showThreadPanel || Boolean(panelTab)) && panelTab !== "users";
 
 	// Handle resize
 	useEffect(() => {
@@ -80,12 +111,11 @@ const MainLayout = () => {
 
 	useEffect(() => {
 		if (isHalf && groupId) {
-			setIconSelected("");
+			setPanelTab(undefined);
 			setShowThreadPanel(false);
 			setSelectedThreadId("");
-			setShowCodeListPanel(false);
 		}
-	}, [groupId, isHalf]);
+	}, [groupId, isHalf, setPanelTab]);
 
 	// Load groups
 	useEffect(() => {
@@ -147,24 +177,12 @@ const MainLayout = () => {
 		fetchGroupDetail();
 	}, [groupId, currentUserId]);
 
-	// Handle code panel
-	useEffect(() => {
-		if (iconSelected === "code") {
-			setShowThreadPanel(false);
-			setSelectedThreadId("");
-			setShowCodeListPanel(true);
-		} else {
-			setShowCodeListPanel(false);
-		}
-	}, [iconSelected]);
-
 	// Handle thread panel
 	useEffect(() => {
-		if (showThreadPanel) {
-			setShowCodeListPanel(false);
-			setIconSelected("");
+		if (showThreadPanel && panelTab) {
+			setPanelTab(undefined);
 		}
-	}, [showThreadPanel]);
+	}, [showThreadPanel, panelTab, setPanelTab]);
 
 	// Listen for thread selection requests coming from ChatArea (message thread button)
 	useEffect(() => {
@@ -175,7 +193,7 @@ const MainLayout = () => {
 				if (tid) {
 					setSelectedThreadId(tid);
 					setShowThreadPanel(true);
-					setIconSelected("");
+					setPanelTab(undefined);
 				}
 			} catch {
 				/* noop */
@@ -196,7 +214,7 @@ const MainLayout = () => {
 	const handleCreateThread = () => {
 		setSelectedThreadId("");
 		setShowThreadPanel(true);
-		setIconSelected("");
+		setPanelTab(undefined);
 	};
 
 	const handleThreadCreated = (threadId: string) => {
@@ -208,18 +226,35 @@ const MainLayout = () => {
 	const handleThreadSelect = (threadId: string) => {
 		setSelectedThreadId(threadId);
 		setShowThreadPanel(true);
-		setIconSelected("");
+		setPanelTab(undefined);
 	};
 
 	const handleClosePanel = () => {
-		setIconSelected("");
+		setPanelTab(undefined);
 		setShowThreadPanel(false);
 		setSelectedThreadId("");
 	};
 
 	const handleCloseCodePanel = () => {
-		setShowCodeListPanel(false);
-		setIconSelected("");
+		setPanelTab(undefined);
+	};
+
+	const handleIconSelect = (icon: string) => {
+		if (!icon) {
+			setPanelTab(undefined);
+			return;
+		}
+		setPanelTab(icon);
+	};
+
+	const handleBackToChat = () => {
+		if (panelTab) {
+			setPanelTab(undefined);
+		}
+		if (showThreadPanel) {
+			setShowThreadPanel(false);
+			setSelectedThreadId("");
+		}
 	};
 
 	const handleMenuAction = (
@@ -286,33 +321,18 @@ const MainLayout = () => {
 
 	// Auto show users panel chỉ khi KHÔNG phải isHalf
 	useEffect(() => {
-		if (
-			groupId &&
-			iconSelected === "" &&
-			!showThreadPanel &&
-			!showCodeListPanel &&
-			!isHalf
-		) {
-			setIconSelected("users");
+		if (groupId && !panelTab && !showThreadPanel && !isHalf) {
+			setPanelTab("users");
 		}
-		if (!groupId && iconSelected === "users") {
-			setIconSelected("");
+		if (!groupId && panelTab === "users") {
+			setPanelTab(undefined);
 		}
-	}, [groupId, showThreadPanel, showCodeListPanel, iconSelected, isHalf]);
+	}, [groupId, showThreadPanel, panelTab, isHalf, setPanelTab]);
 
 	const renderRightPanel = () => {
-		if ((showCodeListPanel || iconSelected === "code") && !showThreadPanel) {
-			return (
-				<CodeList
-					onClose={handleCloseCodePanel}
-					groupId={groupId}
-					channelId={channelId}
-					directUserId={directUserId}
-				/>
-			);
-		}
+		const resolvedTab = panelTab || (!isHalf && groupId ? "users" : "");
 
-		if (showThreadPanel && groupId && channelId && !showCodeListPanel) {
+		if (showThreadPanel && groupId && channelId) {
 			return (
 				<ThreadPanel
 					key={selectedThreadId || "new-thread"}
@@ -325,7 +345,7 @@ const MainLayout = () => {
 			);
 		}
 
-		switch (iconSelected) {
+		switch (resolvedTab) {
 			case "tasks":
 				return <TaskGroup groupId={groupId} onClose={handleClosePanel} />;
 			case "code":
@@ -381,22 +401,26 @@ const MainLayout = () => {
 							defaultSize={100}
 							style={{ marginRight: isHalf ? "16px" : "0" }}
 						>
-							{!hasOpenPanel && (
-								<CenterPanel
-									$isHalf={isHalf}
-									$hasRightBorderRadius={shouldShowBorderRadius}
-								>
+							<CenterPanel
+								$isHalf={isHalf}
+								$hasRightBorderRadius={shouldShowBorderRadius}
+								$isCollapsed={hasOpenPanel}
+							>
+								<CollapsedHeaderBar $isCollapsed={hasOpenPanel}>
 									<Header
-										setIconSelected={setIconSelected}
-										iconSelected={iconSelected}
+										setIconSelected={handleIconSelect}
+										iconSelected={panelTab}
 										onCreateThread={handleCreateThread}
 										onThreadSelect={handleThreadSelect}
+										showBackButton={hasOpenPanel}
+										onBackClick={handleBackToChat}
 									/>
-									<OutletContainer>
-										<Outlet />
-									</OutletContainer>
-								</CenterPanel>
-							)}
+								</CollapsedHeaderBar>
+
+								<OutletContainer $hidden={hasOpenPanel}>
+									<Outlet />
+								</OutletContainer>
+							</CenterPanel>
 							<RightPanelWrapper $fullWidth={hasOpenPanel}>
 								{renderRightPanel()}
 							</RightPanelWrapper>

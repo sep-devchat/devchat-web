@@ -1,12 +1,81 @@
 import styled from "styled-components";
 
 export const HeaderContainer = styled.header`
-	height: 52px;
 	background: #e2e8f0;
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
-	padding: 0 16px;
+	padding: 12px 16px;
+	gap: 0.75rem;
+	border-top-right-radius: 10px;
+	flex-wrap: wrap;
+
+	@media (min-width: 1400px) {
+		height: 52px;
+	}
+
+	@media (max-width: 1100px) {
+		padding: 12px;
+	}
+
+	@media (max-width: 960px) {
+		flex-direction: column;
+		align-items: stretch;
+		gap: 0.5rem;
+	}
+`;
+
+export const TitleSection = styled.div`
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+	flex: 1;
+	min-width: 0;
+	flex-wrap: wrap;
+	row-gap: 0.35rem;
+
+	@media (max-width: 960px) {
+		width: 100%;
+		flex-direction: column;
+		align-items: flex-start;
+	}
+`;
+
+export const BackButton = styled.button`
+	display: inline-flex;
+	align-items: center;
+	gap: 0.35rem;
+	padding: 6px 10px;
+	border-radius: 8px;
+	border: none;
+	background: white;
+	color: #0f172a;
+	font-size: 0.9rem;
+	font-weight: 600;
+	cursor: pointer;
+	box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+	transition:
+		background 0.15s ease,
+		box-shadow 0.15s ease;
+
+	&:hover {
+		background: #f8fafc;
+		box-shadow: 0 2px 5px rgba(15, 23, 42, 0.12);
+	}
+
+	&:focus-visible {
+		outline: 2px solid #6366f1;
+		outline-offset: 2px;
+	}
+
+	&:active {
+		transform: translateY(1px);
+	}
+
+	@media (max-width: 960px) {
+		width: 100%;
+		justify-content: flex-start;
+	}
 `;
 
 export const IconBtn = styled.button`
@@ -31,6 +100,11 @@ export const IconBtn = styled.button`
 		background: #eff6ff;
 		color: #6366f1;
 		outline: none;
+	}
+
+	@media (max-width: 1200px) {
+		padding: 4px;
+		border-radius: 5px;
 	}
 `;
 
@@ -69,6 +143,16 @@ export const NavTabTitle = styled.div`
 	font-weight: 600;
 	color: #1e2a3b;
 	align-items: center;
+
+	@media (max-width: 1100px) {
+		margin-right: 8px;
+		font-size: 15px;
+	}
+
+	@media (max-width: 960px) {
+		margin-right: 0;
+		font-size: 14px;
+	}
 `;
 
 export const TabButton = styled.button<{ isActive?: boolean }>`
@@ -105,5 +189,22 @@ export const TabButton = styled.button<{ isActive?: boolean }>`
 
 	&:focus {
 		outline: none;
+	}
+
+	@media (max-width: 1280px) {
+		font-size: 14px;
+		padding: 5px 10px;
+	}
+
+	@media (max-width: 1024px) {
+		flex: 1 1 calc(50% - 8px);
+		text-align: center;
+		min-width: 120px;
+	}
+
+	@media (max-width: 640px) {
+		flex: 1 1 100%;
+		width: 100%;
+	}
 	}
 `;

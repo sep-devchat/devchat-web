@@ -11,6 +11,16 @@ export const ChatAreaContainer = styled.div`
 	min-height: 0; /* allow the scrolling child to shrink inside flex parents */
 	max-height: 100%;
 	overflow: hidden; /* keep rounded corners clean */
+	backdrop-filter: blur(6px);
+
+	@media (max-width: 1200px) {
+		border-radius: 8px;
+		background: rgba(255, 255, 255, 0.82);
+	}
+
+	@media (max-width: 960px) {
+		border-radius: 8px;
+	}
 `;
 
 export type MessagesViewportVariant = "normal" | "quillCode" | "image" | "file";
@@ -41,6 +51,17 @@ export const MessagesViewport = styled.div<{
 						: ""}
 
 	/* Responsive adjustments */
+	@media (max-width: 1280px) {
+		padding: 0.5rem;
+		gap: 0.4rem;
+		min-height: 56vh;
+	}
+
+	@media (max-width: 1024px) {
+		padding: 0.5rem 0.4rem;
+		min-height: 52vh;
+	}
+
 	@media (min-width: 1024px) {
 		padding: 1rem;
 		gap: 0.625rem;
@@ -92,6 +113,12 @@ export const Composer = styled.form`
 	background: rgba(255, 255, 255, 0.7);
 	border-radius: 0 0 10px 10px;
 	flex: 0 0 auto;
+
+	@media (max-width: 1200px) {
+		flex-wrap: wrap;
+		gap: 6px;
+		padding: 8px;
+	}
 `;
 
 export const Input = styled.input`
@@ -177,7 +204,7 @@ export const MessageItem = styled.div`
 	gap: 8px;
 
 	@media (max-width: 640px) {
-		max-width: 82%;
+		max-width: 88%;
 	}
 `;
 

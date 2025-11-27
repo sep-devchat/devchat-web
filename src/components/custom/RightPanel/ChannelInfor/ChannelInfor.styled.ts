@@ -3,13 +3,20 @@ import styled from "styled-components";
 
 export const PageWrapper = styled.div`
 	height: 100%;
-	width: 450px;
+	width: 100%;
+	max-width: 480px;
 	position: relative;
 	display: flex;
 	flex-direction: column;
 	margin-right: 18px;
 	background: ${theme.color.grey30};
-	border-radius: 0px 10px 10px 0px;
+	border-radius: 0 10px 10px 0;
+
+	@media (max-width: 1280px) {
+		max-width: none;
+		margin-right: 0;
+		border-radius: 0;
+	}
 `;
 
 export const InfoContent = styled.div`
@@ -110,6 +117,11 @@ export const SearchButton = styled.button`
 export const ContentArea = styled.div`
 	flex: 1;
 	overflow-y: auto;
+	padding-right: 4px;
+
+	@media (max-width: 768px) {
+		padding-right: 0;
+	}
 `;
 
 export const SearchContainer = styled.div`
@@ -242,6 +254,10 @@ export const SelectButton = styled.button`
 export const ExpandedContent = styled.div`
 	border-top: 1px solid #e5e7eb;
 	padding: 12px 24px;
+
+	@media (max-width: 768px) {
+		padding: 12px 16px;
+	}
 `;
 
 export const TabLabel = styled.span`
@@ -253,10 +269,13 @@ export const TabLabel = styled.span`
 export const TabContainer = styled.div`
 	display: flex;
 	border-bottom: 1px solid #e5e7eb;
+	flex-wrap: nowrap;
+	overflow-x: auto;
 `;
 
 export const Tab = styled.button<{ $active: boolean }>`
-	flex: 1;
+	flex: 1 1 0;
+	min-width: 0;
 	padding: 12px 16px;
 	font-size: 14px;
 	font-weight: 500;
@@ -267,6 +286,8 @@ export const Tab = styled.button<{ $active: boolean }>`
 	color: ${(props) => (props.$active ? "#2563eb" : "#6b7280")};
 	border-bottom: ${(props) => (props.$active ? "2px solid #2563eb" : "none")};
 	border-radius: 0 !important;
+	text-align: center;
+	white-space: nowrap;
 
 	&:hover {
 		color: ${(props) => (props.$active ? "#2563eb" : "#111827")};
@@ -299,7 +320,7 @@ export const SectionTitle = styled.h3`
 
 export const ImageGrid = styled.div`
 	display: grid;
-	grid-template-columns: repeat(3, 1fr);
+	grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
 	gap: 8px;
 `;
 
@@ -340,7 +361,7 @@ export const FileList = styled.div`
 
 export const FileItem = styled.div`
 	display: flex;
-	align-items: start;
+	align-items: flex-start;
 	gap: 12px;
 	padding: 8px;
 	border-radius: 8px;
@@ -349,6 +370,11 @@ export const FileItem = styled.div`
 
 	&:hover {
 		background-color: #f9fafb;
+	}
+
+	@media (max-width: 640px) {
+		flex-direction: column;
+		align-items: stretch;
 	}
 `;
 
