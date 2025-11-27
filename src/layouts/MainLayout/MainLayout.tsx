@@ -54,15 +54,18 @@ const MainLayout = () => {
 	const params = useParams({ strict: false }) as {
 		groupId?: string;
 		userId?: string;
+		codeBlockId?: string;
 	};
 	const navigate = useNavigate();
 	const search = useSearch({ strict: false }) as SearchState;
 	const groupId = params.groupId;
 	const directUserId = params.userId;
+	const isCodeCollabRoute = Boolean(params.codeBlockId);
 	const channelId = search.channel as string | undefined;
 	const activeTab =
 		typeof search.tab === "string" ? (search.tab as string) : "";
-	const isConversationRoute = Boolean(groupId || directUserId);
+	const isConversationRoute =
+		!isCodeCollabRoute && Boolean(groupId || directUserId);
 	const panelTab = isConversationRoute ? activeTab : "";
 	const setPanelTab = useCallback(
 		(nextTab?: string) => {
@@ -97,10 +100,13 @@ const MainLayout = () => {
 	const [isUnfriendModalOpen, setIsUnfriendModalOpen] = useState(false);
 	const [isUnfriendLoading, setIsUnfriendLoading] = useState(false);
 
-	const hasOpenPanel = isHalf && (showThreadPanel || Boolean(panelTab));
+	const hasOpenPanel =
+		!isCodeCollabRoute && isHalf && (showThreadPanel || Boolean(panelTab));
 
 	const shouldShowBorderRadius =
-		(showThreadPanel || Boolean(panelTab)) && panelTab !== "users";
+		!isCodeCollabRoute &&
+		(showThreadPanel || Boolean(panelTab)) &&
+		panelTab !== "users";
 
 	// Handle resize
 	useEffect(() => {
@@ -330,6 +336,10 @@ const MainLayout = () => {
 	}, [groupId, showThreadPanel, panelTab, isHalf, setPanelTab]);
 
 	const renderRightPanel = () => {
+		if (isCodeCollabRoute) {
+			return null;
+		}
+
 		const resolvedTab = panelTab || (!isHalf && groupId ? "users" : "");
 
 		if (showThreadPanel && groupId && channelId) {
@@ -392,38 +402,49 @@ const MainLayout = () => {
 				<MainLayoutContainer>
 					<TitleBar title="DevChat" icon={<User />} />
 					<ContentWrapper direction="horizontal">
-						<LeftSection $isHalf={isHalf}>
-							<GroupSidebar />
-							<LeftSidebar setSettingSelect={setSettingSelect} />
-						</LeftSection>
+						{!isCodeCollabRoute && (
+							<LeftSection $isHalf={isHalf}>
+								<GroupSidebar />
+								<LeftSidebar setSettingSelect={setSettingSelect} />
+							</LeftSection>
+						)}
 
 						<RightSection
 							defaultSize={100}
-							style={{ marginRight: isHalf ? "16px" : "0" }}
+							style={{
+								marginRight: !isCodeCollabRoute && isHalf ? "16px" : "0",
+							}}
 						>
 							<CenterPanel
 								$isHalf={isHalf}
 								$hasRightBorderRadius={shouldShowBorderRadius}
 								$isCollapsed={hasOpenPanel}
 							>
-								<CollapsedHeaderBar $isCollapsed={hasOpenPanel}>
-									<Header
-										setIconSelected={handleIconSelect}
-										iconSelected={panelTab}
-										onCreateThread={handleCreateThread}
-										onThreadSelect={handleThreadSelect}
-										showBackButton={hasOpenPanel}
-										onBackClick={handleBackToChat}
-									/>
-								</CollapsedHeaderBar>
+								{!isCodeCollabRoute && (
+									<CollapsedHeaderBar $isCollapsed={hasOpenPanel}>
+										<Header
+											setIconSelected={handleIconSelect}
+											iconSelected={panelTab}
+											onCreateThread={handleCreateThread}
+											onThreadSelect={handleThreadSelect}
+											showBackButton={hasOpenPanel}
+											onBackClick={handleBackToChat}
+										/>
+									</CollapsedHeaderBar>
+								)}
 
-								<OutletContainer $hidden={hasOpenPanel}>
+								<OutletContainer
+									$hidden={!isCodeCollabRoute && hasOpenPanel}
+									$fullBleed={isCodeCollabRoute}
+								>
 									<Outlet />
 								</OutletContainer>
 							</CenterPanel>
-							<RightPanelWrapper $fullWidth={hasOpenPanel}>
-								{renderRightPanel()}
-							</RightPanelWrapper>
+							{!isCodeCollabRoute && (
+								<RightPanelWrapper $fullWidth={hasOpenPanel}>
+									{renderRightPanel()}
+								</RightPanelWrapper>
+							)}
 						</RightSection>
 					</ContentWrapper>
 					<BottomSpacer />

@@ -21,9 +21,11 @@ import {
 	listDirectCodeBlocks,
 } from "@/services/codeCollabAPI";
 import useCodeRunner from "@/hooks/useCodeRunner";
-import { MockPage } from "@/components/custom/MockPage";
-import CodeCollab from "@/pages/CodeCollab";
-import { Button } from "@/components/ui/button";
+import { useNavigate } from "@tanstack/react-router";
+import {
+	buildCodeBlockSubtitleFromBlock,
+	buildCodeBlockTitle,
+} from "@/utils/codeCollabHelpers";
 
 interface CodeListProps {
 	onClose?: () => void;
@@ -34,45 +36,6 @@ interface CodeListProps {
 
 const PAGE_SIZE = 20;
 const REFRESH_INTERVAL_MS = 5000;
-
-const getDisplayName = (user?: CodeBlock["user"]) => {
-	if (!user) return "Unknown author";
-	const fullName = [user.firstName, user.lastName]
-		.filter((part) => !!part && part.trim().length > 0)
-		.join(" ")
-		.trim();
-	return fullName || user.username || "Unknown author";
-};
-
-const buildItemTitle = (block: CodeBlock) =>
-	block.language ? `${block.language} snippet` : "Code snippet";
-
-const buildItemSubtitle = (block: CodeBlock) => {
-	const owner = getDisplayName(block.user);
-	const timestamp = block.createdAt
-		? new Date(block.createdAt).toLocaleString()
-		: "";
-	return [owner, timestamp].filter(Boolean).join(" • ");
-};
-
-type CollaborateContext =
-	| {
-			mode: "channel";
-			codeBlockId: string;
-			title: string;
-			subtitle?: string;
-			language?: string;
-			groupId: string;
-			channelId: string;
-	  }
-	| {
-			mode: "direct";
-			codeBlockId: string;
-			title: string;
-			subtitle?: string;
-			language?: string;
-			directUserId: string;
-	  };
 
 const CodeList = ({
 	onClose,
@@ -92,10 +55,8 @@ const CodeList = ({
 	const [initialLoaded, setInitialLoaded] = useState(false);
 	const [isResultOpen, setIsResultOpen] = useState(false);
 	const [runningBlockId, setRunningBlockId] = useState<string | null>(null);
-	const [collabContext, setCollabContext] = useState<CollaborateContext | null>(
-		null,
-	);
 	const isLoadingRef = useRef(false);
+	const navigate = useNavigate();
 	const {
 		runOutput,
 		runError,
@@ -183,15 +144,11 @@ const CodeList = ({
 		return () => window.clearInterval(intervalId);
 	}, [canFetch, fetchCodeBlocks]);
 
-	useEffect(() => {
-		setCollabContext(null);
-	}, [groupId, channelId, directUserId, isChannelMode]);
-
 	const handleRunCode = async (block: CodeBlock) => {
 		if (runningBlockId) return;
 		const code = block.content || "";
 		setModalMeta({
-			title: buildItemTitle(block),
+			title: buildCodeBlockTitle(block.language),
 			language: block.language,
 		});
 		resetRunner();
@@ -219,33 +176,38 @@ const CodeList = ({
 	};
 
 	const handleCollaborate = (block: CodeBlock) => {
+		if (!isChannelMode && !isDirectMode) return;
+
+		const title = buildCodeBlockTitle(block.language);
+		const subtitle = buildCodeBlockSubtitleFromBlock(block);
+
 		if (isChannelMode && groupId && channelId) {
-			setCollabContext({
-				mode: "channel",
-				codeBlockId: block.id,
-				title: buildItemTitle(block),
-				subtitle: buildItemSubtitle(block),
-				language: block.language,
-				groupId,
-				channelId,
+			navigate({
+				to: "/chat/collab/$codeBlockId",
+				params: { codeBlockId: block.id },
+				search: {
+					mode: "channel",
+					groupId,
+					channelId,
+					title,
+					subtitle,
+				},
 			});
 			return;
 		}
 
 		if (isDirectMode && directUserId) {
-			setCollabContext({
-				mode: "direct",
-				codeBlockId: block.id,
-				title: buildItemTitle(block),
-				subtitle: buildItemSubtitle(block),
-				language: block.language,
-				directUserId,
+			navigate({
+				to: "/chat/collab/$codeBlockId",
+				params: { codeBlockId: block.id },
+				search: {
+					mode: "direct",
+					directUserId,
+					title,
+					subtitle,
+				},
 			});
 		}
-	};
-
-	const handleCloseCollaborate = () => {
-		setCollabContext(null);
 	};
 
 	const handleRetry = () => {
@@ -281,8 +243,8 @@ const CodeList = ({
 						{codeBlocks.map((block) => (
 							<CodeItem
 								key={block.id}
-								title={buildItemTitle(block)}
-								subtitle={buildItemSubtitle(block)}
+								title={buildCodeBlockTitle(block.language)}
+								subtitle={buildCodeBlockSubtitleFromBlock(block)}
 								language={block.language}
 								code={block.content}
 								onRun={() => handleRunCode(block)}
@@ -341,44 +303,6 @@ const CodeList = ({
 				error={runError}
 				title={modalMeta?.title}
 			/>
-
-			<MockPage
-				visible={Boolean(collabContext)}
-				title={collabContext?.title || "Code Collaboration"}
-				description={collabContext?.subtitle}
-				actions={
-					<Button variant="outline" size="sm" onClick={handleCloseCollaborate}>
-						Close
-					</Button>
-				}
-				contentPadding={false}
-				padded={false}
-			>
-				{collabContext ? (
-					collabContext.mode === "channel" ? (
-						<CodeCollab
-							key={`${collabContext.codeBlockId}-channel`}
-							codeBlockId={collabContext.codeBlockId}
-							channelId={collabContext.channelId}
-							groupId={collabContext.groupId}
-						/>
-					) : (
-						<CodeCollab
-							key={`${collabContext.codeBlockId}-direct`}
-							codeBlockId={collabContext.codeBlockId}
-							directUserId={collabContext.directUserId}
-						/>
-					)
-				) : (
-					<div className="flex items-center justify-center h-full">
-						<div className="text-center">
-							<p className="text-sm text-muted-foreground">
-								Select a code block to collaborate on.
-							</p>
-						</div>
-					</div>
-				)}
-			</MockPage>
 		</PageWrapper>
 	);
 };

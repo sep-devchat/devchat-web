@@ -19,8 +19,11 @@ import { Pencil, Play } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import CodeRunResultDialog from "@/components/custom/CodeRunResultDialog";
 import useCodeRunner from "@/hooks/useCodeRunner";
-import { MockPage } from "@/components/custom/MockPage";
-import CodeCollab from "@/pages/CodeCollab/CodeCollab";
+import { useNavigate } from "@tanstack/react-router";
+import {
+	buildCodeBlockSubtitleFromBlock,
+	buildCodeBlockTitle,
+} from "@/utils/codeCollabHelpers";
 import {
 	CodeBlock as CodeBlockData,
 	getCodeBlockById,
@@ -53,9 +56,9 @@ const CodeBlock = ({
 	const [language, setLanguage] = useState<string>("");
 	const [codeText, setCodeText] = useState<string>("");
 	const [isResultOpen, setIsResultOpen] = useState<boolean>(false);
-	const [isEditOpen, setIsEditOpen] = useState<boolean>(false);
 	const { isRunning, runOutput, runError, lastRunAt, runSnippet } =
 		useCodeRunner();
+	const navigate = useNavigate();
 
 	const [fetchedCodeBlock, setFetchedCodeBlock] =
 		useState<CodeBlockData | null>(null);
@@ -164,7 +167,20 @@ const CodeBlock = ({
 		}
 
 		onEdit?.(codeText, language || "");
-		setIsEditOpen(true);
+		const title = buildCodeBlockTitle(fetchedCodeBlock?.language || language);
+		const subtitle = buildCodeBlockSubtitleFromBlock(fetchedCodeBlock);
+
+		navigate({
+			to: "/chat/collab/$codeBlockId",
+			params: { codeBlockId },
+			search: {
+				mode: "channel",
+				groupId,
+				channelId,
+				title,
+				subtitle,
+			},
+		});
 	};
 
 	return (
@@ -250,45 +266,6 @@ const CodeBlock = ({
 					error={runError}
 				/>
 			</Card>
-
-			<MockPage
-				visible={isEditOpen}
-				title="Code Collaboration"
-				description={language ? `Editing ${language} snippet` : undefined}
-				actions={
-					<Button
-						variant="outline"
-						size="sm"
-						onClick={() => setIsEditOpen(false)}
-					>
-						Close
-					</Button>
-				}
-				contentPadding={false}
-				padded={false}
-			>
-				{codeBlockId && channelId && groupId ? (
-					<CodeCollab
-						key={isEditOpen ? "open" : "closed"}
-						codeBlockId={codeBlockId}
-						channelId={channelId}
-						groupId={groupId}
-					/>
-				) : (
-					<div className="flex items-center justify-center h-full">
-						<div className="text-center">
-							<p className="text-sm text-muted-foreground">
-								Required information not available
-							</p>
-							<p className="text-xs text-muted-foreground mt-1">
-								Missing: {!codeBlockId && "codeBlockId"}
-								{!channelId && " channelId"}
-								{!groupId && " groupId"}
-							</p>
-						</div>
-					</div>
-				)}
-			</MockPage>
 		</>
 	);
 };

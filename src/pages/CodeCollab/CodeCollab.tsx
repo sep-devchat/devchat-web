@@ -436,11 +436,7 @@ export default function CodeCollab({
 								<CodeEditor
 									code={editableCode}
 									onChange={setEditableCode}
-									title={
-										editingRevisionId
-											? "Editing Revision (changes will update existing version)"
-											: "Your Edits"
-									}
+									title={editingRevisionId ? "Editing Revision" : "Your Edits"}
 									showSave={true}
 									onSave={handleSave}
 									hasChanges={hasChanges}

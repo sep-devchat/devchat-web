@@ -127,15 +127,18 @@ export const CenterPanel = styled.div<{
 	`}
 `;
 
-export const OutletContainer = styled.div<{ $hidden?: boolean }>`
+export const OutletContainer = styled.div<{
+	$hidden?: boolean;
+	$fullBleed?: boolean;
+}>`
 	flex: 1;
 	overflow: hidden;
-	background: white;
-	border-radius: 0 0 10px 10px;
+	background: ${(props) => (props.$fullBleed ? "transparent" : "white")};
+	border-radius: ${(props) => (props.$fullBleed ? "0" : "0 0 10px 10px")};
 	display: ${(props) => (props.$hidden ? "none" : "block")};
 
 	@media (max-width: 1100px) {
-		border-radius: 10px;
+		border-radius: ${(props) => (props.$fullBleed ? "0" : "10px")};
 	}
 `;
 
