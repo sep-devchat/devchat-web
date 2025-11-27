@@ -29,18 +29,9 @@ export const ContentWrapper = styled(ResizablePanelGroup)`
 	flex: 1;
 	min-height: 0;
 	display: flex;
-	gap: 1.25rem;
 	overflow: hidden;
 	align-items: stretch;
 	width: 100%;
-
-	@media (max-width: 1400px) {
-		gap: 1rem;
-	}
-
-	@media (max-width: 1200px) {
-		gap: 0.75rem;
-	}
 
 	@media (max-width: 900px) {
 		flex-direction: column;
@@ -134,7 +125,6 @@ export const OutletContainer = styled.div<{
 	flex: 1;
 	overflow: hidden;
 	background: ${(props) => (props.$fullBleed ? "transparent" : "white")};
-	border-radius: ${(props) => (props.$fullBleed ? "0" : "0 0 10px 10px")};
 	display: ${(props) => (props.$hidden ? "none" : "block")};
 
 	@media (max-width: 1100px) {

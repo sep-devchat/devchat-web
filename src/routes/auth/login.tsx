@@ -34,7 +34,7 @@ function RouteComponent() {
 
 	const getPostLoginRedirect = () => {
 		const latestProfile = store.getState().user.profile;
-		return latestProfile?.isAdmin ? "/admin" : "/";
+		return latestProfile?.isAdmin ? "/admin" : "/chat/friend";
 	};
 
 	const loginMutation = useMutation({

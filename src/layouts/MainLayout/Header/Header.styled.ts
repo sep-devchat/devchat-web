@@ -10,10 +10,6 @@ export const HeaderContainer = styled.header`
 	border-top-right-radius: 10px;
 	flex-wrap: wrap;
 
-	@media (min-width: 1400px) {
-		height: 52px;
-	}
-
 	@media (max-width: 1100px) {
 		padding: 12px;
 	}

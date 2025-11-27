@@ -8,15 +8,19 @@ export const PageWrapper = styled.div<{ $isDark?: boolean }>`
 	background: ${(p) => (p.$isDark ? "#1f2937" : "#ffffff")};
 	color: ${(p) => (p.$isDark ? theme.color.grey10 : theme.color.grey90)};
 	border-left: 1px solid ${theme.color.grey30};
+	width: 20vw;
+	margin-left: 10px;
+	border-radius: 10px 0 0 10px;
+	overflow: hidden;
 `;
 
 export const CPHeader = styled.div`
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
-	padding: 16px 20px;
+	padding: 10px 20px;
 	border-bottom: 1px solid rgba(15, 23, 42, 0.08);
-	background: rgba(248, 250, 252, 0.9);
+	background: #e2e8f0;
 `;
 
 export const CPHeaderLeft = styled.div`

@@ -26,6 +26,8 @@ import {
 	buildCodeBlockSubtitleFromBlock,
 	buildCodeBlockTitle,
 } from "@/utils/codeCollabHelpers";
+import Empty from "../../Empty";
+import ineffaLoading from "@/assets/emoji/ineffa_loading.png";
 
 interface CodeListProps {
 	onClose?: () => void;
@@ -258,10 +260,18 @@ const CodeList = ({
 						))}
 
 						{initialLoaded && !isLoading && !codeBlocks.length && !error && (
-							<EmptyMessage>
-								No code blocks yet. Share your first snippet from the chat
-								composer.
-							</EmptyMessage>
+							<Empty
+								image={
+									<img
+										src={ineffaLoading}
+										alt="No code blocks"
+										className="h-50 w-50 object-cover"
+									/>
+								}
+								icon={null}
+								heading="No code blocks found"
+								description="There are no code blocks shared in this conversation yet."
+							/>
 						)}
 
 						{error && (
