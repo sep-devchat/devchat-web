@@ -11,6 +11,7 @@ import {
 	Note,
 	Root,
 	StatusBlock,
+	TaskBoardButton,
 	TaskContent,
 	TaskInfoColumn,
 	TaskItem,
@@ -156,6 +157,7 @@ export default function GroupTodo({ groupId, groupName }: Props) {
 	const [sampleTasks, setSampleTasks] = useState<DisplayTask[]>(SAMPLE_TASKS);
 	const [draggingId, setDraggingId] = useState<string | null>(null);
 	const dragItemIdRef = useRef<string | null>(null);
+	const [showDoneTasks, setShowDoneTasks] = useState(false);
 	const queryClient = useQueryClient();
 	const hasValidGroup = Boolean(groupId);
 	const currentUserId = useSelector(
@@ -165,7 +167,7 @@ export default function GroupTodo({ groupId, groupName }: Props) {
 	const taskQueryParams: TaskQuery = {
 		page: 1,
 		limit: 100,
-		status: ACTIVE_STATUS_QUERY,
+		status: ACTIVE_STATUS_QUERY + (showDoneTasks ? `,${TaskStatus.DONE}` : ""),
 	};
 	if (currentUserId) {
 		taskQueryParams.assigneeId = currentUserId;
@@ -176,6 +178,7 @@ export default function GroupTodo({ groupId, groupName }: Props) {
 		"user",
 		groupId,
 		currentUserId ?? "anonymous",
+		showDoneTasks ? "with-done" : "active-only",
 	];
 	const {
 		data: apiTasks = [],
@@ -218,9 +221,11 @@ export default function GroupTodo({ groupId, groupName }: Props) {
 
 	const usingSampleData = !hasValidGroup;
 	const tasksToRender = usingSampleData
-		? sampleTasks.filter((task) =>
-				!task.status ? true : ACTIVE_STATUSES.includes(task.status),
-			)
+		? sampleTasks.filter((task) => {
+				if (!task.status) return true;
+				if (showDoneTasks) return true;
+				return ACTIVE_STATUSES.includes(task.status);
+			})
 		: apiTasks;
 	const isRefreshing = !usingSampleData && isFetching && !isLoading;
 	const statusControlDisabled =
@@ -435,7 +440,17 @@ export default function GroupTodo({ groupId, groupName }: Props) {
 						<Note>"Select a group to load your assigned tasks."</Note>
 					)}
 				</div>
-				{isRefreshing && <Note>Syncing latest updates…</Note>}
+				<TaskBoardButton
+					onClick={() => setShowDoneTasks((prev) => !prev)}
+					title="Toggle showing completed tasks"
+					disabled={isRefreshing}
+				>
+					{isRefreshing
+						? "Syncing…"
+						: showDoneTasks
+							? "Hide done"
+							: "Show done"}
+				</TaskBoardButton>
 			</Header>
 
 			{isError && (

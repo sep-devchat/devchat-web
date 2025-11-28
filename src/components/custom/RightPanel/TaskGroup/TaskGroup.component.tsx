@@ -486,9 +486,6 @@ export default function TaskGroup({ onClose, groupId }: TaskGroupProps) {
 				<S.HeaderWrapper>
 					<div>
 						<S.SubTitle>Task Group</S.SubTitle>
-						<S.Description>
-							Manage your team's tasks and assignments
-						</S.Description>
 					</div>
 					<div style={{ display: "flex", gap: "0.5rem" }}>
 						<S.Button
