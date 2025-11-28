@@ -85,7 +85,7 @@ export const BanButton = styled.button`
 	}
 
 	&.unban {
-		background: ${theme.color.successBackground};
+		background: ${theme.color.success}20;
 		color: ${theme.color.success};
 	}
 `;
