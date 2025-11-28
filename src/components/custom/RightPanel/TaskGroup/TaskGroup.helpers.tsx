@@ -3,6 +3,26 @@ import { Task, AlertType, TaskFormData } from "./TaskGroup.types";
 import { CreateTaskRequest, UpdateTaskRequest } from "@/services/taskAPI";
 import { Task as ApiTask, TaskStatus, TaskPriority } from "@/types/task";
 
+const TASK_LOCK_WINDOW_IN_MS = 3 * 24 * 60 * 60 * 1000;
+
+const resolveLockState = (apiTask: ApiTask) => {
+	if (apiTask.status !== TaskStatus.DONE || !apiTask.updatedAt) {
+		return { isLocked: false, lockedAt: undefined as string | undefined };
+	}
+
+	const updatedAtMs = Date.parse(apiTask.updatedAt);
+	if (Number.isNaN(updatedAtMs)) {
+		return { isLocked: false, lockedAt: undefined };
+	}
+
+	const lockThreshold = Date.now() - TASK_LOCK_WINDOW_IN_MS;
+	const isLocked = updatedAtMs <= lockThreshold;
+	return {
+		isLocked,
+		lockedAt: isLocked ? apiTask.updatedAt : undefined,
+	};
+};
+
 export const convertApiTaskToLocal = (apiTask: ApiTask): Task => {
 	const statusMap: Record<TaskStatus, Task["status"]> = {
 		[TaskStatus.TODO]: "To Do",
@@ -16,6 +36,8 @@ export const convertApiTaskToLocal = (apiTask: ApiTask): Task => {
 		[TaskPriority.HIGH]: "High",
 	};
 
+	const { isLocked, lockedAt } = resolveLockState(apiTask);
+
 	return {
 		id: apiTask.id,
 		name: apiTask.name,
@@ -25,6 +47,8 @@ export const convertApiTaskToLocal = (apiTask: ApiTask): Task => {
 		startDate: apiTask.startDate || "",
 		dueDate: apiTask.dueDate || new Date().toISOString().split("T")[0],
 		assignedTo: apiTask.assignee?.id || "",
+		isLocked,
+		lockedAt,
 	};
 };
 
@@ -102,18 +126,6 @@ export const fireAlert = (
 	window.dispatchEvent(
 		new CustomEvent("app:alert", { detail: { type, message, duration } }),
 	);
-};
-
-export const buildDateRange = (dateString?: string) => {
-	if (!dateString) return null;
-	const start = new Date(dateString);
-	start.setHours(0, 0, 0, 0);
-	const end = new Date(dateString);
-	end.setHours(23, 59, 59, 999);
-	return {
-		from: start.toISOString(),
-		to: end.toISOString(),
-	};
 };
 
 export const getPriorityColor = (priority: Task["priority"]) => {

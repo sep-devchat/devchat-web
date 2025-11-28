@@ -1,42 +1,73 @@
 import React, { useState } from "react";
 import * as S from "./TaskGroup.styled";
 import { Filter, Search as SearchIcon } from "lucide-react";
-import { TaskStatus } from "@/types/task";
+import { TaskPriority, TaskStatus } from "@/types/task";
 import {
 	FILTER_STATUS_OPTIONS,
 	FILTER_PRIORITY_OPTIONS,
 } from "./filterOptions";
 import CustomSelect from "../../CustomSelect/CustomSelect";
-import CustomDatePicker from "../../CustomDatePicker/CustomDatePicker";
 import SearchInput from "../../SearchInput/SearchInput";
 import IconButton from "../../ActionButton/IconButton";
 import { Checkbox } from "@/components/ui/checkbox";
-
-type AppliedFilters = {
-	status?: TaskStatus | undefined;
-	assigneeId?: string | undefined;
-	unassigned?: boolean | undefined;
-	priority?: number | undefined;
-	startDate?: string | undefined;
-	dueDate?: string | undefined;
-	overdue?: boolean | undefined;
-};
+import { TaskFilters } from "./TaskGroup.types";
 
 type GroupMember = { id: string; username: string };
 
 type Props = {
-	appliedFilters: AppliedFilters;
+	appliedFilters: TaskFilters;
 	setAppliedFilters: (
-		f: AppliedFilters | ((prev: AppliedFilters) => AppliedFilters),
+		f: TaskFilters | ((prev: TaskFilters) => TaskFilters),
 	) => void;
 	groupMembers: GroupMember[];
-
-	// search-related (moved here from TaskGroup's FilterArea)
 	searchTerm: string;
 	setSearchTerm: (s: string) => void;
-	// on Enter need to immediately apply search:
 	setDebouncedSearch: (s: string) => void;
-	debounceRef: React.MutableRefObject<number | null>;
+};
+
+const STATUS_ORDER = FILTER_STATUS_OPTIONS.map(
+	(option) => Number(option.value) as TaskStatus,
+);
+const PRIORITY_ORDER = FILTER_PRIORITY_OPTIONS.map(
+	(option) => Number(option.value) as TaskPriority,
+);
+
+const STATUS_LABEL_MAP = FILTER_STATUS_OPTIONS.reduce(
+	(acc, option) => {
+		acc[Number(option.value) as TaskStatus] = option.label;
+		return acc;
+	},
+	{} as Record<TaskStatus, string>,
+);
+
+const PRIORITY_LABEL_MAP = FILTER_PRIORITY_OPTIONS.reduce(
+	(acc, option) => {
+		acc[Number(option.value) as TaskPriority] = option.label;
+		return acc;
+	},
+	{} as Record<TaskPriority, string>,
+);
+
+const toggleWithOrder = <T extends number>(
+	list: T[] | undefined,
+	value: T,
+	order: T[],
+): T[] => {
+	const next = new Set(list ?? []);
+	if (next.has(value)) {
+		next.delete(value);
+	} else {
+		next.add(value);
+	}
+	return order.filter((entry) => next.has(entry));
+};
+
+const formatSelection = <T extends number>(
+	values: T[] | undefined,
+	labels: Record<T, string>,
+) => {
+	if (!values?.length) return "";
+	return values.map((value) => labels[value] ?? String(value)).join(", ");
 };
 
 const SearchFilter: React.FC<Props> = ({
@@ -48,32 +79,53 @@ const SearchFilter: React.FC<Props> = ({
 	setDebouncedSearch,
 }) => {
 	const [isOpen, setIsOpen] = useState(false);
-	const [tempFilters, setTempFilters] = useState<AppliedFilters>({});
+	const [tempFilters, setTempFilters] = useState<TaskFilters>({});
 
 	const openModal = () => {
 		setTempFilters({
-			status: appliedFilters.status,
-			// nếu appliedFilters.unassigned = true thì không giữ assigneeId (làm rỗng)
+			status: appliedFilters.status ? [...appliedFilters.status] : [],
 			assigneeId: appliedFilters.unassigned
 				? ""
 				: (appliedFilters.assigneeId ?? ""),
 			unassigned: !!appliedFilters.unassigned,
-			priority: appliedFilters.priority,
-			startDate: appliedFilters.startDate ?? "",
-			// nếu appliedFilters.overdue = true thì không giữ dueDate
-			dueDate: appliedFilters.overdue ? "" : (appliedFilters.dueDate ?? ""),
-			overdue: !!appliedFilters.overdue,
+			priority: appliedFilters.priority ? [...appliedFilters.priority] : [],
 		});
 		setIsOpen(true);
 	};
 
-	const removeFilter = (key: keyof AppliedFilters) => {
-		setAppliedFilters((prev: AppliedFilters) => {
+	const removeFilter = (key: keyof TaskFilters) => {
+		setAppliedFilters((prev: TaskFilters) => {
 			const next = { ...prev };
 			delete next[key];
 			return next;
 		});
 	};
+
+	const statusSummary = formatSelection(
+		appliedFilters.status,
+		STATUS_LABEL_MAP,
+	);
+	const prioritySummary = formatSelection(
+		appliedFilters.priority,
+		PRIORITY_LABEL_MAP,
+	);
+
+	const handleStatusToggle = (value: TaskStatus) => {
+		setTempFilters((prev) => ({
+			...prev,
+			status: toggleWithOrder(prev.status, value, STATUS_ORDER),
+		}));
+	};
+
+	const handlePriorityToggle = (value: TaskPriority) => {
+		setTempFilters((prev) => ({
+			...prev,
+			priority: toggleWithOrder(prev.priority, value, PRIORITY_ORDER),
+		}));
+	};
+
+	const modalStatusSelection = tempFilters.status ?? [];
+	const modalPrioritySelection = tempFilters.priority ?? [];
 
 	return (
 		<S.FilterArea>
@@ -103,36 +155,21 @@ const SearchFilter: React.FC<Props> = ({
 			</S.FilterRow>
 
 			<S.FilterRow>
-				{/* Filter tags shown under search input */}
 				<S.FilterTags>
-					{appliedFilters.status !== undefined && (
+					{statusSummary && (
 						<S.FilterChip bg="#eef2ff" color="#4338ca">
 							<span>
-								<strong>Status:</strong>{" "}
-								{appliedFilters.status === 0
-									? "To Do"
-									: appliedFilters.status === 1
-										? "In Progress"
-										: appliedFilters.status === 2
-											? "Done"
-											: String(appliedFilters.status)}
+								<strong>Status:</strong> {statusSummary}
 							</span>
 							<S.ChipClose onClick={() => removeFilter("status")}>
 								×
 							</S.ChipClose>
 						</S.FilterChip>
 					)}
-					{appliedFilters.priority !== undefined && (
+					{prioritySummary && (
 						<S.FilterChip bg="#eef2ff" color="#4338ca">
 							<span>
-								<strong>Priority:</strong>{" "}
-								{appliedFilters.priority === 0
-									? "Low"
-									: appliedFilters.priority === 1
-										? "Medium"
-										: appliedFilters.priority === 2
-											? "High"
-											: String(appliedFilters.priority)}
+								<strong>Priority:</strong> {prioritySummary}
 							</span>
 							<S.ChipClose onClick={() => removeFilter("priority")}>
 								×
@@ -144,10 +181,10 @@ const SearchFilter: React.FC<Props> = ({
 							<span>
 								<strong>Assignee:</strong>{" "}
 								{(() => {
-									const m = groupMembers.find(
-										(g) => g.id === appliedFilters.assigneeId,
+									const match = groupMembers.find(
+										(member) => member.id === appliedFilters.assigneeId,
 									);
-									return m ? m.username : appliedFilters.assigneeId;
+									return match ? match.username : appliedFilters.assigneeId;
 								})()}
 							</span>
 							<S.ChipClose onClick={() => removeFilter("assigneeId")}>
@@ -161,36 +198,6 @@ const SearchFilter: React.FC<Props> = ({
 								<strong>Unassigned</strong>
 							</span>
 							<S.ChipClose onClick={() => removeFilter("unassigned")}>
-								×
-							</S.ChipClose>
-						</S.FilterChip>
-					)}
-					{appliedFilters.overdue && (
-						<S.FilterChip bg="#eef2ff" color="#4338ca">
-							<span>
-								<strong>Overdue</strong>
-							</span>
-							<S.ChipClose onClick={() => removeFilter("overdue")}>
-								×
-							</S.ChipClose>
-						</S.FilterChip>
-					)}
-					{appliedFilters.dueDate && (
-						<S.FilterChip bg="#eef2ff" color="#4338ca">
-							<span>
-								<strong>Due to:</strong> {appliedFilters.dueDate}
-							</span>
-							<S.ChipClose onClick={() => removeFilter("dueDate")}>
-								×
-							</S.ChipClose>
-						</S.FilterChip>
-					)}
-					{appliedFilters.startDate && (
-						<S.FilterChip bg="#eef2ff" color="#4338ca">
-							<span>
-								<strong>Start from:</strong> {appliedFilters.startDate}
-							</span>
-							<S.ChipClose onClick={() => removeFilter("startDate")}>
 								×
 							</S.ChipClose>
 						</S.FilterChip>
@@ -210,31 +217,34 @@ const SearchFilter: React.FC<Props> = ({
 								<S.FormColumn>
 									<S.FormGroup>
 										<S.Label>Status</S.Label>
-										<CustomSelect
-											value={
-												tempFilters.status !== undefined
-													? String(tempFilters.status)
-													: ""
-											}
-											onChange={(val: string) =>
-												setTempFilters((t) => ({
-													...t,
-													status:
-														val === ""
-															? undefined
-															: (Number(val) as TaskStatus),
-												}))
-											}
-											options={FILTER_STATUS_OPTIONS}
-											allowClear
-										/>
+										<div
+											style={{
+												display: "flex",
+												flexDirection: "column",
+												gap: 8,
+											}}
+										>
+											{FILTER_STATUS_OPTIONS.map((option) => {
+												const value = Number(option.value) as TaskStatus;
+												const checked = modalStatusSelection.includes(value);
+												return (
+													<S.CheckboxLabel key={option.value}>
+														<Checkbox
+															checked={checked}
+															onCheckedChange={() => handleStatusToggle(value)}
+															aria-label={`status-${option.value}`}
+														/>
+														<span>{option.label}</span>
+													</S.CheckboxLabel>
+												);
+											})}
+										</div>
 									</S.FormGroup>
 								</S.FormColumn>
 
 								<S.FormColumn>
 									<S.FormGroup>
 										<S.Label>Assignee</S.Label>
-										{/* DISABLED nếu tick Unassigned only */}
 										<CustomSelect
 											value={tempFilters.assigneeId ?? ""}
 											onChange={(val: string) =>
@@ -243,9 +253,9 @@ const SearchFilter: React.FC<Props> = ({
 											disabled={!!tempFilters.unassigned}
 											options={[
 												{ value: "", label: "Any" },
-												...groupMembers.map((m) => ({
-													value: m.id,
-													label: m.username,
+												...groupMembers.map((member) => ({
+													value: member.id,
+													label: member.username,
 												})),
 											]}
 										/>
@@ -255,11 +265,10 @@ const SearchFilter: React.FC<Props> = ({
 													id="unassigned-only"
 													checked={!!tempFilters.unassigned}
 													onCheckedChange={(checked) => {
-														const isChecked = checked === true; // handle boolean | "indeterminate"
+														const isChecked = checked === true;
 														setTempFilters((t) => ({
 															...t,
 															unassigned: isChecked,
-															// nếu checked thì clear assigneeId, nếu unchecked giữ nguyên
 															assigneeId: isChecked ? "" : t.assigneeId,
 														}));
 													}}
@@ -274,71 +283,30 @@ const SearchFilter: React.FC<Props> = ({
 								<S.FormColumn>
 									<S.FormGroup>
 										<S.Label>Priority</S.Label>
-										<CustomSelect
-											value={
-												tempFilters.priority !== undefined
-													? String(tempFilters.priority)
-													: ""
-											}
-											onChange={(val: string) =>
-												setTempFilters((t) => ({
-													...t,
-													priority: val === "" ? undefined : Number(val),
-												}))
-											}
-											options={[
-												{ value: "", label: "Any" },
-												...FILTER_PRIORITY_OPTIONS,
-											]}
-										/>
-									</S.FormGroup>
-								</S.FormColumn>
-
-								<S.FormColumn>
-									<S.FormGroup>
-										<S.Label>Start from</S.Label>
-										<CustomDatePicker
-											value={tempFilters.startDate ?? ""}
-											onChange={(val: string) =>
-												setTempFilters((t) => ({ ...t, startDate: val }))
-											}
-											allowClear
-										/>
-									</S.FormGroup>
-								</S.FormColumn>
-
-								<S.FormColumn>
-									<S.FormGroup>
-										<S.Label>Due to</S.Label>
-										{/* DISABLED nếu tick Only overdue */}
-										<CustomDatePicker
-											value={tempFilters.dueDate ?? ""}
-											onChange={(val: string) =>
-												setTempFilters((t) => ({ ...t, dueDate: val }))
-											}
-											disabled={!!tempFilters.overdue}
-											allowClear
-										/>
-										<S.FormGroup style={{ marginTop: 8 }}>
-											<S.CheckboxLabel>
-												<Checkbox
-													id="only-overdue"
-													type="button"
-													checked={!!tempFilters.overdue}
-													onCheckedChange={(checked) => {
-														const isChecked = checked === true;
-														setTempFilters((t) => ({
-															...t,
-															overdue: isChecked,
-															// nếu checked thì clear dueDate
-															dueDate: isChecked ? "" : t.dueDate,
-														}));
-													}}
-													aria-label="only-overdue"
-												/>
-												<span>Only overdue</span>
-											</S.CheckboxLabel>
-										</S.FormGroup>
+										<div
+											style={{
+												display: "flex",
+												flexDirection: "column",
+												gap: 8,
+											}}
+										>
+											{FILTER_PRIORITY_OPTIONS.map((option) => {
+												const value = Number(option.value) as TaskPriority;
+												const checked = modalPrioritySelection.includes(value);
+												return (
+													<S.CheckboxLabel key={option.value}>
+														<Checkbox
+															checked={checked}
+															onCheckedChange={() =>
+																handlePriorityToggle(value)
+															}
+															aria-label={`priority-${option.value}`}
+														/>
+														<span>{option.label}</span>
+													</S.CheckboxLabel>
+												);
+											})}
+										</div>
 									</S.FormGroup>
 								</S.FormColumn>
 							</S.DialogBody>
@@ -350,20 +318,22 @@ const SearchFilter: React.FC<Props> = ({
 								<S.Button
 									variant="primary"
 									onClick={() => {
-										// Khi apply: nếu unassigned = true thì không gửi assigneeId
-										// nếu overdue = true thì không gửi dueDate
+										const unassignedOnly = tempFilters.unassigned
+											? true
+											: undefined;
 										setAppliedFilters({
-											status: tempFilters.status,
-											assigneeId: tempFilters.unassigned
+											status:
+												tempFilters.status && tempFilters.status.length
+													? [...tempFilters.status]
+													: undefined,
+											assigneeId: unassignedOnly
 												? undefined
 												: tempFilters.assigneeId || undefined,
-											unassigned: !!tempFilters.unassigned,
-											priority: tempFilters.priority,
-											startDate: tempFilters.startDate || undefined,
-											dueDate: tempFilters.overdue
-												? undefined
-												: tempFilters.dueDate || undefined,
-											overdue: !!tempFilters.overdue,
+											unassigned: unassignedOnly,
+											priority:
+												tempFilters.priority && tempFilters.priority.length
+													? [...tempFilters.priority]
+													: undefined,
 										});
 										setIsOpen(false);
 									}}

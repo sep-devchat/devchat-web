@@ -4,6 +4,7 @@ import CustomSelect from "../../CustomSelect/CustomSelect";
 import CustomDatePicker from "../../CustomDatePicker/CustomDatePicker";
 import * as S from "./TaskGroup.styled";
 import { TaskFormData, SelectOption, EditPermissions } from "./TaskGroup.types";
+import { formatDate } from "./TaskGroup.helpers";
 
 const Dialog: React.FC<{
 	open: boolean;
@@ -153,6 +154,9 @@ export type UpdateTaskDialogProps = {
 	priorityOptions: SelectOption[];
 	statusOptions: SelectOption[];
 	editPermissions: EditPermissions;
+	isLockedTask?: boolean;
+	lockedAt?: string;
+	lockMessage?: string;
 	onFormFieldChange: (field: keyof TaskFormData, value: string) => void;
 	onStartDateChange: (value: string) => void;
 	onDueDateChange: (value: string) => void;
@@ -170,6 +174,9 @@ export const UpdateTaskDialog: React.FC<UpdateTaskDialogProps> = ({
 	priorityOptions,
 	statusOptions,
 	editPermissions,
+	isLockedTask,
+	lockedAt,
+	lockMessage,
 	onFormFieldChange,
 	onStartDateChange,
 	onDueDateChange,
@@ -184,6 +191,17 @@ export const UpdateTaskDialog: React.FC<UpdateTaskDialogProps> = ({
 				</S.DialogHeader>
 
 				<S.DialogBody>
+					{isLockedTask && (
+						<S.WarningBox>
+							{lockMessage || "This task is locked and cannot be updated."}
+							{lockedAt && (
+								<>
+									<br />
+									Completed on {formatDate(lockedAt)}.
+								</>
+							)}
+						</S.WarningBox>
+					)}
 					<S.FormGroup>
 						<S.Label>
 							Task Name <span style={{ color: "#D83232" }}>*</span>

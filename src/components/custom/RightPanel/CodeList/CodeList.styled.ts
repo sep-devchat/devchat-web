@@ -8,9 +8,9 @@ export const PageWrapper = styled.div<{ $isDark?: boolean }>`
 	background: ${(p) => (p.$isDark ? "#1f2937" : "#ffffff")};
 	color: ${(p) => (p.$isDark ? theme.color.grey10 : theme.color.grey90)};
 	border-left: 1px solid ${theme.color.grey30};
-	width: 20vw;
-	margin-left: 10px;
-	border-radius: 10px 0 0 10px;
+	width: 100%;
+	margin-left: 0;
+	border-radius: 10px;
 	overflow: hidden;
 `;
 

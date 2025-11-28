@@ -1,5 +1,13 @@
 import React from "react";
-import { Calendar, UserX, Loader, Edit2, Eye, Trash2 } from "lucide-react";
+import {
+	Calendar,
+	UserX,
+	Loader,
+	Edit2,
+	Eye,
+	Trash2,
+	Lock,
+} from "lucide-react";
 import { Task, GroupMember } from "./TaskGroup.types";
 import * as S from "./TaskGroup.styled";
 import { Task as ApiTask } from "@/types/task";
@@ -24,6 +32,9 @@ export type TaskListProps = {
 	onOpenTask: (task: Task) => void;
 	onDeleteTask: (task: Task) => void;
 };
+
+const LOCKED_TOOLTIP =
+	"Tasks marked as done for more than 3 days can no longer be modified.";
 
 const TaskList: React.FC<TaskListProps> = ({
 	groupId,
@@ -94,32 +105,51 @@ const TaskList: React.FC<TaskListProps> = ({
 			{tasks.map((task) => {
 				const statusColors = getStatusColor(task.status);
 				const priorityColors = getPriorityColor(task.priority);
-				const canEdit = isGroupCreator || task.assignedTo === currentUserId;
+				const canEdit =
+					!task.isLocked &&
+					(isGroupCreator || task.assignedTo === currentUserId);
 
 				return (
 					<S.TaskCard key={task.id}>
 						<S.TaskHeader>
 							<S.TaskTitle>{task.name}</S.TaskTitle>
 							<S.TaskActions>
-								{canEdit ? (
-									<Edit2
-										size={18}
-										style={{ cursor: "pointer", color: "#608BC1" }}
-										onClick={() => onOpenTask(task)}
-									/>
-								) : (
+								<span title="View task">
 									<Eye
 										size={18}
 										style={{ cursor: "pointer", color: "#6b7280" }}
 										onClick={() => onOpenTask(task)}
 									/>
+								</span>
+								{canEdit && (
+									<span title="Edit task">
+										<Edit2
+											size={18}
+											style={{ cursor: "pointer", color: "#608BC1" }}
+											onClick={() => onOpenTask(task)}
+										/>
+									</span>
+								)}
+								{task.isLocked && (
+									<span title={LOCKED_TOOLTIP}>
+										<Lock size={18} style={{ color: "#b45309" }} />
+									</span>
 								)}
 								{isGroupCreator && (
-									<Trash2
-										size={18}
-										style={{ cursor: "pointer", color: "#D83232" }}
-										onClick={() => onDeleteTask(task)}
-									/>
+									<span title={task.isLocked ? LOCKED_TOOLTIP : "Delete task"}>
+										<Trash2
+											size={18}
+											style={{
+												cursor: task.isLocked ? "not-allowed" : "pointer",
+												color: "#D83232",
+												opacity: task.isLocked ? 0.4 : 1,
+											}}
+											onClick={() => {
+												if (task.isLocked) return;
+												onDeleteTask(task);
+											}}
+										/>
+									</span>
 								)}
 							</S.TaskActions>
 						</S.TaskHeader>
@@ -135,6 +165,11 @@ const TaskList: React.FC<TaskListProps> = ({
 								{getPriorityIcon()}
 								{task.priority}
 							</S.Badge>
+							{task.isLocked && (
+								<S.Badge bg="#fee2e2" color="#b91c1c" title={LOCKED_TOOLTIP}>
+									<Lock size={14} /> Locked
+								</S.Badge>
+							)}
 						</S.TaskBadges>
 
 						<S.TaskMeta>

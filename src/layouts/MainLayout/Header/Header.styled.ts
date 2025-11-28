@@ -10,14 +10,8 @@ export const HeaderContainer = styled.header`
 	border-top-right-radius: 10px;
 	flex-wrap: wrap;
 
-	@media (max-width: 1100px) {
+	@media (max-width: 1280px) {
 		padding: 12px;
-	}
-
-	@media (max-width: 960px) {
-		flex-direction: column;
-		align-items: stretch;
-		gap: 0.5rem;
 	}
 `;
 
@@ -29,12 +23,6 @@ export const TitleSection = styled.div`
 	min-width: 0;
 	flex-wrap: wrap;
 	row-gap: 0.35rem;
-
-	@media (max-width: 960px) {
-		width: 100%;
-		flex-direction: column;
-		align-items: flex-start;
-	}
 `;
 
 export const BackButton = styled.button`
@@ -67,11 +55,6 @@ export const BackButton = styled.button`
 	&:active {
 		transform: translateY(1px);
 	}
-
-	@media (max-width: 960px) {
-		width: 100%;
-		justify-content: flex-start;
-	}
 `;
 
 export const IconBtn = styled.button`
@@ -98,7 +81,7 @@ export const IconBtn = styled.button`
 		outline: none;
 	}
 
-	@media (max-width: 1200px) {
+	@media (max-width: 1280px) {
 		padding: 4px;
 		border-radius: 5px;
 	}
@@ -140,14 +123,9 @@ export const NavTabTitle = styled.div`
 	color: #1e2a3b;
 	align-items: center;
 
-	@media (max-width: 1100px) {
+	@media (max-width: 1280px) {
 		margin-right: 8px;
 		font-size: 15px;
-	}
-
-	@media (max-width: 960px) {
-		margin-right: 0;
-		font-size: 14px;
 	}
 `;
 
@@ -196,11 +174,5 @@ export const TabButton = styled.button<{ isActive?: boolean }>`
 		flex: 1 1 calc(50% - 8px);
 		text-align: center;
 		min-width: 120px;
-	}
-
-	@media (max-width: 640px) {
-		flex: 1 1 100%;
-		width: 100%;
-	}
 	}
 `;

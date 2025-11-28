@@ -1,25 +1,36 @@
 import { useRef, useState } from "react";
+import { useSelector } from "react-redux";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlertCircle, Calendar, Flag, GripVertical } from "lucide-react";
 import {
+	BadgeRow,
+	DeadlineCard,
 	Desc,
 	Header,
-	Meta,
+	InfoFooter,
 	Note,
 	Root,
+	StatusBlock,
+	TaskContent,
+	TaskInfoColumn,
 	TaskItem,
 	TaskList,
 	TaskMain,
+	TaskMetaColumn,
 	Title,
 } from "./GroupTodo.styled";
 import {
-	Checkbox,
 	DragHandle,
 	PriorityBadge,
 	Select,
 } from "../PersonalTodo/PersonalTodo.styled";
-import { taskAPI } from "@/services/taskAPI";
+import {
+	taskAPI,
+	TaskQuery,
+	UpdateTaskStatusRequest,
+} from "@/services/taskAPI";
 import { Task as ApiTask, TaskStatus } from "@/types/task";
+import { RootState } from "@/store";
 
 type DisplayTask = {
 	id: string;
@@ -37,6 +48,9 @@ type Props = {
 	groupId?: string;
 	groupName?: string;
 };
+
+const ACTIVE_STATUSES: TaskStatus[] = [TaskStatus.TODO, TaskStatus.IN_PROGRESS];
+const ACTIVE_STATUS_QUERY = ACTIVE_STATUSES.join(",");
 
 const now = Date.now();
 const SAMPLE_TASKS: DisplayTask[] = [
@@ -144,8 +158,25 @@ export default function GroupTodo({ groupId, groupName }: Props) {
 	const dragItemIdRef = useRef<string | null>(null);
 	const queryClient = useQueryClient();
 	const hasValidGroup = Boolean(groupId);
+	const currentUserId = useSelector(
+		(state: RootState) => state.user.profile?.id,
+	);
 
-	const queryKey = ["group-todo", "user", groupId];
+	const taskQueryParams: TaskQuery = {
+		page: 1,
+		limit: 100,
+		status: ACTIVE_STATUS_QUERY,
+	};
+	if (currentUserId) {
+		taskQueryParams.assigneeId = currentUserId;
+	}
+
+	const queryKey = [
+		"group-todo",
+		"user",
+		groupId,
+		currentUserId ?? "anonymous",
+	];
 	const {
 		data: apiTasks = [],
 		isLoading,
@@ -155,7 +186,7 @@ export default function GroupTodo({ groupId, groupName }: Props) {
 		queryKey,
 		queryFn: async () => {
 			if (!groupId) return [];
-			const response = await taskAPI.getUserTasksByGroup(groupId);
+			const response = await taskAPI.getTasks(groupId, taskQueryParams);
 			const payload = Array.isArray(response)
 				? response
 				: (response?.data ?? []);
@@ -170,13 +201,13 @@ export default function GroupTodo({ groupId, groupName }: Props) {
 	const updateTaskStatusMutation = useMutation({
 		mutationFn: async ({
 			taskId,
-			status,
+			data,
 		}: {
 			taskId: string;
-			status: TaskStatus;
+			data: UpdateTaskStatusRequest;
 		}) => {
 			if (!groupId) return;
-			await taskAPI.updateTaskStatus(groupId, taskId, { status });
+			await taskAPI.updateTaskStatus(groupId, taskId, data);
 		},
 		onSuccess: () => {
 			if (groupId) {
@@ -186,7 +217,11 @@ export default function GroupTodo({ groupId, groupName }: Props) {
 	});
 
 	const usingSampleData = !hasValidGroup;
-	const tasksToRender = usingSampleData ? sampleTasks : apiTasks;
+	const tasksToRender = usingSampleData
+		? sampleTasks.filter((task) =>
+				!task.status ? true : ACTIVE_STATUSES.includes(task.status),
+			)
+		: apiTasks;
 	const isRefreshing = !usingSampleData && isFetching && !isLoading;
 	const statusControlDisabled =
 		!usingSampleData && updateTaskStatusMutation.isPending;
@@ -203,15 +238,7 @@ export default function GroupTodo({ groupId, groupName }: Props) {
 			return;
 		}
 
-		updateTaskStatusMutation.mutate({ taskId, status });
-	};
-
-	const toggleDone = (taskId: string) => {
-		const source = usingSampleData ? sampleTasks : apiTasks;
-		const target = source.find((task: DisplayTask) => task.id === taskId);
-		if (!target) return;
-		const nextStatus = target.done ? TaskStatus.TODO : TaskStatus.DONE;
-		handleStatusChange(taskId, nextStatus);
+		updateTaskStatusMutation.mutate({ taskId, data: { status } });
 	};
 
 	const onDragStart = (event: React.DragEvent, id: string) => {
@@ -313,99 +340,61 @@ export default function GroupTodo({ groupId, groupName }: Props) {
 								<GripVertical size={16} color="#94a3b8" />
 							</DragHandle>
 
-							<div>
-								<Checkbox
-									type="checkbox"
-									checked={!!task.done}
-									onChange={() => toggleDone(task.id)}
-								/>
-							</div>
-
 							<TaskMain>
-								<div
-									style={{
-										display: "flex",
-										justifyContent: "space-between",
-										gap: 12,
-										opacity: statusControlDisabled ? 0.9 : 1,
-									}}
+								<TaskContent
+									style={{ opacity: statusControlDisabled ? 0.9 : 1 }}
 								>
-									<div style={{ flex: 1 }}>
+									<TaskInfoColumn>
 										<Title done={task.done}>{task.name}</Title>
 										<Desc>{task.description || ""}</Desc>
-									</div>
+										<InfoFooter>
+											Start: {formatDateShort(task.startDate)}
+										</InfoFooter>
+									</TaskInfoColumn>
 
-									<Meta>
-										<div
-											style={{
-												display: "flex",
-												gap: 8,
-												justifyContent: "flex-end",
-											}}
-										>
+									<TaskMetaColumn>
+										<BadgeRow>
 											{priorityLevel !== 0 && (
 												<PriorityBadge level={priorityLevel}>
 													<Flag size={14} />
 													{priorityLabel}
 												</PriorityBadge>
 											)}
-										</div>
+										</BadgeRow>
 
-										<div style={{ marginTop: 8 }}>
-											{task.dueDate ? (
-												<div
-													title={
-														isOverdue
-															? "Deadline passed"
-															: isDueSoon
-																? `Due in ${Math.max(daysLeft ?? 0, 0)} days`
-																: `Due: ${new Date(task.dueDate).toLocaleString()}`
-													}
-													style={{
-														display: "inline-flex",
-														gap: 8,
-														alignItems: "center",
-														padding: "6px 8px",
-														borderRadius: 8,
-														background: isDueSoon
-															? "rgba(254,226,226,0.6)"
-															: "rgba(241,245,249,1)",
-														color: isDueSoon ? "#991b1b" : "#334155",
-														fontSize: 12,
-													}}
-												>
-													{isOverdue ? (
-														<AlertCircle size={16} color="#dc2626" />
-													) : (
-														<Calendar size={14} color="#64748b" />
-													)}
-													<span>
-														{isDueSoon
+										{task.dueDate ? (
+											<DeadlineCard
+												$variant={
+													isOverdue ? "overdue" : isDueSoon ? "soon" : "default"
+												}
+												title={
+													isOverdue
+														? "Deadline passed"
+														: isDueSoon
 															? `Due in ${Math.max(daysLeft ?? 0, 0)} days`
-															: formatDateShort(task.dueDate)}
-													</span>
-												</div>
-											) : (
-												<div style={{ color: "#94a3b8", fontSize: 12 }}>
-													No due date
-												</div>
-											)}
-										</div>
-
-										<div
-											style={{ marginTop: 4, fontSize: 12, color: "#94a3b8" }}
-										>
-											Start: {formatDateShort(task.startDate)}
-										</div>
-
-										<div style={{ marginTop: 8 }}>
-											<div
-												style={{
-													fontSize: 12,
-													color: statusColor,
-													marginBottom: 4,
-												}}
+															: `Due: ${new Date(task.dueDate).toLocaleString()}`
+												}
 											>
+												{isOverdue ? (
+													<AlertCircle size={16} color="#dc2626" />
+												) : (
+													<Calendar size={14} color="#64748b" />
+												)}
+												<span>
+													{isDueSoon
+														? `Due in ${Math.max(daysLeft ?? 0, 0)} days`
+														: formatDateShort(task.dueDate)}
+												</span>
+											</DeadlineCard>
+										) : (
+											<DeadlineCard $variant="default">
+												<Calendar size={14} color="#94a3b8" />
+												<span>No due date</span>
+											</DeadlineCard>
+										)}
+
+										<StatusBlock>
+											<div style={{ color: statusColor }}>
 												Status: <strong>{statusLabel}</strong>
 											</div>
 											<Select
@@ -424,9 +413,9 @@ export default function GroupTodo({ groupId, groupName }: Props) {
 												</option>
 												<option value={TaskStatus.DONE}>Done</option>
 											</Select>
-										</div>
-									</Meta>
-								</div>
+										</StatusBlock>
+									</TaskMetaColumn>
+								</TaskContent>
 							</TaskMain>
 						</TaskItem>
 					);
@@ -442,11 +431,9 @@ export default function GroupTodo({ groupId, groupName }: Props) {
 					<div style={{ fontWeight: 600, color: "#0f172a" }}>
 						{groupName ? `${groupName} tasks` : "Group tasks"}
 					</div>
-					<Note>
-						{usingSampleData
-							? "Select a group to load your assigned tasks."
-							: "Auto refresh runs every 5 seconds while this window is open."}
-					</Note>
+					{usingSampleData && (
+						<Note>"Select a group to load your assigned tasks."</Note>
+					)}
 				</div>
 				{isRefreshing && <Note>Syncing latest updates…</Note>}
 			</Header>

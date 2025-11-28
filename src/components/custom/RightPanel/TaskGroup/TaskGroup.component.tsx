@@ -9,7 +9,7 @@ import {
 	TaskQuery,
 	UpdateTaskStatusRequest,
 } from "@/services/taskAPI";
-import { Task as ApiTask, TaskStatus } from "@/types/task";
+import { Task as ApiTask } from "@/types/task";
 import { membersGroup } from "@/services/userGroupAPI";
 import { useSelector } from "react-redux";
 import { RootState } from "@/store";
@@ -22,13 +22,13 @@ import {
 	SelectOption,
 	EditPermissions,
 	TaskFormData,
+	TaskFilters,
 } from "./TaskGroup.types";
 import {
 	convertApiTaskToLocal,
 	convertLocalToApiCreate,
 	convertLocalToApiUpdate,
 	fireAlert,
-	buildDateRange,
 	hasTaskChanged,
 } from "./TaskGroup.helpers";
 import TaskList from "./TaskList";
@@ -61,17 +61,12 @@ const createEmptyFormState = (): TaskFormData => ({
 	assignedTo: "",
 });
 
+const LOCKED_TASK_MESSAGE =
+	"Tasks marked as done for more than 3 days can no longer be updated or deleted.";
+
 export default function TaskGroup({ onClose, groupId }: TaskGroupProps) {
 	const queryClient = useQueryClient();
-	const [appliedFilters, setAppliedFilters] = useState<{
-		status?: TaskStatus | undefined;
-		assigneeId?: string | undefined;
-		unassigned?: boolean | undefined;
-		priority?: number | undefined;
-		startDate?: string | undefined;
-		dueDate?: string | undefined;
-		overdue?: boolean | undefined;
-	}>({});
+	const [appliedFilters, setAppliedFilters] = useState<TaskFilters>({});
 
 	const [searchTerm, setSearchTerm] = useState("");
 	const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -108,27 +103,32 @@ export default function TaskGroup({ onClose, groupId }: TaskGroupProps) {
 	}, [searchTerm]);
 
 	const tasksQueryParams = useMemo<TaskQuery>(() => {
+		const normalizedStatus = appliedFilters.status?.length
+			? [...appliedFilters.status].sort((a, b) => a - b)
+			: undefined;
+		const normalizedPriority = appliedFilters.priority?.length
+			? [...appliedFilters.priority].sort((a, b) => a - b)
+			: undefined;
+		const unassignedOnly = appliedFilters.unassigned ? true : undefined;
+
+		const statusParam = normalizedStatus?.length
+			? normalizedStatus.join(",")
+			: undefined;
+		const priorityParam = normalizedPriority?.length
+			? normalizedPriority.join(",")
+			: undefined;
+
 		const params: TaskQuery = {
 			page: 1,
 			limit: 100,
 			search: debouncedSearch || undefined,
-			status: appliedFilters.status,
+			status: statusParam,
 			assigneeId: appliedFilters.assigneeId,
-			priority: appliedFilters.priority,
-			overdue: appliedFilters.overdue ?? null,
-			unassigned: appliedFilters.unassigned ?? null,
+			priority: priorityParam,
 		};
 
-		const startRange = buildDateRange(appliedFilters.startDate);
-		if (startRange) {
-			params.startDateFrom = startRange.from;
-			params.startDateTo = startRange.to;
-		}
-
-		const dueRange = buildDateRange(appliedFilters.dueDate);
-		if (dueRange) {
-			params.dueDateFrom = dueRange.from;
-			params.dueDateTo = dueRange.to;
+		if (unassignedOnly) {
+			params.unassigned = true;
 		}
 
 		return params;
@@ -342,6 +342,11 @@ export default function TaskGroup({ onClose, groupId }: TaskGroupProps) {
 
 	const handleUpdate = () => {
 		if (!selectedTask) return;
+		if (selectedTask.isLocked) {
+			fireAlert("warning", LOCKED_TASK_MESSAGE);
+			setIsUpdateOpen(false);
+			return;
+		}
 		if (!groupId) {
 			fireAlert("error", "No group selected");
 			return;
@@ -396,6 +401,11 @@ export default function TaskGroup({ onClose, groupId }: TaskGroupProps) {
 
 	const handleDelete = () => {
 		if (!selectedTask) return;
+		if (selectedTask.isLocked) {
+			fireAlert("warning", LOCKED_TASK_MESSAGE);
+			setIsDeleteOpen(false);
+			return;
+		}
 		if (!groupId) {
 			fireAlert("error", "No group selected");
 			return;
@@ -409,6 +419,9 @@ export default function TaskGroup({ onClose, groupId }: TaskGroupProps) {
 	};
 
 	const resolvePermissions = (task: Task): EditPermissions => {
+		if (task.isLocked) {
+			return { canEdit: false, fullAccess: false, canView: true };
+		}
 		if (isGroupCreator) {
 			return { canEdit: true, fullAccess: true, canView: true };
 		}
@@ -436,6 +449,10 @@ export default function TaskGroup({ onClose, groupId }: TaskGroupProps) {
 	};
 
 	const openDeleteDialog = (task: Task) => {
+		if (task.isLocked) {
+			fireAlert("warning", LOCKED_TASK_MESSAGE);
+			return;
+		}
 		setSelectedTask(task);
 		setIsDeleteOpen(true);
 	};
@@ -515,7 +532,6 @@ export default function TaskGroup({ onClose, groupId }: TaskGroupProps) {
 					searchTerm={searchTerm}
 					setSearchTerm={setSearchTerm}
 					setDebouncedSearch={setDebouncedSearch}
-					debounceRef={debounceRef}
 				/>
 
 				<TaskList
@@ -559,6 +575,9 @@ export default function TaskGroup({ onClose, groupId }: TaskGroupProps) {
 				priorityOptions={priorityOptions}
 				statusOptions={statusOptions}
 				editPermissions={editPermissions}
+				isLockedTask={!!selectedTask?.isLocked}
+				lockedAt={selectedTask?.lockedAt}
+				lockMessage={LOCKED_TASK_MESSAGE}
 				onFormFieldChange={handleFormFieldChange}
 				onStartDateChange={handleStartDateChange}
 				onDueDateChange={handleDueDateChange}

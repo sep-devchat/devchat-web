@@ -1,4 +1,4 @@
-import { Task, TaskStatus } from "@/types/task";
+import { Task, TaskPriority, TaskStatus } from "@/types/task";
 import { get, post, put, remove } from "./apiCaller";
 
 // --- Approximated DTOs based on controllers ---
@@ -52,21 +52,18 @@ export interface UpdateTaskStatusRequest {
  * Query parameters for fetching a list of tasks.
  * Based on `TaskQuery` from `task.controller.ts`.
  */
+type MaybeArray<T> = T | T[] | string;
+
 export interface TaskQuery {
 	page?: number;
 	limit?: number;
 	sortBy?: string;
 	sortOrder?: "ASC" | "DESC";
-	status?: TaskStatus;
+	status?: MaybeArray<TaskStatus>;
 	assigneeId?: string;
-	priority?: number;
-	startDateFrom?: string;
-	startDateTo?: string;
-	dueDateFrom?: string;
-	dueDateTo?: string;
+	priority?: MaybeArray<TaskPriority>;
 	search?: string;
-	overdue?: boolean | null;
-	unassigned?: boolean | null;
+	unassigned?: boolean;
 }
 
 /**
@@ -150,10 +147,6 @@ const deleteTask = (groupId: string, taskId: string) => {
  * @param groupId - The ID of the group.
  * @returns A promise that resolves to a list of tasks.
  */
-const getUserTasksByGroup = (groupId: string) => {
-	return get<Task[]>(`/api/user/task/${groupId}`);
-};
-
 export const taskAPI = {
 	createTask,
 	getTasks,
@@ -161,5 +154,4 @@ export const taskAPI = {
 	updateTask,
 	updateTaskStatus,
 	deleteTask,
-	getUserTasksByGroup,
 };

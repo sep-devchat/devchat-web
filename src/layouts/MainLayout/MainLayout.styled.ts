@@ -19,10 +19,6 @@ export const MainLayoutContainer = styled.div`
 	@media (max-width: 1280px) {
 		padding: 0 0.75rem;
 	}
-
-	@media (max-width: 960px) {
-		padding: 0 0.5rem;
-	}
 `;
 
 export const ContentWrapper = styled(ResizablePanelGroup)`
@@ -32,11 +28,6 @@ export const ContentWrapper = styled(ResizablePanelGroup)`
 	overflow: hidden;
 	align-items: stretch;
 	width: 100%;
-
-	@media (max-width: 900px) {
-		flex-direction: column;
-		gap: 0.5rem;
-	}
 `;
 
 export const LeftSection = styled.div<{ $isHalf: boolean }>`
@@ -52,12 +43,6 @@ export const LeftSection = styled.div<{ $isHalf: boolean }>`
 		props.$isHalf ? "clamp(240px, 36vw, 360px)" : "clamp(300px, 22vw, 380px)"};
 	flex-shrink: 0;
 	transition: flex-basis 0.2s ease;
-
-	@media (max-width: 900px) {
-		flex: 0 0 100%;
-		max-width: 100%;
-		order: 2;
-	}
 `;
 
 export const RightSection = styled(ResizablePanel)`
@@ -68,11 +53,6 @@ export const RightSection = styled(ResizablePanel)`
 	overflow: hidden;
 	transition: width 0.2s ease;
 	position: relative;
-
-	@media (max-width: 900px) {
-		flex: 1 1 100%;
-		order: 1;
-	}
 `;
 
 export const CenterPanel = styled.div<{
@@ -87,18 +67,6 @@ export const CenterPanel = styled.div<{
 	min-width: 0;
 	overflow: hidden;
 	gap: ${(props) => (props.$isCollapsed ? "0.75rem" : "0")};
-
-	border-top-right-radius: ${(props) => {
-		if (props.$isHalf) return "10px";
-		if (props.$hasRightBorderRadius === true) return "10px";
-		return "0";
-	}};
-
-	border-bottom-right-radius: ${(props) => {
-		if (props.$isHalf) return "10px";
-		if (props.$hasRightBorderRadius === true) return "10px";
-		return "0";
-	}};
 
 	${(props) =>
 		props.$isCollapsed &&
@@ -126,10 +94,6 @@ export const OutletContainer = styled.div<{
 	overflow: hidden;
 	background: ${(props) => (props.$fullBleed ? "transparent" : "white")};
 	display: ${(props) => (props.$hidden ? "none" : "block")};
-
-	@media (max-width: 1100px) {
-		border-radius: ${(props) => (props.$fullBleed ? "0" : "10px")};
-	}
 `;
 
 export const BottomSpacer = styled.div`

@@ -11,7 +11,7 @@ export const ProfileContainer = styled.div`
 	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 	z-index: 10;
 
-	@media (max-width: 1220px) {
+	@media (max-width: 1280px) {
 		padding: 6px 10px;
 		border-radius: 8px;
 	}
@@ -24,7 +24,7 @@ export const ProfileInfo = styled.div`
 	flex: 1;
 	min-width: 0;
 
-	@media (min-width: 1220px) {
+	@media (min-width: 1280px) {
 		gap: 5px;
 	}
 `;
@@ -50,22 +50,18 @@ export const Avatar = styled.div`
 		border-radius: 50%;
 	}
 
-	@media (max-width: 1220px) {
+	@media (max-width: 1280px) {
 		width: 30px;
 		height: 30px;
-		font-size: 13px;
+		font-size: 12px;
 	}
 `;
 
 export const Name = styled.div`
 	color: hsl(var(--foreground));
 	font-weight: 600;
-	font-size: 14px;
+	font-size: 12px;
 	line-height: 1.2;
-
-	@media (max-width: 1220px) {
-		font-size: 11px;
-	}
 `;
 
 export const ActionButton = styled.div`
@@ -74,7 +70,7 @@ export const ActionButton = styled.div`
 	align-items: center;
 	flex-shrink: 0;
 
-	@media (max-width: 1220px) {
+	@media (max-width: 1280px) {
 		gap: 6px;
 	}
 `;
@@ -107,7 +103,7 @@ export const SettingsButton = styled.button`
 		height: 18px;
 	}
 
-	@media (max-width: 1220px) {
+	@media (max-width: 1280px) {
 		width: 32px;
 		height: 32px;
 		border-radius: 6px;

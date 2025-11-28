@@ -1,3 +1,5 @@
+import { TaskPriority, TaskStatus } from "@/types/task";
+
 export type Task = {
 	id: string;
 	name: string;
@@ -7,6 +9,8 @@ export type Task = {
 	startDate: string;
 	dueDate: string;
 	assignedTo: string;
+	isLocked: boolean;
+	lockedAt?: string;
 };
 
 export type TaskFormData = {
@@ -43,4 +47,11 @@ export type EditPermissions = {
 	canEdit: boolean;
 	fullAccess: boolean;
 	canView: boolean;
+};
+
+export type TaskFilters = {
+	status?: TaskStatus[];
+	priority?: TaskPriority[];
+	assigneeId?: string;
+	unassigned?: boolean;
 };
