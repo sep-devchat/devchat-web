@@ -54,6 +54,16 @@ const Header = ({
 	const groupId = params.groupId;
 	const channelId = search.channel;
 
+	const [windowWidth, setWindowWidth] = useState(
+		typeof window !== "undefined" ? window.innerWidth : 1440,
+	);
+
+	useEffect(() => {
+		const handleResize = () => setWindowWidth(window.innerWidth);
+		window.addEventListener("resize", handleResize);
+		return () => window.removeEventListener("resize", handleResize);
+	}, []);
+
 	useEffect(() => {
 		const fetchChannelData = async () => {
 			if (search.channel && groupId) {
@@ -133,6 +143,41 @@ const Header = ({
 		}
 	};
 
+	const getIconSize = () => {
+		if (windowWidth >= 1920) return 26;
+		if (windowWidth <= 1220) return 18;
+		if (windowWidth >= 1440) return 20;
+		return 20;
+	};
+
+	const getSpinnerSize = () => {
+		if (windowWidth >= 1920) return "h-4.4 w-4.4";
+		if (windowWidth <= 1220) return "h-2.8 w-2.8";
+		if (windowWidth >= 1440) return "h-3.2 w-3.2";
+		return "h-4 w-4";
+	};
+
+	const getLoadingBarSize = () => {
+		if (windowWidth >= 1920) return "h-5.5 w-35.2";
+		if (windowWidth <= 1220) return "h-3.5 w-22.4";
+		if (windowWidth >= 1440) return "h-4 w-25.6";
+		return "h-5 w-32";
+	};
+
+	const getTitleFontSize = () => {
+		if (windowWidth >= 1920) return "text-xl";
+		if (windowWidth <= 1220) return "text-base";
+		if (windowWidth >= 1440) return "text-base";
+		return "text-lg";
+	};
+
+	const getGapSize = () => {
+		if (windowWidth >= 1920) return "gap-3";
+		if (windowWidth <= 1220) return "gap-3";
+		if (windowWidth >= 1440) return "gap-2.4";
+		return "gap-2";
+	};
+
 	return (
 		<HeaderContainer
 			className="rounded-tr-lg"
@@ -142,17 +187,23 @@ const Header = ({
 		>
 			{isGroupPage && search.channel ? (
 				loading ? (
-					<div className="flex items-center gap-2">
-						<div className="animate-spin h-4 w-4 border-2 border-gray-300 border-t-blue-500 rounded-full" />
-						<div className="h-5 w-32 bg-gray-200 animate-pulse rounded" />
+					<div className={`flex items-center ${getGapSize()}`}>
+						<div
+							className={`animate-spin ${getSpinnerSize()} border-2 border-gray-300 border-t-blue-500 rounded-full`}
+						/>
+						<div
+							className={`${getLoadingBarSize()} bg-gray-200 animate-pulse rounded`}
+						/>
 					</div>
 				) : (
-					<h2 className="text-lg font-semibold">{displayedTitle}</h2>
+					<h2 className={`${getTitleFontSize()} font-semibold`}>
+						{displayedTitle}
+					</h2>
 				)
 			) : (
-				<div className="flex items-center gap-2">
+				<div className={`flex items-center ${getGapSize()}`}>
 					<NavTabTitle>
-						<UserPlus2 size={18} />
+						<UserPlus2 size={getIconSize()} />
 						Friend
 					</NavTabTitle>
 					{actions.map(({ id, title, isPrimary }) => (
@@ -167,9 +218,12 @@ const Header = ({
 				</div>
 			)}
 
-			<div className="flex items-center gap-2" style={{ position: "relative" }}>
+			<div
+				className={`flex items-center ${getGapSize()}`}
+				style={{ position: "relative" }}
+			>
 				{isGroupPage ? (
-					<div className="flex gap-2">
+					<div className={`flex ${getGapSize()}`}>
 						<IconBtn
 							aria-label="tasks"
 							onMouseEnter={() => setHoveredIcon("tasks")}
@@ -180,7 +234,7 @@ const Header = ({
 							onKeyDown={(e) => onIconKeyDown(e, "tasks")}
 							disabled={loading}
 						>
-							<NotebookPenIcon size={20} />
+							<NotebookPenIcon size={getIconSize()} />
 							<Tooltip visible={hoveredIcon === "tasks"}>Tasks</Tooltip>
 						</IconBtn>
 
@@ -194,7 +248,7 @@ const Header = ({
 							onKeyDown={(e) => onIconKeyDown(e, "spool")}
 							disabled={loading}
 						>
-							<Spool size={20} />
+							<Spool size={getIconSize()} />
 							<Tooltip visible={hoveredIcon === "spool"}>Threads</Tooltip>
 						</IconBtn>
 
@@ -208,7 +262,7 @@ const Header = ({
 							onKeyDown={(e) => onIconKeyDown(e, "code")}
 							disabled={loading}
 						>
-							<SquareCode size={20} />
+							<SquareCode size={getIconSize()} />
 							<Tooltip visible={hoveredIcon === "code"}>Code</Tooltip>
 						</IconBtn>
 
@@ -222,7 +276,7 @@ const Header = ({
 							onKeyDown={(e) => onIconKeyDown(e, "users")}
 							disabled={loading}
 						>
-							<Users size={20} />
+							<Users size={getIconSize()} />
 							<Tooltip visible={hoveredIcon === "users"}>Members</Tooltip>
 						</IconBtn>
 
@@ -236,7 +290,7 @@ const Header = ({
 							onKeyDown={(e) => onIconKeyDown(e, "info")}
 							disabled={loading}
 						>
-							<Info size={20} />
+							<Info size={getIconSize()} />
 							<Tooltip visible={hoveredIcon === "info"}>Info</Tooltip>
 						</IconBtn>
 

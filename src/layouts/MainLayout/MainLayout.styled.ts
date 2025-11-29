@@ -31,10 +31,29 @@ export const LeftSection = styled.div<{ $isHalf: boolean }>`
 	display: flex;
 	min-width: 0;
 	overflow: hidden;
-	width: ${(props) => (props.$isHalf ? "25%" : "20%")};
-	min-width: ${(props) => (props.$isHalf ? "30%" : "15%")};
-	max-width: ${(props) => (props.$isHalf ? "35%" : "25%")};
 	flex-shrink: 0;
+
+	width: ${(props) => (props.$isHalf ? "30%" : "25%")};
+	min-width: ${(props) => (props.$isHalf ? "35%" : "30%")};
+	max-width: ${(props) => (props.$isHalf ? "40%" : "30%")};
+
+	@media (max-width: 1220px) {
+		width: ${(props) => (props.$isHalf ? "30%" : "25%")};
+		min-width: ${(props) => (props.$isHalf ? "35%" : "30%")};
+		max-width: ${(props) => (props.$isHalf ? "40%" : "30%")};
+	}
+
+	@media (min-width: 1440px) {
+		width: ${(props) => (props.$isHalf ? "20%" : "26%")};
+		min-width: ${(props) => (props.$isHalf ? "24%" : "12%")};
+		max-width: ${(props) => (props.$isHalf ? "28%" : "22%")};
+	}
+
+	@media (min-width: 1920px) {
+		width: ${(props) => (props.$isHalf ? "27.5%" : "22%")};
+		min-width: ${(props) => (props.$isHalf ? "33%" : "16.5%")};
+		max-width: ${(props) => (props.$isHalf ? "38.5%" : "27.5%")};
+	}
 `;
 
 export const RightSection = styled(ResizablePanel)`
@@ -56,6 +75,7 @@ export const CenterPanel = styled.div<{
 	min-width: 0;
 	overflow: hidden;
 
+	/* Base border radius: 10px */
 	border-top-right-radius: ${(props) => {
 		if (props.$isHalf) return "10px";
 		if (props.$hasRightBorderRadius === true) return "10px";
@@ -78,25 +98,20 @@ export const OutletContainer = styled.div`
 export const BottomSpacer = styled.div`
 	flex: 0 0 auto;
 	height: var(--titlebar-height, 1.5rem);
-
-	@media (min-width: 1024px) {
-		height: var(--titlebar-height, 2rem);
-	}
-
-	@media (min-width: 1440px) {
-		height: var(--titlebar-height, 2.5rem);
-	}
 `;
 
 export const RightPanelWrapper = styled.div<{ $fullWidth?: boolean }>`
 	height: 100%;
 	display: flex;
 	flex-direction: column;
-	min-height: 0; /* allow inner flex children to scroll */
+	min-height: 0;
 	${(props) =>
 		props.$fullWidth &&
 		`
 		flex: 1;
 		width: 100%;
 	`}
+
+	/* Base font size */
+	font-size: 16px;
 `;

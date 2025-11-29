@@ -30,6 +30,22 @@ const MarkdownPreview = ({
 	groupId,
 }: MarkdownPreviewProps) => {
 	const [remarkPlugins, setRemarkPlugins] = useState<any[]>([]);
+	const [windowWidth, setWindowWidth] = useState(
+		typeof window !== "undefined" ? window.innerWidth : 1440,
+	);
+
+	useEffect(() => {
+		const handleResize = () => setWindowWidth(window.innerWidth);
+		window.addEventListener("resize", handleResize);
+		return () => window.removeEventListener("resize", handleResize);
+	}, []);
+
+	const getResponsiveImageSize = (base: number) => {
+		if (windowWidth <= 1220) return base * 0.7;
+		if (windowWidth >= 1920) return base * 1.1;
+		if (windowWidth >= 1440) return base * 0.8;
+		return base;
+	};
 
 	const mentionClasses = useMemo(
 		() => [
@@ -275,6 +291,18 @@ const MarkdownPreview = ({
 							>
 								{children}
 							</a>
+						),
+						img: ({ node, ...props }) => (
+							<img
+								{...props}
+								style={{
+									maxWidth: `${getResponsiveImageSize(250)}px`,
+									maxHeight: `${getResponsiveImageSize(250)}px`,
+									objectFit: "contain",
+									borderRadius: "8px",
+									display: "block",
+								}}
+							/>
 						),
 						ul: ({ children, ...p }) => (
 							<ul className={cn("ml-5 list-disc", p.className)} {...p}>

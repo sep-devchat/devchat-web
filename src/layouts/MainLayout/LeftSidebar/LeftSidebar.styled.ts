@@ -1,5 +1,5 @@
 import { Input } from "@/components/custom/TablePermission/Modal/Modal.styled";
-import { Plus, Search, Settings as SettingsIcon } from "lucide-react";
+import { Search, Settings as SettingsIcon } from "lucide-react";
 import styled from "styled-components";
 
 export const LeftSidebarContainer = styled.div`
@@ -11,15 +11,33 @@ export const LeftSidebarContainer = styled.div`
 	border-radius: 10px 0 0 10px;
 	overflow: hidden;
 	gap: 12px;
+
+	@media (max-width: 1220px) {
+		gap: 8px;
+		border-radius: 8px 0 0 8px;
+	}
+
+	@media (min-width: 1440px) {
+		gap: 2px;
+		border-radius: 12px 0 0 12px;
+	}
 `;
 
 export const HeaderContainer = styled.div`
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	padding: 0.5rem;
+	padding: 0.75rem;
 	border-bottom: 1px solid white;
 	flex-shrink: 0;
+
+	@media (max-width: 1220px) {
+		padding: 0.375rem;
+	}
+
+	@media (min-width: 1440px) {
+		padding: 0.35rem;
+	}
 `;
 
 export const GroupHeader = styled.div`
@@ -32,6 +50,16 @@ export const GroupHeader = styled.div`
 	align-items: center;
 	gap: 12px;
 	min-width: 0;
+
+	@media (max-width: 1220px) {
+		padding: 0.2rem 0.2rem;
+		gap: 8px;
+	}
+
+	@media (min-width: 1440px) {
+		padding: 0.15rem;
+		gap: 8px;
+	}
 `;
 
 export const TooltipWrapper = styled.div`
@@ -46,18 +74,33 @@ export const GroupTitle = styled.h3`
 	font-size: 1rem;
 	font-weight: 600;
 	margin: 0;
-
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
 	min-width: 0;
 	width: 100%;
+
+	@media (max-width: 1220px) {
+		font-size: 0.875rem;
+	}
+
+	@media (min-width: 1440px) {
+		font-size: 0.875rem;
+	}
 `;
 
 export const IconButtonGroup = styled.div`
 	display: flex;
 	gap: 0.5rem;
 	flex-shrink: 0;
+
+	@media (max-width: 1220px) {
+		gap: 0.25rem;
+	}
+
+	@media (min-width: 1440px) {
+		gap: 0.15rem;
+	}
 `;
 
 export const IconButton = styled.div`
@@ -75,6 +118,18 @@ export const IconButton = styled.div`
 
 	&:hover {
 		color: #3b82f6;
+	}
+
+	@media (max-width: 1220px) {
+		width: 28px;
+		height: 28px;
+		border-radius: 4px;
+	}
+
+	@media (min-width: 1440px) {
+		width: 36px;
+		height: 36px;
+		border-radius: 8px;
 	}
 `;
 
@@ -114,22 +169,40 @@ export const Tooltip = styled.div`
 			transform: translateY(0);
 		}
 	}
-`;
 
-export const PlusIcon = styled(Plus)`
-	width: 20px;
-	margin-left: 0.75rem;
+	//chua
+
+	@media (max-width: 1220px) {
+		padding: 6px 10px;
+		font-size: 12px;
+		max-width: 250px;
+		border-radius: 4px;
+	}
+
+	@media (min-width: 1440px) {
+		padding: 10px 14px;
+		font-size: 15px;
+		max-width: 350px;
+		border-radius: 8px;
+	}
 `;
 
 export const SettingsIconStyled = styled(SettingsIcon)`
 	width: 20px;
+
+	@media (max-width: 1220px) {
+		width: 18px;
+	}
+
+	@media (min-width: 1440px) {
+		width: 22px;
+	}
 `;
 
 export const SearchContainer = styled.div`
 	position: relative;
 	width: 100%;
 	display: flex;
-	gap: 40px;
 `;
 
 export const SearchIconWrapper = styled.div`
@@ -153,6 +226,18 @@ export const SearchIcon = styled(Search)`
 	width: 1rem;
 	color: #9ca3af;
 	z-index: 1;
+
+	@media (max-width: 1220px) {
+		left: 0.625rem;
+		height: 0.875rem;
+		width: 0.875rem;
+	}
+
+	@media (min-width: 1440px) {
+		left: 1rem;
+		height: 1rem;
+		width: 1rem;
+	}
 `;
 
 export const SearchInput = styled(Input)<{ prefix?: React.ReactNode }>`
@@ -180,6 +265,26 @@ export const SearchInput = styled(Input)<{ prefix?: React.ReactNode }>`
 	&:hover:not(:focus) {
 		border-color: rgba(25, 82, 179, 0.3);
 	}
+
+	@media (max-width: 1220px) {
+		padding: 0.375rem 0.625rem 0.375rem 2rem;
+		font-size: 0.8125rem;
+		border-radius: 0.25rem;
+
+		&::placeholder {
+			font-size: 0.8125rem;
+		}
+	}
+
+	@media (min-width: 1440px) {
+		padding: 0.5rem 0.875rem 0.5rem 2.5rem;
+		font-size: 0.875rem;
+		border-radius: 0.5rem;
+
+		&::placeholder {
+			font-size: 0.875rem;
+		}
+	}
 `;
 
 export const SectionHeader = styled.div`
@@ -188,11 +293,27 @@ export const SectionHeader = styled.div`
 	justify-content: space-between;
 	align-items: center;
 	flex-shrink: 0;
+
+	@media (max-width: 1220px) {
+		padding: 0.375rem;
+	}
+
+	@media (min-width: 1440px) {
+		padding: 0.5rem;
+	}
 `;
 
 export const SectionTitle = styled.h3`
 	font-size: 1.125rem;
 	font-weight: 600;
+
+	@media (max-width: 1220px) {
+		font-size: 1rem;
+	}
+
+	@media (min-width: 1440px) {
+		font-size: 1rem;
+	}
 `;
 
 export const AddButton = styled.button`
@@ -209,7 +330,21 @@ export const AddButton = styled.button`
 	&:hover {
 		background: #e5e7eb;
 	}
+
+	@media (max-width: 1220px) {
+		width: 1.25rem;
+		height: 1.25rem;
+		border-radius: 0.2rem;
+	}
+
+	@media (min-width: 1440px) {
+		width: 2rem;
+		height: 2rem;
+		border-radius: 0.375rem;
+	}
 `;
+
+//stop
 
 export const FriendList = styled.ul`
 	list-style: none;
@@ -239,6 +374,24 @@ export const FriendList = styled.ul`
 	&::-webkit-scrollbar-thumb:hover {
 		background: rgba(0, 0, 0, 0.3);
 	}
+
+	@media (max-width: 1220px) {
+		padding: 0 6px 6px;
+		gap: 4px;
+
+		&::-webkit-scrollbar {
+			width: 4px;
+		}
+	}
+
+	@media (min-width: 1440px) {
+		padding: 0 0 10px;
+		gap: 8px;
+
+		&::-webkit-scrollbar {
+			width: 8px;
+		}
+	}
 `;
 
 export const ModalOverlay = styled.div`
@@ -264,6 +417,18 @@ export const ModalContent = styled.div`
 	box-shadow:
 		0 20px 25px -5px rgba(0, 0, 0, 0.1),
 		0 10px 10px -5px rgba(0, 0, 0, 0.04);
+
+	@media (max-width: 1220px) {
+		border-radius: 10px;
+		padding: 20px;
+		max-width: 450px;
+	}
+
+	@media (min-width: 1440px) {
+		border-radius: 16px;
+		padding: 16px;
+		max-width: 400px;
+	}
 `;
 
 export const ModalHeader = styled.div`
@@ -271,6 +436,14 @@ export const ModalHeader = styled.div`
 	align-items: center;
 	justify-content: space-between;
 	margin-bottom: 24px;
+
+	@media (max-width: 1220px) {
+		margin-bottom: 20px;
+	}
+
+	@media (min-width: 1440px) {
+		margin-bottom: 12px;
+	}
 `;
 
 export const ModalTitle = styled.h3`
@@ -278,6 +451,14 @@ export const ModalTitle = styled.h3`
 	font-weight: 600;
 	color: #1a1a1a;
 	margin: 0;
+
+	@media (max-width: 1220px) {
+		font-size: 16px;
+	}
+
+	@media (min-width: 1440px) {
+		font-size: 16px;
+	}
 `;
 
 export const CloseButton = styled.button`
@@ -296,6 +477,15 @@ export const CloseButton = styled.button`
 	&:focus {
 		outline: none;
 	}
+
+	@media (max-width: 1220px) {
+		padding: 3px;
+	}
+
+	@media (min-width: 1440px) {
+		padding: 6px;
+		border-radius: 6px;
+	}
 `;
 
 export const Divider = styled.div`
@@ -304,7 +494,6 @@ export const Divider = styled.div`
 	text-align: center;
 	margin-bottom: 20px;
 	color: #9ca3af;
-	font-size: 14px;
 
 	&::before,
 	&::after {
@@ -312,10 +501,26 @@ export const Divider = styled.div`
 		flex: 1;
 		border-bottom: 1px solid #e5e7eb;
 	}
+
+	@media (max-width: 1220px) {
+		margin-bottom: 16px;
+	}
+
+	@media (min-width: 1440px) {
+		margin-bottom: 12px;
+	}
 `;
 
 export const FormSection = styled.div`
 	margin-bottom: 20px;
+
+	@media (max-width: 1220px) {
+		margin-bottom: 16px;
+	}
+
+	@media (min-width: 1440px) {
+		margin-bottom: 16px;
+	}
 `;
 
 export const Label = styled.label`
@@ -324,6 +529,16 @@ export const Label = styled.label`
 	font-weight: 500;
 	color: #374151;
 	margin-bottom: 8px;
+
+	@media (max-width: 1220px) {
+		font-size: 13px;
+		margin-bottom: 6px;
+	}
+
+	@media (min-width: 1440px) {
+		font-size: 13px;
+		margin-bottom: 10px;
+	}
 `;
 
 export const ChannelTypeCard = styled.div`
@@ -333,12 +548,34 @@ export const ChannelTypeCard = styled.div`
 	display: flex;
 	align-items: center;
 	gap: 12px;
+
+	@media (max-width: 1220px) {
+		border-radius: 6px;
+		padding: 12px;
+		gap: 10px;
+	}
+
+	@media (min-width: 1440px) {
+		border-radius: 10px;
+		padding: 10px;
+		gap: 16px;
+	}
 `;
 
 export const ChannelTypeIcon = styled.div`
 	width: 20px;
 	height: 20px;
 	color: #6b7280;
+
+	@media (max-width: 1220px) {
+		width: 18px;
+		height: 18px;
+	}
+
+	@media (min-width: 1440px) {
+		width: 18px;
+		height: 18px;
+	}
 `;
 
 export const ChannelTypeContent = styled.div`
@@ -349,12 +586,30 @@ export const ChannelTypeName = styled.div`
 	font-weight: 600;
 	color: #1a1a1a;
 	margin-bottom: 4px;
+
+	@media (max-width: 1220px) {
+		font-size: 14px;
+	}
+
+	@media (min-width: 1440px) {
+		font-size: 14px;
+	}
 `;
 
 export const ChannelTypeDescription = styled.div`
 	font-size: 13px;
 	color: #6b7280;
 	line-height: 1.4;
+
+	@media (max-width: 1220px) {
+		font-size: 12px;
+		line-height: 1.3;
+	}
+
+	@media (min-width: 1440px) {
+		font-size: 12px;
+		line-height: 1;
+	}
 `;
 
 export const InputModal = styled.input`
@@ -374,6 +629,18 @@ export const InputModal = styled.input`
 	&::placeholder {
 		color: #6b7280;
 	}
+
+	@media (max-width: 1220px) {
+		padding: 10px;
+		border-radius: 6px;
+		font-size: 13px;
+	}
+
+	@media (min-width: 1440px) {
+		padding: 14px;
+		border-radius: 10px;
+		font-size: 12px;
+	}
 `;
 
 export const PrivateSection = styled.div`
@@ -382,6 +649,18 @@ export const PrivateSection = styled.div`
 	gap: 12px;
 	padding: 16px;
 	border-radius: 8px;
+
+	@media (max-width: 1220px) {
+		gap: 10px;
+		padding: 12px;
+		border-radius: 6px;
+	}
+
+	@media (min-width: 1440px) {
+		gap: 16px;
+		padding: 8px;
+		border-radius: 10px;
+	}
 `;
 
 export const PrivateIcon = styled.div`
@@ -389,6 +668,16 @@ export const PrivateIcon = styled.div`
 	height: 20px;
 	color: #6b7280;
 	margin-top: 2px;
+
+	@media (max-width: 1220px) {
+		width: 18px;
+		height: 18px;
+	}
+
+	@media (min-width: 1440px) {
+		width: 18px;
+		height: 18px;
+	}
 `;
 
 export const PrivateContent = styled.div`
@@ -399,12 +688,32 @@ export const PrivateTitle = styled.div`
 	font-weight: 600;
 	color: #1a1a1a;
 	margin-bottom: 4px;
+
+	@media (max-width: 1220px) {
+		font-size: 14px;
+		margin-bottom: 3px;
+	}
+
+	@media (min-width: 1440px) {
+		font-size: 14px;
+		margin-bottom: 6px;
+	}
 `;
 
 export const PrivateDescription = styled.div`
 	font-size: 13px;
 	color: #6b7280;
 	line-height: 1.4;
+
+	@media (max-width: 1220px) {
+		font-size: 12px;
+		line-height: 1.3;
+	}
+
+	@media (min-width: 1440px) {
+		font-size: 12px;
+		line-height: 1;
+	}
 `;
 
 export const Toggle = styled.label`
@@ -413,6 +722,16 @@ export const Toggle = styled.label`
 	width: 44px;
 	height: 24px;
 	margin-top: 2px;
+
+	@media (max-width: 1220px) {
+		width: 40px;
+		height: 22px;
+	}
+
+	@media (min-width: 1440px) {
+		width: 48px;
+		height: 26px;
+	}
 `;
 
 export const ToggleInput = styled.input`
@@ -443,6 +762,26 @@ export const ToggleSlider = styled.span<{ checked: boolean }>`
 		transition: 0.4s;
 		border-radius: 50%;
 	}
+
+	@media (max-width: 1220px) {
+		border-radius: 22px;
+
+		&:before {
+			height: 16px;
+			width: 16px;
+			left: ${(props) => (props.checked ? "21px" : "3px")};
+		}
+	}
+
+	@media (min-width: 1440px) {
+		border-radius: 26px;
+
+		&:before {
+			height: 20px;
+			width: 20px;
+			left: ${(props) => (props.checked ? "25px" : "3px")};
+		}
+	}
 `;
 
 export const ModalFooter = styled.div`
@@ -450,6 +789,16 @@ export const ModalFooter = styled.div`
 	gap: 12px;
 	justify-content: space-between;
 	margin-top: 24px;
+
+	@media (max-width: 1220px) {
+		gap: 10px;
+		margin-top: 20px;
+	}
+
+	@media (min-width: 1440px) {
+		gap: 16px;
+		margin-top: 12px;
+	}
 `;
 
 export const ButtonModal = styled.button<{
@@ -486,6 +835,18 @@ export const ButtonModal = styled.button<{
 	&:focus {
 		outline: none;
 	}
+
+	@media (max-width: 1220px) {
+		padding: 8px 14px;
+		border-radius: 6px;
+		font-size: 13px;
+	}
+
+	@media (min-width: 1440px) {
+		padding: 8px 16px;
+		border-radius: 8px;
+		font-size: 14px;
+	}
 `;
 
 export const ProfileWrapper = styled.div`
@@ -493,4 +854,14 @@ export const ProfileWrapper = styled.div`
 	padding-top: 12px;
 	flex-shrink: 0;
 	padding: 16px;
+
+	@media (max-width: 1220px) {
+		padding-top: 10px;
+		padding: 8px;
+	}
+
+	@media (min-width: 1440px) {
+		padding-top: 16px;
+		padding: 10px;
+	}
 `;

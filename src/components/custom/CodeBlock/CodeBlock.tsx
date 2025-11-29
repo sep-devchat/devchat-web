@@ -68,6 +68,36 @@ const CodeBlock = ({
 	const [fetchedCodeBlock, setFetchedCodeBlock] =
 		useState<CodeBlockData | null>(null);
 	const [isLoadingCodeBlock, setIsLoadingCodeBlock] = useState(false);
+	const [windowWidth, setWindowWidth] = useState(
+		typeof window !== "undefined" ? window.innerWidth : 1440,
+	);
+
+	useEffect(() => {
+		const handleResize = () => setWindowWidth(window.innerWidth);
+		window.addEventListener("resize", handleResize);
+		return () => window.removeEventListener("resize", handleResize);
+	}, []);
+
+	const getResponsiveSize = (base: number) => {
+		if (windowWidth <= 1220) return base * 0.7;
+		if (windowWidth >= 1920) return base * 1.1;
+		if (windowWidth >= 1440) return base * 0.8;
+		return base;
+	};
+
+	const getResponsiveFontSize = () => {
+		if (windowWidth <= 1220) return "11px";
+		if (windowWidth >= 1920) return "14px";
+		if (windowWidth >= 1440) return "12px";
+		return "14px";
+	};
+
+	const getHeaderFontSize = () => {
+		if (windowWidth <= 1220) return "12px";
+		if (windowWidth >= 1920) return "16px";
+		if (windowWidth >= 1440) return "13px";
+		return "14px";
+	};
 
 	useEffect(() => {
 		if (codeBlockId && channelId && groupId) {
@@ -209,14 +239,39 @@ const CodeBlock = ({
 
 	return (
 		<>
-			<Card className="min-w-[360px] overflow-hidden isolate z-10 mix-blend-normal border border-slate-200 bg-white shadow-lg">
-				<CardHeader className="py-2 px-3 bg-slate-50 border-b border-slate-200">
-					<div className="flex items-center justify-between gap-2 relative z-10">
-						<CardTitle className="text-xs font-semibold uppercase tracking-wide text-slate-600">
+			<Card
+				className="overflow-hidden isolate z-10 mix-blend-normal border border-slate-200 bg-white shadow-lg"
+				style={{
+					minWidth: `${getResponsiveSize(360)}px`,
+				}}
+			>
+				<CardHeader
+					className="bg-slate-50 border-b border-slate-200"
+					style={{
+						padding: `${getResponsiveSize(8)}px ${getResponsiveSize(12)}px`,
+					}}
+				>
+					<div
+						className="flex items-center justify-between relative z-10"
+						style={{
+							gap: `${getResponsiveSize(8)}px`,
+						}}
+					>
+						<CardTitle
+							className="font-semibold uppercase tracking-wide text-slate-600"
+							style={{
+								fontSize: getResponsiveFontSize(),
+							}}
+						>
 							{fetchedCodeBlock?.language || language || "Code"}
 							{isLoadingCodeBlock && " (loading...)"}
 						</CardTitle>
-						<div className="flex items-center gap-2">
+						<div
+							className="flex items-center"
+							style={{
+								gap: `${getResponsiveSize(8)}px`,
+							}}
+						>
 							<TooltipProvider delayDuration={200}>
 								{showEditButton && (
 									<Tooltip>
@@ -224,12 +279,21 @@ const CodeBlock = ({
 											<Button
 												variant="outline"
 												size="sm"
-												className="h-7 w-7 p-0 grid place-items-center"
+												className="p-0 grid place-items-center"
+												style={{
+													width: `${getResponsiveSize(28)}px`,
+													height: `${getResponsiveSize(28)}px`,
+												}}
 												aria-label="Edit code"
 												onClick={handleEditClick}
 												disabled={!codeBlockId || !channelId || !groupId}
 											>
-												<Pencil className="h-4 w-4" />
+												<Pencil
+													style={{
+														width: `${getResponsiveSize(16)}px`,
+														height: `${getResponsiveSize(16)}px`,
+													}}
+												/>
 												<span className="sr-only">Edit code</span>
 											</Button>
 										</TooltipTrigger>
@@ -246,7 +310,11 @@ const CodeBlock = ({
 											<Button
 												variant="outline"
 												size="sm"
-												className="h-7 w-7 p-0 grid place-items-center"
+												className="p-0 grid place-items-center"
+												style={{
+													width: `${getResponsiveSize(28)}px`,
+													height: `${getResponsiveSize(28)}px`,
+												}}
 												aria-label="Run code"
 												disabled={isRunning || !codeText.trim()}
 												onClick={async () => {
@@ -255,9 +323,19 @@ const CodeBlock = ({
 												}}
 											>
 												{isRunning ? (
-													<Spinner className="h-4 w-4" />
+													<Spinner
+														style={{
+															width: `${getResponsiveSize(16)}px`,
+															height: `${getResponsiveSize(16)}px`,
+														}}
+													/>
 												) : (
-													<Play className="h-4 w-4" />
+													<Play
+														style={{
+															width: `${getResponsiveSize(16)}px`,
+															height: `${getResponsiveSize(16)}px`,
+														}}
+													/>
 												)}
 												<span className="sr-only">Run code</span>
 											</Button>
@@ -273,32 +351,75 @@ const CodeBlock = ({
 					<pre
 						ref={preRef}
 						className={cn(
-							"text-sm font-medium overflow-x-auto p-3 bg-white text-slate-900",
+							"font-medium overflow-x-auto bg-white text-slate-900",
 							"[&_code]:p-0 [&_code]:text-inherit",
 							className,
 						)}
+						style={{
+							fontSize: getResponsiveFontSize(),
+							padding: `${getResponsiveSize(12)}px`,
+						}}
 						{...props}
 					/>
 				</CardContent>
 
 				<Dialog open={isResultOpen} onOpenChange={setIsResultOpen}>
-					<DialogContent className="w-full max-w-[min(95vw,720px)] p-0 overflow-hidden border border-slate-200 bg-white text-slate-900">
-						<DialogHeader className="px-4 py-3 border-b border-slate-200 bg-slate-50">
-							<DialogTitle className="text-base font-semibold tracking-tight text-slate-900">
+					<DialogContent
+						className="w-full overflow-hidden border border-slate-200 bg-white text-slate-900"
+						style={{
+							maxWidth: `min(95vw, ${getResponsiveSize(720)}px)`,
+							padding: 0,
+						}}
+					>
+						<DialogHeader
+							className="border-b border-slate-200 bg-slate-50"
+							style={{
+								padding: `${getResponsiveSize(12)}px ${getResponsiveSize(16)}px`,
+							}}
+						>
+							<DialogTitle
+								className="font-semibold tracking-tight text-slate-900"
+								style={{
+									fontSize: getHeaderFontSize(),
+								}}
+							>
 								Execution Result
 							</DialogTitle>
-							<div className="text-xs text-slate-500">
+							<div
+								style={{
+									fontSize: getResponsiveFontSize(),
+								}}
+								className="text-slate-500"
+							>
 								{language ? `${language} • ` : ""}
 								{lastRunAt || "Just now"}
 							</div>
 						</DialogHeader>
-						<div className="p-4 space-y-3 max-h-[70vh] overflow-y-auto bg-white">
+						<div
+							className="space-y-3 max-h-[70vh] overflow-y-auto bg-white"
+							style={{
+								padding: `${getResponsiveSize(16)}px`,
+								gap: `${getResponsiveSize(12)}px`,
+							}}
+						>
 							{runError ? (
-								<div className="rounded-lg border border-red-200 bg-red-50 text-red-700 text-sm p-3 whitespace-pre-wrap break-words">
+								<div
+									className="rounded-lg border border-red-200 bg-red-50 text-red-700 whitespace-pre-wrap break-words"
+									style={{
+										fontSize: getResponsiveFontSize(),
+										padding: `${getResponsiveSize(12)}px`,
+									}}
+								>
 									{runError}
 								</div>
 							) : (
-								<pre className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs sm:text-sm text-slate-900 whitespace-pre-wrap break-words max-h-[55vh] overflow-auto">
+								<pre
+									className="rounded-lg border border-slate-200 bg-slate-50 text-slate-900 whitespace-pre-wrap break-words max-h-[55vh] overflow-auto"
+									style={{
+										fontSize: getResponsiveFontSize(),
+										padding: `${getResponsiveSize(12)}px`,
+									}}
+								>
 									{runOutput || ""}
 								</pre>
 							)}
@@ -316,6 +437,10 @@ const CodeBlock = ({
 						variant="outline"
 						size="sm"
 						onClick={() => setIsEditOpen(false)}
+						style={{
+							fontSize: getResponsiveFontSize(),
+							padding: `${getResponsiveSize(8)}px ${getResponsiveSize(16)}px`,
+						}}
 					>
 						Close
 					</Button>
@@ -333,10 +458,21 @@ const CodeBlock = ({
 				) : (
 					<div className="flex items-center justify-center h-full">
 						<div className="text-center">
-							<p className="text-sm text-muted-foreground">
+							<p
+								className="text-muted-foreground"
+								style={{
+									fontSize: getResponsiveFontSize(),
+								}}
+							>
 								Required information not available
 							</p>
-							<p className="text-xs text-muted-foreground mt-1">
+							<p
+								className="text-muted-foreground"
+								style={{
+									fontSize: getResponsiveFontSize(),
+									marginTop: `${getResponsiveSize(4)}px`,
+								}}
+							>
 								Missing: {!codeBlockId && "codeBlockId"}
 								{!channelId && " channelId"}
 								{!groupId && " groupId"}

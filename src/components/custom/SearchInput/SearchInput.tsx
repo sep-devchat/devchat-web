@@ -3,6 +3,7 @@ import { Search, X } from "lucide-react";
 import React, { useRef, KeyboardEvent } from "react";
 import IconButton from "../ActionButton/IconButton";
 import { theme } from "@/themes";
+import styled from "styled-components";
 
 export type SearchInputProps = {
 	value: string;
@@ -16,6 +17,40 @@ export type SearchInputProps = {
 	iconSize?: number;
 	showSearchIcon?: boolean;
 };
+
+const StyledInput = styled.input`
+	flex: 1;
+	border: none;
+	background: transparent;
+	font-size: 14px;
+	outline: none;
+	color: #1c1e21;
+
+	&::placeholder {
+		font-size: 14px;
+	}
+
+	@media (max-width: 1220px) {
+		font-size: 12px;
+		&::placeholder {
+			font-size: 12px;
+		}
+	}
+
+	@media (min-width: 1440px) {
+		font-size: 13px;
+		&::placeholder {
+			font-size: 13px;
+		}
+	}
+
+	@media (min-width: 1920px) {
+		font-size: 16px;
+		&::placeholder {
+			font-size: 16px;
+		}
+	}
+`;
 
 export default function SearchInput({
 	value,
@@ -68,7 +103,7 @@ export default function SearchInput({
 				<Search size={iconSize} color="#65676b" style={{ marginRight: 8 }} />
 			)}
 
-			<input
+			<StyledInput
 				ref={inputRef}
 				type="text"
 				placeholder={placeholder}
@@ -76,14 +111,6 @@ export default function SearchInput({
 				onChange={handleInputChange}
 				onKeyDown={handleKeyDown}
 				autoFocus={autoFocus}
-				style={{
-					flex: 1,
-					border: "none",
-					background: "transparent",
-					fontSize: 14,
-					outline: "none",
-					color: "#1c1e21",
-				}}
 			/>
 
 			{value && (

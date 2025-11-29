@@ -7,6 +7,21 @@ export const HeaderContainer = styled.header`
 	align-items: center;
 	justify-content: space-between;
 	padding: 0 16px;
+
+	@media (min-width: 1920px) {
+		height: 52px;
+		padding: 0 17.6px;
+	}
+
+	@media (min-width: 1440px) and (max-width: 1919px) {
+		height: 50px;
+		padding: 0 12.8px;
+	}
+
+	@media (max-width: 1220px) {
+		height: 47.5px;
+		padding: 0 11.2px;
+	}
 `;
 
 export const IconBtn = styled.button`
@@ -31,6 +46,21 @@ export const IconBtn = styled.button`
 		background: #eff6ff;
 		color: #6366f1;
 		outline: none;
+	}
+
+	@media (min-width: 1920px) {
+		padding: 6.6px 10px;
+		border-radius: 6.6px;
+	}
+
+	@media (min-width: 1440px) and (max-width: 1919px) {
+		padding: 4.8px 6px;
+		border-radius: 4.8px;
+	}
+
+	@media (max-width: 1220px) {
+		padding: 4.2px 2px;
+		border-radius: 4.2px;
 	}
 `;
 
@@ -57,6 +87,27 @@ export const Tooltip = styled.span<{ visible?: boolean }>`
 		color: #6366f1;
 		outline: none;
 	}
+
+	@media (min-width: 1920px) {
+		bottom: calc(100% + 8.8px);
+		padding: 6.6px 8.8px;
+		border-radius: 6.6px;
+		font-size: 14px;
+	}
+
+	@media (min-width: 1440px) and (max-width: 1919px) {
+		bottom: calc(100% + 6.4px);
+		padding: 4.8px 6.4px;
+		border-radius: 4.8px;
+		font-size: 11px;
+	}
+
+	@media (max-width: 1220px) {
+		bottom: calc(100% + 5.6px);
+		padding: 4.2px 5.6px;
+		border-radius: 4.2px;
+		font-size: 11px;
+	}
 `;
 
 export const NavTabTitle = styled.div`
@@ -69,6 +120,24 @@ export const NavTabTitle = styled.div`
 	font-weight: 600;
 	color: #1e2a3b;
 	align-items: center;
+
+	@media (min-width: 1920px) {
+		gap: 6.6px;
+		margin-right: 17.6px;
+		font-size: 18px;
+	}
+
+	@media (min-width: 1440px) and (max-width: 1919px) {
+		gap: 4.8px;
+		margin-right: 12.8px;
+		font-size: 15px;
+	}
+
+	@media (max-width: 1220px) {
+		gap: 4.2px;
+		margin-right: 11.2px;
+		font-size: 14px;
+	}
 `;
 
 export const TabButton = styled.button<{ isActive?: boolean }>`
@@ -105,5 +174,23 @@ export const TabButton = styled.button<{ isActive?: boolean }>`
 
 	&:focus {
 		outline: none;
+	}
+
+	@media (min-width: 1920px) {
+		padding: 6.6px 13.2px;
+		border-radius: 6.6px;
+		font-size: 18px;
+	}
+
+	@media (min-width: 1440px) and (max-width: 1919px) {
+		padding: 4.8px 9.6px;
+		border-radius: 4.8px;
+		font-size: 15px;
+	}
+
+	@media (max-width: 1220px) {
+		padding: 4.2px 8.4px;
+		border-radius: 4.2px;
+		font-size: 14px;
 	}
 `;

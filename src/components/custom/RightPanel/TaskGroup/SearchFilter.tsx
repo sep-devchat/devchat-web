@@ -253,7 +253,7 @@ const SearchFilter: React.FC<Props> = ({
 													}}
 													aria-label="unassigned-only"
 												/>
-												<span>Unassigned only</span>
+												<S.Tag>Unassigned only</S.Tag>
 											</S.CheckboxLabel>
 										</S.FormGroup>
 									</S.FormGroup>
@@ -311,7 +311,7 @@ const SearchFilter: React.FC<Props> = ({
 													}}
 													aria-label="only-overdue"
 												/>
-												<span>Only overdue</span>
+												<S.Tag>Only overdue</S.Tag>
 											</S.CheckboxLabel>
 										</S.FormGroup>
 									</S.FormGroup>

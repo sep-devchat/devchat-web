@@ -632,16 +632,12 @@ export default function TaskGroup({ onClose, groupId }: TaskGroupProps) {
 				)}
 				{groupId && !isLoading && displayTasks.length === 0 && !isError && (
 					<S.TaskCard>
-						<div
-							style={{ textAlign: "center", padding: "40px", color: "#6b7280" }}
-						>
-							<div style={{ fontSize: "18px", marginBottom: "8px" }}>
-								No tasks yet
-							</div>
-							<div style={{ fontSize: "14px" }}>
+						<S.EmptyStateContainer>
+							<S.EmptyStateTitle>No tasks yet</S.EmptyStateTitle>
+							<S.EmptyStateDescription>
 								Create your first task to get started
-							</div>
-						</div>
+							</S.EmptyStateDescription>
+						</S.EmptyStateContainer>
 					</S.TaskCard>
 				)}
 				{groupId &&
@@ -993,6 +989,237 @@ export default function TaskGroup({ onClose, groupId }: TaskGroupProps) {
 					</S.DialogFooter>
 				</S.DialogContent>
 			</Dialog>
+			<style>{`
+  .custom-select-wrapper .select-control,
+  .datepicker-wrapper .datepicker-input {
+    padding: 12px 40px 12px 16px;
+    height: 43px;
+    font-size: 14px;
+  }
+
+  .custom-select-wrapper .select-dropdown {
+    top: calc(100% + 8px);
+    padding: 6px;
+  }
+
+  .custom-select-wrapper .select-option {
+    padding: 12px 16px;
+    font-size: 14px;
+    margin: 6px 8px;
+    min-height: 42px;
+  }
+
+  .datepicker-wrapper .clear-date-btn {
+    right: 44px;
+  }
+
+  .datepicker-modal {
+    padding: 24px;
+    min-width: 360px;
+  }
+
+  .datepicker-modal .month-year {
+    font-size: 18px;
+  }
+
+  .datepicker-modal .subtitle {
+    font-size: 13px;
+  }
+
+  .datepicker-modal .weekday-label {
+    font-size: 12px;
+    padding: 8px 0;
+  }
+
+  .datepicker-modal .day-cell {
+    padding: 10px;
+    font-size: 14px;
+  }
+
+  .icon-size {
+    width: 18px;
+    height: 18px;
+  }
+
+  .nav-icon {
+    width: 20px;
+    height: 20px;
+  }
+
+  @media (min-width: 1920px) {
+    .custom-select-wrapper .select-control,
+    .datepicker-wrapper .datepicker-input {
+      padding: 13.2px 44px 13.2px 17.6px;
+      height: 47.3px;
+      font-size: 15.4px;
+    }
+
+    .custom-select-wrapper .select-dropdown {
+      top: calc(100% + 8.8px);
+      padding: 6.6px;
+    }
+
+    .custom-select-wrapper .select-option {
+      padding: 13.2px 17.6px;
+      font-size: 15.4px;
+      margin: 6.6px 8.8px;
+      min-height: 46.2px;
+    }
+
+    .datepicker-wrapper .clear-date-btn {
+      right: 48.4px;
+    }
+
+    .datepicker-modal {
+      padding: 26.4px;
+      min-width: 396px;
+    }
+
+    .datepicker-modal .month-year {
+      font-size: 19.8px;
+    }
+
+    .datepicker-modal .subtitle {
+      font-size: 14.3px;
+    }
+
+    .datepicker-modal .weekday-label {
+      font-size: 13.2px;
+      padding: 8.8px 0;
+    }
+
+    .datepicker-modal .day-cell {
+      padding: 11px;
+      font-size: 15.4px;
+    }
+
+    .icon-size {
+      width: 19.8px;
+      height: 19.8px;
+    }
+
+    .nav-icon {
+      width: 22px;
+      height: 22px;
+    }
+  }
+
+  @media (min-width: 1440px) and (max-width: 1919px) {
+    .custom-select-wrapper .select-control,
+    .datepicker-wrapper .datepicker-input {
+      padding: 10px 14px;
+      height: 38px;
+      font-size: 12px;
+    }
+
+    .custom-select-wrapper .select-dropdown {
+      top: calc(100% + 6.4px);
+      padding: 4.8px;
+    }
+
+    .custom-select-wrapper .select-option {
+      padding: 9.6px 12.8px;
+      font-size: 11px;
+      margin: 4.8px 6.4px;
+      min-height: 33.6px;
+    }
+
+    .datepicker-wrapper .clear-date-btn {
+      right: 35.2px;
+    }
+
+    .datepicker-modal {
+      padding: 20px;
+      min-width: 300px;
+    }
+
+    .datepicker-modal .month-year {
+      font-size: 14.4px;
+    }
+
+    .datepicker-modal .subtitle {
+      font-size: 10.4px;
+    }
+
+    .datepicker-modal .weekday-label {
+      font-size: 9.6px;
+      padding: 6.4px 0;
+    }
+
+    .datepicker-modal .day-cell {
+      padding: 8px;
+      font-size: 11.2px;
+    }
+
+    .icon-size {
+      width: 14.4px;
+      height: 14.4px;
+    }
+
+    .nav-icon {
+      width: 16px;
+      height: 16px;
+    }
+  }
+
+  @media (max-width: 1220px) {
+    .custom-select-wrapper .select-control,
+    .datepicker-wrapper .datepicker-input {
+      padding: 10px 14px;
+      height: 40px;
+      font-size: 12px;
+    }
+
+    .custom-select-wrapper .select-dropdown {
+      top: calc(100% + 5.6px);
+      padding: 4px;
+    }
+
+    .custom-select-wrapper .select-option {
+      padding: 8.4px 11.2px;
+      font-size: 11px;
+      margin: 4.2px 5.6px;
+      min-height: 30px;
+    }
+
+    .datepicker-wrapper .clear-date-btn {
+      right: 30.8px;
+    }
+
+    .datepicker-modal {
+      padding: 20px;
+      min-width: 300px;
+    }
+
+    .datepicker-modal .month-year {
+      font-size: 12.6px;
+    }
+
+    .datepicker-modal .subtitle {
+      font-size: 10px;
+    }
+
+    .datepicker-modal .weekday-label {
+      font-size: 10px;
+      padding: 5.6px 0;
+    }
+
+    .datepicker-modal .day-cell {
+      padding: 7px;
+      font-size: 10px;
+    }
+
+    .icon-size {
+      width: 12.6px;
+      height: 12.6px;
+    }
+
+    .nav-icon {
+      width: 14px;
+      height: 14px;
+    }
+  }
+`}</style>
 		</S.PageWrapper>
 	);
 }

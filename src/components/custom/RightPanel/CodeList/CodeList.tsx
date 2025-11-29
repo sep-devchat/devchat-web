@@ -11,7 +11,7 @@ import {
 	CPModalOverlay,
 	CPModalContent,
 } from "./CodeList.styled";
-import { SquareCode, X } from "lucide-react";
+import { Code, X } from "lucide-react";
 import { codeData } from "./codeData";
 import CodeItem from "./CodeItem";
 
@@ -72,7 +72,7 @@ const CodeList: React.FC<ThreadPanelProps> = ({ onClose }) => {
 			<CPHeader>
 				<CPHeaderLeft>
 					<CPHeaderIcon>
-						<SquareCode />
+						<Code size={20} />
 					</CPHeaderIcon>
 					<CPTitle>Code List</CPTitle>
 				</CPHeaderLeft>

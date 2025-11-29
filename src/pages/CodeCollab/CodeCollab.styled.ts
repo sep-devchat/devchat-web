@@ -3,6 +3,18 @@ import styled from "styled-components";
 export const Container = styled.div`
 	width: 100%;
 	height: 800px;
+
+	@media (min-width: 1440px) {
+		height: 620px;
+	}
+
+	@media (min-width: 1920px) {
+		height: 800px;
+	}
+
+	@media (max-width: 1220px) {
+		height: 640px;
+	}
 `;
 
 export const PanelContainer = styled.div`
@@ -12,6 +24,24 @@ export const PanelContainer = styled.div`
 	border-radius: 12px;
 	overflow: hidden;
 	box-shadow: 0 4px 12px rgba(123, 159, 232, 0.12);
+
+	@media (min-width: 1440px) {
+		border: 0.8px solid rgba(209, 224, 253, 0.6);
+		border-radius: 9.6px;
+		box-shadow: 0 3.2px 9.6px rgba(123, 159, 232, 0.12);
+	}
+
+	@media (min-width: 1920px) {
+		border: 1px solid rgba(209, 224, 253, 0.6);
+		border-radius: 14.4px;
+		box-shadow: 0 4.8px 14.4px rgba(123, 159, 232, 0.12);
+	}
+
+	@media (max-width: 1220px) {
+		border: 0.7px solid rgba(209, 224, 253, 0.6);
+		border-radius: 8.4px;
+		box-shadow: 0 2.8px 8.4px rgba(123, 159, 232, 0.12);
+	}
 `;
 
 export const ChatPanel = styled.div`
@@ -27,6 +57,21 @@ export const ChatHeader = styled.div`
 	background: linear-gradient(to bottom, #f7f9fc, #e8f0fc);
 	position: relative;
 	overflow: hidden;
+
+	@media (min-width: 1440px) {
+		padding: 0.8rem;
+		border-bottom: 0.8px solid rgba(209, 224, 253, 0.5);
+	}
+
+	@media (min-width: 1920px) {
+		padding: 1.2rem;
+		border-bottom: 1px solid rgba(209, 224, 253, 0.5);
+	}
+
+	@media (max-width: 1220px) {
+		padding: 0.7rem;
+		border-bottom: 0.7px solid rgba(209, 224, 253, 0.5);
+	}
 `;
 
 export const ChannelName = styled.h3`
@@ -36,6 +81,21 @@ export const ChannelName = styled.h3`
 	color: #27364b;
 	position: relative;
 	z-index: 1;
+
+	@media (min-width: 1440px) {
+		font-size: 0.8rem;
+		line-height: 0.8rem;
+	}
+
+	@media (min-width: 1920px) {
+		font-size: 1.2rem;
+		line-height: 1.2rem;
+	}
+
+	@media (max-width: 1220px) {
+		font-size: 0.7rem;
+		line-height: 0.7rem;
+	}
 `;
 
 export const ChatContent = styled.div`
@@ -46,12 +106,39 @@ export const ChatContent = styled.div`
 export const CodeEditorWrapper = styled.div`
 	height: 100%;
 	padding: 0.75rem;
+
+	@media (min-width: 1440px) {
+		padding: 0.6rem;
+	}
+
+	@media (min-width: 1920px) {
+		padding: 0.9rem;
+	}
+
+	@media (max-width: 1220px) {
+		padding: 0.525rem;
+	}
 `;
 
 export const CodeEditorWrapperBottom = styled.div`
 	height: 100%;
 	padding: 0.75rem;
 	padding-top: 0;
+
+	@media (min-width: 1440px) {
+		padding: 0.6rem;
+		padding-top: 0;
+	}
+
+	@media (min-width: 1920px) {
+		padding: 0.9rem;
+		padding-top: 0;
+	}
+
+	@media (max-width: 1220px) {
+		padding: 0.525rem;
+		padding-top: 0;
+	}
 `;
 
 export const ModalOverlay = styled.div`
@@ -68,6 +155,18 @@ export const ModalBackdrop = styled.div`
 	inset: 0;
 	background: rgba(0, 0, 0, 0.5);
 	backdrop-filter: blur(8px);
+
+	@media (min-width: 1440px) {
+		backdrop-filter: blur(6.4px);
+	}
+
+	@media (min-width: 1920px) {
+		backdrop-filter: blur(9.6px);
+	}
+
+	@media (max-width: 1220px) {
+		backdrop-filter: blur(5.6px);
+	}
 `;
 
 export const ModalContent = styled.div`
@@ -81,6 +180,30 @@ export const ModalContent = styled.div`
 	padding: 2rem;
 	animation: modalSlideIn 0.3s ease-out;
 
+	@media (min-width: 1440px) {
+		width: 352px;
+		border-radius: 12.8px;
+		box-shadow: 0 16px 32px rgba(123, 159, 232, 0.25);
+		border: 0.8px solid rgba(209, 224, 253, 0.6);
+		padding: 1.6rem;
+	}
+
+	@media (min-width: 1920px) {
+		width: 528px;
+		border-radius: 19.2px;
+		box-shadow: 0 24px 48px rgba(123, 159, 232, 0.25);
+		border: 1px solid rgba(209, 224, 253, 0.6);
+		padding: 2.4rem;
+	}
+
+	@media (max-width: 1220px) {
+		width: 308px;
+		border-radius: 11.2px;
+		box-shadow: 0 14px 28px rgba(123, 159, 232, 0.25);
+		border: 0.7px solid rgba(209, 224, 253, 0.6);
+		padding: 1.4rem;
+	}
+
 	@keyframes modalSlideIn {
 		from {
 			opacity: 0;
@@ -89,6 +212,45 @@ export const ModalContent = styled.div`
 		to {
 			opacity: 1;
 			transform: scale(1) translateY(0);
+		}
+	}
+
+	@media (min-width: 1440px) {
+		@keyframes modalSlideIn {
+			from {
+				opacity: 0;
+				transform: scale(0.95) translateY(-16px);
+			}
+			to {
+				opacity: 1;
+				transform: scale(1) translateY(0);
+			}
+		}
+	}
+
+	@media (max-width: 1220px) {
+		@keyframes modalSlideIn {
+			from {
+				opacity: 0;
+				transform: scale(0.95) translateY(-14px);
+			}
+			to {
+				opacity: 1;
+				transform: scale(1) translateY(0);
+			}
+		}
+	}
+
+	@media (min-width: 1920px) {
+		@keyframes modalSlideIn {
+			from {
+				opacity: 0;
+				transform: scale(0.95) translateY(-24px);
+			}
+			to {
+				opacity: 1;
+				transform: scale(1) translateY(0);
+			}
 		}
 	}
 `;
@@ -102,9 +264,39 @@ export const ModalTitle = styled.h3`
 	align-items: center;
 	gap: 0.5rem;
 
+	@media (min-width: 1440px) {
+		font-size: 1rem;
+		margin-bottom: 0.6rem;
+		gap: 0.4rem;
+	}
+
+	@media (max-width: 1220px) {
+		font-size: 0.875rem;
+		margin-bottom: 0.525rem;
+		gap: 0.35rem;
+	}
+
+	@media (min-width: 1920px) {
+		font-size: 1.5rem;
+		margin-bottom: 0.9rem;
+		gap: 0.6rem;
+	}
+
 	&::before {
 		content: "⚠️";
 		font-size: 1.5rem;
+
+		@media (min-width: 1440px) {
+			font-size: 1.2rem;
+		}
+
+		@media (max-width: 1220px) {
+			font-size: 1.05rem;
+		}
+
+		@media (min-width: 1920px) {
+			font-size: 1.8rem;
+		}
 	}
 `;
 
@@ -113,12 +305,42 @@ export const ModalDescription = styled.p`
 	line-height: 1.6;
 	color: #6b7c93;
 	margin-bottom: 1.75rem;
+
+	@media (min-width: 1440px) {
+		font-size: 0.75rem;
+		line-height: 1.28;
+		margin-bottom: 1.4rem;
+	}
+
+	@media (max-width: 1220px) {
+		font-size: 0.65625rem;
+		line-height: 1.12;
+		margin-bottom: 1.225rem;
+	}
+
+	@media (min-width: 1920px) {
+		font-size: 1.125rem;
+		line-height: 1.92;
+		margin-bottom: 2.1rem;
+	}
 `;
 
 export const ModalActions = styled.div`
 	display: flex;
 	gap: 0.875rem;
 	justify-content: flex-end;
+
+	@media (min-width: 1440px) {
+		gap: 0.7rem;
+	}
+
+	@media (max-width: 1220px) {
+		gap: 0.6125rem;
+	}
+
+	@media (min-width: 1920px) {
+		gap: 1.05rem;
+	}
 `;
 
 export const CancelButton = styled.button`
@@ -132,11 +354,47 @@ export const CancelButton = styled.button`
 	cursor: pointer;
 	transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 
+	@media (min-width: 1440px) {
+		padding: 0.6rem 1.2rem;
+		border-radius: 8px;
+		border: 0.8px solid rgba(209, 224, 253, 0.8);
+		font-size: 0.75rem;
+	}
+
+	@media (max-width: 1220px) {
+		padding: 0.525rem 1.05rem;
+		border-radius: 7px;
+		border: 0.7px solid rgba(209, 224, 253, 0.8);
+		font-size: 0.65625rem;
+	}
+
+	@media (min-width: 1920px) {
+		padding: 0.9rem 1.8rem;
+		border-radius: 12px;
+		border: 1px solid rgba(209, 224, 253, 0.8);
+		font-size: 1.125rem;
+	}
+
 	&:hover {
 		background: rgba(209, 224, 253, 0.2);
 		border-color: #7b9fe8;
 		transform: translateY(-1px);
 		box-shadow: 0 2px 8px rgba(123, 159, 232, 0.2);
+
+		@media (min-width: 1440px) {
+			transform: translateY(-0.8px);
+			box-shadow: 0 1.6px 6.4px rgba(123, 159, 232, 0.2);
+		}
+
+		@media (max-width: 1220px) {
+			transform: translateY(-0.7px);
+			box-shadow: 0 1.4px 5.6px rgba(123, 159, 232, 0.2);
+		}
+
+		@media (min-width: 1920px) {
+			transform: translateY(-1.2px);
+			box-shadow: 0 2.4px 9.6px rgba(123, 159, 232, 0.2);
+		}
 	}
 
 	&:active {
@@ -156,10 +414,46 @@ export const DiscardButton = styled.button`
 	transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 	box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
 
+	@media (min-width: 1440px) {
+		padding: 0.6rem 1.2rem;
+		border-radius: 8px;
+		font-size: 0.75rem;
+		box-shadow: 0 1.6px 6.4px rgba(239, 68, 68, 0.3);
+	}
+
+	@media (max-width: 1220px) {
+		padding: 0.525rem 1.05rem;
+		border-radius: 7px;
+		font-size: 0.65625rem;
+		box-shadow: 0 1.4px 5.6px rgba(239, 68, 68, 0.3);
+	}
+
+	@media (min-width: 1920px) {
+		padding: 0.9rem 1.8rem;
+		border-radius: 12px;
+		font-size: 1.125rem;
+		box-shadow: 0 2.4px 9.6px rgba(239, 68, 68, 0.3);
+	}
+
 	&:hover {
 		background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
 		transform: translateY(-2px);
 		box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+
+		@media (min-width: 1440px) {
+			transform: translateY(-1.6px);
+			box-shadow: 0 3.2px 9.6px rgba(239, 68, 68, 0.4);
+		}
+
+		@media (max-width: 1220px) {
+			transform: translateY(-1.4px);
+			box-shadow: 0 2.8px 8.4px rgba(239, 68, 68, 0.4);
+		}
+
+		@media (min-width: 1920px) {
+			transform: translateY(-2.4px);
+			box-shadow: 0 4.8px 14.4px rgba(239, 68, 68, 0.4);
+		}
 	}
 
 	&:active {
@@ -167,7 +461,6 @@ export const DiscardButton = styled.button`
 	}
 `;
 
-// CloseButton (đã có trong DiffViewer.styled.ts)
 export const CloseButton = styled.button`
 	display: flex;
 	align-items: center;
@@ -179,6 +472,21 @@ export const CloseButton = styled.button`
 	color: #94a3b8;
 	cursor: pointer;
 	transition: all 0.2s;
+
+	@media (min-width: 1440px) {
+		padding: 0.4rem;
+		border-radius: 0.4rem;
+	}
+
+	@media (max-width: 1220px) {
+		padding: 0.35rem;
+		border-radius: 0.35rem;
+	}
+
+	@media (min-width: 1920px) {
+		padding: 0.6rem;
+		border-radius: 0.6rem;
+	}
 
 	&:hover {
 		background: #f1f5f9;

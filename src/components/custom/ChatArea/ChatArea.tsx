@@ -119,6 +119,25 @@ const ChatArea: React.FC = () => {
 	const [messagePendingDelete, setMessagePendingDelete] =
 		useState<MessageResponse | null>(null);
 	const [deleteSubmitting, setDeleteSubmitting] = useState(false);
+	const [windowWidth, setWindowWidth] = useState(window.innerWidth);
+
+	useEffect(() => {
+		const handleResize = () => setWindowWidth(window.innerWidth);
+		window.addEventListener("resize", handleResize);
+		return () => window.removeEventListener("resize", handleResize);
+	}, []);
+
+	const getResponsiveFontSize = (
+		base: number,
+		medium: number,
+		large: number,
+	) => {
+		if (windowWidth <= 1220) return `${base}px`;
+		if (windowWidth >= 1920) return `${large}px`;
+		if (windowWidth >= 1440) return `${medium}px`;
+		return `${base}px`;
+	};
+
 	// Markdown rendering handled by react-markdown with GFM and safe sanitize
 
 	// Query thread detail only when user navigates to a specific thread
@@ -1680,9 +1699,22 @@ const ChatArea: React.FC = () => {
 									className="w-full"
 								>
 									{showDateHeader && (
-										<DividerWrapper>
+										<DividerWrapper
+											style={{
+												marginBottom:
+													windowWidth <= 1220
+														? "16.8px"
+														: windowWidth >= 1920
+															? "26.4px"
+															: windowWidth >= 1440
+																? "19.2px"
+																: "24px",
+											}}
+										>
 											<Line />
-											<DateText>
+											<DateText
+												style={{ fontSize: getResponsiveFontSize(12, 13, 16) }}
+											>
 												{formatDateHeader(latestMessage.createdAt)}
 											</DateText>
 											<Line />
@@ -1730,9 +1762,24 @@ const ChatArea: React.FC = () => {
 						return (
 							<div key={m.id} className="w-full">
 								{showDateHeader && (
-									<DividerWrapper>
+									<DividerWrapper
+										style={{
+											marginBottom:
+												windowWidth <= 1220
+													? "16.8px"
+													: windowWidth >= 1920
+														? "26.4px"
+														: windowWidth >= 1440
+															? "19.2px"
+															: "24px",
+										}}
+									>
 										<Line />
-										<DateText>{formatDateHeader(m.createdAt)}</DateText>
+										<DateText
+											style={{ fontSize: getResponsiveFontSize(12, 13, 16) }}
+										>
+											{formatDateHeader(m.createdAt)}
+										</DateText>
 										<Line />
 									</DividerWrapper>
 								)}
