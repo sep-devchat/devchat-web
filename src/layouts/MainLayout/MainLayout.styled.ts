@@ -34,15 +34,29 @@ export const LeftSection = styled.div<{ $isHalf: boolean }>`
 	display: flex;
 	min-width: 0;
 	overflow: hidden;
-	flex: 0 0
-		${(props) =>
-			props.$isHalf
-				? "clamp(220px, 32vw, 320px)"
-				: "clamp(260px, 18vw, 360px)"};
-	max-width: ${(props) =>
-		props.$isHalf ? "clamp(240px, 36vw, 360px)" : "clamp(300px, 22vw, 380px)"};
 	flex-shrink: 0;
-	transition: flex-basis 0.2s ease;
+
+	width: ${(props) => (props.$isHalf ? "30%" : "25%")};
+	min-width: ${(props) => (props.$isHalf ? "35%" : "30%")};
+	max-width: ${(props) => (props.$isHalf ? "40%" : "30%")};
+
+	@media (max-width: 1220px) {
+		width: ${(props) => (props.$isHalf ? "30%" : "25%")};
+		min-width: ${(props) => (props.$isHalf ? "35%" : "30%")};
+		max-width: ${(props) => (props.$isHalf ? "40%" : "30%")};
+	}
+
+	@media (min-width: 1440px) {
+		width: ${(props) => (props.$isHalf ? "20%" : "26%")};
+		min-width: ${(props) => (props.$isHalf ? "24%" : "12%")};
+		max-width: ${(props) => (props.$isHalf ? "28%" : "22%")};
+	}
+
+	@media (min-width: 1920px) {
+		width: ${(props) => (props.$isHalf ? "27.5%" : "22%")};
+		min-width: ${(props) => (props.$isHalf ? "33%" : "16.5%")};
+		max-width: ${(props) => (props.$isHalf ? "38.5%" : "27.5%")};
+	}
 `;
 
 export const RightSection = styled(ResizablePanel)`
@@ -99,14 +113,6 @@ export const OutletContainer = styled.div<{
 export const BottomSpacer = styled.div`
 	flex: 0 0 auto;
 	height: var(--titlebar-height, 1.5rem);
-
-	@media (min-width: 1024px) {
-		height: var(--titlebar-height, 2rem);
-	}
-
-	@media (min-width: 1440px) {
-		height: var(--titlebar-height, 2.5rem);
-	}
 `;
 
 export const RightPanelWrapper = styled.div<{ $fullWidth?: boolean }>`

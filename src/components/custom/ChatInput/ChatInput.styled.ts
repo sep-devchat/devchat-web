@@ -96,6 +96,21 @@ export const PreviewList = styled.div`
 	align-items: center;
 	padding: 8px 0;
 	flex-wrap: wrap;
+
+	@media (max-width: 1220px) {
+		gap: 5.6px;
+		padding: 5.6px 0;
+	}
+
+	@media (min-width: 1440px) {
+		gap: 6.4px;
+		padding: 6.4px 0;
+	}
+
+	@media (min-width: 1920px) {
+		gap: 8.8px;
+		padding: 8.8px 0;
+	}
 `;
 
 export const ImageThumb = styled.div`
@@ -108,6 +123,24 @@ export const ImageThumb = styled.div`
 	display: flex;
 	align-items: center;
 	justify-content: center;
+
+	@media (max-width: 1220px) {
+		width: 50.4px;
+		height: 50.4px;
+		border-radius: 5.6px;
+	}
+
+	@media (min-width: 1440px) {
+		width: 57.6px;
+		height: 57.6px;
+		border-radius: 6.4px;
+	}
+
+	@media (min-width: 1920px) {
+		width: 79.2px;
+		height: 79.2px;
+		border-radius: 8.8px;
+	}
 `;
 
 export const RemoveBtn = styled.button`
@@ -121,4 +154,28 @@ export const RemoveBtn = styled.button`
 	padding: 2px 6px;
 	font-size: 12px;
 	cursor: pointer;
+
+	@media (max-width: 1220px) {
+		top: 2.8px;
+		right: 2.8px;
+		border-radius: 2.8px;
+		padding: 1.4px 4.2px;
+		font-size: 12px;
+	}
+
+	@media (min-width: 1440px) {
+		top: 3.2px;
+		right: 3.2px;
+		border-radius: 3.2px;
+		padding: 1.6px 4.8px;
+		font-size: 13px;
+	}
+
+	@media (min-width: 1920px) {
+		top: 4.4px;
+		right: 4.4px;
+		border-radius: 4.4px;
+		padding: 2.2px 6.6px;
+		font-size: 16px;
+	}
 `;

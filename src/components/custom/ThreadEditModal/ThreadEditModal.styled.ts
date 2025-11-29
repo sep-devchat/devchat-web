@@ -37,6 +37,21 @@ export const ModalContainer = styled.div`
 			transform: translate(-50%, -50%);
 		}
 	}
+
+	@media (max-width: 1220px) {
+		border-radius: 5.6px;
+		max-width: 315px;
+	}
+
+	@media (min-width: 1440px) and (max-width: 1919px) {
+		border-radius: 6.4px;
+		max-width: 360px;
+	}
+
+	@media (min-width: 1920px) {
+		border-radius: 8.8px;
+		max-width: 495px;
+	}
 `;
 
 export const ModalHeader = styled.div`
@@ -46,6 +61,18 @@ export const ModalHeader = styled.div`
 	justify-content: space-between;
 	align-items: center;
 	background-color: #f9fafb;
+
+	@media (max-width: 1220px) {
+		padding: 14px;
+	}
+
+	@media (min-width: 1440px) and (max-width: 1919px) {
+		padding: 16px;
+	}
+
+	@media (min-width: 1920px) {
+		padding: 22px;
+	}
 `;
 
 export const ModalTitle = styled.h2`
@@ -53,6 +80,18 @@ export const ModalTitle = styled.h2`
 	font-size: 18px;
 	font-weight: 600;
 	color: #111827;
+
+	@media (max-width: 1220px) {
+		font-size: 14px;
+	}
+
+	@media (min-width: 1440px) and (max-width: 1919px) {
+		font-size: 15px;
+	}
+
+	@media (min-width: 1920px) {
+		font-size: 18px;
+	}
 `;
 
 export const CloseButton = styled.button`
@@ -73,10 +112,34 @@ export const CloseButton = styled.button`
 	&:active {
 		color: #374151;
 	}
+
+	@media (max-width: 1220px) {
+		padding: 2.8px;
+	}
+
+	@media (min-width: 1440px) and (max-width: 1919px) {
+		padding: 3.2px;
+	}
+
+	@media (min-width: 1920px) {
+		padding: 4.4px;
+	}
 `;
 
 export const ModalContent = styled.div`
 	padding: 20px;
+
+	@media (max-width: 1220px) {
+		padding: 14px;
+	}
+
+	@media (min-width: 1440px) and (max-width: 1919px) {
+		padding: 16px;
+	}
+
+	@media (min-width: 1920px) {
+		padding: 22px;
+	}
 `;
 
 export const FormGroup = styled.div`
@@ -84,6 +147,18 @@ export const FormGroup = styled.div`
 
 	&:last-of-type {
 		margin-bottom: 0;
+	}
+
+	@media (max-width: 1220px) {
+		margin-bottom: 11.2px;
+	}
+
+	@media (min-width: 1440px) and (max-width: 1919px) {
+		margin-bottom: 12.8px;
+	}
+
+	@media (min-width: 1920px) {
+		margin-bottom: 17.6px;
 	}
 `;
 
@@ -93,6 +168,21 @@ export const Label = styled.label`
 	font-size: 14px;
 	font-weight: 500;
 	color: #374151;
+
+	@media (max-width: 1220px) {
+		margin-bottom: 4.2px;
+		font-size: 12px;
+	}
+
+	@media (min-width: 1440px) and (max-width: 1919px) {
+		margin-bottom: 4.8px;
+		font-size: 13px;
+	}
+
+	@media (min-width: 1920px) {
+		margin-bottom: 6.6px;
+		font-size: 16px;
+	}
 `;
 
 export const Input = styled.input`
@@ -119,6 +209,24 @@ export const Input = styled.input`
 
 	&::placeholder {
 		color: #9ca3af;
+	}
+
+	@media (max-width: 1220px) {
+		padding: 5.6px 8.4px;
+		border-radius: 4.2px;
+		font-size: 12px;
+	}
+
+	@media (min-width: 1440px) and (max-width: 1919px) {
+		padding: 6.4px 9.6px;
+		border-radius: 4.8px;
+		font-size: 13px;
+	}
+
+	@media (min-width: 1920px) {
+		padding: 8.8px 13.2px;
+		border-radius: 6.6px;
+		font-size: 16px;
 	}
 `;
 
@@ -148,6 +256,24 @@ export const TextArea = styled.textarea`
 	&::placeholder {
 		color: #9ca3af;
 	}
+
+	@media (max-width: 1220px) {
+		padding: 5.6px 8.4px;
+		border-radius: 4.2px;
+		font-size: 12px;
+	}
+
+	@media (min-width: 1440px) and (max-width: 1919px) {
+		padding: 6.4px 9.6px;
+		border-radius: 4.8px;
+		font-size: 13px;
+	}
+
+	@media (min-width: 1920px) {
+		padding: 8.8px 13.2px;
+		border-radius: 6.6px;
+		font-size: 16px;
+	}
 `;
 
 export const ErrorMessage = styled.div`
@@ -170,6 +296,45 @@ export const ErrorMessage = styled.div`
 			transform: translateY(0);
 		}
 	}
+
+	@media (max-width: 1220px) {
+		padding: 7px 8.4px;
+		border-radius: 4.2px;
+		font-size: 12px;
+		margin-bottom: 11.2px;
+
+		@keyframes slideDown {
+			from {
+				transform: translateY(-5.6px);
+			}
+		}
+	}
+
+	@media (min-width: 1440px) and (max-width: 1919px) {
+		padding: 8px 9.6px;
+		border-radius: 4.8px;
+		font-size: 13px;
+		margin-bottom: 12.8px;
+
+		@keyframes slideDown {
+			from {
+				transform: translateY(-6.4px);
+			}
+		}
+	}
+
+	@media (min-width: 1920px) {
+		padding: 11px 13.2px;
+		border-radius: 6.6px;
+		font-size: 16px;
+		margin-bottom: 17.6px;
+
+		@keyframes slideDown {
+			from {
+				transform: translateY(-8.8px);
+			}
+		}
+	}
 `;
 
 export const ModalFooter = styled.div`
@@ -179,6 +344,21 @@ export const ModalFooter = styled.div`
 	padding: 16px 20px;
 	border-top: 1px solid #e5e7eb;
 	background-color: #f9fafb;
+
+	@media (max-width: 1220px) {
+		gap: 7px;
+		padding: 11.2px 14px;
+	}
+
+	@media (min-width: 1440px) and (max-width: 1919px) {
+		gap: 8px;
+		padding: 12.8px 16px;
+	}
+
+	@media (min-width: 1920px) {
+		gap: 11px;
+		padding: 17.6px 22px;
+	}
 `;
 
 export const CancelButton = styled.button`
@@ -190,6 +370,8 @@ export const CancelButton = styled.button`
 	font-weight: 500;
 	cursor: pointer;
 	transition: all 0.2s;
+	align-items: center;
+	justify-content: center;
 
 	&:hover:not(:disabled) {
 		background-color: #e5e7eb;
@@ -208,6 +390,24 @@ export const CancelButton = styled.button`
 	&:focus {
 		outline: none;
 	}
+
+	@media (max-width: 1220px) {
+		padding: 5.6px 11.2px;
+		border-radius: 4.2px;
+		font-size: 12px;
+	}
+
+	@media (min-width: 1440px) and (max-width: 1919px) {
+		padding: 6.4px 12.8px;
+		border-radius: 4.8px;
+		font-size: 13px;
+	}
+
+	@media (min-width: 1920px) {
+		padding: 8.8px 17.6px;
+		border-radius: 6.6px;
+		font-size: 16px;
+	}
 `;
 
 export const SubmitButton = styled.button`
@@ -220,6 +420,8 @@ export const SubmitButton = styled.button`
 	font-weight: 500;
 	cursor: pointer;
 	transition: all 0.2s;
+	align-items: center;
+	justify-content: center;
 
 	&:hover:not(:disabled) {
 		background-color: #2563eb;
@@ -237,5 +439,23 @@ export const SubmitButton = styled.button`
 
 	&:focus {
 		outline: none;
+	}
+
+	@media (max-width: 1220px) {
+		padding: 5.6px 11.2px;
+		border-radius: 4.2px;
+		font-size: 12px;
+	}
+
+	@media (min-width: 1440px) and (max-width: 1919px) {
+		padding: 6.4px 12.8px;
+		border-radius: 4.8px;
+		font-size: 13px;
+	}
+
+	@media (min-width: 1920px) {
+		padding: 8.8px 17.6px;
+		border-radius: 6.6px;
+		font-size: 16px;
 	}
 `;

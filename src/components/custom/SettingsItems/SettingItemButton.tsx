@@ -13,6 +13,18 @@ const VerticalSettingItem = styled(SettingItem)`
 	flex-direction: column;
 	align-items: flex-start;
 	gap: 16px;
+
+	@media (max-width: 1220px) {
+		gap: 11.2px;
+	}
+
+	@media (min-width: 1440px) and (max-width: 1919px) {
+		gap: 12.8px;
+	}
+
+	@media (min-width: 1920px) {
+		gap: 17.6px;
+	}
 `;
 
 const ButtonContainer = styled.div`
@@ -21,6 +33,21 @@ const ButtonContainer = styled.div`
 	align-items: center;
 	flex-wrap: wrap;
 	margin-left: 36px;
+
+	@media (max-width: 1220px) {
+		gap: 8.4px;
+		margin-left: 25.2px;
+	}
+
+	@media (min-width: 1440px) and (max-width: 1919px) {
+		gap: 9.6px;
+		margin-left: 28.8px;
+	}
+
+	@media (min-width: 1920px) {
+		gap: 13.2px;
+		margin-left: 39.6px;
+	}
 `;
 
 const Button = styled.button<{
@@ -34,6 +61,24 @@ const Button = styled.button<{
 	transition: all 0.2s ease;
 	border: 1px solid;
 	white-space: nowrap;
+
+	@media (max-width: 1220px) {
+		padding: 5.6px 11.2px;
+		border-radius: 4.2px;
+		font-size: 12.5px;
+	}
+
+	@media (min-width: 1440px) and (max-width: 1919px) {
+		padding: 6.4px 12.8px;
+		border-radius: 4.8px;
+		font-size: 13.5px;
+	}
+
+	@media (min-width: 1920px) {
+		padding: 8.8px 17.6px;
+		border-radius: 6.6px;
+		font-size: 16px;
+	}
 
 	${({ $variant }) => {
 		switch ($variant) {

@@ -40,7 +40,64 @@ import { RootState } from "@/store";
 import { detailUser } from "@/services/userAPI";
 import { ChatInputPayload } from "@/components/custom/ChatInputComponent/ChatTypeModal/InboxType";
 // Removed thread creation, no need for add/invalidate actions
+// Thêm ngay sau các imports, trước interface UIMessage
 
+const responsiveStyles = `
+  <style>
+    @media (min-width: 1440px) and (max-width: 1919px) {
+      .thread-panel .text-sm,
+      .thread-panel input[type="text"] { font-size: 13px !important; }
+      .thread-panel .text-xs,
+      .thread-panel .text-[13px] { font-size: 13px !important; }
+      .thread-panel .text-[11px],
+      .thread-panel .text-[10px] { font-size: 12px !important; }
+      .thread-panel .px-3 { padding-left: 9.6px; padding-right: 9.6px; }
+      .thread-panel .py-2 { padding-top: 6.4px; padding-bottom: 6.4px; }
+      .thread-panel .px-5 { padding-left: 16px; padding-right: 16px; }
+      .thread-panel .gap-1\.5 { gap: 4.8px; }
+      .thread-panel .gap-6 { gap: 19.2px; }
+      .thread-panel .rounded-2xl { border-radius: 12.8px; }
+      .thread-panel .rounded-lg { border-radius: 6.4px; }
+      .thread-panel .rounded-md { border-radius: 4.8px; }
+      .thread-panel .max-w-\[220px\] { max-width: 176px; }
+    }
+    @media (max-width: 1220px) {
+      .thread-panel .text-sm,
+      .thread-panel input[type="text"] { font-size: 13px !important; }
+      .thread-panel .text-xs,
+      .thread-panel .text-[13px] { font-size: 12px !important; }
+      .thread-panel .text-[11px],
+      .thread-panel .text-[10px] { font-size: 11px !important; }
+      .thread-panel .px-3 { padding-left: 8.4px; padding-right: 8.4px; }
+      .thread-panel .py-2 { padding-top: 5.6px; padding-bottom: 5.6px; }
+      .thread-panel .px-5 { padding-left: 14px; padding-right: 14px; }
+      .thread-panel .gap-1\.5 { gap: 4.2px; }
+      .thread-panel .gap-6 { gap: 16.8px; }
+      .thread-panel .rounded-2xl { border-radius: 11.2px; }
+      .thread-panel .rounded-lg { border-radius: 5.6px; }
+      .thread-panel .rounded-md { border-radius: 4.2px; }
+      .thread-panel .max-w-\[78%\] { max-width: 68%; }
+      .thread-panel .max-w-\[220px\] { max-width: 154px; }
+    }
+    @media (min-width: 1920px) {
+      .thread-panel .text-sm,
+      .thread-panel input[type="text"] { font-size: 16px !important; }
+      .thread-panel .text-xs,
+      .thread-panel .text-[13px] { font-size: 16px !important; }
+      .thread-panel .text-[11px],
+      .thread-panel .text-[10px] { font-size: 14px !important; }
+      .thread-panel .px-3 { padding-left: 13.2px; padding-right: 13.2px; }
+      .thread-panel .py-2 { padding-top: 8.8px; padding-bottom: 8.8px; }
+      .thread-panel .px-5 { padding-left: 22px; padding-right: 22px; }
+      .thread-panel .gap-1\.5 { gap: 6.6px; }
+      .thread-panel .gap-6 { gap: 26.4px; }
+      .thread-panel .rounded-2xl { border-radius: 17.6px; }
+      .thread-panel .rounded-lg { border-radius: 8.8px; }
+      .thread-panel .rounded-md { border-radius: 6.6px; }
+      .thread-panel .max-w-\[220px\] { max-width: 242px; }
+    }
+  </style>
+`;
 interface UIMessage {
 	id: string;
 	author: string;
@@ -568,10 +625,11 @@ const ThreadPanel: React.FC<ThreadPanelProps> = ({
 	if (isLoading) {
 		return (
 			<PageWrapper>
+				<div dangerouslySetInnerHTML={{ __html: responsiveStyles }} />
 				<CPHeader>
 					<CPHeaderLeft>
 						<CPHeaderIcon>
-							<Folder size={18} />
+							<Folder size={20} />
 						</CPHeaderIcon>
 						<CPTitle>Thread</CPTitle>
 					</CPHeaderLeft>
@@ -597,7 +655,8 @@ const ThreadPanel: React.FC<ThreadPanelProps> = ({
 		const groupedMessages = groupMessagesByDate(uiMessages);
 
 		return (
-			<PageWrapper>
+			<PageWrapper className="thread-panel">
+				<div dangerouslySetInnerHTML={{ __html: responsiveStyles }} />
 				<CPHeader>
 					<CPHeaderLeft>
 						<CPHeaderIcon>
@@ -662,7 +721,7 @@ const ThreadPanel: React.FC<ThreadPanelProps> = ({
 											<MessageContent
 												className={
 													msg.isCurrentUser
-														? "flex flex-col align-end gap-1.5"
+														? "flex flex-col align-end gap-0.5"
 														: "flex flex-col gap-1.5"
 												}
 											>

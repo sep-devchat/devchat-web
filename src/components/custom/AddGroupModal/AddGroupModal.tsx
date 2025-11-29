@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { createGroup } from "@/services/groupAPI";
 
@@ -86,6 +86,16 @@ export default function AddGroupModal({
 	const [avatarUploadError, setAvatarUploadError] = useState<string | null>(
 		null,
 	);
+
+	const [windowWidth, setWindowWidth] = useState(
+		typeof window !== "undefined" ? window.innerWidth : 1440,
+	);
+
+	useEffect(() => {
+		const handleResize = () => setWindowWidth(window.innerWidth);
+		window.addEventListener("resize", handleResize);
+		return () => window.removeEventListener("resize", handleResize);
+	}, []);
 
 	const handleAvatarChange = (file?: File | null) => {
 		if (!file) {
@@ -207,18 +217,37 @@ export default function AddGroupModal({
 			<DialogTrigger asChild>
 				{trigger ? trigger : <Button variant="outline">{triggerLabel}</Button>}
 			</DialogTrigger>
-
 			<DialogPortal>
 				<StyledDialogOverlay />
 				<DialogContentWrapper>
 					<DialogHeader>
-						<DialogTitle>Add New Group</DialogTitle>
-						<DialogDescription>
+						<DialogTitle
+							style={{
+								fontSize:
+									windowWidth <= 1220
+										? "14.5px"
+										: windowWidth >= 1920
+											? "18px"
+											: "15.5px",
+							}}
+						>
+							Add New Group
+						</DialogTitle>
+						<DialogDescription
+							style={{
+								fontSize:
+									windowWidth <= 1220
+										? "12px"
+										: windowWidth >= 1920
+											? "16px"
+											: "13px",
+								marginBottom: "10px",
+							}}
+						>
 							Create a new group and invite members by email. You can add an
 							avatar for the group.
 						</DialogDescription>
 					</DialogHeader>
-
 					<Form onSubmit={handleSubmit(onSubmit)}>
 						{/* Avatar upload */}
 						<AvatarRow>
@@ -227,10 +256,27 @@ export default function AddGroupModal({
 									<AvatarImg src={avatarPreview} alt="avatar preview" />
 								) : (
 									<NoAvatar>
-										<div style={{ fontWeight: 600 }}>No Avatar</div>
 										<div
 											style={{
-												fontSize: "12px",
+												fontWeight: 600,
+												fontSize:
+													windowWidth <= 1220
+														? "11px"
+														: windowWidth >= 1920
+															? "14px"
+															: "12px",
+											}}
+										>
+											No Avatar
+										</div>
+										<div
+											style={{
+												fontSize:
+													windowWidth <= 1220
+														? "11px"
+														: windowWidth >= 1920
+															? "14px"
+															: "12px",
 												color: "var(--muted-foreground, #6b7280)",
 											}}
 										>
@@ -239,7 +285,6 @@ export default function AddGroupModal({
 									</NoAvatar>
 								)}
 							</AvatarPreviewBox>
-
 							<AvatarControls>
 								<Label>Group Avatar</Label>
 								<FileInputWrapper>
@@ -253,7 +298,6 @@ export default function AddGroupModal({
 									/>
 									<Note>Image formats: jpg, png. Maximum size 5MB.</Note>
 								</FileInputWrapper>
-
 								{avatarPreview && (
 									<SmallButton
 										type="button"
@@ -262,21 +306,29 @@ export default function AddGroupModal({
 										Remove image
 									</SmallButton>
 								)}
-
 								{avatarUploadProgress !== null && (
 									<div className="w-full mt-2">
-										<div className="text-[12px] mb-1">
+										<div
+											style={{
+												fontSize:
+													windowWidth <= 1220
+														? "11px"
+														: windowWidth >= 1920
+															? "14px"
+															: "12px",
+												marginBottom: "4px",
+											}}
+										>
 											Uploading avatar: {avatarUploadProgress}%
 										</div>
 										<div className="w-full bg-gray-200 rounded h-2 overflow-hidden">
 											<div
-												className="h-full transition-all"
+												className="h-full transition-all bg-blue-500"
 												style={{ width: `${avatarUploadProgress}%` }}
 											/>
 										</div>
 									</div>
 								)}
-
 								{avatarUploadError && (
 									<ErrorText style={{ marginTop: 8 }}>
 										{avatarUploadError}
@@ -284,7 +336,6 @@ export default function AddGroupModal({
 								)}
 							</AvatarControls>
 						</AvatarRow>
-
 						{/* Name */}
 						<Field>
 							<Label htmlFor="name">Group name</Label>
@@ -298,7 +349,6 @@ export default function AddGroupModal({
 							/>
 							{errors.name && <ErrorText>{errors.name.message}</ErrorText>}
 						</Field>
-
 						{/* Description */}
 						<Field>
 							<Label htmlFor="description">Description</Label>
@@ -308,14 +358,12 @@ export default function AddGroupModal({
 								{...register("description")}
 							/>
 						</Field>
-
 						<Footer>
 							<DialogClose asChild>
 								<CancelButton type="button" variant="ghost">
 									Cancel
 								</CancelButton>
 							</DialogClose>
-
 							<SubmitButton type="submit" disabled={isSubmitting}>
 								{isSubmitting ? "Creating..." : "Create group"}
 							</SubmitButton>

@@ -66,6 +66,36 @@ const CodeBlock = ({
 	const [fetchedCodeBlock, setFetchedCodeBlock] =
 		useState<CodeBlockData | null>(null);
 	const [isLoadingCodeBlock, setIsLoadingCodeBlock] = useState(false);
+	const [windowWidth, setWindowWidth] = useState(
+		typeof window !== "undefined" ? window.innerWidth : 1440,
+	);
+
+	useEffect(() => {
+		const handleResize = () => setWindowWidth(window.innerWidth);
+		window.addEventListener("resize", handleResize);
+		return () => window.removeEventListener("resize", handleResize);
+	}, []);
+
+	const getResponsiveSize = (base: number) => {
+		if (windowWidth <= 1220) return base * 0.7;
+		if (windowWidth >= 1920) return base * 1.1;
+		if (windowWidth >= 1440) return base * 0.8;
+		return base;
+	};
+
+	const getResponsiveFontSize = () => {
+		if (windowWidth <= 1220) return "11px";
+		if (windowWidth >= 1920) return "14px";
+		if (windowWidth >= 1440) return "12px";
+		return "14px";
+	};
+
+	// const getHeaderFontSize = () => {
+	// 	if (windowWidth <= 1220) return "12px";
+	// 	if (windowWidth >= 1920) return "16px";
+	// 	if (windowWidth >= 1440) return "13px";
+	// 	return "14px";
+	// };
 
 	useEffect(() => {
 		const fetchBlock = async () => {
@@ -224,14 +254,39 @@ const CodeBlock = ({
 
 	return (
 		<>
-			<Card className="min-w-[360px] overflow-hidden isolate z-10 mix-blend-normal border border-slate-200 bg-white shadow-lg">
-				<CardHeader className="py-2 px-3 bg-slate-50 border-b border-slate-200">
-					<div className="flex items-center justify-between gap-2 relative z-10">
-						<CardTitle className="text-xs font-semibold uppercase tracking-wide text-slate-600">
+			<Card
+				className="overflow-hidden isolate z-10 mix-blend-normal border border-slate-200 bg-white shadow-lg"
+				style={{
+					minWidth: `${getResponsiveSize(360)}px`,
+				}}
+			>
+				<CardHeader
+					className="bg-slate-50 border-b border-slate-200"
+					style={{
+						padding: `${getResponsiveSize(8)}px ${getResponsiveSize(12)}px`,
+					}}
+				>
+					<div
+						className="flex items-center justify-between relative z-10"
+						style={{
+							gap: `${getResponsiveSize(8)}px`,
+						}}
+					>
+						<CardTitle
+							className="font-semibold uppercase tracking-wide text-slate-600"
+							style={{
+								fontSize: getResponsiveFontSize(),
+							}}
+						>
 							{fetchedCodeBlock?.language || language || "Code"}
 							{isLoadingCodeBlock && " (loading...)"}
 						</CardTitle>
-						<div className="flex items-center gap-2">
+						<div
+							className="flex items-center"
+							style={{
+								gap: `${getResponsiveSize(8)}px`,
+							}}
+						>
 							<TooltipProvider delayDuration={200}>
 								{showEditButton && (
 									<Tooltip>
@@ -239,12 +294,21 @@ const CodeBlock = ({
 											<Button
 												variant="outline"
 												size="sm"
-												className="h-7 w-7 p-0 grid place-items-center"
+												className="p-0 grid place-items-center"
+												style={{
+													width: `${getResponsiveSize(28)}px`,
+													height: `${getResponsiveSize(28)}px`,
+												}}
 												aria-label="Edit code"
 												onClick={handleEditClick}
 												disabled={!codeBlockId || !hasCollabContext}
 											>
-												<Pencil className="h-4 w-4" />
+												<Pencil
+													style={{
+														width: `${getResponsiveSize(16)}px`,
+														height: `${getResponsiveSize(16)}px`,
+													}}
+												/>
 												<span className="sr-only">Edit code</span>
 											</Button>
 										</TooltipTrigger>
@@ -261,7 +325,11 @@ const CodeBlock = ({
 											<Button
 												variant="outline"
 												size="sm"
-												className="h-7 w-7 p-0 grid place-items-center"
+												className="p-0 grid place-items-center"
+												style={{
+													width: `${getResponsiveSize(28)}px`,
+													height: `${getResponsiveSize(28)}px`,
+												}}
 												aria-label="Run code"
 												disabled={isRunning || !codeText.trim()}
 												onClick={async () => {
@@ -270,9 +338,19 @@ const CodeBlock = ({
 												}}
 											>
 												{isRunning ? (
-													<Spinner className="h-4 w-4" />
+													<Spinner
+														style={{
+															width: `${getResponsiveSize(16)}px`,
+															height: `${getResponsiveSize(16)}px`,
+														}}
+													/>
 												) : (
-													<Play className="h-4 w-4" />
+													<Play
+														style={{
+															width: `${getResponsiveSize(16)}px`,
+															height: `${getResponsiveSize(16)}px`,
+														}}
+													/>
 												)}
 												<span className="sr-only">Run code</span>
 											</Button>
@@ -288,10 +366,14 @@ const CodeBlock = ({
 					<pre
 						ref={preRef}
 						className={cn(
-							"text-sm font-medium overflow-x-auto p-3 bg-white text-slate-900",
+							"font-medium overflow-x-auto bg-white text-slate-900",
 							"[&_code]:p-0 [&_code]:text-inherit",
 							className,
 						)}
+						style={{
+							fontSize: getResponsiveFontSize(),
+							padding: `${getResponsiveSize(12)}px`,
+						}}
 						{...props}
 					/>
 				</CardContent>

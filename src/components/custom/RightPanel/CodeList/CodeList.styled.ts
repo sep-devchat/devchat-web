@@ -2,25 +2,61 @@ import { theme } from "@/themes";
 import styled from "styled-components";
 
 export const PageWrapper = styled.div<{ $isDark?: boolean }>`
+	height: 100%;
+	width: 640px;
+	position: relative;
 	display: flex;
 	flex-direction: column;
-	height: 100%;
-	background: ${(p) => (p.$isDark ? "#1f2937" : "#ffffff")};
-	color: ${(p) => (p.$isDark ? theme.color.grey10 : theme.color.grey90)};
-	border-left: 1px solid ${theme.color.grey30};
-	width: 100%;
-	margin-left: 0;
+	margin-right: 18px;
+	background: ${theme.color.grey30};
 	border-radius: 10px;
+	margin-right: 18px;
+	margin-left: 12px;
 	overflow: hidden;
+
+	@media (max-width: 1220px) {
+		width: 100%;
+		margin: 0;
+		border-radius: 0px 10px 10px 0px;
+	}
+
+	@media (min-width: 1440px) {
+		width: 460px;
+		margin-right: 14.4px;
+		margin-left: 9.6px;
+		border-radius: 8px;
+	}
+
+	@media (min-width: 1920px) {
+		width: 700px;
+		margin-right: 19.8px;
+		margin-left: 13.2px;
+		border-radius: 11px;
+	}
 `;
 
 export const CPHeader = styled.div`
 	display: flex;
-	align-items: center;
 	justify-content: space-between;
-	padding: 10px 20px;
-	border-bottom: 1px solid rgba(15, 23, 42, 0.08);
-	background: #e2e8f0;
+	align-items: center;
+	height: 52px;
+	padding: 14px 12px;
+	background: ${theme.color.grey30};
+	border-top-left-radius: 10px;
+	border-top-right-radius: 10px;
+
+	@media (min-width: 1440px) {
+		height: 50px;
+		border-top-left-radius: 8px;
+		border-top-right-radius: 8px;
+	}
+
+	@media (min-width: 1920px) {
+		height: 52px;
+		padding: 15.4px 13.2px;
+		border-top-left-radius: 11px;
+		border-top-right-radius: 11px;
+	}
 `;
 
 export const CPHeaderLeft = styled.div`

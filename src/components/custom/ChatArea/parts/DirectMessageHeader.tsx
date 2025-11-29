@@ -1,4 +1,5 @@
 import React from "react";
+import styled from "styled-components";
 import { UserResponse } from "@/services/userAPI";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -11,6 +12,71 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "@/components/ui/dialog";
+
+// Styled components for responsive elements
+const StyledButton = styled(Button)`
+	font-size: 13px;
+
+	@media (max-width: 1220px) {
+		font-size: 12.5px;
+	}
+
+	@media (min-width: 1440px) {
+		font-size: 13.5px;
+	}
+
+	@media (min-width: 1920px) {
+		font-size: 16px;
+	}
+`;
+
+const UsernameText = styled.span`
+	font-size: 16px;
+
+	@media (max-width: 1220px) {
+		font-size: 14px;
+	}
+
+	@media (min-width: 1440px) {
+		font-size: 15px;
+	}
+
+	@media (min-width: 1920px) {
+		font-size: 18px;
+	}
+`;
+
+const StyledDialogTitle = styled(DialogTitle)`
+	font-size: 16px;
+
+	@media (max-width: 1220px) {
+		font-size: 14px;
+	}
+
+	@media (min-width: 1440px) {
+		font-size: 16px;
+	}
+
+	@media (min-width: 1920px) {
+		font-size: 18px;
+	}
+`;
+
+const StyledDialogDescription = styled(DialogDescription)`
+	font-size: 13px;
+
+	@media (max-width: 1220px) {
+		font-size: 12.5px;
+	}
+
+	@media (min-width: 1440px) {
+		font-size: 13.5px;
+	}
+
+	@media (min-width: 1920px) {
+		font-size: 16px;
+	}
+`;
 
 export interface DirectMessageHeaderProps {
 	opponent: UserResponse | null | undefined;
@@ -124,7 +190,7 @@ export const DirectMessageHeader: React.FC<DirectMessageHeaderProps> = ({
 					)}
 					<div className="flex flex-col min-w-0">
 						<div className="flex items-center gap-2 min-w-0">
-							<span className="font-semibold truncate">
+							<UsernameText className="font-semibold truncate">
 								{loading
 									? "Loading..."
 									: [opponent?.firstName, opponent?.lastName]
@@ -132,7 +198,7 @@ export const DirectMessageHeader: React.FC<DirectMessageHeaderProps> = ({
 											.join(" ") ||
 										opponent?.username ||
 										"Unknown"}
-							</span>
+							</UsernameText>
 							{opponent?.username && (
 								<span className="text-xs text-muted-foreground truncate">
 									@{opponent.username}
@@ -148,45 +214,45 @@ export const DirectMessageHeader: React.FC<DirectMessageHeaderProps> = ({
 				</div>
 				<div className="flex items-center gap-2">
 					{status === "friend" ? (
-						<Button
+						<StyledButton
 							variant="secondary"
 							size="sm"
 							onClick={() => setConfirmOpen(true)}
 						>
 							Remove friend
-						</Button>
+						</StyledButton>
 					) : status === "pending" ? (
-						<Button variant="secondary" size="sm" disabled>
+						<StyledButton variant="secondary" size="sm" disabled>
 							Pending
-						</Button>
+						</StyledButton>
 					) : status === "invite" ? (
 						<>
-							<Button
+							<StyledButton
 								size="sm"
 								className="bg-green-400 text-white hover:bg-green-500"
 								onClick={handleAcceptInvite}
 								disabled={busy}
 							>
 								Accept
-							</Button>
-							<Button
+							</StyledButton>
+							<StyledButton
 								size="sm"
 								className="bg-red-500 text-white hover:bg-red-600"
 								onClick={handleDenyInvite}
 								disabled={busy}
 							>
 								Deny
-							</Button>
+							</StyledButton>
 						</>
 					) : (
-						<Button
+						<StyledButton
 							variant="default"
 							size="sm"
 							onClick={handleAddFriend}
 							disabled={busy}
 						>
 							Add friend
-						</Button>
+						</StyledButton>
 					)}
 				</div>
 			</div>
@@ -199,8 +265,8 @@ export const DirectMessageHeader: React.FC<DirectMessageHeaderProps> = ({
 			>
 				<DialogContent>
 					<DialogHeader>
-						<DialogTitle>Remove friend?</DialogTitle>
-						<DialogDescription>
+						<StyledDialogTitle>Remove friend?</StyledDialogTitle>
+						<StyledDialogDescription>
 							This will remove{" "}
 							<strong>
 								{[opponent?.firstName, opponent?.lastName]
@@ -210,17 +276,17 @@ export const DirectMessageHeader: React.FC<DirectMessageHeaderProps> = ({
 									"user"}
 							</strong>{" "}
 							from your friends list. You can add them again later.
-						</DialogDescription>
+						</StyledDialogDescription>
 					</DialogHeader>
 					<DialogFooter>
-						<Button
+						<StyledButton
 							variant="outline"
 							onClick={() => setConfirmOpen(false)}
 							disabled={removing}
 						>
 							Cancel
-						</Button>
-						<Button
+						</StyledButton>
+						<StyledButton
 							variant="destructive"
 							onClick={async () => {
 								try {
@@ -236,7 +302,7 @@ export const DirectMessageHeader: React.FC<DirectMessageHeaderProps> = ({
 							disabled={removing}
 						>
 							{removing ? "Removing..." : "Remove"}
-						</Button>
+						</StyledButton>
 					</DialogFooter>
 				</DialogContent>
 			</Dialog>

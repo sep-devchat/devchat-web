@@ -101,6 +101,18 @@ export const DropdownItem = styled.button`
 	&:focus {
 		outline: none;
 	}
+
+	@media (min-width: 1920px) {
+		font-size: 16px;
+	}
+
+	@media (min-width: 1440px) and (max-width: 1919px) {
+		font-size: 13px;
+	}
+
+	@media (max-width: 1220px) {
+		font-size: 12px;
+	}
 `;
 
 export const ChannelModalOverlay = styled.div`
@@ -121,6 +133,21 @@ export const ChannelModalContent = styled.div`
 	max-height: 90vh;
 	overflow-y: auto;
 	box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+
+	@media (min-width: 1920px) {
+		max-width: 480px;
+		max-height: 90vh;
+	}
+
+	@media (min-width: 1440px) and (max-width: 1919px) {
+		max-width: 400px;
+		max-height: 90vh;
+	}
+
+	@media (max-width: 1220px) {
+		max-width: 320px;
+		max-height: 90vh;
+	}
 `;
 
 export const ChannelModalHeader = styled.div`
@@ -129,6 +156,18 @@ export const ChannelModalHeader = styled.div`
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
+
+	@media (min-width: 1920px) {
+		padding: 20px 24px;
+	}
+
+	@media (min-width: 1440px) and (max-width: 1919px) {
+		padding: 10px 24px;
+	}
+
+	@media (max-width: 1220px) {
+		padding: 10px 24px;
+	}
 `;
 
 export const ChannelModalTitle = styled.h2`
@@ -136,6 +175,18 @@ export const ChannelModalTitle = styled.h2`
 	font-weight: 600;
 	color: #111827;
 	margin: 0;
+
+	@media (min-width: 1920px) {
+		font-size: 18px;
+	}
+
+	@media (min-width: 1440px) and (max-width: 1919px) {
+		font-size: 16px;
+	}
+
+	@media (max-width: 1220px) {
+		font-size: 14px;
+	}
 `;
 
 export const ChannelModalBody = styled.div`
@@ -148,6 +199,18 @@ export const ChannelModalFooter = styled.div`
 	display: flex;
 	gap: 12px;
 	justify-content: flex-end;
+
+	@media (min-width: 1920px) {
+		padding: 16px 24px;
+	}
+
+	@media (min-width: 1440px) and (max-width: 1919px) {
+		padding: 10px 24px;
+	}
+
+	@media (max-width: 1220px) {
+		padding: 8px 24px;
+	}
 `;
 
 export const InfoRow = styled.div`
@@ -164,6 +227,18 @@ export const InfoLabel = styled.label`
 	font-weight: 500;
 	color: #374151;
 	margin-bottom: 8px;
+
+	@media (min-width: 1920px) {
+		font-size: 16px;
+	}
+
+	@media (min-width: 1440px) and (max-width: 1919px) {
+		font-size: 14px;
+	}
+
+	@media (max-width: 1220px) {
+		font-size: 12px;
+	}
 `;
 
 export const InfoValue = styled.div`
@@ -173,6 +248,18 @@ export const InfoValue = styled.div`
 	background-color: #f9fafb;
 	border-radius: 6px;
 	border: 1px solid #e5e7eb;
+
+	@media (min-width: 1920px) {
+		font-size: 14px;
+	}
+
+	@media (min-width: 1440px) and (max-width: 1919px) {
+		font-size: 12px;
+	}
+
+	@media (max-width: 1220px) {
+		font-size: 11px;
+	}
 `;
 
 export const EditInput = styled.input`
@@ -197,6 +284,18 @@ export const EditInput = styled.input`
 	&:focus {
 		outline: none;
 	}
+
+	@media (min-width: 1920px) {
+		font-size: 14px;
+	}
+
+	@media (min-width: 1440px) and (max-width: 1919px) {
+		font-size: 12px;
+	}
+
+	@media (max-width: 1220px) {
+		font-size: 11px;
+	}
 `;
 
 export const EditTextarea = styled.textarea`
@@ -219,6 +318,18 @@ export const EditTextarea = styled.textarea`
 	&:focus {
 		outline: none;
 	}
+
+	@media (min-width: 1920px) {
+		font-size: 14px;
+	}
+
+	@media (min-width: 1440px) and (max-width: 1919px) {
+		font-size: 12px;
+	}
+
+	@media (max-width: 1220px) {
+		font-size: 11px;
+	}
 `;
 
 export const ModalButton = styled.button<{
@@ -231,6 +342,24 @@ export const ModalButton = styled.button<{
 	border: none;
 	cursor: pointer;
 	transition: all 0.2s;
+
+	@media (min-width: 1920px) {
+		padding: 8.8px 17.6px;
+		border-radius: 6.6px;
+		font-size: 16px;
+	}
+
+	@media (min-width: 1440px) and (max-width: 1919px) {
+		padding: 6.4px 12.8px;
+		border-radius: 4.8px;
+		font-size: 13px;
+	}
+
+	@media (max-width: 1220px) {
+		padding: 5.6px 11.2px;
+		border-radius: 4.2px;
+		font-size: 12px;
+	}
 
 	${({ variant }) => {
 		if (variant === "primary") {

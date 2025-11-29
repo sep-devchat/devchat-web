@@ -66,22 +66,9 @@ export type CodeEditorProps = {
 };
 
 const DEFAULT_LANGUAGES: LanguageOption[] = [
-	// { label: "TypeScript", value: "typescript" },
 	{ label: "JavaScript", value: "javascript" },
 	{ label: "Python", value: "python" },
 	{ label: "Java", value: "java" },
-	// { label: "C#", value: "csharp" },
-	// { label: "C++", value: "cpp" },
-	// { label: "Go", value: "go" },
-	// { label: "Rust", value: "rust" },
-	// { label: "PHP", value: "php" },
-	// { label: "SQL", value: "sql" },
-	// { label: "JSON", value: "json" },
-	// { label: "YAML", value: "yaml" },
-	// { label: "Markdown", value: "markdown" },
-	// { label: "HTML", value: "html" },
-	// { label: "CSS", value: "css" },
-	// { label: "Shell", value: "shell" },
 ];
 
 const CodeEditor = React.forwardRef<CodeEditorRef, CodeEditorProps>(
@@ -123,18 +110,15 @@ const CodeEditor = React.forwardRef<CodeEditorRef, CodeEditorProps>(
 		const initialLang =
 			language || availableLanguages[0]?.value || "typescript";
 		const [internalLang, setInternalLang] = useState<string>(initialLang);
-		// keep internal language in sync with controlled prop
+
 		useEffect(() => {
 			if (language && language !== internalLang) setInternalLang(language);
 		}, [language, internalLang]);
 
 		const monacoTheme = theme === "dark" ? "vs-dark" : "vs";
 
-		// Configure Monaco prior to mount to suppress validation squiggles/markers.
 		const handleBeforeMount = useCallback((m: Monaco) => {
 			try {
-				// Disable diagnostics for TS/JS
-				// (prevents red squiggles when composing snippets in chat).
 				m.languages.typescript.typescriptDefaults.setDiagnosticsOptions({
 					noSemanticValidation: true,
 					noSyntaxValidation: true,
@@ -143,11 +127,7 @@ const CodeEditor = React.forwardRef<CodeEditorRef, CodeEditorProps>(
 					noSemanticValidation: true,
 					noSyntaxValidation: true,
 				});
-				// Also turn off validation for common web langs
-				// These APIs exist in Monaco distributions that include these languages.
-				// Guard with try/catch so missing languages don't throw.
 				try {
-					// eslint-disable-next-line @typescript-eslint/no-explicit-any
 					(m.languages as any).json?.jsonDefaults?.setDiagnosticsOptions?.({
 						validate: false,
 					});
@@ -155,7 +135,6 @@ const CodeEditor = React.forwardRef<CodeEditorRef, CodeEditorProps>(
 					/* noop */
 				}
 				try {
-					// eslint-disable-next-line @typescript-eslint/no-explicit-any
 					(m.languages as any).css?.cssDefaults?.setDiagnosticsOptions?.({
 						validate: false,
 					});
@@ -163,7 +142,6 @@ const CodeEditor = React.forwardRef<CodeEditorRef, CodeEditorProps>(
 					/* noop */
 				}
 				try {
-					// eslint-disable-next-line @typescript-eslint/no-explicit-any
 					(m.languages as any).html?.htmlDefaults?.setOptions?.({
 						validate: false,
 					});
@@ -171,23 +149,21 @@ const CodeEditor = React.forwardRef<CodeEditorRef, CodeEditorProps>(
 					/* noop */
 				}
 			} catch {
-				// ignore if monaco bundle doesn't expose these defaults
+				/* noop */
 			}
 		}, []);
 
 		const handleMount: OnMount = useCallback(
 			(ed, m: Monaco) => {
 				editorRef.current = ed;
-				// optional: try to format on mount for default value
 				if (defaultValue && ed.getValue() === defaultValue && m) {
-					// best-effort format
 					try {
 						ed.getAction("editor.action.formatDocument")?.run();
 					} catch {
-						// ignore if formatter not available
+						/* noop */
 					}
 				}
-				// Focus listeners control the optional close button visibility
+
 				const d1 = ed.onDidFocusEditorText?.(() => setIsFocused(true));
 				const d2 = ed.onDidBlurEditorText?.(() => setIsFocused(false));
 				if (d1)
@@ -195,9 +171,8 @@ const CodeEditor = React.forwardRef<CodeEditorRef, CodeEditorProps>(
 				if (d2)
 					disposablesRef.current.push(d2 as unknown as { dispose: () => void });
 
-				// Auto-size height between min/max lines (only when not fitParent)
 				const recompute = () => {
-					if (fitParent) return; // handled by container
+					if (fitParent) return;
 					try {
 						const contentHeight = ed.getContentHeight();
 						const model = ed.getModel();
@@ -206,14 +181,14 @@ const CodeEditor = React.forwardRef<CodeEditorRef, CodeEditorProps>(
 							16,
 							Math.round(contentHeight / lineCount),
 						);
-						const minH = approxLineHeight * Math.max(1, minLines) + 8; // small padding
+						const minH = approxLineHeight * Math.max(1, minLines) + 8;
 						const maxH = maxLines
 							? approxLineHeight * Math.max(minLines, maxLines) + 8
 							: Number.MAX_SAFE_INTEGER;
 						const clamped = Math.max(minH, Math.min(contentHeight, maxH));
 						setDynHeight(clamped);
 					} catch {
-						// noop
+						/* noop */
 					}
 				};
 				recompute();
@@ -221,11 +196,9 @@ const CodeEditor = React.forwardRef<CodeEditorRef, CodeEditorProps>(
 				if (d3)
 					disposablesRef.current.push(d3 as unknown as { dispose: () => void });
 
-				// Close editor on Backspace when empty (conditional)
 				if (closeOnEmptyBackspace && onClose) {
 					const dBackspace = ed.onKeyDown?.((ev) => {
 						try {
-							// eslint-disable-next-line @typescript-eslint/no-explicit-any
 							const KeyCode = (m as any).KeyCode;
 							const isBackspace =
 								(KeyCode && ev.keyCode === KeyCode.Backspace) ||
@@ -248,13 +221,9 @@ const CodeEditor = React.forwardRef<CodeEditorRef, CodeEditorProps>(
 						);
 				}
 
-				// Ctrl/Cmd + Enter to submit (always bind when provided)
 				if (onCtrlEnter) {
-					// Robust keybinding via Monaco command API
 					try {
-						// eslint-disable-next-line @typescript-eslint/no-explicit-any
 						const KeyMod = (m as any).KeyMod;
-						// eslint-disable-next-line @typescript-eslint/no-explicit-any
 						const KeyCode = (m as any).KeyCode;
 						if (KeyMod && KeyCode && typeof ed.addCommand === "function") {
 							ed.addCommand(KeyMod.CtrlCmd | KeyCode.Enter, () => {
@@ -268,13 +237,12 @@ const CodeEditor = React.forwardRef<CodeEditorRef, CodeEditorProps>(
 					} catch {
 						/* noop */
 					}
-					// Also handle NumpadEnter + Ctrl as a fallback via keydown listener
+
 					const dCtrlEnter = ed.onKeyDown?.((ev) => {
 						try {
 							const hasCmdCtrl = ev.ctrlKey || ev.metaKey;
 							const isEnterKey = ev.browserEvent?.key === "Enter";
 							const isNumpadEnter = ev.browserEvent?.code === "NumpadEnter";
-							// eslint-disable-next-line @typescript-eslint/no-explicit-any
 							const KeyCode = (m as any).KeyCode;
 							const isMonacoEnter = KeyCode && ev.keyCode === KeyCode.Enter;
 							if (
@@ -334,7 +302,7 @@ const CodeEditor = React.forwardRef<CodeEditorRef, CodeEditorProps>(
 					try {
 						instance.getAction("editor.action.formatDocument")?.run();
 					} catch {
-						// ignore if unavailable
+						/* noop */
 					}
 				},
 			}),
@@ -352,17 +320,14 @@ const CodeEditor = React.forwardRef<CodeEditorRef, CodeEditorProps>(
 				wordWrap: "on" as const,
 				tabSize: 2,
 				insertSpaces: true,
-				// Hide validation decorations/overview ruler markers for a distraction-free composer.
 				renderValidationDecorations: "off" as const,
 				overviewRulerLanes: 0,
-				// Reduce hinting noise while composing
 				quickSuggestions: false,
 				...options,
 			}),
 			[readOnly, options],
 		);
 
-		// cleanup listeners on unmount
 		useEffect(() => {
 			return () => {
 				disposablesRef.current.forEach((d) => {
@@ -379,20 +344,53 @@ const CodeEditor = React.forwardRef<CodeEditorRef, CodeEditorProps>(
 		const containerStyle: React.CSSProperties | undefined = fitParent
 			? { display: "flex", flexDirection: "column" as const, height: "100%" }
 			: undefined;
+
 		const wrapperClassName = cn(
 			"rounded-xl border border-slate-200 bg-white shadow-sm p-3 space-y-3",
+			"max-[1220px]:rounded-[8.4px] max-[1220px]:p-[8.4px] max-[1220px]:space-y-[8.4px]",
+			"min-[1440px]:rounded-[9.6px] min-[1440px]:p-[9.6px] min-[1440px]:space-y-[9.6px]",
+			"min-[1920px]:rounded-[13.2px] min-[1920px]:p-[13.2px] min-[1920px]:space-y-[13.2px]",
 			className,
 		);
+
 		return (
 			<div className={wrapperClassName} style={containerStyle}>
 				{showLanguageSelector ? (
-					<div className="flex items-center justify-between pb-2">
-						<label className="text-sm font-semibold text-slate-900">
+					<div
+						className={cn(
+							// Base
+							"flex items-center justify-between pb-2",
+							"max-[1220px]:pb-[5.6px]",
+							"min-[1440px]:pb-[6.4px]",
+							"min-[1920px]:pb-[8.8px]",
+						)}
+					>
+						<label
+							className={cn(
+								"text-[14px] font-semibold text-slate-900",
+								"max-[1220px]:text-[12px]",
+								"min-[1440px]:text-[13px]",
+								"min-[1920px]:text-[16px]",
+							)}
+						>
 							Code editor
 						</label>
-						<div className="flex items-center gap-2">
+						<div
+							className={cn(
+								// Base
+								"flex items-center gap-2",
+								"max-[1220px]:gap-[5.6px]",
+								"min-[1440px]:gap-[6.4px]",
+								"min-[1920px]:gap-[8.8px]",
+							)}
+						>
 							<select
-								className="rounded-md border border-slate-300 bg-white px-2 py-1 text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-400/60"
+								className={cn(
+									"rounded-md border border-slate-300 bg-white px-2 py-1 text-[14px] font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-400/60",
+									"max-[1220px]:rounded-[5.6px] max-[1220px]:px-[5.6px] max-[1220px]:py-[2.8px] max-[1220px]:text-[11px]",
+									"min-[1440px]:rounded-[6.4px] min-[1440px]:px-[6.4px] min-[1440px]:py-[3.2px] min-[1440px]:text-[12px]",
+									"min-[1920px]:rounded-[8.8px] min-[1920px]:px-[8.8px] min-[1920px]:py-[4.4px] min-[1920px]:text-[14px]",
+								)}
 								value={internalLang}
 								onChange={handleLangChange}
 							>
@@ -407,20 +405,30 @@ const CodeEditor = React.forwardRef<CodeEditorRef, CodeEditorProps>(
 									type="button"
 									aria-label="Close code editor"
 									title="Close code editor"
-									className={
-										"rounded-md border border-slate-300 bg-white px-2 py-1 text-xs font-medium text-slate-600 shadow-sm transition-opacity hover:bg-slate-100 " +
-										(closeButtonWhenFocused && !isFocused
+									className={cn(
+										"rounded-md border border-slate-300 bg-white px-2 py-1 text-[12px] font-medium text-slate-600 shadow-sm transition-opacity hover:bg-slate-100",
+										"max-[1220px]:rounded-[5.6px] max-[1220px]:px-[5.6px] max-[1220px]:py-[2.8px] max-[1220px]:text-[11px]",
+										"min-[1440px]:rounded-[6.4px] min-[1440px]:px-[6.4px] min-[1440px]:py-[3.2px] min-[1440px]:text-[12px]",
+										"min-[1920px]:rounded-[8.8px] min-[1920px]:px-[8.8px] min-[1920px]:py-[4.4px] min-[1920px]:text-[14px]",
+										closeButtonWhenFocused && !isFocused
 											? "opacity-0 pointer-events-none"
-											: "opacity-100")
-									}
+											: "opacity-100",
+									)}
 									onMouseDown={(e) => {
-										// Trigger close early to avoid focus/blur race conditions
 										e.preventDefault();
 										e.stopPropagation();
 										onClose?.();
 									}}
 								>
-									<X size={20} className="text-slate-500" />
+									<X
+										size={20}
+										className={cn(
+											"text-slate-500",
+											"max-[1220px]:w-[14px] max-[1220px]:h-[14px]",
+											"min-[1440px]:w-[16px] min-[1440px]:h-[16px]",
+											"min-[1920px]:w-[22px] min-[1920px]:h-[22px]",
+										)}
+									/>
 								</button>
 							) : null}
 						</div>

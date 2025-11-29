@@ -54,6 +54,7 @@ const CustomSelect: React.FC<{
 
 	return (
 		<div
+			className="custom-select-wrapper"
 			style={{
 				position: "relative",
 				opacity: disabled ? DISABLED_OPACITY : 1,
@@ -75,13 +76,11 @@ const CustomSelect: React.FC<{
 			}}
 		>
 			<div
+				className="select-control"
 				style={{
 					width: "100%",
-					padding: "12px 40px 12px 16px",
-					height: "43px",
 					border: `1.5px solid ${isOpen ? "#133e87" : "#e5e7eb"}`,
 					borderRadius: "10px",
-					fontSize: "14px",
 					color: "#1f2937",
 					background: disabled ? DISABLED_BG : "white",
 					cursor: disabled ? "not-allowed" : "pointer",
@@ -121,7 +120,7 @@ const CustomSelect: React.FC<{
 								color: "#6b7280",
 							}}
 						>
-							<X size={16} />
+							<X className="icon-size" />
 						</button>
 					)}
 
@@ -137,16 +136,16 @@ const CustomSelect: React.FC<{
 							opacity: disabled ? DISABLED_OPACITY : 1,
 						}}
 					>
-						<ChevronDown size={18} />
+						<ChevronDown className="icon-size" />
 					</div>
 				</div>
 			</div>
 
 			{isOpen && !disabled && (
 				<div
+					className="select-dropdown"
 					style={{
 						position: "absolute",
-						top: "calc(100% + 8px)",
 						left: 0,
 						right: 0,
 						background: "white",
@@ -154,22 +153,18 @@ const CustomSelect: React.FC<{
 						borderRadius: "12px",
 						zIndex: 1000,
 						overflow: "hidden",
-						padding: 6,
 					}}
 				>
 					{placeholder && (
 						<div
+							className="select-option placeholder-option"
 							style={{
-								padding: "12px 16px",
-								fontSize: "14px",
 								color: "#6b7280",
 								fontWeight: 500,
 								fontStyle: "italic",
 								cursor: "pointer",
 								transition: "all 0.2s ease",
-								margin: "6px 8px",
 								borderRadius: "8px",
-								minHeight: "42px",
 								display: "flex",
 								alignItems: "center",
 							}}
@@ -187,17 +182,14 @@ const CustomSelect: React.FC<{
 						return (
 							<div
 								key={option.value}
+								className="select-option"
 								style={{
-									padding: "12px 16px",
-									fontSize: "14px",
 									color: isSelected ? "white" : "#1f2937",
 									fontWeight: isSelected ? 600 : 500,
 									background: isSelected ? "#133e87" : "white",
 									cursor: "pointer",
 									transition: "all 0.2s ease",
-									margin: "6px 8px",
 									borderRadius: "8px",
-									minHeight: "42px",
 									display: "flex",
 									alignItems: "center",
 								}}

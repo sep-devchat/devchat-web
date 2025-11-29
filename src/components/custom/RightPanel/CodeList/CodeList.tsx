@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { X } from "lucide-react";
+import styled from "styled-components";
 import CodeRunResultDialog from "@/components/custom/CodeRunResultDialog";
 import CodeItem from "./CodeItem";
 import {
@@ -29,6 +30,27 @@ import {
 } from "@/utils/codeCollabHelpers";
 import Empty from "../../Empty";
 import ineffaLoading from "@/assets/emoji/ineffa_loading.png";
+
+// Styled wrapper with responsive code font-size
+const ResponsiveCodeWrapper = styled.div`
+	code,
+	pre code,
+	.token {
+		font-size: 14px !important;
+
+		@media (max-width: 1220px) {
+			font-size: 12.5px !important;
+		}
+
+		@media (min-width: 1440px) {
+			font-size: 13.5px !important;
+		}
+
+		@media (min-width: 1920px) {
+			font-size: 16px !important;
+		}
+	}
+`;
 
 interface CodeListProps {
 	onClose?: () => void;
@@ -293,20 +315,23 @@ const CodeList = ({
 					<>
 						<CodeListScroller>
 							{codeBlocks.map((block) => (
-								<CodeItem
-									key={block.id}
-									title={buildCodeBlockTitle(block.language)}
-									subtitle={buildCodeBlockSubtitleFromBlock(block)}
-									language={block.language}
-									code={block.content}
-									onRun={() => handleRunCode(block)}
-									isRunning={runningBlockId === block.id}
-									disabled={Boolean(runningBlockId)}
-									onCollaborate={
-										canCollaborate ? () => handleCollaborate(block) : undefined
-									}
-									collaborateDisabled={Boolean(runningBlockId)}
-								/>
+								<ResponsiveCodeWrapper key={block.id}>
+									<CodeItem
+										title={buildCodeBlockTitle(block.language)}
+										subtitle={buildCodeBlockSubtitleFromBlock(block)}
+										language={block.language}
+										code={block.content}
+										onRun={() => handleRunCode(block)}
+										isRunning={runningBlockId === block.id}
+										disabled={Boolean(runningBlockId)}
+										onCollaborate={
+											canCollaborate
+												? () => handleCollaborate(block)
+												: undefined
+										}
+										collaborateDisabled={Boolean(runningBlockId)}
+									/>
+								</ResponsiveCodeWrapper>
 							))}
 
 							{initialLoaded && !isLoading && !codeBlocks.length && !error && (

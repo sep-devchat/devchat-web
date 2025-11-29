@@ -70,6 +70,7 @@ interface CodeItemProps {
 	disabled?: boolean;
 	onCollaborate?: () => void;
 	collaborateDisabled?: boolean;
+	codeFontSize?: number;
 }
 
 const CodeItem: React.FC<CodeItemProps> = ({
