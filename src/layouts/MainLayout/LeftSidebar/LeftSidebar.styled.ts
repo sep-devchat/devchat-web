@@ -349,7 +349,7 @@ export const AddButton = styled.button`
 export const FriendList = styled.ul`
 	list-style: none;
 	margin: 0;
-	padding: 0 8px 8px;
+	padding: 12px;
 	display: flex;
 	flex-direction: column;
 	gap: 6px;
@@ -376,7 +376,7 @@ export const FriendList = styled.ul`
 	}
 
 	@media (max-width: 1220px) {
-		padding: 0 6px 6px;
+		padding: 6px;
 		gap: 4px;
 
 		&::-webkit-scrollbar {
@@ -385,7 +385,7 @@ export const FriendList = styled.ul`
 	}
 
 	@media (min-width: 1440px) {
-		padding: 0 0 10px;
+		padding: 10px;
 		gap: 8px;
 
 		&::-webkit-scrollbar {

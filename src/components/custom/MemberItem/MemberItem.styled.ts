@@ -193,15 +193,14 @@ export const TooltipCard = styled.div`
 	box-shadow: 0 12px 32px rgba(15, 23, 42, 0.15);
 	border: 1px solid ${theme.color.grey200 || "#e5e7eb"};
 
-
 	@media (min-width: 1440px) {
 		width: 16rem;
 		padding: 1.25rem;
 		gap: 0.5rem;
 		border-radius: 0.625rem;
 	}
-  
-  	@media (max-width: 1220px) {
+
+	@media (max-width: 1220px) {
 		min-width: 15rem;
 		max-width: 20rem;
 		padding: 0.875rem;
@@ -241,7 +240,7 @@ export const TooltipAvatar = styled.img`
 `;
 
 export const TooltipName = styled.div`
-		font-size: 13px;
+	font-size: 13px;
 	font-weight: 600;
 	color: ${theme.color.grey900 || "#111827"};
 
@@ -257,8 +256,8 @@ export const TooltipName = styled.div`
 export const TooltipUsername = styled.div`
 	font-size: 12px;
 	color: ${theme.color.grey500 || "#6b7280"};
-  
-  @media (max-width: 1220px) {
+
+	@media (max-width: 1220px) {
 		font-size: 0.5625rem;
 	}
 

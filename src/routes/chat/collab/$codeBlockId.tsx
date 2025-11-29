@@ -89,9 +89,9 @@ function CollabPage() {
 						<Title>Code Collaboration</Title>
 						<Subtitle>Missing conversation context</Subtitle>
 					</div>
-					<Button variant="outline" size="sm" onClick={handleBack}>
+					<StyledButton variant="outline" size="sm" onClick={handleBack}>
 						Go back
-					</Button>
+					</StyledButton>
 				</Header>
 				<Body>
 					<MissingState>
@@ -109,9 +109,9 @@ function CollabPage() {
 					<Title>{search.title || "Code Collaboration"}</Title>
 					{search.subtitle && <Subtitle>{search.subtitle}</Subtitle>}
 				</div>
-				<Button variant="ghost" size="sm" onClick={handleBack}>
+				<StyledButton variant="ghost" size="sm" onClick={handleBack}>
 					<ArrowLeft className="h-4 w-4 mr-1" /> Back to chat
-				</Button>
+				</StyledButton>
 			</Header>
 			<Body>
 				{isChannelContext ? (
@@ -140,6 +140,18 @@ const PageShell = styled.div`
 	box-shadow: 0 12px 30px rgba(148, 163, 184, 0.2);
 	border: 1px solid #dbeafe;
 	overflow: hidden;
+
+	@media (max-width: 1220px) {
+		border-radius: calc(16px * 0.7);
+	}
+
+	@media (min-width: 1440px) {
+		border-radius: calc(16px * 0.8);
+	}
+
+	@media (min-width: 1920px) {
+		border-radius: calc(16px * 1.1);
+	}
 `;
 
 const Header = styled.div`
@@ -150,6 +162,18 @@ const Header = styled.div`
 	padding: 1.25rem 1.5rem;
 	background: linear-gradient(135deg, #eef2ff, #dbeafe);
 	border-bottom: 1px solid rgba(148, 163, 184, 0.3);
+
+	@media (max-width: 1220px) {
+		padding: calc(1.25rem * 0.7) calc(1.5rem * 0.7);
+	}
+
+	@media (min-width: 1440px) {
+		padding: calc(1.25rem * 0.8) calc(1.5rem * 0.8);
+	}
+
+	@media (min-width: 1920px) {
+		padding: calc(1.25rem * 1.1) calc(1.5rem * 1.1);
+	}
 `;
 
 const Title = styled.h1`
@@ -157,12 +181,36 @@ const Title = styled.h1`
 	font-weight: 600;
 	color: #0f172a;
 	margin: 0;
+
+	@media (max-width: 1220px) {
+		font-size: 14px;
+	}
+
+	@media (min-width: 1440px) {
+		font-size: 15px;
+	}
+
+	@media (min-width: 1920px) {
+		font-size: 18px;
+	}
 `;
 
 const Subtitle = styled.p`
 	font-size: 0.9rem;
 	color: #475569;
 	margin: 0.35rem 0 0;
+
+	@media (max-width: 1220px) {
+		font-size: 12px;
+	}
+
+	@media (min-width: 1440px) {
+		font-size: 13px;
+	}
+
+	@media (min-width: 1920px) {
+		font-size: 16px;
+	}
 `;
 
 const Body = styled.div`
@@ -176,6 +224,18 @@ const Body = styled.div`
 		flex: 1;
 		min-height: 0;
 	}
+
+	@media (max-width: 1220px) {
+		padding: calc(1rem * 0.7);
+	}
+
+	@media (min-width: 1440px) {
+		padding: calc(1rem * 0.8);
+	}
+
+	@media (min-width: 1920px) {
+		padding: calc(1rem * 1.1);
+	}
 `;
 
 const MissingState = styled.div`
@@ -186,4 +246,32 @@ const MissingState = styled.div`
 	text-align: center;
 	color: #475569;
 	font-size: 0.95rem;
+
+	@media (max-width: 1220px) {
+		font-size: 11px;
+	}
+
+	@media (min-width: 1440px) {
+		font-size: 12px;
+	}
+
+	@media (min-width: 1920px) {
+		font-size: 14px;
+	}
+`;
+
+const StyledButton = styled(Button)`
+	font-size: 14px;
+
+	@media (max-width: 1220px) {
+		font-size: 12.5px;
+	}
+
+	@media (min-width: 1440px) {
+		font-size: 13.5px;
+	}
+
+	@media (min-width: 1920px) {
+		font-size: 16px;
+	}
 `;

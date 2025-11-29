@@ -11,7 +11,7 @@ export const ChatAreaContainer = styled.div`
 	min-height: 0;
 	max-height: 100%;
 	overflow: hidden;
-  backdrop-filter: blur(6px);
+	backdrop-filter: blur(6px);
 
 	@media (max-width: 1220px) {
 		border-radius: 7px;

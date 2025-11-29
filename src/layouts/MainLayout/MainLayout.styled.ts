@@ -82,12 +82,17 @@ export const CenterPanel = styled.div<{
 	overflow: hidden;
 	gap: ${(props) => (props.$isCollapsed ? "0.75rem" : "0")};
 
-	/* Base border radius: 10px */
-	border-top-right-radius: ${(props) => {
-		if (props.$isHalf) return "10px";
-		if (props.$hasRightBorderRadius === true) return "10px";
-		return "0";
-	}};
+	${(props) =>
+		props.$isCollapsed &&
+		`
+		position: absolute;
+		top: 0;
+		left: 0;
+		right: ${props.$isHalf ? "16px" : "0"};
+		flex: 0 0 auto;
+		width: calc(100% - ${props.$isHalf ? "16px" : "0px"});
+		pointer-events: none;
+		z-index: 5;
 
 		& > * {
 			pointer-events: auto;
@@ -114,16 +119,14 @@ export const RightPanelWrapper = styled.div<{ $fullWidth?: boolean }>`
 	height: 100%;
 	display: flex;
 	flex-direction: column;
-	min-height: 0;
+	gap: 0.5rem;
+	min-height: 0; /* allow inner flex children to scroll */
 	${(props) =>
 		props.$fullWidth &&
 		`
 		flex: 1;
 		width: 100%;
 	`}
-
-	/* Base font size */
-	font-size: 16px;
 `;
 
 export const CollapsedHeaderBar = styled.div<{ $isCollapsed?: boolean }>`

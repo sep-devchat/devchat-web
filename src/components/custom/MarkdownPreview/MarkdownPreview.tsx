@@ -40,22 +40,7 @@ const MarkdownPreview = ({
 	directUserId,
 }: MarkdownPreviewProps) => {
 	const [remarkPlugins, setRemarkPlugins] = useState<any[]>([]);
-	const [windowWidth, setWindowWidth] = useState(
-		typeof window !== "undefined" ? window.innerWidth : 1440,
-	);
 
-	useEffect(() => {
-		const handleResize = () => setWindowWidth(window.innerWidth);
-		window.addEventListener("resize", handleResize);
-		return () => window.removeEventListener("resize", handleResize);
-	}, []);
-
-	const getResponsiveImageSize = (base: number) => {
-		if (windowWidth <= 1220) return base * 0.7;
-		if (windowWidth >= 1920) return base * 1.1;
-		if (windowWidth >= 1440) return base * 0.8;
-		return base;
-	};
 	const [previewImage, setPreviewImage] = useState<{
 		src: string;
 		alt?: string;
@@ -365,13 +350,18 @@ const MarkdownPreview = ({
 									<button
 										type="button"
 										onClick={() => handleImagePreview(src, alt)}
-										className="group mt-2 block w-full overflow-hidden rounded-lg border border-border bg-muted/10"
-										style={{ lineHeight: 0 }}
+										className="group mt-2 inline-block overflow-hidden rounded-lg border border-border bg-muted/10"
+										style={{
+											lineHeight: 0,
+											maxWidth: "250px",
+											maxHeight: "250px",
+										}}
 									>
 										<img
 											src={src}
 											alt={alt}
 											className="h-auto w-full object-contain transition-transform duration-200 group-hover:scale-[1.02]"
+											style={{ maxWidth: "250px", maxHeight: "250px" }}
 											loading="lazy"
 											{...p}
 										/>
@@ -417,19 +407,20 @@ const MarkdownPreview = ({
 					</Markdown>
 				</Suspense>
 
-			{hasImageGrid && (
+				{hasImageGrid && (
 					<div className="mt-3 flex flex-wrap gap-3">
 						{parsedImages.map((img, idx) => (
 							<button
 								key={`${img.src}-${idx}`}
 								type="button"
 								onClick={() => handleImagePreview(img.src, img.alt)}
-								className="group block flex-1 basis-full overflow-hidden rounded-lg border border-border bg-muted/20 sm:basis-[calc(50%-0.75rem)] lg:basis-[calc(33.333%-0.75rem)]"
+								className="group block overflow-hidden rounded-lg border border-border bg-muted/20"
+								style={{ width: "250px", height: "250px" }}
 							>
 								<img
 									src={img.src}
 									alt={img.alt}
-									className="aspect-square w-full object-cover transition duration-200 group-hover:scale-[1.03]"
+									className="h-full w-full object-cover transition duration-200 group-hover:scale-[1.03]"
 									loading="lazy"
 								/>
 							</button>
@@ -468,8 +459,7 @@ const MarkdownPreview = ({
 						</div>
 					</div>,
 					document.body,
-				)
-				: null}
+				)}
 		</>
 	);
 };

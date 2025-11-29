@@ -63,6 +63,7 @@ const Header = ({
 	const directUserId = params.userId;
 	const isDirectPage = Boolean(directUserId);
 
+	// Responsive window width tracking
 	const [windowWidth, setWindowWidth] = useState(
 		typeof window !== "undefined" ? window.innerWidth : 1440,
 	);
@@ -72,6 +73,42 @@ const Header = ({
 		window.addEventListener("resize", handleResize);
 		return () => window.removeEventListener("resize", handleResize);
 	}, []);
+
+	// Responsive size functions
+	const getIconSize = () => {
+		if (windowWidth >= 1920) return 26;
+		if (windowWidth <= 1220) return 18;
+		if (windowWidth >= 1440) return 20;
+		return 20;
+	};
+
+	const getSpinnerSize = () => {
+		if (windowWidth >= 1920) return "h-4.4 w-4.4";
+		if (windowWidth <= 1220) return "h-2.8 w-2.8";
+		if (windowWidth >= 1440) return "h-3.2 w-3.2";
+		return "h-4 w-4";
+	};
+
+	const getLoadingBarSize = () => {
+		if (windowWidth >= 1920) return "h-5.5 w-35.2";
+		if (windowWidth <= 1220) return "h-3.5 w-22.4";
+		if (windowWidth >= 1440) return "h-4 w-25.6";
+		return "h-5 w-32";
+	};
+
+	const getTitleFontSize = () => {
+		if (windowWidth >= 1920) return "text-xl";
+		if (windowWidth <= 1220) return "text-base";
+		if (windowWidth >= 1440) return "text-base";
+		return "text-lg";
+	};
+
+	const getGapSize = () => {
+		if (windowWidth >= 1920) return "gap-3";
+		if (windowWidth <= 1220) return "gap-3";
+		if (windowWidth >= 1440) return "gap-2.4";
+		return "gap-2";
+	};
 
 	useEffect(() => {
 		const fetchChannelData = async () => {
@@ -152,44 +189,17 @@ const Header = ({
 		}
 	};
 
-	const getIconSize = () => {
-		if (windowWidth >= 1920) return 26;
-		if (windowWidth <= 1220) return 18;
-		if (windowWidth >= 1440) return 20;
-		return 20;
-	};
-
-	const getSpinnerSize = () => {
-		if (windowWidth >= 1920) return "h-4.4 w-4.4";
-		if (windowWidth <= 1220) return "h-2.8 w-2.8";
-		if (windowWidth >= 1440) return "h-3.2 w-3.2";
-		return "h-4 w-4";
-	};
-
-	const getLoadingBarSize = () => {
-		if (windowWidth >= 1920) return "h-5.5 w-35.2";
-		if (windowWidth <= 1220) return "h-3.5 w-22.4";
-		if (windowWidth >= 1440) return "h-4 w-25.6";
-		return "h-5 w-32";
-	};
-
-	const getTitleFontSize = () => {
-		if (windowWidth >= 1920) return "text-xl";
-		if (windowWidth <= 1220) return "text-base";
-		if (windowWidth >= 1440) return "text-base";
-		return "text-lg";
-	};
-
-	const getGapSize = () => {
-		if (windowWidth >= 1920) return "gap-3";
-		if (windowWidth <= 1220) return "gap-3";
-		if (windowWidth >= 1440) return "gap-2.4";
-		return "gap-2";
 	const handleBackClick = () => {
 		if (onBackClick) {
 			onBackClick();
 		}
 	};
+
+	const iconSize = getIconSize();
+	const spinnerSize = getSpinnerSize();
+	const loadingBarSize = getLoadingBarSize();
+	const titleFontSize = getTitleFontSize();
+	const gapSize = getGapSize();
 
 	return (
 		<HeaderContainer
@@ -198,58 +208,56 @@ const Header = ({
 				borderTopRightRadius: compact ? "10px" : "0",
 			}}
 		>
-<TitleSection>
-    {showBackButton && (
-        <BackButton
-            type="button"
-            aria-label="Back to chat"
-            onClick={handleBackClick}
-        >
-            <ArrowLeft size={getIconSize()} />
-            <span>Back</span>
-        </BackButton>
-    )}
+			<TitleSection>
+				{showBackButton && (
+					<BackButton
+						type="button"
+						aria-label="Back to chat"
+						onClick={handleBackClick}
+					>
+						<ArrowLeft size={16} />
+						<span>Back</span>
+					</BackButton>
+				)}
+				{isGroupPage && search.channel ? (
+					loading ? (
+						<div className={`flex items-center ${gapSize}`}>
+							<div
+								className={`animate-spin ${spinnerSize} border-2 border-gray-300 border-t-blue-500 rounded-full`}
+							/>
+							<div
+								className={`${loadingBarSize} bg-gray-200 animate-pulse rounded`}
+							/>
+						</div>
+					) : (
+						<h2 className={`${titleFontSize} font-semibold`}>
+							{displayedTitle}
+						</h2>
+					)
+				) : isDirectPage ? (
+					<h2 className={`${titleFontSize} font-semibold`}>Direct Message</h2>
+				) : (
+					<div className={`flex items-center ${gapSize}`}>
+						<NavTabTitle>
+							<Users size={iconSize} />
+							Friend
+						</NavTabTitle>
+						{actions.map(({ id, title, isPrimary }) => (
+							<TabButton
+								key={id}
+								isActive={isPrimary || search.tab === id}
+								onClick={() => handleTabClick(id)}
+							>
+								{title}
+							</TabButton>
+						))}
+					</div>
+				)}
+			</TitleSection>
 
-    {isGroupPage && search.channel ? (
-        loading ? (
-            <div className={`flex items-center ${getGapSize()}`}>
-                <div className={`animate-spin ${getSpinnerSize()} border-2 border-gray-300 border-t-blue-500 rounded-full`} />
-                <div className={`${getLoadingBarSize()} bg-gray-200 animate-pulse rounded`} />
-            </div>
-        ) : (
-            <h2 className={`${getTitleFontSize()} font-semibold`}>
-                {displayedTitle}
-            </h2>
-        )
-    ) : isDirectPage ? (
-        <h2 className={`${getTitleFontSize()} font-semibold`}>
-            Direct Message
-        </h2>
-    ) : (
-        <div className={`flex items-center ${getGapSize()}`}>
-            <NavTabTitle>
-                <Users size={getIconSize()} />
-                Friend
-            </NavTabTitle>
-
-            {actions.map(({ id, title, isPrimary }) => (
-                <TabButton
-                    key={id}
-                    isActive={isPrimary || search.tab === id}
-                    onClick={() => handleTabClick(id)}
-                >
-                    {title}
-                </TabButton>
-            ))}
-        </div>
-    )}
-</TitleSection>
-			<div
-				className={`flex items-center ${getGapSize()}`}
-				style={{ position: "relative" }}
-			>
+			<div className="flex items-center gap-2" style={{ position: "relative" }}>
 				{isGroupPage ? (
-					<div className={`flex ${getGapSize()}`}>
+					<div className={`flex ${gapSize}`}>
 						<IconBtn
 							aria-label="tasks"
 							onMouseEnter={() => setHoveredIcon("tasks")}
@@ -260,7 +268,7 @@ const Header = ({
 							onKeyDown={(e) => onIconKeyDown(e, "tasks")}
 							disabled={loading}
 						>
-							<NotebookPenIcon size={getIconSize()} />
+							<NotebookPenIcon size={iconSize} />
 							<Tooltip visible={hoveredIcon === "tasks"}>Tasks</Tooltip>
 						</IconBtn>
 
@@ -274,7 +282,7 @@ const Header = ({
 							onKeyDown={(e) => onIconKeyDown(e, "spool")}
 							disabled={loading}
 						>
-							<Spool size={getIconSize()} />
+							<Spool size={iconSize} />
 							<Tooltip visible={hoveredIcon === "spool"}>Threads</Tooltip>
 						</IconBtn>
 
@@ -288,7 +296,7 @@ const Header = ({
 							onKeyDown={(e) => onIconKeyDown(e, "code")}
 							disabled={loading}
 						>
-							<SquareCode size={getIconSize()} />
+							<SquareCode size={iconSize} />
 							<Tooltip visible={hoveredIcon === "code"}>Code</Tooltip>
 						</IconBtn>
 
@@ -302,7 +310,7 @@ const Header = ({
 							onKeyDown={(e) => onIconKeyDown(e, "users")}
 							disabled={loading}
 						>
-							<Users size={getIconSize()} />
+							<Users size={iconSize} />
 							<Tooltip visible={hoveredIcon === "users"}>Members</Tooltip>
 						</IconBtn>
 
@@ -316,7 +324,7 @@ const Header = ({
 							onKeyDown={(e) => onIconKeyDown(e, "info")}
 							disabled={loading}
 						>
-							<Info size={getIconSize()} />
+							<Info size={iconSize} />
 							<Tooltip visible={hoveredIcon === "info"}>Info</Tooltip>
 						</IconBtn>
 
@@ -331,7 +339,7 @@ const Header = ({
 						)}
 					</div>
 				) : directUserId ? (
-					<div className="flex gap-2">
+					<div className={`flex ${gapSize}`}>
 						<IconBtn
 							aria-label="code"
 							onMouseEnter={() => setHoveredIcon("code")}
@@ -341,7 +349,7 @@ const Header = ({
 							onClick={() => onIconClick("code")}
 							onKeyDown={(e) => onIconKeyDown(e, "code")}
 						>
-							<SquareCode size={20} />
+							<SquareCode size={iconSize} />
 							<Tooltip visible={hoveredIcon === "code"}>Code</Tooltip>
 						</IconBtn>
 
@@ -354,7 +362,7 @@ const Header = ({
 							onClick={() => onIconClick("info")}
 							onKeyDown={(e) => onIconKeyDown(e, "info")}
 						>
-							<Info size={20} />
+							<Info size={iconSize} />
 							<Tooltip visible={hoveredIcon === "info"}>Attachments</Tooltip>
 						</IconBtn>
 					</div>

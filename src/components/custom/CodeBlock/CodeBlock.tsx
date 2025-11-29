@@ -90,12 +90,12 @@ const CodeBlock = ({
 		return "14px";
 	};
 
-	const getHeaderFontSize = () => {
-		if (windowWidth <= 1220) return "12px";
-		if (windowWidth >= 1920) return "16px";
-		if (windowWidth >= 1440) return "13px";
-		return "14px";
-	};
+	// const getHeaderFontSize = () => {
+	// 	if (windowWidth <= 1220) return "12px";
+	// 	if (windowWidth >= 1920) return "16px";
+	// 	if (windowWidth >= 1440) return "13px";
+	// 	return "14px";
+	// };
 
 	useEffect(() => {
 		const fetchBlock = async () => {
