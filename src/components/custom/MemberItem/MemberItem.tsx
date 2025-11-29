@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "@tanstack/react-router";
 import {
 	MemberItem as StyledMemberItem,
 	MemberAvatarContainer,
@@ -12,8 +13,8 @@ import {
 	TooltipAvatar,
 	TooltipName,
 	TooltipUsername,
-	TooltipInput,
 	TooltipContainer,
+	TooltipActionButton,
 } from "./MemberItem.styled";
 
 export interface Member {
@@ -30,7 +31,7 @@ interface MemberItemProps {
 	showTooltip?: boolean;
 	buttonType?: "more" | "close" | "none";
 	onButtonClick?: (memberId: number | string) => void;
-	onMessageSend?: (memberId: number | string, message: string) => void;
+	currentUserId?: string | number | null;
 }
 
 export interface TooltipProps {
@@ -42,11 +43,16 @@ export default function MemberItem({
 	showTooltip = true,
 	buttonType = "none",
 	onButtonClick,
-	onMessageSend,
+	currentUserId = null,
 }: MemberItemProps) {
 	const [hoveredMember, setHoveredMember] = useState<number | string | null>(
 		null,
 	);
+	const navigate = useNavigate();
+	const isSelf =
+		currentUserId !== undefined &&
+		currentUserId !== null &&
+		String(currentUserId) === String(member.id);
 
 	const getFirstName = (fullName: string) => {
 		const parts = fullName.trim().split(/\s+/);
@@ -65,14 +71,13 @@ export default function MemberItem({
 		setHoveredMember(null);
 	};
 
-	const handleMessageKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-		if (e.key === "Enter") {
-			const value = (e.target as HTMLInputElement).value;
-			if (onMessageSend) {
-				onMessageSend(member.id, value);
-			}
-			(e.target as HTMLInputElement).value = "";
-		}
+	const handleDirectMessageClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+		e.stopPropagation();
+		if (isSelf) return;
+		navigate({
+			to: "/chat/user/$userId",
+			params: { userId: String(member.id) },
+		});
 	};
 
 	const renderButton = () => {
@@ -169,11 +174,13 @@ export default function MemberItem({
 						</div>
 					</TooltipHeader>
 
-					<TooltipInput
-						type="text"
-						placeholder={`Message @${firstName}`}
-						onKeyDown={handleMessageKeyDown}
-					/>
+					<TooltipActionButton
+						type="button"
+						onClick={handleDirectMessageClick}
+						disabled={isSelf}
+					>
+						{isSelf ? "This is you" : `Message @${firstName}`}
+					</TooltipActionButton>
 				</TooltipCard>
 			</Tooltip>
 		</TooltipContainer>

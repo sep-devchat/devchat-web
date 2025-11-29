@@ -2,6 +2,8 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { MoreHorizontal, Search, Star, UserMinus } from "lucide-react";
+import Empty from "@/components/custom/Empty";
+import columbina from "@/assets/emoji/columbina.png";
 import {
 	Title,
 	Subtitle,
@@ -240,7 +242,22 @@ const AllFriends: React.FC<Props> = ({
 					))}
 				</PaginationContainer>
 			)}
-			{filteredFriends.length === 0 && <NoResults>No friends found.</NoResults>}
+			{filteredFriends.length === 0 && (
+				<NoResults>
+					<Empty
+						image={
+							<img
+								src={columbina}
+								alt="No friends"
+								className="h-50 w-50 object-cover"
+							/>
+						}
+						icon={null}
+						heading="No friends found"
+						description="Looks like you haven’t connected with anyone yet. Try searching with a different name or invite more teammates."
+					/>
+				</NoResults>
+			)}
 			<FriendProfileModal
 				isOpen={isModalOpen}
 				onClose={() => setIsModalOpen(false)}

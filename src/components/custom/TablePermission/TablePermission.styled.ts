@@ -245,7 +245,7 @@ export const PaginationWrapper = styled.div`
 	display: flex;
 	justify-content: space-between;
 	align-items: center;
-	margin-top: 24px;
+	// margin-top: 24px;
 
 	& > p {
 		font-size: 14px;

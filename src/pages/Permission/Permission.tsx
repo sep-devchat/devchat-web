@@ -422,7 +422,7 @@ export const Permission: React.FC = () => {
 					title={getTableTitle()}
 					subtitle={getTableSubtitle()}
 					columns={currentColumns}
-					pageSize={5}
+					pageSize={10}
 					data={currentData}
 					actionButtonText={getActionButtonText()}
 					onActionButtonClick={

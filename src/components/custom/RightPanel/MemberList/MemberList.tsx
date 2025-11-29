@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams } from "@tanstack/react-router";
 import { Search, X } from "lucide-react";
 import MemberItem, {
@@ -27,6 +27,8 @@ import { fetchGroupMembers, setCurrentGroup } from "@/store/groupMembers.slice";
 import { SearchContainer, SearchInput } from "../FriendList/FriendList.styled";
 import FriendProfileModal from "@/pages/Friend/AllFriends/FriendProfileModal/FriendProfileModal";
 
+const REFRESH_INTERVAL_MS = 5000;
+
 interface MemberListProps {
 	onClose?: () => void;
 	isHalf?: boolean;
@@ -42,9 +44,12 @@ export default function MemberList({ onClose, isHalf }: MemberListProps) {
 	const bucket = useSelector((s: RootState) =>
 		groupId ? s.groupMembers.byGroupId[groupId] : undefined,
 	);
+	const currentUserId = useSelector((s: RootState) => s.user.profile?.id);
 	const members = bucket?.members || [];
 	const loading = bucket?.loading || false;
+	const backgroundLoading = bucket?.backgroundLoading || false;
 	const error = bucket?.error || null;
+	const loadingRef = useRef(false);
 	const [isModalOpen, setIsModalOpen] = useState(false);
 	const [selectedFriend, setSelectedFriend] = useState<any | null>(null);
 
@@ -54,9 +59,18 @@ export default function MemberList({ onClose, isHalf }: MemberListProps) {
 		dispatch(fetchGroupMembers({ groupId }));
 	}, [dispatch, groupId]);
 
-	const handleMessageSend = (memberId: number | string, message: string) => {
-		console.log(`Send message to member ${memberId}:`, message);
-	};
+	useEffect(() => {
+		loadingRef.current = loading || backgroundLoading;
+	}, [loading, backgroundLoading]);
+
+	useEffect(() => {
+		if (!groupId) return;
+		const intervalId = window.setInterval(() => {
+			if (loadingRef.current) return;
+			dispatch(fetchGroupMembers({ groupId, silent: true }));
+		}, REFRESH_INTERVAL_MS);
+		return () => window.clearInterval(intervalId);
+	}, [dispatch, groupId]);
 
 	const handleSearchToggle = () => {
 		setIsSearchMode(!isSearchMode);
@@ -280,7 +294,7 @@ export default function MemberList({ onClose, isHalf }: MemberListProps) {
 										showTooltip={true}
 										buttonType="more"
 										onButtonClick={() => handleButtonClick(member)}
-										onMessageSend={handleMessageSend}
+										currentUserId={currentUserId}
 									/>
 								);
 							})

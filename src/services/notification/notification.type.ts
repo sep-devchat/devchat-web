@@ -7,3 +7,9 @@ export interface NotificationResponse {
 	isRead: boolean;
 	createdAt: string;
 }
+
+export interface NotificationQuery {
+	unread?: boolean;
+	cursorCreatedAt?: string;
+	limit?: number;
+}

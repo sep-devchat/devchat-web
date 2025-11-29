@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
+import MarkdownPreview from "@/components/custom/MarkdownPreview";
 
 interface ReportMessageDialogProps {
 	open: boolean;
@@ -188,7 +189,7 @@ export const ReportMessageDialog: React.FC<ReportMessageDialogProps> = ({
 							className="mt-2 whitespace-pre-wrap text-muted-foreground"
 							style={{ fontSize: fontSizes.sm }}
 						>
-							{previewContent}
+							<MarkdownPreview content={previewContent} />
 						</p>
 					</div>
 
@@ -316,6 +317,20 @@ export const ReportMessageDialog: React.FC<ReportMessageDialogProps> = ({
 						>
 							{notes.length}/1000 characters
 						</p>
+						<div className="rounded-md border bg-muted/30 p-3 text-sm">
+							<p className="text-xs font-semibold uppercase text-muted-foreground">
+								Preview
+							</p>
+							{notes.trim() ? (
+								<div className="mt-2">
+									<MarkdownPreview content={notes} />
+								</div>
+							) : (
+								<p className="mt-2 text-xs text-muted-foreground">
+									Start typing to see how your note will render.
+								</p>
+							)}
+						</div>
 					</div>
 				</div>
 

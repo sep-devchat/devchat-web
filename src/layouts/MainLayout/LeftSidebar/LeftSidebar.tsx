@@ -38,7 +38,6 @@ import {
 	SearchIcon,
 	SectionHeader,
 	SectionTitle,
-	AddButton,
 	ProfileWrapper,
 	TooltipWrapper,
 	Tooltip,
@@ -369,7 +368,6 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
 			) : (
 				<SectionHeader>
 					<SectionTitle>Conversations</SectionTitle>
-					<AddButton>+</AddButton>
 				</SectionHeader>
 			)}
 

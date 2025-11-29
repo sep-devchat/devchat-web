@@ -5,6 +5,7 @@ import { useAppDispatch, useAppSelector } from "./useStore";
 import useTheme from "./useTheme";
 import useAuth from "./useAuth";
 import useSocket from "./useSocket";
+import useCodeRunner from "./useCodeRunner";
 
 export {
 	useDocumentTitle,
@@ -15,4 +16,5 @@ export {
 	useTheme,
 	useAuth,
 	useSocket,
+	useCodeRunner,
 };

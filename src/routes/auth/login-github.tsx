@@ -4,7 +4,7 @@ import cookieUtils from "@/services/cookieUtils";
 import { useMutation } from "@tanstack/react-query";
 import { zodValidator } from "@tanstack/zod-adapter";
 import { useEffect, useState } from "react";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { store } from "@/store";
 import {
 	Github,
@@ -28,7 +28,6 @@ export const Route = createFileRoute("/auth/login-github")({
 function RouteComponent() {
 	const { code } = Route.useSearch();
 	const [countdown, setCountdown] = useState(5);
-	const navigate = useNavigate();
 	const { refetchProfile } = useAuth();
 	const { socket } = useSocket();
 
@@ -44,9 +43,7 @@ function RouteComponent() {
 			cookieUtils.setToken(data.data.accessToken);
 			await refetchProfile();
 			socket.connect();
-			navigate({
-				to: getPostLoginRedirect(),
-			});
+			window.location.href = getPostLoginRedirect();
 		},
 		onError: (error) => {
 			console.error("GitHub login failed:", error);

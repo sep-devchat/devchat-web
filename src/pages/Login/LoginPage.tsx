@@ -208,6 +208,12 @@ const LoginPage: React.FC<LoginPageProps> = ({
 
 	const isLoading = loginMutation.isPending || loginPkceMutation.isPending;
 
+	const handleSignInKeyDown = (event: React.KeyboardEvent<HTMLElement>) => {
+		if (event.key !== "Enter") return;
+		event.preventDefault();
+		if (!isLoading) handleLogin();
+	};
+
 	return (
 		<LoginContainer backgroundImage={bgImage}>
 			<ContentContainer>
@@ -259,6 +265,7 @@ const LoginPage: React.FC<LoginPageProps> = ({
 							onChange={(e) =>
 								handleInputChange("usernameOrEmail", e.target.value)
 							}
+							onKeyDown={handleSignInKeyDown}
 							onBlur={() =>
 								setTouched((prev) => new Set(prev).add("usernameOrEmail"))
 							}
@@ -296,6 +303,7 @@ const LoginPage: React.FC<LoginPageProps> = ({
 								placeholder="Password"
 								value={loginData.password}
 								onChange={(e) => handleInputChange("password", e.target.value)}
+								onKeyDown={handleSignInKeyDown}
 								onBlur={() =>
 									setTouched((prev) => new Set(prev).add("password"))
 								}
@@ -364,6 +372,7 @@ const LoginPage: React.FC<LoginPageProps> = ({
 					<SignInButton
 						onClick={handleLogin}
 						disabled={isLoading}
+						onKeyDown={handleSignInKeyDown}
 						style={{
 							opacity: isLoading ? 0.6 : 1,
 							cursor: isLoading ? "not-allowed" : "pointer",

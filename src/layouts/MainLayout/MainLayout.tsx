@@ -1,6 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import MainBg from "@/components/custom/MainBackground/MainBg";
-import { Outlet, useParams, useSearch } from "@tanstack/react-router";
+import {
+	Outlet,
+	useNavigate,
+	useParams,
+	useSearch,
+} from "@tanstack/react-router";
 import {
 	CenterPanel,
 	MainLayoutContainer,
@@ -10,12 +15,13 @@ import {
 	BottomSpacer,
 	RightPanelWrapper,
 	LeftSection,
+	CollapsedHeaderBar,
 } from "./MainLayout.styled";
 import TitleBar from "./TitleBar/TitleBar";
 import { User } from "lucide-react";
 import GroupSidebar from "./GroupSidebar";
 import AuthLayout from "../AuthLayout";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import ThreadPanel from "@/components/custom/RightPanel/ThreadPanel/ThreadPanel";
 import CodeList from "@/components/custom/RightPanel/CodeList/CodeList";
 import MemberList from "@/components/custom/RightPanel/MemberList/MemberList";
@@ -33,19 +39,76 @@ import { unfriendUser } from "@/services/friendAPI";
 import { showGlobalAlert } from "@/components/custom/AlertCustom/Alert";
 import ConfirmModal from "@/components/custom/ConfirmModal/ConfirmModal";
 import ChannelInfor from "@/components/custom/RightPanel/ChannelInfor/ChannelInfor";
+import { Toaster } from "@/components/ui/sonner";
+
+type SearchState = {
+	channel?: string;
+	tab?: string;
+	thread?: string;
+	[key: string]: unknown;
+};
 
 const MainLayout = () => {
-	const [iconSelected, setIconSelected] = useState<string>("");
 	const [settingSelect, setSettingSelect] = useState<boolean>(false);
 	const [showThreadPanel, setShowThreadPanel] = useState<boolean>(false);
 	const [selectedThreadId, setSelectedThreadId] = useState<string>("");
-	const params = useParams({ strict: false }) as { groupId?: string };
-	const search = useSearch({ strict: false }) as { channel?: string };
+	const params = useParams({ strict: false }) as {
+		groupId?: string;
+		userId?: string;
+		codeBlockId?: string;
+	};
+	const navigate = useNavigate();
+	const search = useSearch({ strict: false }) as SearchState;
 	const groupId = params.groupId;
-	const channelId = search.channel;
+	const directUserId = params.userId;
+	const isCodeCollabRoute = Boolean(params.codeBlockId);
+	const channelId = search.channel as string | undefined;
+	const threadQuery =
+		typeof search.thread === "string" ? (search.thread as string) : undefined;
+	const activeTab =
+		typeof search.tab === "string" ? (search.tab as string) : "";
+	const isConversationRoute =
+		!isCodeCollabRoute && Boolean(groupId || directUserId);
+	const panelTab = isConversationRoute ? activeTab : "";
+	const setPanelTab = useCallback(
+		(nextTab?: string) => {
+			navigate({
+				to: ".",
+				search: (prev: SearchState | undefined) => {
+					const nextSearch: SearchState = { ...(prev || {}) };
+					if (nextTab) {
+						nextSearch.tab = nextTab;
+					} else {
+						delete nextSearch.tab;
+					}
+					return nextSearch;
+				},
+				replace: true,
+			});
+		},
+		[navigate],
+	);
+
+	const setThreadSearch = useCallback(
+		(nextThread?: string) => {
+			navigate({
+				to: ".",
+				search: (prev: SearchState | undefined) => {
+					const nextSearch: SearchState = { ...(prev || {}) };
+					if (nextThread) {
+						nextSearch.thread = nextThread;
+					} else {
+						delete nextSearch.thread;
+					}
+					return nextSearch;
+				},
+				replace: true,
+			});
+		},
+		[navigate],
+	);
 	const [localGroups, setLocalGroups] = useState<any[]>([]);
 	const [isAdmin, setIsAdmin] = useState<boolean>(false);
-	const [showCodeListPanel, setShowCodeListPanel] = useState<boolean>(false);
 	const currentUserProfile = useSelector(
 		(state: RootState) => state.user.profile,
 	);
@@ -59,12 +122,13 @@ const MainLayout = () => {
 	const [isUnfriendModalOpen, setIsUnfriendModalOpen] = useState(false);
 	const [isUnfriendLoading, setIsUnfriendLoading] = useState(false);
 
-	console.log("MainLayout - Current IDs:", { groupId, channelId });
-
-	const hasOpenPanel = isHalf && (showThreadPanel || iconSelected !== "");
+	const hasOpenPanel =
+		!isCodeCollabRoute && isHalf && (showThreadPanel || Boolean(panelTab));
 
 	const shouldShowBorderRadius =
-		(showThreadPanel || iconSelected !== "") && iconSelected !== "users";
+		!isCodeCollabRoute &&
+		(showThreadPanel || Boolean(panelTab)) &&
+		panelTab !== "users";
 
 	// Handle resize
 	useEffect(() => {
@@ -75,12 +139,12 @@ const MainLayout = () => {
 
 	useEffect(() => {
 		if (isHalf && groupId) {
-			setIconSelected("");
+			setPanelTab(undefined);
 			setShowThreadPanel(false);
 			setSelectedThreadId("");
-			setShowCodeListPanel(false);
+			setThreadSearch(undefined);
 		}
-	}, [groupId, isHalf]);
+	}, [groupId, isHalf, setPanelTab, setThreadSearch]);
 
 	// Load groups
 	useEffect(() => {
@@ -142,24 +206,21 @@ const MainLayout = () => {
 		fetchGroupDetail();
 	}, [groupId, currentUserId]);
 
-	// Handle code panel
-	useEffect(() => {
-		if (iconSelected === "code") {
-			setShowThreadPanel(false);
-			setSelectedThreadId("");
-			setShowCodeListPanel(true);
-		} else {
-			setShowCodeListPanel(false);
-		}
-	}, [iconSelected]);
-
 	// Handle thread panel
 	useEffect(() => {
-		if (showThreadPanel) {
-			setShowCodeListPanel(false);
-			setIconSelected("");
+		if (showThreadPanel && panelTab) {
+			setPanelTab(undefined);
 		}
-	}, [showThreadPanel]);
+	}, [showThreadPanel, panelTab, setPanelTab]);
+
+	useEffect(() => {
+		if (!groupId || !channelId || !threadQuery) {
+			return;
+		}
+		setSelectedThreadId(threadQuery);
+		setShowThreadPanel(true);
+		setPanelTab(undefined);
+	}, [groupId, channelId, threadQuery, setPanelTab]);
 
 	// Listen for thread selection requests coming from ChatArea (message thread button)
 	useEffect(() => {
@@ -170,7 +231,8 @@ const MainLayout = () => {
 				if (tid) {
 					setSelectedThreadId(tid);
 					setShowThreadPanel(true);
-					setIconSelected("");
+					setPanelTab(undefined);
+					setThreadSearch(tid);
 				}
 			} catch {
 				/* noop */
@@ -191,30 +253,52 @@ const MainLayout = () => {
 	const handleCreateThread = () => {
 		setSelectedThreadId("");
 		setShowThreadPanel(true);
-		setIconSelected("");
+		setPanelTab(undefined);
+		setThreadSearch(undefined);
 	};
 
 	const handleThreadCreated = (threadId: string) => {
 		setSelectedThreadId(threadId);
 		setShowThreadPanel(true);
+		setThreadSearch(threadId);
 		window.dispatchEvent(new CustomEvent("app:threadCreated"));
 	};
 
 	const handleThreadSelect = (threadId: string) => {
 		setSelectedThreadId(threadId);
 		setShowThreadPanel(true);
-		setIconSelected("");
+		setPanelTab(undefined);
+		setThreadSearch(threadId);
 	};
 
 	const handleClosePanel = () => {
-		setIconSelected("");
+		setPanelTab(undefined);
 		setShowThreadPanel(false);
 		setSelectedThreadId("");
+		setThreadSearch(undefined);
 	};
 
 	const handleCloseCodePanel = () => {
-		setShowCodeListPanel(false);
-		setIconSelected("");
+		setPanelTab(undefined);
+	};
+
+	const handleIconSelect = (icon: string) => {
+		if (!icon) {
+			setPanelTab(undefined);
+			return;
+		}
+		setPanelTab(icon);
+	};
+
+	const handleBackToChat = () => {
+		if (panelTab) {
+			setPanelTab(undefined);
+		}
+		if (showThreadPanel) {
+			setShowThreadPanel(false);
+			setSelectedThreadId("");
+			setThreadSearch(undefined);
+		}
 	};
 
 	const handleMenuAction = (
@@ -281,26 +365,22 @@ const MainLayout = () => {
 
 	// Auto show users panel chỉ khi KHÔNG phải isHalf
 	useEffect(() => {
-		if (
-			groupId &&
-			iconSelected === "" &&
-			!showThreadPanel &&
-			!showCodeListPanel &&
-			!isHalf
-		) {
-			setIconSelected("users");
+		if (groupId && !panelTab && !showThreadPanel && !isHalf) {
+			setPanelTab("users");
 		}
-		if (!groupId && iconSelected === "users") {
-			setIconSelected("");
+		if (!groupId && panelTab === "users") {
+			setPanelTab(undefined);
 		}
-	}, [groupId, showThreadPanel, showCodeListPanel, iconSelected, isHalf]);
+	}, [groupId, showThreadPanel, panelTab, isHalf, setPanelTab]);
 
 	const renderRightPanel = () => {
-		if ((showCodeListPanel || iconSelected === "code") && !showThreadPanel) {
-			return <CodeList onClose={handleCloseCodePanel} />;
+		if (isCodeCollabRoute) {
+			return null;
 		}
 
-		if (showThreadPanel && groupId && channelId && !showCodeListPanel) {
+		const resolvedTab = panelTab || (!isHalf && groupId ? "users" : "");
+
+		if (showThreadPanel && groupId && channelId) {
 			return (
 				<ThreadPanel
 					key={selectedThreadId || "new-thread"}
@@ -313,11 +393,18 @@ const MainLayout = () => {
 			);
 		}
 
-		switch (iconSelected) {
+		switch (resolvedTab) {
 			case "tasks":
 				return <TaskGroup groupId={groupId} onClose={handleClosePanel} />;
 			case "code":
-				return <CodeList onClose={handleCloseCodePanel} />;
+				return (
+					<CodeList
+						onClose={handleCloseCodePanel}
+						groupId={groupId}
+						channelId={channelId}
+						directUserId={directUserId}
+					/>
+				);
 			case "users":
 				return groupId ? (
 					<MemberList
@@ -328,9 +415,13 @@ const MainLayout = () => {
 					<FriendList onMenuAction={handleMenuAction} />
 				);
 			case "info":
-				return groupId ? (
-					<ChannelInfor groupId={groupId} channelId={channelId ?? ""} />
-				) : null;
+				if (groupId) {
+					return <ChannelInfor groupId={groupId} channelId={channelId} />;
+				}
+				if (directUserId) {
+					return <ChannelInfor directUserId={directUserId} />;
+				}
+				return null;
 			default:
 				if (groupId && !isHalf) {
 					return <MemberList />;
@@ -343,39 +434,55 @@ const MainLayout = () => {
 		<AuthLayout>
 			<MainBg />
 			<TodoFloatingManager groups={localGroups} />
+			<Toaster richColors />
 
 			{!settingSelect ? (
 				<MainLayoutContainer>
 					<TitleBar title="DevChat" icon={<User />} />
 					<ContentWrapper direction="horizontal">
-						<LeftSection $isHalf={isHalf}>
-							<GroupSidebar />
-							<LeftSidebar setSettingSelect={setSettingSelect} />
-						</LeftSection>
+						{!isCodeCollabRoute && (
+							<LeftSection $isHalf={isHalf}>
+								<GroupSidebar />
+								<LeftSidebar setSettingSelect={setSettingSelect} />
+							</LeftSection>
+						)}
 
 						<RightSection
 							defaultSize={100}
-							style={{ marginRight: isHalf ? "16px" : "0" }}
+							style={{
+								marginRight: !isCodeCollabRoute && isHalf ? "16px" : "0",
+							}}
 						>
-							{!hasOpenPanel && (
-								<CenterPanel
-									$isHalf={isHalf}
-									$hasRightBorderRadius={shouldShowBorderRadius}
+							<CenterPanel
+								$isHalf={isHalf}
+								$hasRightBorderRadius={shouldShowBorderRadius}
+								$isCollapsed={hasOpenPanel}
+							>
+								{!isCodeCollabRoute && (
+									<CollapsedHeaderBar $isCollapsed={hasOpenPanel}>
+										<Header
+											setIconSelected={handleIconSelect}
+											iconSelected={panelTab}
+											onCreateThread={handleCreateThread}
+											onThreadSelect={handleThreadSelect}
+											showBackButton={hasOpenPanel}
+											onBackClick={handleBackToChat}
+										/>
+									</CollapsedHeaderBar>
+								)}
+
+								<OutletContainer
+									$hidden={!isCodeCollabRoute && hasOpenPanel}
+									$fullBleed={isCodeCollabRoute}
 								>
-									<Header
-										setIconSelected={setIconSelected}
-										iconSelected={iconSelected}
-										onCreateThread={handleCreateThread}
-										onThreadSelect={handleThreadSelect}
-									/>
-									<OutletContainer>
-										<Outlet />
-									</OutletContainer>
-								</CenterPanel>
+									<Outlet />
+								</OutletContainer>
+							</CenterPanel>
+							{!isCodeCollabRoute && (
+								<RightPanelWrapper $fullWidth={hasOpenPanel}>
+									{renderRightPanel()}
+								</RightPanelWrapper>
 							)}
-							<RightPanelWrapper $fullWidth={hasOpenPanel}>
-								{renderRightPanel()}
-							</RightPanelWrapper>
 						</RightSection>
 					</ContentWrapper>
 					<BottomSpacer />

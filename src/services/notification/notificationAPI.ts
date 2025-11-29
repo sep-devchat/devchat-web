@@ -1,9 +1,9 @@
 import { get, post, put } from "../apiCaller";
-import { NotificationResponse } from "./notification.type";
+import { NotificationQuery, NotificationResponse } from "./notification.type";
 
-export async function listNotifications() {
+export async function listNotifications(query?: NotificationQuery) {
 	const url = `/api/notification`;
-	return await get<NotificationResponse[]>(url);
+	return await get<NotificationResponse[]>(url, query ?? {});
 }
 
 export async function markRead(ids: string[]) {

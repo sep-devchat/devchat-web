@@ -1,13 +1,17 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React from "react";
 import { useTheme } from "styled-components";
-import { Code2, Play } from "lucide-react";
+import { Code2, Pencil, Play } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
 import {
 	CPCodeItem,
 	CPCodeItemHeader,
 	CPCodeItemInfo,
 	CPCodeItemTitle,
+	CPCodeItemSubtitle,
 	CPRunButton,
+	CPActionButtons,
+	CPCollaborateButton,
 	CPCodeEditorWrapper,
 } from "./CodeList.styled";
 
@@ -98,17 +102,40 @@ const useResponsiveSize = () => {
 	}, []);
 
 	return sizes;
+const normalizeLanguage = (language?: string): string => {
+	if (!language) return "text";
+	const lower = language.toLowerCase();
+	if (extToPrismLang[lower]) return extToPrismLang[lower];
+	return lower;
 };
 
 interface CodeItemProps {
-	fileName: string;
+	title: string;
+	subtitle?: string;
 	code: string;
+	language?: string;
 	onRun: () => void;
+	isRunning?: boolean;
+	disabled?: boolean;
+	onCollaborate?: () => void;
+	collaborateDisabled?: boolean;
 }
+const CodeItem: React.FC<CodeItemProps> = ({
+	title,
+	subtitle,
+	code,
+	language,
+	onRun,
+	isRunning = false,
+	disabled = false,
+	onCollaborate,
+	collaborateDisabled = false,
+}) => {
+	const highlightLanguage = language
+		? normalizeLanguage(language)
+		: getLanguageFromFile(title);
+  const sizes = useResponsiveSize();
 
-const CodeItem: React.FC<CodeItemProps> = ({ fileName, code, onRun }) => {
-	const language = getLanguageFromFile(fileName);
-	const sizes = useResponsiveSize();
 
 	// Lấy theme từ styled-components (có thể là object có field 'mode' hoặc boolean)
 	const theme: any = useTheme();
@@ -129,17 +156,45 @@ const CodeItem: React.FC<CodeItemProps> = ({ fileName, code, onRun }) => {
 			<CPCodeItemHeader $isDark={isDark}>
 				<CPCodeItemInfo>
 					<Code2 size={sizes.iconSize} />
-					<CPCodeItemTitle $isDark={isDark}>{fileName}</CPCodeItemTitle>
+					<CPCodeItemTitle>
+						{title}
+						{subtitle && <CPCodeItemSubtitle>{subtitle}</CPCodeItemSubtitle>}
+					</CPCodeItemTitle>
 				</CPCodeItemInfo>
 
-				<CPRunButton onClick={onRun} title="Run">
-					<Play size={sizes.iconSize} />
-				</CPRunButton>
+				<CPActionButtons>
+					{onCollaborate && (
+						<CPCollaborateButton
+							onClick={() => {
+								if (!disabled && !collaborateDisabled) {
+									onCollaborate();
+								}
+							}}
+							title="Collaborate"
+							aria-label="Open in code collaboration"
+							disabled={disabled || collaborateDisabled}
+						>
+							<Pencil size={sizes.iconSize} />
+						</CPCollaborateButton>
+					)}
+					<CPRunButton
+						onClick={() => {
+							if (!disabled) {
+								onRun();
+							}
+						}}
+						title="Run"
+						aria-label="Run code"
+						disabled={disabled}
+					>
+						{isRunning ? <Spinner className="h-4 w-4" /> : <Play size={18} />}
+					</CPRunButton>
+				</CPActionButtons>
 			</CPCodeItemHeader>
 
 			<CPCodeEditorWrapper $isDark={isDark}>
 				<PrismSH
-					language={language}
+					language={highlightLanguage}
 					style={selectedStyle}
 					customStyle={{
 						background,

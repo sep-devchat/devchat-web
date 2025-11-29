@@ -16,20 +16,18 @@ import {
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Pencil, Play } from "lucide-react";
-import {
-	Dialog,
-	DialogContent,
-	DialogHeader,
-	DialogTitle,
-} from "@/components/ui/dialog";
 import { Spinner } from "@/components/ui/spinner";
-import { runCode } from "@/services/code/code.api";
-import { ProgrammingLanguageEnum } from "@/utils/enum";
-import { MockPage } from "@/components/custom/MockPage";
-import CodeCollab from "@/pages/CodeCollab/CodeCollab";
+import CodeRunResultDialog from "@/components/custom/CodeRunResultDialog";
+import useCodeRunner from "@/hooks/useCodeRunner";
+import { useNavigate } from "@tanstack/react-router";
+import {
+	buildCodeBlockSubtitleFromBlock,
+	buildCodeBlockTitle,
+} from "@/utils/codeCollabHelpers";
 import {
 	CodeBlock as CodeBlockData,
 	getCodeBlockById,
+	getDirectCodeBlockById,
 } from "@/services/codeCollabAPI";
 
 export interface CodeBlockProps
@@ -42,6 +40,7 @@ export interface CodeBlockProps
 	codeBlockId?: string;
 	channelId?: string;
 	groupId?: string;
+	directUserId?: string;
 }
 
 const CodeBlock = ({
@@ -53,17 +52,16 @@ const CodeBlock = ({
 	codeBlockId,
 	channelId,
 	groupId,
+	directUserId,
 	...props
 }: CodeBlockProps) => {
 	const preRef = useRef<HTMLPreElement>(null);
 	const [language, setLanguage] = useState<string>("");
 	const [codeText, setCodeText] = useState<string>("");
-	const [isRunning, setIsRunning] = useState<boolean>(false);
 	const [isResultOpen, setIsResultOpen] = useState<boolean>(false);
-	const [runOutput, setRunOutput] = useState<string>("");
-	const [runError, setRunError] = useState<string>("");
-	const [isEditOpen, setIsEditOpen] = useState<boolean>(false);
-	const [lastRunAt, setLastRunAt] = useState<string>("");
+	const { isRunning, runOutput, runError, lastRunAt, runSnippet } =
+		useCodeRunner();
+	const navigate = useNavigate();
 
 	const [fetchedCodeBlock, setFetchedCodeBlock] =
 		useState<CodeBlockData | null>(null);
@@ -100,26 +98,33 @@ const CodeBlock = ({
 	};
 
 	useEffect(() => {
-		if (codeBlockId && channelId && groupId) {
-			setIsLoadingCodeBlock(true);
+		const fetchBlock = async () => {
+			if (!codeBlockId) return;
+			const hasChannelContext = Boolean(channelId && groupId);
+			const hasDirectContext = Boolean(directUserId);
+			if (!hasChannelContext && !hasDirectContext) return;
 
-			getCodeBlockById(codeBlockId, channelId, groupId)
-				.then((response) => {
-					if (response?.data) {
-						setFetchedCodeBlock(response.data);
-					} else {
-						console.warn("⚠️ No data in response (possibly 304 cached)");
-					}
-				})
-				.catch((error) => {
-					console.error("❌ Failed to fetch code block:", error);
-					setFetchedCodeBlock(null);
-				})
-				.finally(() => {
-					setIsLoadingCodeBlock(false);
-				});
-		}
-	}, [codeBlockId, channelId, groupId]);
+			setIsLoadingCodeBlock(true);
+			try {
+				const response =
+					hasDirectContext && directUserId
+						? await getDirectCodeBlockById(directUserId, codeBlockId)
+						: await getCodeBlockById(codeBlockId!, channelId!, groupId!);
+				if (response?.data) {
+					setFetchedCodeBlock(response.data);
+				} else {
+					console.warn("⚠️ No data in response (possibly 304 cached)");
+				}
+			} catch (error) {
+				console.error("❌ Failed to fetch code block:", error);
+				setFetchedCodeBlock(null);
+			} finally {
+				setIsLoadingCodeBlock(false);
+			}
+		};
+
+		fetchBlock();
+	}, [codeBlockId, channelId, groupId, directUserId]);
 
 	const normalizeLang = (raw?: string) => {
 		const v = (raw || "").toLowerCase();
@@ -176,7 +181,9 @@ const CodeBlock = ({
 		if (codeEl) {
 			try {
 				hljs.highlightElement(codeEl as HTMLElement);
-			} catch {}
+			} catch (error) {
+				console.warn("Failed to highlight code block", error);
+			}
 
 			const cls = codeEl.getAttribute("class") || "";
 			const m = cls.match(/(?:language|lang)-([a-zA-Z0-9_+-]+)/);
@@ -189,53 +196,61 @@ const CodeBlock = ({
 		}
 	}, [props.children]);
 
-	const toEnumLanguage = (lang: string): ProgrammingLanguageEnum | null => {
-		const val = (lang || "").toLowerCase();
-		if (["javascript", "js", "node", "nodejs"].includes(val))
-			return ProgrammingLanguageEnum.JAVASCRIPT;
-		if (["python", "py"].includes(val)) return ProgrammingLanguageEnum.PYTHON;
-		if (["java"].includes(val)) return ProgrammingLanguageEnum.JAVA;
-		return null;
-	};
-
 	const handleRun = async () => {
-		const enumLang = toEnumLanguage(language);
-		if (!enumLang) {
-			setRunError(
-				`Running not supported for language: ${language || "Unknown"}`,
-			);
-			setRunOutput("");
-			setIsResultOpen(true);
-			setLastRunAt(new Date().toLocaleString());
-			return;
-		}
 		if (!codeText?.trim()) return;
-		setIsRunning(true);
-		setRunError("");
-		try {
-			const res = await runCode({ code: codeText, language: enumLang });
-			setRunOutput(res.data.output ?? "");
-			setIsResultOpen(true);
-			setLastRunAt(new Date().toLocaleString());
-		} catch (e) {
-			setRunError("Error running code");
-			setRunOutput("");
-			setIsResultOpen(true);
-			setLastRunAt(new Date().toLocaleString());
-		} finally {
-			setIsRunning(false);
-		}
+		await runSnippet({ code: codeText, language });
+		setIsResultOpen(true);
 	};
 
 	const handleEditClick = () => {
-		if (!codeBlockId || !channelId || !groupId) {
-			console.warn("⚠️ Missing required params for edit");
+		if (!codeBlockId) {
+			console.warn("⚠️ Missing codeBlockId for edit");
+			return;
+		}
+
+		const hasChannelContext = Boolean(channelId && groupId);
+		const hasDirectContext = Boolean(directUserId);
+		if (!hasChannelContext && !hasDirectContext) {
+			console.warn("⚠️ Missing conversation context for edit");
 			return;
 		}
 
 		onEdit?.(codeText, language || "");
-		setIsEditOpen(true);
+		const title = buildCodeBlockTitle(fetchedCodeBlock?.language || language);
+		const subtitle = buildCodeBlockSubtitleFromBlock(fetchedCodeBlock);
+
+		if (hasChannelContext) {
+			navigate({
+				to: "/chat/collab/$codeBlockId",
+				params: { codeBlockId },
+				search: {
+					mode: "channel",
+					groupId: groupId!,
+					channelId: channelId!,
+					title,
+					subtitle,
+				},
+			});
+			return;
+		}
+
+		if (hasDirectContext && directUserId) {
+			navigate({
+				to: "/chat/collab/$codeBlockId",
+				params: { codeBlockId },
+				search: {
+					mode: "direct",
+					directUserId,
+					title,
+					subtitle,
+				},
+			});
+		}
 	};
+
+	const hasChannelContext = Boolean(channelId && groupId);
+	const hasDirectContext = Boolean(directUserId);
+	const hasCollabContext = hasChannelContext || hasDirectContext;
 
 	return (
 		<>
@@ -286,7 +301,7 @@ const CodeBlock = ({
 												}}
 												aria-label="Edit code"
 												onClick={handleEditClick}
-												disabled={!codeBlockId || !channelId || !groupId}
+												disabled={!codeBlockId || !hasCollabContext}
 											>
 												<Pencil
 													style={{
@@ -298,7 +313,7 @@ const CodeBlock = ({
 											</Button>
 										</TooltipTrigger>
 										<TooltipContent side="bottom">
-											{codeBlockId && channelId && groupId
+											{codeBlockId && hasCollabContext
 												? "Collaborate on code"
 												: "Code block info not available"}
 										</TooltipContent>
@@ -363,124 +378,15 @@ const CodeBlock = ({
 					/>
 				</CardContent>
 
-				<Dialog open={isResultOpen} onOpenChange={setIsResultOpen}>
-					<DialogContent
-						className="w-full overflow-hidden border border-slate-200 bg-white text-slate-900"
-						style={{
-							maxWidth: `min(95vw, ${getResponsiveSize(720)}px)`,
-							padding: 0,
-						}}
-					>
-						<DialogHeader
-							className="border-b border-slate-200 bg-slate-50"
-							style={{
-								padding: `${getResponsiveSize(12)}px ${getResponsiveSize(16)}px`,
-							}}
-						>
-							<DialogTitle
-								className="font-semibold tracking-tight text-slate-900"
-								style={{
-									fontSize: getHeaderFontSize(),
-								}}
-							>
-								Execution Result
-							</DialogTitle>
-							<div
-								style={{
-									fontSize: getResponsiveFontSize(),
-								}}
-								className="text-slate-500"
-							>
-								{language ? `${language} • ` : ""}
-								{lastRunAt || "Just now"}
-							</div>
-						</DialogHeader>
-						<div
-							className="space-y-3 max-h-[70vh] overflow-y-auto bg-white"
-							style={{
-								padding: `${getResponsiveSize(16)}px`,
-								gap: `${getResponsiveSize(12)}px`,
-							}}
-						>
-							{runError ? (
-								<div
-									className="rounded-lg border border-red-200 bg-red-50 text-red-700 whitespace-pre-wrap break-words"
-									style={{
-										fontSize: getResponsiveFontSize(),
-										padding: `${getResponsiveSize(12)}px`,
-									}}
-								>
-									{runError}
-								</div>
-							) : (
-								<pre
-									className="rounded-lg border border-slate-200 bg-slate-50 text-slate-900 whitespace-pre-wrap break-words max-h-[55vh] overflow-auto"
-									style={{
-										fontSize: getResponsiveFontSize(),
-										padding: `${getResponsiveSize(12)}px`,
-									}}
-								>
-									{runOutput || ""}
-								</pre>
-							)}
-						</div>
-					</DialogContent>
-				</Dialog>
+				<CodeRunResultDialog
+					open={isResultOpen}
+					onOpenChange={setIsResultOpen}
+					language={language}
+					lastRunAt={lastRunAt}
+					output={runOutput}
+					error={runError}
+				/>
 			</Card>
-
-			<MockPage
-				visible={isEditOpen}
-				title="Code Collaboration"
-				description={language ? `Editing ${language} snippet` : undefined}
-				actions={
-					<Button
-						variant="outline"
-						size="sm"
-						onClick={() => setIsEditOpen(false)}
-						style={{
-							fontSize: getResponsiveFontSize(),
-							padding: `${getResponsiveSize(8)}px ${getResponsiveSize(16)}px`,
-						}}
-					>
-						Close
-					</Button>
-				}
-				contentPadding={false}
-				padded={false}
-			>
-				{codeBlockId && channelId && groupId ? (
-					<CodeCollab
-						key={isEditOpen ? "open" : "closed"}
-						codeBlockId={codeBlockId}
-						channelId={channelId}
-						groupId={groupId}
-					/>
-				) : (
-					<div className="flex items-center justify-center h-full">
-						<div className="text-center">
-							<p
-								className="text-muted-foreground"
-								style={{
-									fontSize: getResponsiveFontSize(),
-								}}
-							>
-								Required information not available
-							</p>
-							<p
-								className="text-muted-foreground"
-								style={{
-									fontSize: getResponsiveFontSize(),
-									marginTop: `${getResponsiveSize(4)}px`,
-								}}
-							>
-								Missing: {!codeBlockId && "codeBlockId"}
-								{!channelId && " channelId"}
-								{!groupId && " groupId"}
-							</p>
-						</div>
-					</div>
-				)}
-			</MockPage>
 		</>
 	);
 };

@@ -54,7 +54,7 @@ export const ChatChannel: React.FC = () => {
 					/>
 				) : null;
 			case "code":
-				return <CodeList />;
+				return <CodeList groupId={groupId} channelId={channelId} />;
 			case "users":
 				return <MemberList />;
 			default:

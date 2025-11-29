@@ -35,6 +35,9 @@ import { useSelector } from "react-redux";
 import { type RootState } from "@/store";
 import aiAPI from "@/services/ai/ai.api";
 import { CreateCodeBlockRequest } from "@/services/code-block/code-block.type";
+import { toast } from "sonner";
+
+const MAX_ATTACHMENTS = 10;
 
 type MentionCandidate = {
 	id: string;
@@ -205,6 +208,29 @@ export default function ChatInput({
 		return "```" + langId + "\n" + code.replace(/\r?\n/g, "\n") + "\n```";
 	}, []);
 
+	const stageFiles = useCallback((incoming: File[]) => {
+		if (!incoming || incoming.length === 0) return;
+		setFiles((prev) => {
+			const available = MAX_ATTACHMENTS - prev.length;
+			if (available <= 0) {
+				toast.warning(
+					`Attachment limit reached (${MAX_ATTACHMENTS}). Remove a file to add more.`,
+				);
+				return prev;
+			}
+			const nextBatch = incoming.slice(0, available);
+			const next = [...prev, ...nextBatch];
+			const hasImage = next.some((f) => f.type.startsWith("image/"));
+			setInboxType(hasImage ? "image" : "file");
+			if (nextBatch.length < incoming.length) {
+				toast.warning(
+					`Only the first ${MAX_ATTACHMENTS} files were added. Extra attachments were ignored.`,
+				);
+			}
+			return next;
+		});
+	}, []);
+
 	useEffect(() => setInboxType(propInboxType ?? null), [propInboxType]);
 	useEffect(
 		() => setInboxTypeSelected?.(inboxType),
@@ -221,12 +247,10 @@ export default function ChatInput({
 
 	useEffect(() => {
 		if (initialFiles && initialFiles.length > 0) {
-			setFiles((prev) => [...prev, ...initialFiles]);
-			const hasImage = initialFiles.some((f) => f.type.startsWith("image/"));
-			setInboxType(hasImage ? "image" : "file");
+			stageFiles(initialFiles);
 			onInitialFilesHandled?.();
 		}
-	}, [initialFiles?.length]);
+	}, [initialFiles, onInitialFilesHandled, stageFiles]);
 
 	useEffect(() => {
 		if (editingMessage) {
@@ -252,18 +276,13 @@ export default function ChatInput({
 		}
 	}, [replyTo]);
 
-	const handleAddFiles = useCallback((selected: FileList | null) => {
-		if (!selected) return;
-		const arr = Array.from(selected);
-		setFiles((prev) => {
-			const next = [...prev, ...arr];
-			return next;
-		});
-		const hasImage = Array.from(selected).some((f) =>
-			f.type.startsWith("image/"),
-		);
-		setInboxType(hasImage ? "image" : "file");
-	}, []);
+	const handleAddFiles = useCallback(
+		(selected: FileList | null) => {
+			if (!selected) return;
+			stageFiles(Array.from(selected));
+		},
+		[stageFiles],
+	);
 
 	const handleRemoveFile = useCallback((index: number) => {
 		setFiles((prev) => {
@@ -841,16 +860,11 @@ export default function ChatInput({
 		(type: InboxType | null, chosenFiles?: File[]) => {
 			setInboxType(type || "normal");
 			if (chosenFiles && chosenFiles.length) {
-				setFiles((p) => [...p, ...chosenFiles]);
-				setInboxType(
-					chosenFiles.some((f) => f.type.startsWith("image/"))
-						? "image"
-						: "file",
-				);
+				stageFiles(chosenFiles);
 			}
 			setTimeout(() => editorRef.current?.focus(), 50);
 		},
-		[],
+		[stageFiles],
 	);
 
 	const handleFileInputChange = useCallback(
@@ -1019,11 +1033,9 @@ export default function ChatInput({
 				filesFromClipboard.push(file);
 			}
 			if (filesFromClipboard.length === 0) return;
-			// Stage files only; upload will occur on send
-			setFiles((prev) => [...prev, ...filesFromClipboard]);
-			setInboxType("image");
+			stageFiles(filesFromClipboard);
 		},
-		[],
+		[stageFiles],
 	);
 
 	const handleEmojiToggle = useCallback(

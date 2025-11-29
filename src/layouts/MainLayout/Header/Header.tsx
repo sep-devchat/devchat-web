@@ -1,11 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import {
+	ArrowLeft,
 	Info,
-	MessageSquarePlus,
 	NotebookPenIcon,
 	Spool,
 	SquareCode,
-	UserPlus2,
 	Users,
 } from "lucide-react";
 import {
@@ -14,9 +13,10 @@ import {
 	IconBtn,
 	Tooltip,
 	TabButton,
+	TitleSection,
+	BackButton,
 } from "./Header.styled";
 import { useNavigate, useParams, useSearch } from "@tanstack/react-router";
-import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
 import { ChannelResponse, detailChannel } from "@/services/channelAPI";
 import ThreadList from "@/components/custom/ThreadList/ThreadList";
@@ -34,6 +34,8 @@ type Props = {
 	iconSelected?: string;
 	onCreateThread?: () => void;
 	onThreadSelect?: (threadId: string) => void;
+	showBackButton?: boolean;
+	onBackClick?: () => void;
 };
 
 const Header = ({
@@ -41,6 +43,8 @@ const Header = ({
 	iconSelected,
 	onCreateThread,
 	onThreadSelect,
+	showBackButton,
+	onBackClick,
 }: Props) => {
 	const navigate = useNavigate();
 	const search = useSearch({ strict: false }) as {
@@ -50,9 +54,14 @@ const Header = ({
 	const [channelData, setChannelData] = useState<ChannelResponse | null>(null);
 	const [loading, setLoading] = useState(false);
 	const [showThreadDropdown, setShowThreadDropdown] = useState(false);
-	const params = useParams({ strict: false }) as { groupId?: string };
+	const params = useParams({ strict: false }) as {
+		groupId?: string;
+		userId?: string;
+	};
 	const groupId = params.groupId;
 	const channelId = search.channel;
+	const directUserId = params.userId;
+	const isDirectPage = Boolean(directUserId);
 
 	const [windowWidth, setWindowWidth] = useState(
 		typeof window !== "undefined" ? window.innerWidth : 1440,
@@ -176,6 +185,10 @@ const Header = ({
 		if (windowWidth <= 1220) return "gap-3";
 		if (windowWidth >= 1440) return "gap-2.4";
 		return "gap-2";
+	const handleBackClick = () => {
+		if (onBackClick) {
+			onBackClick();
+		}
 	};
 
 	return (
@@ -185,39 +198,52 @@ const Header = ({
 				borderTopRightRadius: compact ? "10px" : "0",
 			}}
 		>
-			{isGroupPage && search.channel ? (
-				loading ? (
-					<div className={`flex items-center ${getGapSize()}`}>
-						<div
-							className={`animate-spin ${getSpinnerSize()} border-2 border-gray-300 border-t-blue-500 rounded-full`}
-						/>
-						<div
-							className={`${getLoadingBarSize()} bg-gray-200 animate-pulse rounded`}
-						/>
-					</div>
-				) : (
-					<h2 className={`${getTitleFontSize()} font-semibold`}>
-						{displayedTitle}
-					</h2>
-				)
-			) : (
-				<div className={`flex items-center ${getGapSize()}`}>
-					<NavTabTitle>
-						<UserPlus2 size={getIconSize()} />
-						Friend
-					</NavTabTitle>
-					{actions.map(({ id, title, isPrimary }) => (
-						<TabButton
-							key={id}
-							isActive={isPrimary || search.tab === id}
-							onClick={() => handleTabClick(id)}
-						>
-							{title}
-						</TabButton>
-					))}
-				</div>
-			)}
+<TitleSection>
+    {showBackButton && (
+        <BackButton
+            type="button"
+            aria-label="Back to chat"
+            onClick={handleBackClick}
+        >
+            <ArrowLeft size={getIconSize()} />
+            <span>Back</span>
+        </BackButton>
+    )}
 
+    {isGroupPage && search.channel ? (
+        loading ? (
+            <div className={`flex items-center ${getGapSize()}`}>
+                <div className={`animate-spin ${getSpinnerSize()} border-2 border-gray-300 border-t-blue-500 rounded-full`} />
+                <div className={`${getLoadingBarSize()} bg-gray-200 animate-pulse rounded`} />
+            </div>
+        ) : (
+            <h2 className={`${getTitleFontSize()} font-semibold`}>
+                {displayedTitle}
+            </h2>
+        )
+    ) : isDirectPage ? (
+        <h2 className={`${getTitleFontSize()} font-semibold`}>
+            Direct Message
+        </h2>
+    ) : (
+        <div className={`flex items-center ${getGapSize()}`}>
+            <NavTabTitle>
+                <Users size={getIconSize()} />
+                Friend
+            </NavTabTitle>
+
+            {actions.map(({ id, title, isPrimary }) => (
+                <TabButton
+                    key={id}
+                    isActive={isPrimary || search.tab === id}
+                    onClick={() => handleTabClick(id)}
+                >
+                    {title}
+                </TabButton>
+            ))}
+        </div>
+    )}
+</TitleSection>
 			<div
 				className={`flex items-center ${getGapSize()}`}
 				style={{ position: "relative" }}
@@ -304,10 +330,36 @@ const Header = ({
 							/>
 						)}
 					</div>
+				) : directUserId ? (
+					<div className="flex gap-2">
+						<IconBtn
+							aria-label="code"
+							onMouseEnter={() => setHoveredIcon("code")}
+							onMouseLeave={() =>
+								setHoveredIcon((h) => (h === "code" ? null : h))
+							}
+							onClick={() => onIconClick("code")}
+							onKeyDown={(e) => onIconKeyDown(e, "code")}
+						>
+							<SquareCode size={20} />
+							<Tooltip visible={hoveredIcon === "code"}>Code</Tooltip>
+						</IconBtn>
+
+						<IconBtn
+							aria-label="info"
+							onMouseEnter={() => setHoveredIcon("info")}
+							onMouseLeave={() =>
+								setHoveredIcon((h) => (h === "info" ? null : h))
+							}
+							onClick={() => onIconClick("info")}
+							onKeyDown={(e) => onIconKeyDown(e, "info")}
+						>
+							<Info size={20} />
+							<Tooltip visible={hoveredIcon === "info"}>Attachments</Tooltip>
+						</IconBtn>
+					</div>
 				) : (
-					<Button className="shadow-none">
-						<MessageSquarePlus />
-					</Button>
+					<></>
 				)}
 			</div>
 		</HeaderContainer>

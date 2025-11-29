@@ -1,8 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useState } from "react";
 import ResizableFloatingWindow from "../ResizableFloating/ResizableFloatingWindow";
-import PersonalTodo from "../PersonalTodo/PersonalTodo";
 import GroupTodo from "../GroupTodo/GroupTodo";
+
+const buildGroupTabId = (id: string) => `group-${id}`;
 
 export type Group = { id: string; name: string };
 
@@ -11,30 +12,52 @@ type Props = { groups?: Group[] };
 export default function TodoFloatingManager({ groups = [] }: Props) {
 	const [visible, setVisible] = useState(false);
 	const [minimized, setMinimized] = useState(false);
+
+	const firstGroupTabId = groups.length
+		? buildGroupTabId(groups[0].id)
+		: undefined;
+
 	const [activeTabId, setActiveTabId] = useState<string | undefined>(
-		"personal",
+		firstGroupTabId,
 	);
 
 	useEffect(() => {
 		function onOpen(e: any) {
 			const tabFromEvent = e?.detail?.tabId;
-			setActiveTabId(tabFromEvent ?? "personal");
+			const fallback = tabFromEvent ?? firstGroupTabId;
+			setActiveTabId(fallback);
 			setVisible(true);
 			setMinimized(false);
 		}
 		window.addEventListener("app:openTodoWindow", onOpen as any);
 		return () =>
 			window.removeEventListener("app:openTodoWindow", onOpen as any);
-	}, []);
+	}, [firstGroupTabId]);
 
-	const tabs = [
-		{ id: "personal", title: "Personal", content: <PersonalTodo /> },
-		...groups.map((g) => ({
-			id: `group-${g.id}`,
-			title: g.name,
-			content: <GroupTodo groupId={g.id} groupName={g.name} />,
-		})),
-	];
+	useEffect(() => {
+		if (!groups.length) {
+			setActiveTabId(undefined);
+			return;
+		}
+
+		setActiveTabId((current) => {
+			const availableIds = groups.map((group) => buildGroupTabId(group.id));
+			if (current && availableIds.includes(current)) {
+				return current;
+			}
+			return availableIds[0];
+		});
+	}, [groups]);
+
+	const tabs = groups.map((group) => ({
+		id: buildGroupTabId(group.id),
+		title: group.name,
+		content: <GroupTodo groupId={group.id} groupName={group.name} />,
+	}));
+
+	const activeGroup = groups.find(
+		(group) => buildGroupTabId(group.id) === activeTabId,
+	);
 
 	function handleClose() {
 		setVisible(false);
@@ -49,7 +72,7 @@ export default function TodoFloatingManager({ groups = [] }: Props) {
 	function restoreFromMini() {
 		setVisible(true);
 		setMinimized(false);
-		setActiveTabId("personal");
+		setActiveTabId((current) => current ?? firstGroupTabId);
 	}
 
 	return (
@@ -89,7 +112,16 @@ export default function TodoFloatingManager({ groups = [] }: Props) {
 							</div>
 						</div>
 						<div className="p-3 border-t border-slate-100">
-							<PersonalTodo />
+							{activeGroup ? (
+								<GroupTodo
+									groupId={activeGroup.id}
+									groupName={activeGroup.name}
+								/>
+							) : (
+								<div className="text-sm text-slate-500">
+									No groups available yet.
+								</div>
+							)}
 						</div>
 					</div>
 				</div>

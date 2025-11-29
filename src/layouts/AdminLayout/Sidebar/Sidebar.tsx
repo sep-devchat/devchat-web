@@ -3,12 +3,12 @@ import { useNavigate, useLocation } from "@tanstack/react-router";
 import {
 	LayoutDashboard,
 	Users,
-	Shield,
-	Lock,
 	Settings,
 	LogOut,
 	LucideIcon,
 	Flag,
+	FileWarning,
+	Code,
 } from "lucide-react";
 import { logout } from "@/services/auth/authAPI";
 import cookieUtils from "@/services/cookieUtils";
@@ -81,22 +81,22 @@ const Sidebar: React.FC = () => {
 			path: "/admin/user-management",
 		},
 		{
-			id: "moderate-messages",
-			icon: Shield,
-			label: "Moderate Messages",
-			path: "/admin/moderate-messages",
-		},
-		{
-			id: "permissions",
-			icon: Lock,
-			label: "Permissions",
-			path: "/admin/permission",
+			id: "programming-languages",
+			icon: Code,
+			label: "Programming Languages",
+			path: "/admin/programming-languages",
 		},
 		{
 			id: "report-category",
 			icon: Flag,
 			label: "Report Categories",
 			path: "/admin/report-category",
+		},
+		{
+			id: "reports",
+			icon: FileWarning,
+			label: "Reports",
+			path: "/admin/reports",
 		},
 	];
 

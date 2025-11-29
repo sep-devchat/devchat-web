@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import ConfirmBg from "@/components/custom/ConfirmBackground/ConfirmBg";
 import React, { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import {
@@ -23,6 +22,7 @@ import {
 	resetPassword,
 	sendResetCode,
 } from "@/services/auth/authAPI";
+import MainBg from "@/components/custom/MainBackground/MainBg";
 
 export const ForgotPassword: React.FC = () => {
 	const [step, setStep] = useState<number>(0);
@@ -130,7 +130,7 @@ export const ForgotPassword: React.FC = () => {
 
 	return (
 		<>
-			<ConfirmBg />
+			<MainBg />
 			{/* Center the content in the middle of the viewport */}
 			<PageWrapper
 				style={{
@@ -149,7 +149,7 @@ export const ForgotPassword: React.FC = () => {
 						width: "100%",
 					}}
 				>
-					<TitleCard>Forgot password?</TitleCard>
+					<TitleCard className="text-primary">Forgot password?</TitleCard>
 					{generalError && step === 0 && (
 						<div style={{ color: "red", marginTop: 8 }}>{generalError}</div>
 					)}

@@ -298,6 +298,7 @@ export const CreateGroupButton = styled(GroupButton)`
 	border-style: dashed;
 	border-color: hsl(var(--border));
 	box-shadow: none;
+	border-width: 1px;
 	transition:
 		transform 120ms ease,
 		box-shadow 160ms ease,

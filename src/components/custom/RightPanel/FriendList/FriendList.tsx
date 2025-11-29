@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useState } from "react";
+import { useSelector } from "react-redux";
 import MemberItem from "../../MemberItem/MemberItem";
 import {
 	CPHeader,
@@ -17,6 +18,7 @@ import {
 	SearchInput,
 } from "./FriendList.styled";
 import { listFriends } from "@/services/friendAPI";
+import { type RootState } from "@/store";
 import { Search, X } from "lucide-react";
 import FriendProfileModal from "@/pages/Friend/AllFriends/FriendProfileModal/FriendProfileModal";
 
@@ -50,6 +52,9 @@ const FriendList: React.FC<Props> = ({ onMenuAction }) => {
 
 	const [selectedFriend, setSelectedFriend] = useState<Member | null>(null);
 	const [isModalOpen, setIsModalOpen] = useState(false);
+	const currentUserId = useSelector(
+		(state: RootState) => state.user.profile?.id,
+	);
 
 	const fetchFriends = async () => {
 		try {
@@ -97,10 +102,6 @@ const FriendList: React.FC<Props> = ({ onMenuAction }) => {
 			window.removeEventListener("friendListUpdated", handleFriendListUpdate);
 		};
 	}, []);
-
-	const handleMessageSend = (memberId: number | string, message: string) => {
-		console.log(`Send message to member ${memberId}:`, message);
-	};
 
 	const handleButtonClick = (member: Member) => {
 		setSelectedFriend(member);
@@ -167,7 +168,7 @@ const FriendList: React.FC<Props> = ({ onMenuAction }) => {
 									showTooltip={true}
 									buttonType="more"
 									onButtonClick={() => handleButtonClick(friend)}
-									onMessageSend={handleMessageSend}
+									currentUserId={currentUserId}
 								/>
 							))
 						)}

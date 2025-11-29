@@ -121,19 +121,17 @@ export const Tooltip = styled.div<TooltipProps>`
 	right: 100%;
 	top: 50%;
 	transform: translateY(-50%);
-	background: #000;
-	color: white;
-	padding: 0.5rem 0.75rem;
-	border-radius: 0.375rem;
-	font-size: 0.75rem;
-	white-space: nowrap;
-	margin-right: 0.5rem;
+	display: flex;
+	padding: 0;
+	margin-right: 12px;
 	opacity: ${(props) => (props.show ? 1 : 0)};
 	visibility: ${(props) => (props.show ? "visible" : "hidden")};
 	transition:
 		opacity 0.2s ease,
 		visibility 0.2s ease;
 	z-index: 9999;
+	font-size: 12px;
+	color: ${theme.color.grey90 || "#111827"};
 
 	&::after {
 		content: "";
@@ -143,8 +141,8 @@ export const Tooltip = styled.div<TooltipProps>`
 		transform: translateY(-50%);
 		width: 0;
 		height: 0;
-		border: 0.3125rem solid transparent;
-		border-left-color: #000;
+		border: 5px solid transparent;
+		border-left-color: ${theme.color.white || "#fff"};
 	}
 
 	@media (max-width: 1220px) {
@@ -173,6 +171,7 @@ export const Tooltip = styled.div<TooltipProps>`
 
 		&::after {
 			border-width: 0.375rem;
+			border-right-color: ${theme.color.white || "#fff"};
 		}
 	}
 `;
@@ -185,27 +184,29 @@ export const TooltipCard = styled.div`
 	display: flex;
 	flex-direction: column;
 	align-items: flex-start;
-	gap: 0.75rem;
-	background: #1e1f22;
-	color: #fff;
-	padding: 1rem;
-	border-radius: 0.5rem;
-	width: 16.25rem;
-	box-shadow: 0 0.25rem 0.625rem rgba(0, 0, 0, 0.5);
+	gap: 12px;
+	background: ${theme.color.white || "#fff"};
+	color: ${theme.color.grey90 || "#111827"};
+	padding: 16px;
+	border-radius: 10px;
+	width: 260px;
+	box-shadow: 0 12px 32px rgba(15, 23, 42, 0.15);
+	border: 1px solid ${theme.color.grey200 || "#e5e7eb"};
 
-	@media (max-width: 1220px) {
-		min-width: 15rem;
-		max-width: 20rem;
-		padding: 0.875rem;
-		gap: 0.625rem;
-		border-radius: 0.375rem;
-	}
 
 	@media (min-width: 1440px) {
 		width: 16rem;
 		padding: 1.25rem;
 		gap: 0.5rem;
 		border-radius: 0.625rem;
+	}
+  
+  	@media (max-width: 1220px) {
+		min-width: 15rem;
+		max-width: 20rem;
+		padding: 0.875rem;
+		gap: 0.625rem;
+		border-radius: 0.375rem;
 	}
 `;
 
@@ -240,8 +241,9 @@ export const TooltipAvatar = styled.img`
 `;
 
 export const TooltipName = styled.div`
-	font-size: 0.75rem;
-	font-weight: bold;
+		font-size: 13px;
+	font-weight: 600;
+	color: ${theme.color.grey900 || "#111827"};
 
 	@media (max-width: 1220px) {
 		font-size: 0.6875rem;
@@ -253,10 +255,10 @@ export const TooltipName = styled.div`
 `;
 
 export const TooltipUsername = styled.div`
-	font-size: 0.625rem;
-	color: #aaa;
-
-	@media (max-width: 1220px) {
+	font-size: 12px;
+	color: ${theme.color.grey500 || "#6b7280"};
+  
+  @media (max-width: 1220px) {
 		font-size: 0.5625rem;
 	}
 
@@ -265,20 +267,35 @@ export const TooltipUsername = styled.div`
 	}
 `;
 
-export const TooltipInput = styled.input`
+export const TooltipActionButton = styled.button`
 	width: 100%;
-	padding: 0.5rem 0.625rem;
-	border: none;
-	border-radius: 0.375rem;
-	background: #2b2d31;
-	color: #fff;
-	font-size: 0.75rem;
+	padding: 10px 14px;
+	border-radius: 8px;
+	border: 1px solid ${theme.color.primary30 || "#a6c2f2"};
+	background: ${theme.color.primary20 || "#d2e0f9"};
+	color: ${theme.color.primary90 || "#0d2959"};
+	font-size: 13px;
+	font-weight: 600;
+	transition: all 0.2s ease;
+	cursor: pointer;
 
-	&:focus {
-		outline: 0.125rem solid #133e87;
+	&:hover {
+		background: ${theme.color.primary30 || "#a6c2f2"};
+		color: ${theme.color.white || "#fff"};
 	}
 
-	@media (max-width: 1220px) {
+	&:focus {
+		outline: none;
+		box-shadow: 0 0 0 3px rgba(19, 82, 179, 0.2);
+	}
+
+	&:disabled {
+		cursor: not-allowed;
+		background: ${theme.color.grey10 || "#f6f8fc"};
+		color: ${theme.color.grey400 || "#9ca3af"};
+		border-color: ${theme.color.grey200 || "#e5e7eb"};
+		box-shadow: none;
+    @media (max-width: 1220px) {
 		padding: 0.375rem 0.5rem;
 		border-radius: 0.25rem;
 		font-size: 0.6875rem;

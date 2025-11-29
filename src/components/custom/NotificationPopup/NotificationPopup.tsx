@@ -20,7 +20,7 @@ import {
 	NotificationTime,
 	DeleteButton,
 	PopupFooter,
-	ViewAllButton,
+	FooterMessage,
 } from "./NotificationPopup.styled";
 import dayjs from "dayjs";
 import useNotification from "@/hooks/useNotification";
@@ -36,7 +36,16 @@ const NotificationPopup = () => {
 	const [isOpen, setIsOpen] = useState(false);
 	const popupRef = useRef<HTMLDivElement>(null);
 	const buttonRef = useRef<HTMLButtonElement>(null);
-	const { notifications, refetchNotifications } = useNotification();
+	const listRef = useRef<HTMLDivElement>(null);
+	const sentinelRef = useRef<HTMLDivElement>(null);
+	const {
+		notifications,
+		refetchNotifications,
+		loadMoreNotifications,
+		hasMoreNotifications,
+		isLoadingNotifications,
+		isFetchingMoreNotifications,
+	} = useNotification();
 
 	const unreadCount = notifications.filter((n) => !n.isRead).length;
 
@@ -60,6 +69,36 @@ const NotificationPopup = () => {
 			document.removeEventListener("mousedown", handleClickOutside);
 		};
 	}, [isOpen]);
+
+	useEffect(() => {
+		if (!isOpen || !hasMoreNotifications) return;
+		const listElement = listRef.current;
+		const sentinelElement = sentinelRef.current;
+		if (!listElement || !sentinelElement) return;
+
+		const observer = new IntersectionObserver(
+			(entries) => {
+				const entry = entries[0];
+				if (entry?.isIntersecting) {
+					loadMoreNotifications();
+				}
+			},
+			{
+				root: listElement,
+				threshold: 0.75,
+			},
+		);
+
+		observer.observe(sentinelElement);
+		return () => {
+			observer.disconnect();
+		};
+	}, [
+		isOpen,
+		hasMoreNotifications,
+		loadMoreNotifications,
+		notifications.length,
+	]);
 
 	const handleClickNotification = async (
 		notification: NotificationResponse,
@@ -108,13 +147,17 @@ const NotificationPopup = () => {
 						)}
 					</PopupHeader>
 
-					<NotificationList>
+					<NotificationList ref={listRef}>
 						{notifications.length === 0 ? (
 							<EmptyState>
 								<EmptyIcon>
 									<Bell className="w-12 h-12" />
 								</EmptyIcon>
-								<p>No notifications</p>
+								<p>
+									{isLoadingNotifications
+										? "Loading notifications…"
+										: "No notifications"}
+								</p>
 							</EmptyState>
 						) : (
 							notifications.map((notification) => (
@@ -190,11 +233,18 @@ const NotificationPopup = () => {
 								</NotificationItem>
 							))
 						)}
+						<div ref={sentinelRef} aria-hidden="true" style={{ height: 1 }} />
 					</NotificationList>
 
 					{notifications.length > 0 && (
 						<PopupFooter>
-							<ViewAllButton>Show more notifications</ViewAllButton>
+							<FooterMessage>
+								{isFetchingMoreNotifications
+									? "Loading more…"
+									: hasMoreNotifications
+										? "Scroll to load older notifications"
+										: "You're all caught up"}
+							</FooterMessage>
 						</PopupFooter>
 					)}
 				</PopupWrapper>

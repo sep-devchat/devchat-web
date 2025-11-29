@@ -1,14 +1,15 @@
 import { theme } from "@/themes";
 import styled from "styled-components";
 
-export const PageWrapper = styled.div`
-	height: 100%;
-	width: 600px;
-	position: relative;
+export const PageWrapper = styled.div<{ $isDark?: boolean }>`
 	display: flex;
 	flex-direction: column;
-	margin-right: 18px;
-	background: ${theme.color.grey30};
+	height: 100%;
+	background: ${(p) => (p.$isDark ? "#1f2937" : "#ffffff")};
+	color: ${(p) => (p.$isDark ? theme.color.grey10 : theme.color.grey90)};
+	border-left: 1px solid ${theme.color.grey30};
+	width: 100%;
+	margin-left: 0;
 	border-radius: 10px;
 	margin-right: 18px;
 	margin-left: 12px;
@@ -32,11 +33,11 @@ export const PageWrapper = styled.div`
 		margin-left: 13.2px;
 		border-radius: 11px;
 	}
+	overflow: hidden;
 `;
 
 export const CPHeader = styled.div`
 	display: flex;
-	justify-content: space-between;
 	align-items: center;
 	height: 52px;
 	padding: 14px 12px;
@@ -162,8 +163,6 @@ export const CPTitle = styled.h2`
 	margin: 0;
 	font-size: 16px;
 	font-weight: 600;
-	color: #1a1a1a;
-
 	@media (min-width: 1440px) {
 		font-size: 15px;
 	}
@@ -174,25 +173,26 @@ export const CPTitle = styled.h2`
 	@media (min-width: 1920px) {
 		font-size: 18px;
 	}
+	color: #0f172a;
 `;
 
 export const CloseButton = styled.button`
-	background: none;
 	border: none;
+	background: transparent;
+	color: #475569;
+	width: 34px;
+	height: 34px;
+	border-radius: 50%;
+	display: grid;
+	place-items: center;
 	cursor: pointer;
-	padding: 8px;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	color: #888;
-	transition: color 0.2s;
+	transition:
+		background 0.2s ease,
+		color 0.2s ease;
 
 	&:hover {
-		color: #fff;
-	}
-
-	&:focus {
-		outline: none;
+		background: rgba(148, 163, 184, 0.2);
+		color: #0f172a;
 	}
 
 	@media (min-width: 1440px) {
@@ -204,7 +204,9 @@ export const CloseButton = styled.button`
 	}
 `;
 
-export const IconButton = styled.button`
+export const CPContent = styled.div`
+	flex: 1;
+	padding: 16px;
 	display: flex;
 	align-items: center;
 	justify-content: center;
@@ -234,18 +236,18 @@ export const IconButton = styled.button`
 		padding: 4.4px;
 		border-radius: 4.4px;
 	}
+	flex-direction: column;
+	gap: 16px;
+	background: #f8fafc;
+	overflow: hidden;
 `;
 
-// ------------------------------ Code Item
-
-export const CPContent = styled.div`
+export const CodeListScroller = styled.div`
 	flex: 1;
-	padding: 16px;
 	overflow-y: auto;
 	display: flex;
 	flex-direction: column;
 	gap: 16px;
-
 	@media (max-width: 1220px) {
 		padding: 12.2px;
 		gap: 11.2px;
@@ -262,13 +264,15 @@ export const CPContent = styled.div`
 	}
 `;
 
-export const CPCodeItem = styled.div<{ $isDark?: boolean }>`
-	background: ${(p) => (p.$isDark ? "#334155" : "#f4f4f5")};
-	border-radius: 8px;
-	border: 1px solid ${theme.color.grey30};
-	height: 201px;
-
-	@media (max-width: 1220px) {
+export const CPCodeItem = styled.div`
+	background: #ffffff;
+	color: #0f172a;
+	border-radius: 14px;
+	box-shadow: 0 12px 20px rgba(15, 23, 42, 0.08);
+	overflow: hidden;
+	border: 1px solid rgba(15, 23, 42, 0.08);
+  
+  @media (max-width: 1220px) {
 		border-radius: 5.6px;
 		height: 140.7px;
 	}
@@ -282,16 +286,29 @@ export const CPCodeItem = styled.div<{ $isDark?: boolean }>`
 		border-radius: 8.8px;
 		height: 221.1px;
 	}
+  
+  &::-webkit-scrollbar {
+		width: 6px;
+	}
+
+	&::-webkit-scrollbar-thumb {
+		background: ${theme.color.grey200};
+		border-radius: 999px;
+	}
+
+	&::-webkit-scrollbar-track {
+		background: transparent;
+	}
 `;
 
-export const CPCodeItemHeader = styled.div<{ $isDark?: boolean }>`
+export const CPCodeItemHeader = styled.div`
 	display: flex;
-	justify-content: space-between;
 	align-items: center;
-	padding: 8px 16px;
-	background: ${(p) => (p.$isDark ? "#334155" : "#f4f4f5")};
+	justify-content: space-between;
+	padding: 12px 16px;
+	background: linear-gradient(90deg, #e2e8f0, #f8fafc);
+	border-bottom: 1px solid rgba(15, 23, 42, 0.08);
 	color: ${(p) => (p.$isDark ? theme.color.grey10 : theme.color.grey90)};
-	border-bottom: 1px solid ${theme.color.grey30};
 
 	@media (max-width: 1220px) {
 		padding: 7px 12.2px;
@@ -310,6 +327,7 @@ export const CPCodeItemHeader = styled.div<{ $isDark?: boolean }>`
 		border-top-left-radius: 8.8px;
 		border-top-left-radius: 8.8px;
 	}
+
 `;
 
 export const CPCodeItemInfo = styled.div`
@@ -330,7 +348,9 @@ export const CPCodeItemInfo = styled.div`
 	}
 `;
 
-export const CPCodeItemTitle = styled.span<{ $isDark?: boolean }>`
+export const CPCodeItemTitle = styled.div<{ $isDark?: boolean }>`
+	display: flex;
+	flex-direction: column;
 	font-size: 14px;
 	font-weight: 500;
 	color: ${(p) => (p.$isDark ? theme.color.grey10 : theme.color.grey90)};
@@ -346,6 +366,14 @@ export const CPCodeItemTitle = styled.span<{ $isDark?: boolean }>`
 	@media (min-width: 1920px) {
 		font-size: 16px;
 	}
+	line-height: 1.2;
+`;
+
+export const CPCodeItemSubtitle = styled.span<{ $isDark?: boolean }>`
+	font-size: 12px;
+	font-weight: 400;
+	color: ${(p) => (p.$isDark ? theme.color.grey40 : theme.color.grey500)};
+	margin-top: 2px;
 `;
 
 export const CPRunButton = styled.button`
@@ -378,16 +406,32 @@ export const CPRunButton = styled.button`
 		padding: 4.4px;
 		border-radius: 4.4px;
 	}
+
+	&:disabled {
+		opacity: 0.5;
+		cursor: not-allowed;
+		background: transparent;
+	}
 `;
 
+export const CPActionButtons = styled.div`
+	display: flex;
+	align-items: center;
+	gap: 4px;
+`;
+
+export const CPCollaborateButton = styled(CPRunButton)``;
+
+// ... other imports
 export const CPCodeEditorWrapper = styled.div<{ $isDark?: boolean }>`
-	height: calc(100% - 42.57px);
+	background: ${(p) => (p.$isDark ? "#1e293b" : "#fdfdfd")};
+	border-top: 1px solid rgba(15, 23, 42, 0.04);
 
 	& > pre {
 		border: none;
 		margin: 0;
 		padding: 16px;
-		background: ${(p) => (p.$isDark ? "#0f172a" : "#f4f4f5")};
+		background: transparent;
 		color: ${(p) => (p.$isDark ? "#e2e8f0" : "#0f172a")};
 		overflow-y: auto;
 		font-size: 12px;
@@ -444,6 +488,10 @@ export const CPModalContent = styled.div`
 	max-width: 90%;
 	color: #0f172a;
 	box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+	display: flex;
+	flex-direction: column;
+	max-height: 90vh;
+	overflow-y: auto;
 
 	h3 {
 		margin-top: 0;
@@ -505,5 +553,129 @@ export const CPModalContent = styled.div`
 			border-radius: 8.8px;
 			font-size: 14px;
 		}
+	}
+`;
+
+export const ModalHeader = styled.div`
+	display: flex;
+	justify-content: space-between;
+	align-items: flex-start;
+	gap: 16px;
+	margin-bottom: 12px;
+	border-bottom: 1px solid ${theme.color.grey30};
+	padding-bottom: 12px;
+`;
+
+export const ModalMeta = styled.p`
+	margin: 4px 0 0;
+	font-size: 13px;
+	color: ${theme.color.grey500};
+`;
+
+export const ModalSection = styled.div`
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	margin-top: 16px;
+`;
+
+export const ModalLabel = styled.span`
+	font-size: 12px;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+	color: ${theme.color.grey500};
+`;
+
+export const ModalActions = styled.div`
+	display: flex;
+	justify-content: flex-end;
+	gap: 12px;
+	margin-top: 24px;
+`;
+
+export const ModalSecondaryButton = styled.button`
+	padding: 10px 18px;
+	border-radius: 8px;
+	border: 1px solid ${theme.color.grey200};
+	background: ${theme.color.white};
+	color: ${theme.color.grey600};
+	font-weight: 600;
+	cursor: pointer;
+	transition: background 0.2s ease;
+
+	&:hover {
+		background: ${theme.color.grey50};
+	}
+`;
+
+export const ModalRunButton = styled.button`
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+	padding: 10px 20px;
+	border-radius: 8px;
+	border: none;
+	background: ${theme.color.primary};
+	color: ${theme.color.white};
+	font-weight: 600;
+	cursor: pointer;
+	transition: background 0.2s ease;
+
+	&:hover {
+		background: ${theme.color.primary80};
+	}
+
+	&:disabled {
+		opacity: 0.6;
+		cursor: not-allowed;
+	}
+`;
+
+export const EmptyMessage = styled.div`
+	margin-top: 48px;
+	text-align: center;
+	color: ${theme.color.grey500};
+	font-size: 14px;
+	line-height: 1.5;
+`;
+
+export const StatusText = styled.div`
+	text-align: center;
+	font-size: 13px;
+	color: ${theme.color.grey500};
+`;
+
+export const ErrorText = styled(StatusText)`
+	color: ${theme.color.error};
+`;
+
+export const Footer = styled.div`
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	margin-top: auto;
+`;
+
+export const FooterButton = styled.button`
+	align-self: center;
+	padding: 8px 18px;
+	border-radius: 999px;
+	border: none;
+	background: ${theme.color.primary};
+	color: ${theme.color.white};
+	font-size: 13px;
+	font-weight: 600;
+	cursor: pointer;
+	transition: background 0.2s ease;
+
+	&:hover {
+		background: ${theme.color.primary80};
+	}
+
+	&:disabled {
+		opacity: 0.6;
+		cursor: not-allowed;
 	}
 `;

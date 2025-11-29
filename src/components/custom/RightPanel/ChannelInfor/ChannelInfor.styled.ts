@@ -3,7 +3,8 @@ import styled from "styled-components";
 
 export const PageWrapper = styled.div`
 	height: 100%;
-	width: 450px;
+	width: 100%;
+	max-width: 480px;
 	position: relative;
 	display: flex;
 	flex-direction: column;
@@ -103,14 +104,15 @@ export const ChannelInfo = styled.div`
 	}
 `;
 
-export const ChannelIcon = styled.div`
+export const ChannelIcon = styled.div<{ $isDirect?: boolean }>`
 	width: 48px;
 	height: 48px;
 	background-color: #dbeafe;
-	border-radius: 8px;
+	border-radius: ${(props) => (props.$isDirect ? "9999px" : "8px")};
 	display: flex;
 	align-items: center;
 	justify-content: center;
+	overflow: hidden;
 
 	svg {
 		color: #2563eb;
@@ -150,6 +152,25 @@ export const ChannelIcon = styled.div`
 			height: 30.8px;
 		}
 	}
+	img {
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+		border-radius: inherit;
+	}
+
+	span {
+		font-size: 18px;
+		font-weight: 600;
+		color: #1f2937;
+	}
+`;
+
+export const ChannelSubtitle = styled.p`
+	font-size: 13px;
+	color: #6b7280;
+	margin: 0;
+	text-align: center;
 `;
 
 export const ChannelName = styled.h1`
@@ -198,6 +219,11 @@ export const SearchButton = styled.button`
 export const ContentArea = styled.div`
 	flex: 1;
 	overflow-y: auto;
+	padding-right: 4px;
+
+	@media (max-width: 768px) {
+		padding-right: 0;
+	}
 `;
 
 export const SearchContainer = styled.div`
@@ -542,6 +568,8 @@ export const ExpandedContent = styled.div`
 
 	@media (min-width: 1920px) {
 		padding: 13.2px 26.4px;
+	@media (max-width: 768px) {
+		padding: 12px 16px;
 	}
 `;
 
@@ -554,10 +582,13 @@ export const TabLabel = styled.span`
 export const TabContainer = styled.div`
 	display: flex;
 	border-bottom: 1px solid #e5e7eb;
+	flex-wrap: nowrap;
+	overflow-x: auto;
 `;
 
 export const Tab = styled.button<{ $active: boolean }>`
-	flex: 1;
+	flex: 1 1 0;
+	min-width: 0;
 	padding: 12px 16px;
 	font-size: 14px;
 	font-weight: 500;
@@ -568,6 +599,8 @@ export const Tab = styled.button<{ $active: boolean }>`
 	color: ${(props) => (props.$active ? "#2563eb" : "#6b7280")};
 	border-bottom: ${(props) => (props.$active ? "2px solid #2563eb" : "none")};
 	border-radius: 0 !important;
+	text-align: center;
+	white-space: nowrap;
 
 	&:hover {
 		color: ${(props) => (props.$active ? "#2563eb" : "#111827")};
@@ -654,7 +687,7 @@ export const SectionTitle = styled.h3`
 
 export const ImageGrid = styled.div`
 	display: grid;
-	grid-template-columns: repeat(3, 1fr);
+	grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
 	gap: 8px;
 
 	@media (max-width: 1220px) {
@@ -755,7 +788,7 @@ export const FileList = styled.div`
 
 export const FileItem = styled.div`
 	display: flex;
-	align-items: start;
+	align-items: flex-start;
 	gap: 12px;
 	padding: 8px;
 	border-radius: 8px;
@@ -782,6 +815,9 @@ export const FileItem = styled.div`
 		gap: 13.2px;
 		padding: 8.8px;
 		border-radius: 8.8px;
+	@media (max-width: 640px) {
+		flex-direction: column;
+		align-items: stretch;
 	}
 `;
 

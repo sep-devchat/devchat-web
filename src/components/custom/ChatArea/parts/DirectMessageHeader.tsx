@@ -12,7 +12,7 @@ import {
 	DialogTitle,
 } from "@/components/ui/dialog";
 
-interface DirectMessageHeaderProps {
+export interface DirectMessageHeaderProps {
 	opponent: UserResponse | null | undefined;
 	loading: boolean;
 	error: boolean;
@@ -23,8 +23,6 @@ interface DirectMessageHeaderProps {
 	onRemoveFriend: () => Promise<void> | void;
 	onAcceptInvite: () => Promise<void> | void;
 	onDenyInvite: () => Promise<void> | void;
-	onBlock: () => void;
-	onOpenReport: () => void;
 }
 
 export const DirectMessageHeader: React.FC<DirectMessageHeaderProps> = ({
@@ -38,8 +36,6 @@ export const DirectMessageHeader: React.FC<DirectMessageHeaderProps> = ({
 	onRemoveFriend,
 	onAcceptInvite,
 	onDenyInvite,
-	onBlock,
-	onOpenReport,
 }) => {
 	const [confirmOpen, setConfirmOpen] = React.useState(false);
 	const [removing, setRemoving] = React.useState(false);
@@ -192,12 +188,6 @@ export const DirectMessageHeader: React.FC<DirectMessageHeaderProps> = ({
 							Add friend
 						</Button>
 					)}
-					<Button variant="secondary" size="sm" onClick={onBlock}>
-						Block
-					</Button>
-					<Button variant="outline" size="sm" onClick={onOpenReport}>
-						Report
-					</Button>
 				</div>
 			</div>
 			<Separator />

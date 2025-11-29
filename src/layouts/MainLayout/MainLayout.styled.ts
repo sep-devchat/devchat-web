@@ -15,19 +15,22 @@ export const MainLayoutContainer = styled.div`
 	padding: 0 1rem;
 	box-sizing: border-box;
 	padding-right: 0;
+
+	@media (max-width: 1280px) {
+		padding: 0 0.75rem;
+	}
 `;
 
 export const ContentWrapper = styled(ResizablePanelGroup)`
 	flex: 1;
 	min-height: 0;
-	display: grid;
-	grid-template-columns: repeat(12, minmax(0, 1fr));
-	gap: 0;
+	display: flex;
 	overflow: hidden;
+	align-items: stretch;
+	width: 100%;
 `;
 
 export const LeftSection = styled.div<{ $isHalf: boolean }>`
-	grid-column: span 2;
 	display: flex;
 	min-width: 0;
 	overflow: hidden;
@@ -57,16 +60,19 @@ export const LeftSection = styled.div<{ $isHalf: boolean }>`
 `;
 
 export const RightSection = styled(ResizablePanel)`
-	grid-column: span 10;
 	display: flex;
+	flex: 1 1 auto;
 	min-height: 0;
 	min-width: 0;
 	overflow: hidden;
+	transition: width 0.2s ease;
+	position: relative;
 `;
 
 export const CenterPanel = styled.div<{
 	$isHalf?: boolean;
 	$hasRightBorderRadius?: boolean;
+	$isCollapsed?: boolean;
 }>`
 	flex: 1;
 	display: flex;
@@ -74,6 +80,7 @@ export const CenterPanel = styled.div<{
 	min-height: 0;
 	min-width: 0;
 	overflow: hidden;
+	gap: ${(props) => (props.$isCollapsed ? "0.75rem" : "0")};
 
 	/* Base border radius: 10px */
 	border-top-right-radius: ${(props) => {
@@ -82,17 +89,20 @@ export const CenterPanel = styled.div<{
 		return "0";
 	}};
 
-	border-bottom-right-radius: ${(props) => {
-		if (props.$isHalf) return "10px";
-		if (props.$hasRightBorderRadius === true) return "10px";
-		return "0";
-	}};
+		& > * {
+			pointer-events: auto;
+		}
+	`}
 `;
 
-export const OutletContainer = styled.div`
+export const OutletContainer = styled.div<{
+	$hidden?: boolean;
+	$fullBleed?: boolean;
+}>`
 	flex: 1;
 	overflow: hidden;
-	background: white;
+	background: ${(props) => (props.$fullBleed ? "transparent" : "white")};
+	display: ${(props) => (props.$hidden ? "none" : "block")};
 `;
 
 export const BottomSpacer = styled.div`
@@ -114,4 +124,15 @@ export const RightPanelWrapper = styled.div<{ $fullWidth?: boolean }>`
 
 	/* Base font size */
 	font-size: 16px;
+`;
+
+export const CollapsedHeaderBar = styled.div<{ $isCollapsed?: boolean }>`
+	background: ${(props) => (props.$isCollapsed ? "#e2e8f0" : "transparent")};
+	border-radius: ${(props) => (props.$isCollapsed ? "10px" : "0")};
+	box-shadow: ${(props) =>
+		props.$isCollapsed ? "0 8px 24px rgba(15, 23, 42, 0.12)" : "none"};
+	padding: 0;
+	position: ${(props) => (props.$isCollapsed ? "sticky" : "relative")};
+	top: ${(props) => (props.$isCollapsed ? "0" : "auto")};
+	z-index: ${(props) => (props.$isCollapsed ? 5 : 1)};
 `;

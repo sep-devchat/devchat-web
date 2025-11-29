@@ -12,7 +12,7 @@ import { DeepLinkPayload } from "@/native/types";
 import { pkceIssueToken } from "@/services/auth/authAPI";
 import cookieUtils from "@/services/cookieUtils";
 import { useMutation } from "@tanstack/react-query";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { ExternalLinkIcon, LogInIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -22,7 +22,6 @@ export const Route = createFileRoute("/auth/login-electron")({
 });
 
 function RouteComponent() {
-	const navigate = useNavigate();
 	const { refetchProfile } = useAuth();
 	const [codeVerifier, setCodeVerifier] = useState<string>("");
 	const [isOpening, setIsOpening] = useState<boolean>(false);
@@ -35,7 +34,7 @@ function RouteComponent() {
 			await refetchProfile();
 			socket.connect();
 			toast.success("Login successfully!");
-			navigate({ to: "/chat" });
+			window.location.href = "/chat";
 		},
 		onError: (error) => {
 			toast.error(`Login failed: ${error.message}`);

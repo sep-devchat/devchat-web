@@ -1,11 +1,11 @@
 import styled from "styled-components";
 
 export const HeaderContainer = styled.header`
-	height: 52px;
 	background: #e2e8f0;
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
+
 	padding: 0 16px;
 
 	@media (min-width: 1920px) {
@@ -21,6 +21,47 @@ export const HeaderContainer = styled.header`
 	@media (max-width: 1220px) {
 		height: 47.5px;
 		padding: 0 11.2px;
+`;
+
+export const TitleSection = styled.div`
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+	flex: 1;
+	min-width: 0;
+	flex-wrap: wrap;
+	row-gap: 0.35rem;
+`;
+
+export const BackButton = styled.button`
+	display: inline-flex;
+	align-items: center;
+	gap: 0.35rem;
+	padding: 6px 10px;
+	border-radius: 8px;
+	border: none;
+	background: white;
+	color: #0f172a;
+	font-size: 0.9rem;
+	font-weight: 600;
+	cursor: pointer;
+	box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+	transition:
+		background 0.15s ease,
+		box-shadow 0.15s ease;
+
+	&:hover {
+		background: #f8fafc;
+		box-shadow: 0 2px 5px rgba(15, 23, 42, 0.12);
+	}
+
+	&:focus-visible {
+		outline: 2px solid #6366f1;
+		outline-offset: 2px;
+	}
+
+	&:active {
+		transform: translateY(1px);
 	}
 `;
 

@@ -140,7 +140,7 @@ export const Avatar = styled.div`
 export const Name = styled.div`
 	color: hsl(var(--foreground));
 	font-weight: 600;
-	font-size: 14px;
+	font-size: 12px;
 	line-height: 1.2;
 
 	//scale 175%

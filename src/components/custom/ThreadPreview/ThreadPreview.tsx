@@ -56,8 +56,11 @@ export const ThreadPreview: React.FC<{
 
 	const onOpenThread = () => {
 		navigate({
-			to: `/chat/group/${groupId}/${threadId}`,
-			search: channelIdParam ? { channel: channelIdParam } : undefined,
+			to: `/chat/group/${groupId}`,
+			search: () => ({
+				...(channelIdParam ? { channel: channelIdParam } : {}),
+				thread: threadId,
+			}),
 		});
 	};
 

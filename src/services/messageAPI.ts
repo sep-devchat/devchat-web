@@ -25,6 +25,18 @@ export interface ThreadMessageResponse
 	parentMessage: ThreadMessageResponse | null;
 }
 
+export interface DirectMessageResponse {
+	id: string;
+	from: Profile | null;
+	to: Profile | null;
+	content: string;
+	parentMessageId: string | null;
+	parentMessage: DirectMessageResponse | null;
+	codeBlockId?: string;
+	createdAt: Date;
+	updatedAt: Date;
+}
+
 export const listMessages = (
 	channelId: string,
 	groupId: string,

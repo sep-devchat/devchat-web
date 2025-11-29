@@ -11,6 +11,7 @@ export const ChatAreaContainer = styled.div`
 	min-height: 0;
 	max-height: 100%;
 	overflow: hidden;
+  backdrop-filter: blur(6px);
 
 	@media (max-width: 1220px) {
 		border-radius: 7px;
@@ -25,9 +26,11 @@ export const ChatAreaContainer = styled.div`
 	}
 `;
 
-type Variant = "normal" | "quillCode" | "image" | "file";
+export type MessagesViewportVariant = "normal" | "quillCode" | "image" | "file";
 
-export const MessagesViewport = styled.div<{ variant?: Variant }>`
+export const MessagesViewport = styled.div<{
+	variant?: MessagesViewportVariant;
+}>`
 	padding: 0.75rem;
 	display: flex;
 	flex-direction: column;
@@ -348,7 +351,7 @@ export const MessageItem = styled.div`
 	gap: 8px;
 
 	@media (max-width: 640px) {
-		max-width: 82%;
+		max-width: 88%;
 	}
 
 	@media (max-width: 1220px) {
