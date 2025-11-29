@@ -10,6 +10,16 @@ import Editor, { type Monaco, type OnMount } from "@monaco-editor/react";
 import type { editor as MonacoEditorNS } from "monaco-editor";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+} from "@/components/ui/select";
+import {
+	getAllProgrammingLanguages,
+	type ProgrammingLanguageResponse,
+} from "@/services/programmingLanguagesAPI";
 
 export type CodeEditorRef = {
 	/** Get current editor text value */
@@ -22,7 +32,7 @@ export type CodeEditorRef = {
 	formatDocument: () => void;
 };
 
-export type LanguageOption = { label: string; value: string };
+export type LanguageOption = { label: string; value: string; icon?: string };
 
 export type CodeEditorProps = {
 	/** Controlled value (preferred). Use with onChange */
@@ -66,22 +76,9 @@ export type CodeEditorProps = {
 };
 
 const DEFAULT_LANGUAGES: LanguageOption[] = [
-	// { label: "TypeScript", value: "typescript" },
 	{ label: "JavaScript", value: "javascript" },
 	{ label: "Python", value: "python" },
 	{ label: "Java", value: "java" },
-	// { label: "C#", value: "csharp" },
-	// { label: "C++", value: "cpp" },
-	// { label: "Go", value: "go" },
-	// { label: "Rust", value: "rust" },
-	// { label: "PHP", value: "php" },
-	// { label: "SQL", value: "sql" },
-	// { label: "JSON", value: "json" },
-	// { label: "YAML", value: "yaml" },
-	// { label: "Markdown", value: "markdown" },
-	// { label: "HTML", value: "html" },
-	// { label: "CSS", value: "css" },
-	// { label: "Shell", value: "shell" },
 ];
 
 const CodeEditor = React.forwardRef<CodeEditorRef, CodeEditorProps>(
@@ -114,15 +111,95 @@ const CodeEditor = React.forwardRef<CodeEditorRef, CodeEditorProps>(
 		const disposablesRef = useRef<Array<{ dispose: () => void }>>([]);
 		const [isFocused, setIsFocused] = useState(false);
 		const [dynHeight, setDynHeight] = useState<number | string>(height);
+		const [serverLanguages, setServerLanguages] = useState<
+			LanguageOption[] | null
+		>(null);
 
-		const availableLanguages = useMemo<LanguageOption[]>(
+		const fallbackLanguages = useMemo<LanguageOption[]>(
 			() => (languages && languages.length > 0 ? languages : DEFAULT_LANGUAGES),
 			[languages],
 		);
 
+		const availableLanguages = useMemo<LanguageOption[]>(
+			() =>
+				serverLanguages && serverLanguages.length > 0
+					? serverLanguages
+					: fallbackLanguages,
+			[serverLanguages, fallbackLanguages],
+		);
+
 		const initialLang =
-			language || availableLanguages[0]?.value || "typescript";
+			language ||
+			availableLanguages[0]?.value ||
+			DEFAULT_LANGUAGES[0]?.value ||
+			"javascript";
 		const [internalLang, setInternalLang] = useState<string>(initialLang);
+		const selectedLanguage = useMemo(
+			() => availableLanguages.find((item) => item.value === internalLang),
+			[availableLanguages, internalLang],
+		);
+
+		useEffect(() => {
+			let isCancelled = false;
+			const mapLanguages = (
+				items: ProgrammingLanguageResponse[],
+			): LanguageOption[] =>
+				items
+					.map((lang) => {
+						if (!lang?.languageName || !lang?.isExecutable || !lang?.isActive)
+							return null;
+						const value =
+							lang.languageCode?.toLowerCase() ??
+							lang.languageName.toLowerCase();
+						return {
+							label: lang.languageName,
+							value,
+							icon: lang.languageIcon,
+						} satisfies LanguageOption;
+					})
+					.filter(Boolean) as LanguageOption[];
+
+			const extractPayload = (
+				response: unknown,
+			): ProgrammingLanguageResponse[] => {
+				const nested = (
+					response as { data?: { data?: ProgrammingLanguageResponse[] } }
+				)?.data?.data;
+				if (Array.isArray(nested)) return nested;
+				const direct = (response as { data?: ProgrammingLanguageResponse[] })
+					?.data;
+				return Array.isArray(direct) ? direct : [];
+			};
+
+			const fetchLanguages = async () => {
+				try {
+					const response = await getAllProgrammingLanguages();
+					const payload = extractPayload(response);
+					if (!isCancelled && payload.length > 0) {
+						setServerLanguages(mapLanguages(payload));
+					}
+				} catch {
+					if (!isCancelled) {
+						setServerLanguages(null);
+					}
+				}
+			};
+			fetchLanguages();
+			return () => {
+				isCancelled = true;
+			};
+		}, []);
+
+		useEffect(() => {
+			if (!language && availableLanguages.length > 0) {
+				const exists = availableLanguages.some(
+					(langOption) => langOption.value === internalLang,
+				);
+				if (!exists) {
+					setInternalLang(availableLanguages[0].value);
+				}
+			}
+		}, [language, availableLanguages, internalLang]);
 		// keep internal language in sync with controlled prop
 		useEffect(() => {
 			if (language && language !== internalLang) setInternalLang(language);
@@ -314,8 +391,7 @@ const CodeEditor = React.forwardRef<CodeEditorRef, CodeEditorProps>(
 		);
 
 		const handleLangChange = useCallback(
-			(e: React.ChangeEvent<HTMLSelectElement>) => {
-				const next = e.target.value;
+			(next: string) => {
 				setInternalLang(next);
 				if (onLanguageChange) onLanguageChange(next);
 			},
@@ -391,17 +467,23 @@ const CodeEditor = React.forwardRef<CodeEditorRef, CodeEditorProps>(
 							Code editor
 						</label>
 						<div className="flex items-center gap-2">
-							<select
-								className="rounded-md border border-slate-300 bg-white px-2 py-1 text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-400/60"
-								value={internalLang}
-								onChange={handleLangChange}
-							>
-								{availableLanguages.map((l) => (
-									<option key={l.value} value={l.value}>
-										{l.label}
-									</option>
-								))}
-							</select>
+							<Select value={internalLang} onValueChange={handleLangChange}>
+								<SelectTrigger
+									className="min-w-[180px] border-slate-300 bg-white text-sm font-medium text-slate-700 focus:ring-slate-400/60"
+									aria-label="Select a programming language"
+								>
+									<span className="truncate">
+										{selectedLanguage?.label ?? "Select language"}
+									</span>
+								</SelectTrigger>
+								<SelectContent align="end" className="min-w-[220px]">
+									{availableLanguages.map((langOption) => (
+										<SelectItem key={langOption.value} value={langOption.value}>
+											{langOption.label}
+										</SelectItem>
+									))}
+								</SelectContent>
+							</Select>
 							{onClose ? (
 								<button
 									type="button"

@@ -24,6 +24,7 @@ type MessageActionsProps = {
 	handleCreateThread: (m: MessageResponse) => void;
 	isCurrentUser: boolean;
 	existingThreadId: string | null;
+	showThreadAction?: boolean;
 };
 
 const MessageActions: React.FC<MessageActionsProps> = ({
@@ -38,6 +39,7 @@ const MessageActions: React.FC<MessageActionsProps> = ({
 	handleReply,
 	handleCreateThread,
 	existingThreadId,
+	showThreadAction = true,
 }) => {
 	return (
 		<div
@@ -68,29 +70,30 @@ const MessageActions: React.FC<MessageActionsProps> = ({
 					onClick={(e) => e.stopPropagation()}
 				>
 					{/* Thread action: show Open if exists else Create (only owner can create) */}
-					{existingThreadId ? (
-						<DropdownMenuItem
-							className="px-3 py-2 cursor-pointer"
-							onSelect={() => {
-								handleCreateThread(m); // will early-return with toast for open
-								setHoveredMessageId(null);
-							}}
-						>
-							Open Thread
-						</DropdownMenuItem>
-					) : (
-						isCurrentUser && (
+					{showThreadAction &&
+						(existingThreadId ? (
 							<DropdownMenuItem
 								className="px-3 py-2 cursor-pointer"
 								onSelect={() => {
-									handleCreateThread(m);
+									handleCreateThread(m); // will early-return with toast for open
 									setHoveredMessageId(null);
 								}}
 							>
-								Create Thread
+								Open Thread
 							</DropdownMenuItem>
-						)
-					)}
+						) : (
+							isCurrentUser && (
+								<DropdownMenuItem
+									className="px-3 py-2 cursor-pointer"
+									onSelect={() => {
+										handleCreateThread(m);
+										setHoveredMessageId(null);
+									}}
+								>
+									Create Thread
+								</DropdownMenuItem>
+							)
+						))}
 
 					{isCurrentUser && (
 						<DropdownMenuItem
