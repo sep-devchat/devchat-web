@@ -4,6 +4,10 @@ import { createContext } from "react";
 export interface NotificationContextProps {
 	notifications: NotificationResponse[];
 	refetchNotifications: () => void;
+	loadMoreNotifications: () => void;
+	hasMoreNotifications: boolean;
+	isLoadingNotifications: boolean;
+	isFetchingMoreNotifications: boolean;
 }
 
 export const NotificationContext =

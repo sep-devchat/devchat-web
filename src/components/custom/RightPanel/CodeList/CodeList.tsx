@@ -14,6 +14,7 @@ import {
 	FooterButton,
 	PageWrapper,
 	StatusText,
+	CodeListScroller,
 } from "./CodeList.styled";
 import {
 	CodeBlock,
@@ -290,46 +291,48 @@ const CodeList = ({
 			<CPContent>
 				{canFetch ? (
 					<>
-						{codeBlocks.map((block) => (
-							<CodeItem
-								key={block.id}
-								title={buildCodeBlockTitle(block.language)}
-								subtitle={buildCodeBlockSubtitleFromBlock(block)}
-								language={block.language}
-								code={block.content}
-								onRun={() => handleRunCode(block)}
-								isRunning={runningBlockId === block.id}
-								disabled={Boolean(runningBlockId)}
-								onCollaborate={
-									canCollaborate ? () => handleCollaborate(block) : undefined
-								}
-								collaborateDisabled={Boolean(runningBlockId)}
-							/>
-						))}
+						<CodeListScroller>
+							{codeBlocks.map((block) => (
+								<CodeItem
+									key={block.id}
+									title={buildCodeBlockTitle(block.language)}
+									subtitle={buildCodeBlockSubtitleFromBlock(block)}
+									language={block.language}
+									code={block.content}
+									onRun={() => handleRunCode(block)}
+									isRunning={runningBlockId === block.id}
+									disabled={Boolean(runningBlockId)}
+									onCollaborate={
+										canCollaborate ? () => handleCollaborate(block) : undefined
+									}
+									collaborateDisabled={Boolean(runningBlockId)}
+								/>
+							))}
 
-						{initialLoaded && !isLoading && !codeBlocks.length && !error && (
-							<Empty
-								image={
-									<img
-										src={ineffaLoading}
-										alt="No code blocks"
-										className="h-50 w-50 object-cover"
-									/>
-								}
-								icon={null}
-								heading="No code blocks found"
-								description="There are no code blocks shared in this conversation yet."
-							/>
-						)}
+							{initialLoaded && !isLoading && !codeBlocks.length && !error && (
+								<Empty
+									image={
+										<img
+											src={ineffaLoading}
+											alt="No code blocks"
+											className="h-50 w-50 object-cover"
+										/>
+									}
+									icon={null}
+									heading="No code blocks found"
+									description="There are no code blocks shared in this conversation yet."
+								/>
+							)}
 
-						{error && (
-							<>
-								<ErrorText role="alert">{error}</ErrorText>
-								<FooterButton onClick={handleRetry} disabled={isLoading}>
-									Try again
-								</FooterButton>
-							</>
-						)}
+							{error && (
+								<>
+									<ErrorText role="alert">{error}</ErrorText>
+									<FooterButton onClick={handleRetry} disabled={isLoading}>
+										Try again
+									</FooterButton>
+								</>
+							)}
+						</CodeListScroller>
 
 						{shouldShowFooter && (
 							<Footer>

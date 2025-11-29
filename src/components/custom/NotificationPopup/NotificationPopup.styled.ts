@@ -294,18 +294,11 @@ export const PopupFooter = styled.div`
 	}
 `;
 
-export const ViewAllButton = styled.button`
-	font-size: 0.875rem;
-	color: #133e87;
-	font-weight: 500;
-	background: transparent;
-	border: none;
-	cursor: pointer;
+export const FooterMessage = styled.span`
+	font-size: 0.8125rem;
+	color: #6b7280;
 
-	&:hover {
-		color: #1952b3;
-	}
-	&:focus {
-		outline: none;
+	.dark & {
+		color: #9ca3af;
 	}
 `;

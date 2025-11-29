@@ -8,9 +8,9 @@ import {
 	markRead,
 } from "@/services/notification/notificationAPI";
 import { SocketEvents } from "@/utils/constants";
-import { useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { PropsWithChildren, useEffect } from "react";
+import { PropsWithChildren, useCallback, useEffect, useMemo } from "react";
 
 async function handleElectronMessageNotification(data: MessageResponse) {
 	await window.nativeAPI.showMessageNotification(data);
@@ -88,14 +88,55 @@ export default function NotificationProvider({
 	children,
 }: PropsWithChildren<NotificationProviderProps>) {
 	const navigate = useNavigate();
-	const listNotificationsQuery = useQuery({
+	const pageSize = 20;
+	const listNotificationsQuery = useInfiniteQuery({
 		queryKey: ["listNotifications"],
-		queryFn: async () => {
-			const response = await listNotifications();
-			return response.data;
+		initialPageParam: undefined as string | undefined,
+		queryFn: async ({
+			pageParam,
+		}): Promise<{
+			items: NotificationResponse[];
+			nextCursor?: string;
+		}> => {
+			const response = await listNotifications({
+				cursorCreatedAt: pageParam,
+				limit: pageSize,
+			});
+			const items = response.data ?? [];
+			const nextCursor =
+				items.length === pageSize
+					? items[items.length - 1]?.createdAt
+					: undefined;
+			return { items, nextCursor };
 		},
-		initialData: [],
+		getNextPageParam: (lastPage) => lastPage.nextCursor,
 	});
+
+	const {
+		data,
+		refetch,
+		fetchNextPage,
+		hasNextPage,
+		isFetchingNextPage,
+		status,
+	} = listNotificationsQuery;
+
+	const notifications = useMemo(
+		() => data?.pages.flatMap((page) => page.items) ?? [],
+		[data],
+	);
+
+	const loadMoreNotifications = useCallback(() => {
+		if (!hasNextPage || isFetchingNextPage) {
+			return;
+		}
+		fetchNextPage();
+	}, [fetchNextPage, hasNextPage, isFetchingNextPage]);
+
+	const hasMoreNotifications = Boolean(hasNextPage);
+	const isLoadingNotifications =
+		status === "pending" && notifications.length === 0;
+	const isFetchingMoreNotifications = isFetchingNextPage;
 
 	if (publicRuntimeConfig.ELECTRON) {
 		useEffect(() => {
@@ -128,19 +169,23 @@ export default function NotificationProvider({
 	});
 
 	useSocketEvent(SocketEvents.NOTIFICATION, (data: NotificationResponse) => {
-		handleNotification(data, navigate, listNotificationsQuery.refetch);
-		listNotificationsQuery.refetch();
+		handleNotification(data, navigate, refetch);
+		refetch();
 	});
 
 	useEffect(() => {
-		listNotificationsQuery.refetch();
+		refetch();
 	}, []);
 
 	return (
 		<NotificationContext.Provider
 			value={{
-				notifications: listNotificationsQuery.data,
-				refetchNotifications: listNotificationsQuery.refetch,
+				notifications,
+				refetchNotifications: refetch,
+				loadMoreNotifications,
+				hasMoreNotifications,
+				isLoadingNotifications,
+				isFetchingMoreNotifications,
 			}}
 		>
 			{children}

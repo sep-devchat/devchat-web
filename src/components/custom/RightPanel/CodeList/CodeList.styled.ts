@@ -73,8 +73,35 @@ export const CPContent = styled.div`
 	display: flex;
 	flex-direction: column;
 	gap: 16px;
-	overflow-y: auto;
 	background: #f8fafc;
+	overflow: hidden;
+`;
+
+export const CodeListScroller = styled.div`
+	flex: 1;
+	overflow-y: auto;
+	display: flex;
+	flex-direction: column;
+	gap: 16px;
+	min-height: 0;
+	padding-right: 4px;
+
+	& > * {
+		flex: 0 0 auto;
+	}
+
+	&::-webkit-scrollbar {
+		width: 6px;
+	}
+
+	&::-webkit-scrollbar-thumb {
+		background: ${theme.color.grey200};
+		border-radius: 999px;
+	}
+
+	&::-webkit-scrollbar-track {
+		background: transparent;
+	}
 `;
 
 export const CPCodeItem = styled.div`
