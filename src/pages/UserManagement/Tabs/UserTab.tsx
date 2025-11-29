@@ -18,6 +18,9 @@ import { listUsers, setUserActive } from "@/services/userAPI";
 import { LockKeyhole, LockKeyholeOpen } from "lucide-react";
 import { toast } from "sonner";
 import ReportDetailModal from "./ReportDetailModal";
+import { CancelButton } from "@/components/custom/ActionButton/CancelButton";
+import { DeleteButton } from "@/components/custom/ActionButton/DeleteButton";
+import { SaveButton } from "@/components/custom/ActionButton/SaveButton";
 
 // Types
 type Reporter = {
@@ -513,26 +516,37 @@ export default function UserTab() {
 					</div>
 
 					<DialogFooter className="flex justify-end gap-2">
-						<button
+						<CancelButton
 							className="px-4 py-2 rounded bg-gray-100 hover:bg-gray-200"
 							onClick={() =>
 								setConfirmState({ open: false, mode: null, targetId: null })
 							}
 						>
 							Cancel
-						</button>
+						</CancelButton>
 
-						<button
-							className={`px-4 py-2 rounded ${confirmState.mode === "ban" ? "bg-red-600 text-white" : "bg-green-600 text-white"}`}
-							onClick={async () => {
-								const id = confirmState.targetId;
-								if (!id) return;
-								if (confirmState.mode === "ban") await performBan(id);
-								if (confirmState.mode === "unban") await performUnban(id);
-							}}
-						>
-							{confirmState.mode === "ban" ? "Ban" : "Unban"}
-						</button>
+						{confirmState.mode === "ban" ? (
+							<DeleteButton
+								onClick={async () => {
+									const id = confirmState.targetId;
+									if (!id) return;
+									await performBan(id);
+								}}
+							>
+								Deactivate
+							</DeleteButton>
+						) : (
+							<SaveButton
+								className="px-4 py-2 rounded bg-green-600 text-white"
+								onClick={async () => {
+									const id = confirmState.targetId;
+									if (!id) return;
+									await performUnban(id);
+								}}
+							>
+								Activate
+							</SaveButton>
+						)}
 					</DialogFooter>
 				</DialogContent>
 			</Dialog>
