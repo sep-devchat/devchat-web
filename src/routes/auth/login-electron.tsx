@@ -12,7 +12,7 @@ import { DeepLinkPayload } from "@/native/types";
 import { pkceIssueToken } from "@/services/auth/authAPI";
 import cookieUtils from "@/services/cookieUtils";
 import { useMutation } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { ExternalLinkIcon, LogInIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -26,6 +26,7 @@ function RouteComponent() {
 	const [codeVerifier, setCodeVerifier] = useState<string>("");
 	const [isOpening, setIsOpening] = useState<boolean>(false);
 	const { socket } = useSocket();
+	const navigate = useNavigate();
 
 	const loginPkceMutation = useMutation({
 		mutationFn: pkceIssueToken,
@@ -34,7 +35,7 @@ function RouteComponent() {
 			await refetchProfile();
 			socket.connect();
 			toast.success("Login successfully!");
-			window.location.href = "/chat";
+			navigate({ to: "/chat", replace: true });
 		},
 		onError: (error) => {
 			toast.error(`Login failed: ${error.message}`);

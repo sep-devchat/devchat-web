@@ -6,7 +6,7 @@ import {
 	DropdownMenuContent,
 	DropdownMenuItem,
 	DropdownMenuGroup,
-} from "@/components/ui/dropdown-menu"; // shadcn dropdown
+} from "@/components/ui/dropdown-menu";
 import { Input } from "../../../ui/input";
 import { Image, Link } from "lucide-react";
 import { InboxType } from "./InboxType";
@@ -24,16 +24,35 @@ export default function ChatTypeDropdown({
 	const imgRef = useRef<HTMLInputElement | null>(null);
 	const fileRef = useRef<HTMLInputElement | null>(null);
 
-	// function handleChooseCode() {
-	// 	onChoose("quillCode");
-	// }
+	const [windowWidth, setWindowWidth] = useState(
+		typeof window !== "undefined" ? window.innerWidth : 1440,
+	);
+
+	React.useEffect(() => {
+		const handleResize = () => setWindowWidth(window.innerWidth);
+		window.addEventListener("resize", handleResize);
+		return () => window.removeEventListener("resize", handleResize);
+	}, []);
+
+	const getResponsiveSize = (base: number) => {
+		if (windowWidth <= 1220) return base * 0.7;
+		if (windowWidth >= 1920) return base * 1.1;
+		if (windowWidth >= 1440) return base * 0.8;
+		return base;
+	};
+
+	const getMediumFontSize = () => {
+		if (windowWidth <= 1220) return "12px";
+		if (windowWidth >= 1920) return "16px";
+		if (windowWidth >= 1440) return "13px";
+		return "13px";
+	};
 
 	function handleImageClick() {
-		// đóng menu trước, sau đó mở file picker
 		setOpen(false);
-		// small delay can help some browsers, but usually not needed
 		setTimeout(() => imgRef.current?.click(), 0);
 	}
+
 	function handleFileClick() {
 		setOpen(false);
 		setTimeout(() => fileRef.current?.click(), 0);
@@ -44,7 +63,6 @@ export default function ChatTypeDropdown({
 		if (files.length) {
 			onChoose("image", files);
 		}
-		// reset so re-select same file later works
 		e.currentTarget.value = "";
 	}
 
@@ -64,27 +82,28 @@ export default function ChatTypeDropdown({
 						<span>{trigger}</span>
 					</DropdownMenuTrigger>
 
-					<DropdownMenuContent side="bottom" align="start" className="bg-white">
+					<DropdownMenuContent
+						side="bottom"
+						align="start"
+						className="bg-white"
+						style={{
+							fontSize: getMediumFontSize(),
+							padding: `${getResponsiveSize(4)}px`,
+						}}
+					>
 						<DropdownMenuGroup>
-							{/* <DropdownMenuItem
-								onSelect={(event) => {
-									event.preventDefault();
-									setOpen(false);
-									handleChooseCode();
-								}}
-							>
-								<Pencil />
-								Hiển thị tùy chọn Định dạng
-							</DropdownMenuItem> */}
-
 							<DropdownMenuItem
 								onSelect={(event) => {
 									event.preventDefault();
-									// close menu then open picker
 									handleImageClick();
 								}}
+								style={{
+									gap: `${getResponsiveSize(8)}px`,
+									padding: `${getResponsiveSize(8)}px ${getResponsiveSize(12)}px`,
+									fontSize: getMediumFontSize(),
+								}}
 							>
-								<Image />
+								<Image size={getResponsiveSize(16)} />
 								Đính kèm ảnh
 							</DropdownMenuItem>
 
@@ -93,8 +112,13 @@ export default function ChatTypeDropdown({
 									event.preventDefault();
 									handleFileClick();
 								}}
+								style={{
+									gap: `${getResponsiveSize(8)}px`,
+									padding: `${getResponsiveSize(8)}px ${getResponsiveSize(12)}px`,
+									fontSize: getMediumFontSize(),
+								}}
 							>
-								<Link />
+								<Link size={getResponsiveSize(16)} />
 								Đính kèm file
 							</DropdownMenuItem>
 						</DropdownMenuGroup>
@@ -102,7 +126,6 @@ export default function ChatTypeDropdown({
 				</div>
 			</DropdownMenu>
 
-			{/* hidden inputs */}
 			<Input
 				ref={imgRef}
 				type="file"

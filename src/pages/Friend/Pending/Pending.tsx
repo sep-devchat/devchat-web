@@ -287,7 +287,7 @@ const Pending: React.FC<Props> = ({
 						</ResultsList>
 					) : (
 						<EmptyState
-							icon={<UserPlus size={24} />}
+							icon={<UserPlus size={20} />}
 							title="No incoming friend requests"
 							description="Friend requests from others will appear here"
 							bgColor="#FEF3C7"
@@ -325,7 +325,7 @@ const Pending: React.FC<Props> = ({
 						</ResultsList>
 					) : (
 						<EmptyState
-							icon={<Send size={24} />}
+							icon={<Send size={20} />}
 							title="No sent friend requests"
 							description="Friend requests you send will appear here until accepted"
 							bgColor="#DBEAFE"
@@ -382,7 +382,7 @@ const Pending: React.FC<Props> = ({
 						</ResultsList>
 					) : (
 						<EmptyState
-							icon={<Users size={24} />}
+							icon={<Users size={20} />}
 							title="No incoming group invites"
 							description="Group invitations from others will appear here"
 							bgColor="#FEF3C7"
@@ -427,7 +427,7 @@ const Pending: React.FC<Props> = ({
 						</ResultsList>
 					) : (
 						<EmptyState
-							icon={<Mail size={24} />}
+							icon={<Mail size={20} />}
 							title="No sent group invites"
 							description="Group invites you send will appear here until accepted"
 							bgColor="#DBEAFE"

@@ -48,6 +48,7 @@ import {
 	Dropdown,
 	DropdownItem,
 	DragHandle,
+	Container,
 } from "./PersonalTodo.styled";
 
 /* ---------- utils ---------- */
@@ -306,408 +307,410 @@ export default function PersonalTodo() {
 	const [openDropdownFor, setOpenDropdownFor] = useState<string | null>(null);
 
 	return (
-		<Root>
-			<Row style={{ marginBottom: 12 }}>
-				<SearchBox>
-					<Search size={16} color="#94a3b8" />
-					<SearchInput
-						value={q}
-						onChange={(e) => setQ(e.target.value)}
-						placeholder="Search tasks..."
-					/>
-				</SearchBox>
+		<Container>
+			<Root>
+				<Row style={{ marginBottom: 12 }}>
+					<SearchBox>
+						<Search size={16} color="#94a3b8" />
+						<SearchInput
+							value={q}
+							onChange={(e) => setQ(e.target.value)}
+							placeholder="Search tasks..."
+						/>
+					</SearchBox>
 
-				<AddBtn onClick={() => setShowAddCard((s) => !s)} title="Add new">
-					<Plus size={14} /> Add new
-				</AddBtn>
-			</Row>
+					<AddBtn onClick={() => setShowAddCard((s) => !s)} title="Add new">
+						<Plus size={14} /> Add new
+					</AddBtn>
+				</Row>
 
-			{showAddCard && (
-				<Card style={{ marginBottom: 12 }}>
-					<Row style={{ alignItems: "flex-start" }}>
-						<div style={{ flex: 1 }}>
-							<Field>
-								<TextInput
-									ref={inputRef}
-									value={name}
-									onChange={(e) => setName(e.target.value)}
-									placeholder="Task name"
-								/>
-							</Field>
-							<Field>
-								<Textarea
-									value={description}
-									onChange={(e) => setDescription(e.target.value)}
-									placeholder="Description (optional)"
-									rows={3}
-								/>
-							</Field>
-							<Row gap={12}>
-								<Select
-									value={priority}
-									onChange={(e) => setPriority(Number(e.target.value))}
-								>
-									<option value={1}>Priority 1 (High)</option>
-									<option value={2}>Priority 2</option>
-									<option value={3}>Priority 3 (Low)</option>
-									<option value={0}>None</option>
-								</Select>
-								<Row>
-									<Calendar size={16} color="#64748b" />
+				{showAddCard && (
+					<Card style={{ marginBottom: 12 }}>
+						<Row style={{ alignItems: "flex-start" }}>
+							<div style={{ flex: 1 }}>
+								<Field>
 									<TextInput
-										type="datetime-local"
-										value={dueDateInput}
-										onChange={(e) => setDueDateInput(e.target.value)}
-										style={{ marginLeft: 8 }}
+										ref={inputRef}
+										value={name}
+										onChange={(e) => setName(e.target.value)}
+										placeholder="Task name"
 									/>
-								</Row>
-							</Row>
-						</div>
-
-						<ActionsCol>
-							<button
-								onClick={addTaskFinalize}
-								style={{
-									background: "#16a34a",
-									color: "white",
-									padding: "8px 12px",
-									borderRadius: 8,
-									border: "none",
-									cursor: "pointer",
-									display: "flex",
-									gap: 8,
-									alignItems: "center",
-								}}
-							>
-								<Check size={14} /> Complete
-							</button>
-							<button
-								onClick={addTaskCancel}
-								style={{
-									background: "transparent",
-									color: "#dc2626",
-									padding: "8px 12px",
-									borderRadius: 8,
-									border: "1px solid rgba(226,232,240,1)",
-									cursor: "pointer",
-									display: "flex",
-									gap: 8,
-									alignItems: "center",
-								}}
-							>
-								<X size={14} /> Close
-							</button>
-						</ActionsCol>
-					</Row>
-				</Card>
-			)}
-
-			<TaskList>
-				{shown.length === 0 ? (
-					<div style={{ color: "#64748b" }}>No matching tasks.</div>
-				) : (
-					shown.map((t) => {
-						const daysLeft = daysDiffFromNow(t.dueDate ?? "");
-						const isDueSoon =
-							daysLeft !== null && daysLeft <= 2 && daysLeft >= 0;
-						const isOverdue = daysLeft !== null && daysLeft < 0;
-						const priorityLevel = t.priority ?? 3;
-						const priorityLabel =
-							priorityLevel === 1 ? "P1" : priorityLevel === 2 ? "P2" : "P3";
-						const isEditing = editingId === t.id;
-
-						// style cho panel edit (you can move to styled-component)
-						const editPanelStyle: React.CSSProperties = {
-							position: "absolute",
-							right: 12,
-							top: 12,
-							zIndex: 30,
-							background: "white",
-							boxShadow: "0 6px 18px rgba(15,23,42,0.12)",
-							borderRadius: 10,
-							padding: 12,
-							minWidth: 360,
-						};
-
-						return (
-							<TaskItem
-								key={t.id}
-								draggable
-								onDragStart={(e) => onDragStart(e, t.id)}
-								onDragOver={(e) => onDragOver(e, t.id)}
-								onDrop={(e) => onDrop(e, t.id)}
-								onDragEnd={onDragEnd}
-								dragging={draggingId === t.id}
-								style={{ position: "relative" }} // needed for absolute edit panel
-							>
-								<DragHandle title="Drag to reorder">
-									<GripVertical size={16} color="#94a3b8" />
-								</DragHandle>
-
-								<div>
-									<Checkbox
-										type="checkbox"
-										checked={fromApiStatus(t.status)}
-										onChange={() => toggleDone(t.id)}
+								</Field>
+								<Field>
+									<Textarea
+										value={description}
+										onChange={(e) => setDescription(e.target.value)}
+										placeholder="Description (optional)"
+										rows={3}
 									/>
-								</div>
-
-								{/* ---------- Main display (always visible) ---------- */}
-								<TaskMain>
-									<div
-										style={{
-											display: "flex",
-											justifyContent: "space-between",
-											gap: 12,
-										}}
+								</Field>
+								<Row gap={12}>
+									<Select
+										value={priority}
+										onChange={(e) => setPriority(Number(e.target.value))}
 									>
-										<div style={{ flex: 1 }}>
-											<TaskTitle done={fromApiStatus(t.status)}>
-												{t.name}
-											</TaskTitle>
-											<TaskDesc>{t.description}</TaskDesc>
+										<option value={1}>Priority 1 (High)</option>
+										<option value={2}>Priority 2</option>
+										<option value={3}>Priority 3 (Low)</option>
+										<option value={0}>None</option>
+									</Select>
+									<Row>
+										<Calendar size={16} color="#64748b" />
+										<TextInput
+											type="datetime-local"
+											value={dueDateInput}
+											onChange={(e) => setDueDateInput(e.target.value)}
+											style={{ marginLeft: 8 }}
+										/>
+									</Row>
+								</Row>
+							</div>
+
+							<ActionsCol>
+								<button
+									onClick={addTaskFinalize}
+									style={{
+										background: "#16a34a",
+										color: "white",
+										padding: "8px 12px",
+										borderRadius: 8,
+										border: "none",
+										cursor: "pointer",
+										display: "flex",
+										gap: 8,
+										alignItems: "center",
+									}}
+								>
+									<Check size={14} /> Complete
+								</button>
+								<button
+									onClick={addTaskCancel}
+									style={{
+										background: "transparent",
+										color: "#dc2626",
+										padding: "8px 12px",
+										borderRadius: 8,
+										border: "1px solid rgba(226,232,240,1)",
+										cursor: "pointer",
+										display: "flex",
+										gap: 8,
+										alignItems: "center",
+									}}
+								>
+									<X size={14} /> Close
+								</button>
+							</ActionsCol>
+						</Row>
+					</Card>
+				)}
+
+				<TaskList>
+					{shown.length === 0 ? (
+						<div style={{ color: "#64748b" }}>No matching tasks.</div>
+					) : (
+						shown.map((t) => {
+							const daysLeft = daysDiffFromNow(t.dueDate ?? "");
+							const isDueSoon =
+								daysLeft !== null && daysLeft <= 2 && daysLeft >= 0;
+							const isOverdue = daysLeft !== null && daysLeft < 0;
+							const priorityLevel = t.priority ?? 3;
+							const priorityLabel =
+								priorityLevel === 1 ? "P1" : priorityLevel === 2 ? "P2" : "P3";
+							const isEditing = editingId === t.id;
+
+							// style cho panel edit (you can move to styled-component)
+							const editPanelStyle: React.CSSProperties = {
+								position: "absolute",
+								right: 12,
+								top: 12,
+								zIndex: 30,
+								background: "white",
+								boxShadow: "0 6px 18px rgba(15,23,42,0.12)",
+								borderRadius: 10,
+								padding: 12,
+								minWidth: 360,
+							};
+
+							return (
+								<TaskItem
+									key={t.id}
+									draggable
+									onDragStart={(e) => onDragStart(e, t.id)}
+									onDragOver={(e) => onDragOver(e, t.id)}
+									onDrop={(e) => onDrop(e, t.id)}
+									onDragEnd={onDragEnd}
+									dragging={draggingId === t.id}
+									style={{ position: "relative" }} // needed for absolute edit panel
+								>
+									<DragHandle title="Drag to reorder">
+										<GripVertical size={16} color="#94a3b8" />
+									</DragHandle>
+
+									<div>
+										<Checkbox
+											type="checkbox"
+											checked={fromApiStatus(t.status)}
+											onChange={() => toggleDone(t.id)}
+										/>
+									</div>
+
+									{/* ---------- Main display (always visible) ---------- */}
+									<TaskMain>
+										<div
+											style={{
+												display: "flex",
+												justifyContent: "space-between",
+												gap: 12,
+											}}
+										>
+											<div style={{ flex: 1 }}>
+												<TaskTitle done={fromApiStatus(t.status)}>
+													{t.name}
+												</TaskTitle>
+												<TaskDesc>{t.description}</TaskDesc>
+											</div>
+
+											<Meta>
+												<div
+													style={{
+														display: "flex",
+														gap: 8,
+														alignItems: "center",
+														justifyContent: "flex-end",
+													}}
+												>
+													{/* Hide priority badge when priority === 0 */}
+													{priorityLevel !== 0 && (
+														<PriorityBadge level={priorityLevel}>
+															<Flag size={14} />
+															{priorityLabel}
+														</PriorityBadge>
+													)}
+												</div>
+
+												<div style={{ marginTop: 8 }}>
+													{t.dueDate ? (
+														<div
+															title={
+																isOverdue
+																	? "Overdue"
+																	: isDueSoon
+																		? `Due in ${Math.max(daysLeft ?? 0, 0)} days`
+																		: `Due: ${new Date(t.dueDate).toLocaleString()}`
+															}
+															style={{
+																display: "inline-flex",
+																gap: 8,
+																alignItems: "center",
+																padding: "6px 8px",
+																borderRadius: 8,
+																background: isDueSoon
+																	? "rgba(254,226,226,0.6)"
+																	: "rgba(241,245,249,1)",
+																color: isDueSoon ? "#991b1b" : "#334155",
+																fontSize: 12,
+																justifyContent: "flex-end",
+															}}
+														>
+															{isOverdue ? (
+																<AlertCircle size={16} color="#dc2626" />
+															) : (
+																<Calendar size={14} color="#64748b" />
+															)}
+															<span>
+																{isDueSoon
+																	? `Due in ${Math.max(daysLeft ?? 0, 0)} days`
+																	: formatDateShort(t.dueDate)}
+															</span>
+														</div>
+													) : (
+														<div
+															style={{
+																color: "#94a3b8",
+																fontSize: 12,
+																textAlign: "right",
+															}}
+														>
+															No due date
+														</div>
+													)}
+												</div>
+
+												<div style={{ marginTop: 8 }}>
+													{isEditing ? (
+														<Select
+															value={editFields.status ?? t.status ?? 0}
+															onChange={(e) =>
+																setEditFields((p) => ({
+																	...p,
+																	status: Number(e.target.value),
+																}))
+															}
+														>
+															<option value={0}>To do</option>
+															<option value={1}>Done</option>
+															<option value={2}>Blocked</option>
+														</Select>
+													) : null}
+												</div>
+											</Meta>
 										</div>
 
-										<Meta>
-											<div
-												style={{
-													display: "flex",
-													gap: 8,
-													alignItems: "center",
-													justifyContent: "flex-end",
-												}}
-											>
-												{/* Hide priority badge when priority === 0 */}
-												{priorityLevel !== 0 && (
-													<PriorityBadge level={priorityLevel}>
-														<Flag size={14} />
-														{priorityLabel}
-													</PriorityBadge>
-												)}
-											</div>
-
-											<div style={{ marginTop: 8 }}>
-												{t.dueDate ? (
-													<div
-														title={
-															isOverdue
-																? "Overdue"
-																: isDueSoon
-																	? `Due in ${Math.max(daysLeft ?? 0, 0)} days`
-																	: `Due: ${new Date(t.dueDate).toLocaleString()}`
-														}
-														style={{
-															display: "inline-flex",
-															gap: 8,
-															alignItems: "center",
-															padding: "6px 8px",
-															borderRadius: 8,
-															background: isDueSoon
-																? "rgba(254,226,226,0.6)"
-																: "rgba(241,245,249,1)",
-															color: isDueSoon ? "#991b1b" : "#334155",
-															fontSize: 12,
-															justifyContent: "flex-end",
-														}}
-													>
-														{isOverdue ? (
-															<AlertCircle size={16} color="#dc2626" />
-														) : (
-															<Calendar size={14} color="#64748b" />
-														)}
-														<span>
-															{isDueSoon
-																? `Due in ${Math.max(daysLeft ?? 0, 0)} days`
-																: formatDateShort(t.dueDate)}
-														</span>
-													</div>
-												) : (
-													<div
-														style={{
-															color: "#94a3b8",
-															fontSize: 12,
-															textAlign: "right",
-														}}
-													>
-														No due date
-													</div>
-												)}
-											</div>
-
-											<div style={{ marginTop: 8 }}>
-												{isEditing ? (
-													<Select
-														value={editFields.status ?? t.status ?? 0}
+										{/* ---------- Edit panel separated into its own div (absolute) ---------- */}
+										{isEditing && (
+											<div style={editPanelStyle}>
+												<div style={{ display: "flex", gap: 8 }}>
+													<TextInput
+														value={editFields.name ?? ""}
 														onChange={(e) =>
 															setEditFields((p) => ({
 																...p,
-																status: Number(e.target.value),
+																name: e.target.value,
+															}))
+														}
+														placeholder="Task name"
+													/>
+												</div>
+
+												<div style={{ marginTop: 8 }}>
+													<Textarea
+														rows={3}
+														value={editFields.description ?? ""}
+														onChange={(e) =>
+															setEditFields((p) => ({
+																...p,
+																description: e.target.value,
+															}))
+														}
+													/>
+												</div>
+
+												<div
+													style={{
+														marginTop: 8,
+														display: "flex",
+														gap: 8,
+														alignItems: "center",
+														justifyContent: "space-between",
+													}}
+												>
+													<Select
+														value={editFields.priority ?? priorityLevel}
+														onChange={(e) =>
+															setEditFields((p) => ({
+																...p,
+																priority: Number(e.target.value),
 															}))
 														}
 													>
-														<option value={0}>To do</option>
-														<option value={1}>Done</option>
-														<option value={2}>Blocked</option>
+														<option value={1}>Priority 1 (High)</option>
+														<option value={2}>Priority 2</option>
+														<option value={3}>Priority 3 (Low)</option>
+														<option value={0}>None</option>
 													</Select>
-												) : null}
-											</div>
-										</Meta>
-									</div>
 
-									{/* ---------- Edit panel separated into its own div (absolute) ---------- */}
-									{isEditing && (
-										<div style={editPanelStyle}>
-											<div style={{ display: "flex", gap: 8 }}>
-												<TextInput
-													value={editFields.name ?? ""}
-													onChange={(e) =>
-														setEditFields((p) => ({
-															...p,
-															name: e.target.value,
-														}))
-													}
-													placeholder="Task name"
-												/>
-											</div>
+													<TextInput
+														type="datetime-local"
+														value={
+															editFields.dueDate
+																? isoToDatetimeLocal(editFields.dueDate)
+																: ""
+														}
+														onChange={(e) =>
+															setEditFields((p) => ({
+																...p,
+																dueDate: e.target.value
+																	? new Date(e.target.value).toISOString()
+																	: undefined,
+															}))
+														}
+														style={{ width: 180 }}
+													/>
+												</div>
 
-											<div style={{ marginTop: 8 }}>
-												<Textarea
-													rows={3}
-													value={editFields.description ?? ""}
-													onChange={(e) =>
-														setEditFields((p) => ({
-															...p,
-															description: e.target.value,
-														}))
-													}
-												/>
-											</div>
-
-											<div
-												style={{
-													marginTop: 8,
-													display: "flex",
-													gap: 8,
-													alignItems: "center",
-													justifyContent: "space-between",
-												}}
-											>
-												<Select
-													value={editFields.priority ?? priorityLevel}
-													onChange={(e) =>
-														setEditFields((p) => ({
-															...p,
-															priority: Number(e.target.value),
-														}))
-													}
-												>
-													<option value={1}>Priority 1 (High)</option>
-													<option value={2}>Priority 2</option>
-													<option value={3}>Priority 3 (Low)</option>
-													<option value={0}>None</option>
-												</Select>
-
-												<TextInput
-													type="datetime-local"
-													value={
-														editFields.dueDate
-															? isoToDatetimeLocal(editFields.dueDate)
-															: ""
-													}
-													onChange={(e) =>
-														setEditFields((p) => ({
-															...p,
-															dueDate: e.target.value
-																? new Date(e.target.value).toISOString()
-																: undefined,
-														}))
-													}
-													style={{ width: 180 }}
-												/>
-											</div>
-
-											<div
-												style={{
-													marginTop: 10,
-													display: "flex",
-													gap: 8,
-													justifyContent: "flex-end",
-												}}
-											>
-												<button
-													onClick={() => saveInlineEdit(t.id)}
+												<div
 													style={{
-														background: "#16a34a",
-														color: "white",
-														padding: 8,
-														borderRadius: 8,
-														border: "none",
-														cursor: "pointer",
+														marginTop: 10,
 														display: "flex",
 														gap: 8,
-														alignItems: "center",
+														justifyContent: "flex-end",
 													}}
 												>
-													<Check size={14} /> Save
-												</button>
-												<button
-													onClick={cancelInlineEdit}
-													style={{
-														background: "transparent",
-														color: "#dc2626",
-														padding: 8,
-														borderRadius: 8,
-														border: "1px solid rgba(226,232,240,1)",
-														cursor: "pointer",
-														display: "flex",
-														gap: 8,
-														alignItems: "center",
-													}}
-												>
-													<X size={14} /> Cancel
-												</button>
+													<button
+														onClick={() => saveInlineEdit(t.id)}
+														style={{
+															background: "#16a34a",
+															color: "white",
+															padding: 8,
+															borderRadius: 8,
+															border: "none",
+															cursor: "pointer",
+															display: "flex",
+															gap: 8,
+															alignItems: "center",
+														}}
+													>
+														<Check size={14} /> Save
+													</button>
+													<button
+														onClick={cancelInlineEdit}
+														style={{
+															background: "transparent",
+															color: "#dc2626",
+															padding: 8,
+															borderRadius: 8,
+															border: "1px solid rgba(226,232,240,1)",
+															cursor: "pointer",
+															display: "flex",
+															gap: 8,
+															alignItems: "center",
+														}}
+													>
+														<X size={14} /> Cancel
+													</button>
+												</div>
 											</div>
-										</div>
-									)}
-								</TaskMain>
+										)}
+									</TaskMain>
 
-								<MoreWrap>
-									<MoreButton
-										onClick={() =>
-											setOpenDropdownFor((s) => (s === t.id ? null : t.id))
-										}
-										aria-haspopup
-									>
-										<MoreHorizontal size={16} />
-									</MoreButton>
+									<MoreWrap>
+										<MoreButton
+											onClick={() =>
+												setOpenDropdownFor((s) => (s === t.id ? null : t.id))
+											}
+											aria-haspopup
+										>
+											<MoreHorizontal size={16} />
+										</MoreButton>
 
-									{openDropdownFor === t.id && (
-										<Dropdown>
-											<DropdownItem
-												onClick={() => {
-													setOpenDropdownFor(null);
-													startEditInline(t.id);
-												}}
-											>
-												<Edit3 size={14} /> Edit
-											</DropdownItem>
+										{openDropdownFor === t.id && (
+											<Dropdown>
+												<DropdownItem
+													onClick={() => {
+														setOpenDropdownFor(null);
+														startEditInline(t.id);
+													}}
+												>
+													<Edit3 size={14} /> Edit
+												</DropdownItem>
 
-											<DropdownItem
-												onClick={() => {
-													setOpenDropdownFor(null);
-													deleteTask(t.id);
-												}}
-											>
-												<Trash2 size={14} /> Delete
-											</DropdownItem>
-										</Dropdown>
-									)}
-								</MoreWrap>
-							</TaskItem>
-						);
-					})
-				)}
-			</TaskList>
-		</Root>
+												<DropdownItem
+													onClick={() => {
+														setOpenDropdownFor(null);
+														deleteTask(t.id);
+													}}
+												>
+													<Trash2 size={14} /> Delete
+												</DropdownItem>
+											</Dropdown>
+										)}
+									</MoreWrap>
+								</TaskItem>
+							);
+						})
+					)}
+				</TaskList>
+			</Root>
+		</Container>
 	);
 }

@@ -111,6 +111,36 @@ export default function ChatInput({
 	const [reqTypeProvider, setReqTypeProvider] = useState<string | null>(null); // 'openai' | 'gemini'
 	const [reqTypeQuery, setReqTypeQuery] = useState("");
 	const [reqTypeActiveIndex, setReqTypeActiveIndex] = useState(0);
+	const [windowWidth, setWindowWidth] = useState(
+		typeof window !== "undefined" ? window.innerWidth : 1440,
+	);
+
+	useEffect(() => {
+		const handleResize = () => setWindowWidth(window.innerWidth);
+		window.addEventListener("resize", handleResize);
+		return () => window.removeEventListener("resize", handleResize);
+	}, []);
+
+	const getResponsiveSize = (base: number) => {
+		if (windowWidth <= 1220) return base * 0.7;
+		if (windowWidth >= 1920) return base * 1.1;
+		if (windowWidth >= 1440) return base * 0.8;
+		return base;
+	};
+
+	const getResponsiveFontSize = () => {
+		if (windowWidth <= 1220) return "11px";
+		if (windowWidth >= 1920) return "14px";
+		if (windowWidth >= 1440) return "12px";
+		return "14px";
+	};
+
+	const getInputFontSize = () => {
+		if (windowWidth <= 1220) return "14px";
+		if (windowWidth >= 1920) return "18px";
+		if (windowWidth >= 1440) return "15px";
+		return "14px";
+	};
 	const requestTypes = useMemo(
 		() => ["chat", "suggest", "explain", "refactor"],
 		[],
@@ -1050,19 +1080,29 @@ export default function ChatInput({
 	}, [onCancelEdit]);
 
 	return (
-		<Composer onSubmit={handleSubmit}>
+		<Composer
+			onSubmit={handleSubmit}
+			style={{
+				gap: `${getResponsiveSize(8)}px`,
+				padding: `${getResponsiveSize(10)}px`,
+				borderRadius: `0 0 ${getResponsiveSize(10)}px ${getResponsiveSize(10)}px`,
+			}}
+		>
 			<ReplyPreview replyTo={replyTo} onCancelReply={onCancelReply} />
 
 			<InputContainer
-				style={
-					editingMode
+				style={{
+					...(editingMode
 						? {
 								border: "2px solid rgba(59,130,246,0.5)",
-								borderRadius: 2,
+								borderRadius: getResponsiveSize(2),
 								position: "relative",
 							}
-						: { position: "relative" }
-				}
+						: { position: "relative" }),
+					gap: `${getResponsiveSize(8)}px`,
+					borderRadius: `${getResponsiveSize(10)}px`,
+					padding: `${getResponsiveSize(8)}px ${getResponsiveSize(16)}px`,
+				}}
 			>
 				<Input
 					ref={fileInputRef}
@@ -1075,8 +1115,12 @@ export default function ChatInput({
 
 				{/* Input area and Actions: actions pinned at bottom, content grows upward and scrolls */}
 				<div
-					className="flex w-full flex-col gap-2"
-					style={{ minWidth: 0, flex: 1 }}
+					className="flex w-full flex-col"
+					style={{
+						minWidth: 0,
+						flex: 1,
+						gap: `${getResponsiveSize(8)}px`,
+					}}
 				>
 					{/* Scrollable content area */}
 					<div
@@ -1099,6 +1143,9 @@ export default function ChatInput({
 							onInput={handleEditorInput}
 							onKeyDown={handleEditorKeyDown}
 							onPaste={handleEditorPaste}
+							style={{
+								fontSize: getInputFontSize(),
+							}}
 						/>
 
 						{/* Optional code editor appears below the input when triggered */}
@@ -1128,39 +1175,82 @@ export default function ChatInput({
 						{/* Mentions dropdown */}
 						{mentionVisible && mentionOptions.length > 0 && (
 							<div
-								className="absolute z-[10000] w-72 max-w-full overflow-hidden rounded-md border border-neutral-300 bg-white shadow-md"
-								style={{ bottom: 25, left: mentionPos.left }}
+								className="absolute z-[10000] max-w-full overflow-hidden rounded-md border border-neutral-300 bg-white shadow-md"
+								style={{
+									bottom: getResponsiveSize(25),
+									left: mentionPos.left,
+									width: `${getResponsiveSize(288)}px`,
+								}}
 							>
-								<div className="max-h-64 overflow-auto py-1 flex flex-col">
+								<div
+									className="max-h-64 overflow-auto flex flex-col"
+									style={{
+										paddingTop: `${getResponsiveSize(4)}px`,
+										paddingBottom: `${getResponsiveSize(4)}px`,
+									}}
+								>
 									{mentionOptions.map((m, idx) => (
 										<button
 											key={m.id}
 											type="button"
-											className={`flex w-full items-center gap-2 px-3 py-2 text-left text-sm ${idx === mentionActiveIndex ? "bg-neutral-100" : ""}`}
+											className={`flex w-full items-center text-left ${idx === mentionActiveIndex ? "bg-neutral-100" : ""}`}
+											style={{
+												gap: `${getResponsiveSize(8)}px`,
+												padding: `${getResponsiveSize(8)}px ${getResponsiveSize(12)}px`,
+												fontSize: getResponsiveFontSize(),
+											}}
 											onMouseDown={(ev) => {
-												// prevent editor blur
 												ev.preventDefault();
 												applyMention(m);
 											}}
 										>
 											{m.typeKind === "ai" ? (
-												<span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-indigo-500 text-white text-xs font-semibold">
+												<span
+													className="inline-flex items-center justify-center rounded-full bg-indigo-500 text-white font-semibold"
+													style={{
+														width: `${getResponsiveSize(24)}px`,
+														height: `${getResponsiveSize(24)}px`,
+														fontSize: getResponsiveFontSize(),
+													}}
+												>
 													AI
 												</span>
 											) : m.avatar ? (
 												<img
 													src={m.avatar}
 													alt={m.name}
-													className="h-6 w-6 rounded-full object-cover"
+													className="rounded-full object-cover"
+													style={{
+														width: `${getResponsiveSize(24)}px`,
+														height: `${getResponsiveSize(24)}px`,
+													}}
 												/>
 											) : (
-												<div className="h-6 w-6 rounded-full bg-neutral-300 dark:bg-neutral-700" />
+												<div
+													className="rounded-full bg-neutral-300 dark:bg-neutral-700"
+													style={{
+														width: `${getResponsiveSize(24)}px`,
+														height: `${getResponsiveSize(24)}px`,
+													}}
+												/>
 											)}
 											<span className="truncate">
 												{m.typeKind === "ai" ? `@${m.providerKey}` : m.name}
 											</span>
 											{m.typeKind === "ai" && (
-												<span className="ml-auto text-[10px] uppercase tracking-wide text-neutral-500">
+												<span
+													className="ml-auto uppercase tracking-wide text-neutral-500"
+													style={{
+														fontSize:
+															windowWidth <= 1220
+																? "9px"
+																: windowWidth >= 1920
+																	? "11px"
+																	: windowWidth >= 1440
+																		? "10px"
+																		: "10px",
+													}}
+												>
 													provider
 												</span>
 											)}
@@ -1172,23 +1262,44 @@ export default function ChatInput({
 
 						{reqTypeVisible && reqTypeProvider && (
 							<div
-								className="absolute z-[10001] w-64 max-w-full overflow-hidden rounded-md border border-neutral-300 bg-white shadow-md"
-								style={{ bottom: 25, left: mentionPos.left + 8 }}
+								className="absolute z-[10001] max-w-full overflow-hidden rounded-md border border-neutral-300 bg-white shadow-md"
+								style={{
+									bottom: getResponsiveSize(25),
+									left: mentionPos.left + getResponsiveSize(8),
+									width: `${getResponsiveSize(256)}px`, // 64*4 = 256
+								}}
 							>
-								<div className="border-b px-3 py-2 text-xs font-medium text-neutral-600">
+								<div
+									className="border-b font-medium text-neutral-600"
+									style={{
+										padding: `${getResponsiveSize(8)}px ${getResponsiveSize(12)}px`,
+										fontSize: getResponsiveFontSize(),
+									}}
+								>
 									@{reqTypeProvider}/
 									<span className="text-neutral-400">
 										{reqTypeQuery || "<type>"}
 									</span>
 								</div>
-								<div className="max-h-56 overflow-auto py-1 flex flex-col">
+								<div
+									className="max-h-56 overflow-auto flex flex-col"
+									style={{
+										paddingTop: `${getResponsiveSize(4)}px`,
+										paddingBottom: `${getResponsiveSize(4)}px`,
+									}}
+								>
 									{requestTypes
 										.filter((t) => t.startsWith(reqTypeQuery))
 										.map((t, idx) => (
 											<button
 												key={t}
 												type="button"
-												className={`flex w-full items-center gap-2 px-3 py-2 text-left text-sm ${idx === reqTypeActiveIndex ? "bg-neutral-100" : ""}`}
+												className={`flex w-full items-center text-left ${idx === reqTypeActiveIndex ? "bg-neutral-100" : ""}`}
+												style={{
+													gap: `${getResponsiveSize(8)}px`,
+													padding: `${getResponsiveSize(8)}px ${getResponsiveSize(12)}px`,
+													fontSize: getResponsiveFontSize(),
+												}}
 												onMouseDown={(ev) => {
 													ev.preventDefault();
 													applyRequestType(t);
@@ -1209,12 +1320,30 @@ export default function ChatInput({
 					</div>
 
 					{/* Actions bar at the bottom, wraps on small widths */}
-					<div className="flex flex-wrap items-center justify-between gap-2 pt-1">
-						<div className="flex flex-wrap items-center gap-2">
+					<div
+						className="flex flex-wrap items-center justify-between pt-1"
+						style={{
+							gap: `${getResponsiveSize(8)}px`,
+							paddingTop: `${getResponsiveSize(4)}px`,
+						}}
+					>
+						<div
+							className="flex flex-wrap items-center"
+							style={{
+								gap: `${getResponsiveSize(8)}px`,
+							}}
+						>
 							<ChatTypeDropdown
 								trigger={
-									<IconButton type="button" title="Attach">
-										<Plus size={20} />
+									<IconButton
+										type="button"
+										title="Attach"
+										style={{
+											padding: `${getResponsiveSize(4)}px`,
+											borderRadius: `${getResponsiveSize(4)}px`,
+										}}
+									>
+										<Plus size={getResponsiveSize(20)} />
 									</IconButton>
 								}
 								onChoose={handleChatTypeChoose}
@@ -1223,8 +1352,12 @@ export default function ChatInput({
 								type="button"
 								title="Insert code block (Ctrl+Shift+C)"
 								onClick={handleOpenCodeEditorClick}
+								style={{
+									padding: `${getResponsiveSize(4)}px`,
+									borderRadius: `${getResponsiveSize(4)}px`,
+								}}
 							>
-								<Code2 size={20} />
+								<Code2 size={getResponsiveSize(20)} />
 							</IconButton>
 							<div style={{ position: "relative" }}>
 								<IconButton
@@ -1232,8 +1365,12 @@ export default function ChatInput({
 									title="Emoji"
 									className="emoji-toggle"
 									onClick={handleEmojiToggle}
+									style={{
+										padding: `${getResponsiveSize(4)}px`,
+										borderRadius: `${getResponsiveSize(4)}px`,
+									}}
 								>
-									<Smile size={20} />
+									<Smile size={getResponsiveSize(20)} />
 								</IconButton>
 								<EmojiPicker
 									visible={emojiPickerVisible}
@@ -1246,8 +1383,12 @@ export default function ChatInput({
 									type="button"
 									title="Cancel edit"
 									onClick={handleCancelEditClick}
+									style={{
+										padding: `${getResponsiveSize(4)}px`,
+										borderRadius: `${getResponsiveSize(4)}px`,
+									}}
 								>
-									<CornerUpLeft size={18} />
+									<CornerUpLeft size={getResponsiveSize(18)} />
 								</IconButton>
 							)}
 						</div>
@@ -1263,9 +1404,13 @@ export default function ChatInput({
 										!(showCodeEditor && codeValue.trim().length > 0))
 							}
 							title={editingMode ? "Update message" : "Send message"}
-							style={{ marginLeft: 8 }}
+							style={{
+								marginLeft: getResponsiveSize(8),
+								padding: `${getResponsiveSize(4)}px`,
+								borderRadius: `${getResponsiveSize(4)}px`,
+							}}
 						>
-							<Send size={20} />
+							<Send size={getResponsiveSize(20)} />
 						</IconButton>
 					</div>
 				</div>

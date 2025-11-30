@@ -40,6 +40,7 @@ const MarkdownPreview = ({
 	directUserId,
 }: MarkdownPreviewProps) => {
 	const [remarkPlugins, setRemarkPlugins] = useState<any[]>([]);
+
 	const [previewImage, setPreviewImage] = useState<{
 		src: string;
 		alt?: string;
@@ -349,13 +350,18 @@ const MarkdownPreview = ({
 									<button
 										type="button"
 										onClick={() => handleImagePreview(src, alt)}
-										className="group mt-2 block w-full overflow-hidden rounded-lg border border-border bg-muted/10"
-										style={{ lineHeight: 0 }}
+										className="group mt-2 inline-block overflow-hidden rounded-lg border border-border bg-muted/10"
+										style={{
+											lineHeight: 0,
+											maxWidth: "250px",
+											maxHeight: "250px",
+										}}
 									>
 										<img
 											src={src}
 											alt={alt}
 											className="h-auto w-full object-contain transition-transform duration-200 group-hover:scale-[1.02]"
+											style={{ maxWidth: "250px", maxHeight: "250px" }}
 											loading="lazy"
 											{...p}
 										/>
@@ -408,12 +414,13 @@ const MarkdownPreview = ({
 								key={`${img.src}-${idx}`}
 								type="button"
 								onClick={() => handleImagePreview(img.src, img.alt)}
-								className="group block flex-1 basis-full overflow-hidden rounded-lg border border-border bg-muted/20 sm:basis-[calc(50%-0.75rem)] lg:basis-[calc(33.333%-0.75rem)]"
+								className="group block overflow-hidden rounded-lg border border-border bg-muted/20"
+								style={{ width: "250px", height: "250px" }}
 							>
 								<img
 									src={img.src}
 									alt={img.alt}
-									className="aspect-square w-full object-cover transition duration-200 group-hover:scale-[1.03]"
+									className="h-full w-full object-cover transition duration-200 group-hover:scale-[1.03]"
 									loading="lazy"
 								/>
 							</button>
@@ -422,36 +429,37 @@ const MarkdownPreview = ({
 				)}
 			</div>
 
-			{previewImage && typeof document !== "undefined"
-				? createPortal(
-						<div
-							className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/85"
-							onClick={() => setPreviewImage(null)}
+			{previewImage &&
+				typeof document !== "undefined" &&
+				createPortal(
+					<div
+						className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/85"
+						onClick={() => setPreviewImage(null)}
+					>
+						<button
+							type="button"
+							onClick={(e) => {
+								e.stopPropagation();
+								setPreviewImage(null);
+							}}
+							className="absolute right-6 top-6 rounded-full bg-black/70 p-2 text-white transition hover:bg-black/90"
 						>
-							<button
-								type="button"
-								onClick={(e) => {
-									e.stopPropagation();
-									setPreviewImage(null);
-								}}
-								className="absolute right-6 top-6 rounded-full bg-black/70 p-2 text-white transition hover:bg-black/90"
-							>
-								<X size={22} />
-							</button>
-							<div
-								className="flex h-full w-full items-center justify-center p-4"
-								onClick={(e) => e.stopPropagation()}
-							>
-								<img
-									src={previewImage.src}
-									alt={previewImage.alt}
-									className="block max-h-full max-w-full object-contain"
-								/>
-							</div>
-						</div>,
-						document.body,
-					)
-				: null}
+							<X size={22} />
+						</button>
+
+						<div
+							className="flex h-full w-full items-center justify-center p-4"
+							onClick={(e) => e.stopPropagation()}
+						>
+							<img
+								src={previewImage.src}
+								alt={previewImage.alt}
+								className="block max-h-full max-w-full object-contain"
+							/>
+						</div>
+					</div>,
+					document.body,
+				)}
 		</>
 	);
 };

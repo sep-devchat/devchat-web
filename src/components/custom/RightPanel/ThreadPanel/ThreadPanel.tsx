@@ -1,6 +1,11 @@
 import React from "react";
 import ChatInput from "@/components/custom/ChatInput/ChatInput";
-import { MessageInput, MessagesArea, PageWrapper } from "./ThreadPanel.styled";
+import {
+	MessageInput,
+	MessagesArea,
+	PageWrapper,
+	responsiveStyles,
+} from "./ThreadPanel.styled";
 import ThreadPanelHeader from "./parts/ThreadPanelHeader";
 import ThreadSummary from "./parts/ThreadSummary";
 import ThreadMessages from "./parts/ThreadMessages";
@@ -20,6 +25,7 @@ const ThreadPanel: React.FC<ThreadPanelProps> = (props) => {
 	if (isLoading) {
 		return (
 			<PageWrapper>
+				<div dangerouslySetInnerHTML={{ __html: responsiveStyles }}></div>
 				<ThreadPanelHeader onClose={props.onClose} />
 				<ThreadEmptyState message="Loading thread..." />
 			</PageWrapper>
@@ -37,6 +43,7 @@ const ThreadPanel: React.FC<ThreadPanelProps> = (props) => {
 
 	return (
 		<PageWrapper>
+			<div dangerouslySetInnerHTML={{ __html: responsiveStyles }}></div>
 			<ThreadPanelHeader onClose={props.onClose} />
 			<MessagesArea>
 				<ThreadSummary threadName={threadName} />

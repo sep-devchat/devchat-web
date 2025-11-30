@@ -42,6 +42,24 @@ export const UnreadBadge = styled.span`
 	display: flex;
 	align-items: center;
 	justify-content: center;
+
+	@media (max-width: 1220px) {
+		font-size: 6px;
+		width: calc(1rem * 0.7);
+		height: calc(1rem * 0.7);
+	}
+
+	@media (min-width: 1440px) {
+		font-size: 6px;
+		width: calc(1rem * 0.8);
+		height: calc(1rem * 0.8);
+	}
+
+	@media (min-width: 1920px) {
+		font-size: 9px;
+		width: calc(1rem * 1.1);
+		height: calc(1rem * 1.1);
+	}
 `;
 
 export const PopupWrapper = styled.div`
@@ -64,6 +82,21 @@ export const PopupWrapper = styled.div`
 		background-color: #1f2937;
 		border-color: #374151;
 	}
+
+	@media (max-width: 1220px) {
+		width: calc(24rem * 0.7);
+		max-height: calc(600px * 0.7);
+	}
+
+	@media (min-width: 1440px) {
+		width: calc(24rem * 0.8);
+		max-height: calc(600px * 0.8);
+	}
+
+	@media (min-width: 1920px) {
+		width: calc(24rem * 1.1);
+		max-height: calc(600px * 1.1);
+	}
 `;
 
 export const PopupHeader = styled.div`
@@ -76,6 +109,18 @@ export const PopupHeader = styled.div`
 	.dark & {
 		border-color: #374151;
 	}
+
+	@media (max-width: 1220px) {
+		padding: calc(1rem * 0.7);
+	}
+
+	@media (min-width: 1440px) {
+		padding: calc(1rem * 0.8);
+	}
+
+	@media (min-width: 1920px) {
+		padding: calc(1rem * 1.1);
+	}
 `;
 
 export const PopupTitle = styled.h3`
@@ -85,6 +130,18 @@ export const PopupTitle = styled.h3`
 
 	.dark & {
 		color: white;
+	}
+
+	@media (max-width: 1220px) {
+		font-size: 14px;
+	}
+
+	@media (min-width: 1440px) {
+		font-size: 15px;
+	}
+
+	@media (min-width: 1920px) {
+		font-size: 18px;
 	}
 `;
 
@@ -102,6 +159,18 @@ export const MarkAllButton = styled.button`
 	&:focus {
 		outline: none;
 	}
+
+	@media (max-width: 1220px) {
+		font-size: 12px;
+	}
+
+	@media (min-width: 1440px) {
+		font-size: 13px;
+	}
+
+	@media (min-width: 1920px) {
+		font-size: 16px;
+	}
 `;
 
 export const NotificationList = styled.div`
@@ -117,6 +186,18 @@ export const EmptyState = styled.div`
 	.dark & {
 		color: #9ca3af;
 	}
+
+	@media (max-width: 1220px) {
+		padding: calc(2rem * 0.7);
+	}
+
+	@media (min-width: 1440px) {
+		padding: calc(2rem * 0.8);
+	}
+
+	@media (min-width: 1920px) {
+		padding: calc(2rem * 1.1);
+	}
 `;
 
 export const EmptyIcon = styled.div`
@@ -124,6 +205,21 @@ export const EmptyIcon = styled.div`
 	height: 3rem;
 	margin: 0 auto 0.75rem;
 	opacity: 0.5;
+
+	@media (max-width: 1220px) {
+		width: calc(3rem * 0.7);
+		height: calc(3rem * 0.7);
+	}
+
+	@media (min-width: 1440px) {
+		width: calc(3rem * 0.8);
+		height: calc(3rem * 0.8);
+	}
+
+	@media (min-width: 1920px) {
+		width: calc(3rem * 1.1);
+		height: calc(3rem * 1.1);
+	}
 `;
 
 export const NotificationItem = styled.div<{ $isRead: boolean }>`
@@ -145,6 +241,18 @@ export const NotificationItem = styled.div<{ $isRead: boolean }>`
 		&:hover {
 			background-color: rgba(55, 65, 81, 0.5);
 		}
+	}
+
+	@media (max-width: 1220px) {
+		padding: calc(1rem * 0.7);
+	}
+
+	@media (min-width: 1440px) {
+		padding: calc(1rem * 0.8);
+	}
+
+	@media (min-width: 1920px) {
+		padding: calc(1rem * 1.1);
 	}
 `;
 
@@ -172,6 +280,18 @@ export const NotificationTitle = styled.p`
 	.dark & {
 		color: white;
 	}
+
+	@media (max-width: 1220px) {
+		font-size: 12px;
+	}
+
+	@media (min-width: 1440px) {
+		font-size: 13px;
+	}
+
+	@media (min-width: 1920px) {
+		font-size: 16px;
+	}
 `;
 
 export const NotificationMessage = styled.p`
@@ -182,6 +302,18 @@ export const NotificationMessage = styled.p`
 	.dark & {
 		color: #d1d5db;
 	}
+
+	@media (max-width: 1220px) {
+		font-size: 12px;
+	}
+
+	@media (min-width: 1440px) {
+		font-size: 13px;
+	}
+
+	@media (min-width: 1920px) {
+		font-size: 16px;
+	}
 `;
 
 export const NotificationTime = styled.p`
@@ -191,6 +323,18 @@ export const NotificationTime = styled.p`
 
 	.dark & {
 		color: #9ca3af;
+	}
+
+	@media (max-width: 1220px) {
+		font-size: 11px;
+	}
+
+	@media (min-width: 1440px) {
+		font-size: 12px;
+	}
+
+	@media (min-width: 1920px) {
+		font-size: 14px;
 	}
 `;
 
@@ -216,6 +360,21 @@ export const AcceptButton = styled.button`
 	}
 	&:focus {
 		outline: none;
+	}
+
+	@media (max-width: 1220px) {
+		padding: calc(0.5rem * 0.7) calc(1rem * 0.7);
+		font-size: 12px;
+	}
+
+	@media (min-width: 1440px) {
+		padding: calc(0.5rem * 0.8) calc(1rem * 0.8);
+		font-size: 13px;
+	}
+
+	@media (min-width: 1920px) {
+		padding: calc(0.5rem * 1.1) calc(1rem * 1.1);
+		font-size: 16px;
 	}
 `;
 
@@ -245,6 +404,21 @@ export const DeclineButton = styled.button`
 			background-color: #4b5563;
 		}
 	}
+
+	@media (max-width: 1220px) {
+		padding: calc(0.5rem * 0.7) calc(1rem * 0.7);
+		font-size: 12px;
+	}
+
+	@media (min-width: 1440px) {
+		padding: calc(0.5rem * 0.8) calc(1rem * 0.8);
+		font-size: 13px;
+	}
+
+	@media (min-width: 1920px) {
+		padding: calc(0.5rem * 1.1) calc(1rem * 1.1);
+		font-size: 16px;
+	}
 `;
 
 export const ViewDetailsButton = styled.button`
@@ -264,6 +438,21 @@ export const ViewDetailsButton = styled.button`
 	&:focus {
 		outline: none;
 	}
+
+	@media (max-width: 1220px) {
+		padding: calc(0.5rem * 0.7) calc(1rem * 0.7);
+		font-size: 12px;
+	}
+
+	@media (min-width: 1440px) {
+		padding: calc(0.5rem * 0.8) calc(1rem * 0.8);
+		font-size: 13px;
+	}
+
+	@media (min-width: 1920px) {
+		padding: calc(0.5rem * 1.1) calc(1rem * 1.1);
+		font-size: 16px;
+	}
 `;
 
 export const DeleteButton = styled.button`
@@ -282,6 +471,18 @@ export const DeleteButton = styled.button`
 	&:focus {
 		outline: none;
 	}
+
+	@media (max-width: 1220px) {
+		padding: calc(0.25rem * 0.7);
+	}
+
+	@media (min-width: 1440px) {
+		padding: calc(0.25rem * 0.8);
+	}
+
+	@media (min-width: 1920px) {
+		padding: calc(0.25rem * 1.1);
+	}
 `;
 
 export const PopupFooter = styled.div`
@@ -292,6 +493,18 @@ export const PopupFooter = styled.div`
 	.dark & {
 		border-color: #374151;
 	}
+
+	@media (max-width: 1220px) {
+		padding: calc(0.75rem * 0.7);
+	}
+
+	@media (min-width: 1440px) {
+		padding: calc(0.75rem * 0.8);
+	}
+
+	@media (min-width: 1920px) {
+		padding: calc(0.75rem * 1.1);
+	}
 `;
 
 export const FooterMessage = styled.span`
@@ -300,5 +513,17 @@ export const FooterMessage = styled.span`
 
 	.dark & {
 		color: #9ca3af;
+	}
+
+	@media (max-width: 1220px) {
+		font-size: 11px;
+	}
+
+	@media (min-width: 1440px) {
+		font-size: 12px;
+	}
+
+	@media (min-width: 1920px) {
+		font-size: 14px;
 	}
 `;

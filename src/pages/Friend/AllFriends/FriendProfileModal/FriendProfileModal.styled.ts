@@ -51,6 +51,21 @@ export const Avatar = styled.img`
 	border: 5px solid white;
 	object-fit: cover;
 	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+
+	@media (max-width: 1220px) {
+		width: 80px;
+		height: 80px;
+	}
+
+	@media (min-width: 1440px) and (max-width: 1919px) {
+		width: 100px;
+		height: 100px;
+	}
+
+	@media (min-width: 1920px) {
+		width: 120px;
+		height: 120px;
+	}
 `;
 
 export const UserName = styled.h2`
@@ -59,6 +74,18 @@ export const UserName = styled.h2`
 	font-weight: 600;
 	color: #1f2937;
 	text-align: center;
+
+	@media (max-width: 1220px) {
+		font-size: 16px;
+	}
+
+	@media (min-width: 1440px) and (max-width: 1919px) {
+		font-size: 18px;
+	}
+
+	@media (min-width: 1920px) {
+		font-size: 20px;
+	}
 `;
 
 export const Username = styled.p`
@@ -66,6 +93,18 @@ export const Username = styled.p`
 	font-size: 14px;
 	color: #6b7280;
 	text-align: center;
+
+	@media (max-width: 1220px) {
+		font-size: 12px;
+	}
+
+	@media (min-width: 1440px) and (max-width: 1919px) {
+		font-size: 14px;
+	}
+
+	@media (min-width: 1920px) {
+		font-size: 16px;
+	}
 `;
 
 export const StatusBadge = styled.span<{ $isActive: boolean }>`

@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight, Calendar, X } from "lucide-react";
-import { Button } from "@/components/ui/button";
+// import { Button } from "@/components/ui/button";
 
 const DISABLED_BG = "#ffffff";
 const DISABLED_OPACITY = 0.6;
@@ -104,6 +104,7 @@ const CustomDatePicker: React.FC<{
 	return (
 		<>
 			<div
+				className="datepicker-wrapper"
 				style={{
 					position: "relative",
 					width: "100%",
@@ -115,13 +116,11 @@ const CustomDatePicker: React.FC<{
 					value={formatDisplayDate(value)}
 					onClick={() => !disabled && setIsOpen(!isOpen)}
 					readOnly
+					className="datepicker-input"
 					style={{
 						width: "100%",
-						height: "43px",
-						padding: "12px 40px 12px 16px",
 						border: `1.5px solid ${isOpen ? "#133e87" : "#e5e7eb"}`,
 						borderRadius: "10px",
-						fontSize: "14px",
 						color: "#1f2937",
 						background: disabled ? DISABLED_BG : "white",
 						cursor: disabled ? "not-allowed" : "pointer",
@@ -136,9 +135,9 @@ const CustomDatePicker: React.FC<{
 						onClick={handleClear}
 						aria-label="Clear date"
 						title="Clear date"
+						className="clear-date-btn"
 						style={{
 							position: "absolute",
-							right: "44px",
 							top: "50%",
 							transform: "translateY(-50%)",
 							border: "none",
@@ -152,7 +151,7 @@ const CustomDatePicker: React.FC<{
 							zIndex: 1,
 						}}
 					>
-						<X size={16} />
+						<X className="icon-size" />
 					</button>
 				)}
 
@@ -171,7 +170,7 @@ const CustomDatePicker: React.FC<{
 						padding: 4,
 					}}
 				>
-					<Calendar size={18} />
+					<Calendar className="icon-size" />
 				</div>
 			</div>
 
@@ -192,6 +191,7 @@ const CustomDatePicker: React.FC<{
 					/>
 
 					<div
+						className="datepicker-modal"
 						style={{
 							position: "fixed",
 							top: "50%",
@@ -200,14 +200,12 @@ const CustomDatePicker: React.FC<{
 							background: "white",
 							borderRadius: "16px",
 							zIndex: 10001,
-							padding: "24px",
-							minWidth: "360px",
 							maxWidth: "90vw",
 							boxShadow: "0 20px 60px rgba(0, 0, 0, 0.3)",
 							animation: "slideIn 0.3s ease",
 						}}
 					>
-						<div style={{ marginBottom: "24px" }}>
+						<div className="modal-header" style={{ marginBottom: "24px" }}>
 							<div
 								style={{
 									display: "flex",
@@ -216,7 +214,7 @@ const CustomDatePicker: React.FC<{
 									marginBottom: "12px",
 								}}
 							>
-								<Button
+								<button
 									onClick={() =>
 										setCurrentMonth(
 											new Date(
@@ -242,18 +240,18 @@ const CustomDatePicker: React.FC<{
 										(e.currentTarget.style.background = "transparent")
 									}
 								>
-									<ChevronLeft size={20} />
-								</Button>
+									<ChevronLeft className="nav-icon" />
+								</button>
 								<div
+									className="month-year"
 									style={{
-										fontSize: "18px",
 										fontWeight: 600,
 										color: "#1f2937",
 									}}
 								>
 									{monthYear}
 								</div>
-								<Button
+								<button
 									onClick={() =>
 										setCurrentMonth(
 											new Date(
@@ -279,12 +277,12 @@ const CustomDatePicker: React.FC<{
 										(e.currentTarget.style.background = "transparent")
 									}
 								>
-									<ChevronRight size={20} />
-								</Button>
+									<ChevronRight className="nav-icon" />
+								</button>
 							</div>
 							<div
+								className="subtitle"
 								style={{
-									fontSize: "13px",
 									color: "#6b7280",
 									textAlign: "center",
 								}}
@@ -304,12 +302,11 @@ const CustomDatePicker: React.FC<{
 							{["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map((d) => (
 								<div
 									key={d}
+									className="weekday-label"
 									style={{
-										fontSize: "12px",
 										fontWeight: 600,
 										color: "#6b7280",
 										textAlign: "center",
-										padding: "8px 0",
 									}}
 								>
 									{d}
@@ -342,9 +339,8 @@ const CustomDatePicker: React.FC<{
 												handleDateClick(dayInfo.date);
 											}
 										}}
+										className="day-cell"
 										style={{
-											padding: "10px",
-											fontSize: "14px",
 											textAlign: "center",
 											borderRadius: "8px",
 											cursor:

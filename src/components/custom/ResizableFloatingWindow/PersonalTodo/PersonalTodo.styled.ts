@@ -26,6 +26,18 @@ export const SearchInput = styled.input`
 	font-size: 14px;
 	color: #0f172a;
 	width: 100%;
+
+	@media (max-width: 1220px) {
+		font-size: 14px;
+	}
+
+	@media (min-width: 1440px) and (max-width: 1919px) {
+		font-size: 15px;
+	}
+
+	@media (min-width: 1920px) {
+		font-size: 18px;
+	}
 `;
 
 export const AddBtn = styled.button`
@@ -124,6 +136,18 @@ export const TaskDesc = styled.div`
 	font-size: 13px;
 	color: #64748b;
 	margin-top: 6px;
+
+	@media (max-width: 1220px) {
+		font-size: 12px;
+	}
+
+	@media (min-width: 1440px) and (max-width: 1919px) {
+		font-size: 13px;
+	}
+
+	@media (min-width: 1920px) {
+		font-size: 16px;
+	}
 `;
 
 export const Meta = styled.div`
@@ -132,6 +156,18 @@ export const Meta = styled.div`
 	color: #64748b;
 	display: flex;
 	gap: 16px;
+
+	@media (max-width: 1220px) {
+		font-size: 11px;
+	}
+
+	@media (min-width: 1440px) and (max-width: 1919px) {
+		font-size: 12px;
+	}
+
+	@media (min-width: 1920px) {
+		font-size: 14px;
+	}
 `;
 
 export const IconBtn = styled.button<{ danger?: boolean }>`
@@ -142,7 +178,6 @@ export const IconBtn = styled.button<{ danger?: boolean }>`
 	cursor: pointer;
 `;
 
-/* NEW: priority badge */
 export const PriorityBadge = styled.span<{ level?: number }>`
 	display: inline-flex;
 	align-items: center;
@@ -154,6 +189,18 @@ export const PriorityBadge = styled.span<{ level?: number }>`
 	color: #fff;
 	background: ${(p) =>
 		p.level === 1 ? "#dc2626" : p.level === 2 ? "#f97316" : "#64748b"};
+
+	@media (max-width: 1220px) {
+		font-size: 11px;
+	}
+
+	@media (min-width: 1440px) and (max-width: 1919px) {
+		font-size: 12px;
+	}
+
+	@media (min-width: 1920px) {
+		font-size: 14px;
+	}
 `;
 
 /* NEW: three-dot dropdown */
@@ -212,4 +259,24 @@ export const DragHandle = styled.div`
 	border-radius: 6px;
 	cursor: grab;
 	color: #94a3b8;
+`;
+
+export const Container = styled.div`
+	@media (max-width: 1220px) {
+		transform: scale(0.7);
+		transform-origin: top left;
+		width: 142.857%;
+	}
+
+	@media (min-width: 1440px) and (max-width: 1919px) {
+		transform: scale(0.8);
+		transform-origin: top left;
+		width: 125%;
+	}
+
+	@media (min-width: 1920px) {
+		transform: scale(1.1);
+		transform-origin: top left;
+		width: 90.909%;
+	}
 `;

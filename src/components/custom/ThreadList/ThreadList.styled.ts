@@ -7,6 +7,26 @@ export const DropdownOverlay = styled.div`
 	right: 0;
 	bottom: 0;
 	z-index: 999;
+	@media (max-width: 1220px) {
+		margin-top: 5.6px;
+		max-width: 280px;
+		max-height: 420px;
+		border-radius: 8.4px;
+	}
+
+	@media (min-width: 1440px) and (max-width: 1919px) {
+		margin-top: 6.4px;
+		max-width: 340px;
+		max-height: 480px;
+		border-radius: 9.6px;
+	}
+
+	@media (min-width: 1920px) {
+		margin-top: 8.8px;
+		max-width: 440px;
+		max-height: 660px;
+		border-radius: 13.2px;
+	}
 `;
 
 export const ThreadDropdown = styled.div`
@@ -23,6 +43,21 @@ export const ThreadDropdown = styled.div`
 	flex-direction: column;
 	z-index: 1000;
 	overflow: hidden;
+
+	@media (max-width: 1220px) {
+		width: 380px;
+		max-height: 400px;
+	}
+
+	@media (min-width: 1440px) and (max-width: 1919px) {
+		width: 480px;
+		max-height: 600px;
+	}
+
+	@media (min-width: 1920px) {
+		width: 520px;
+		max-height: 660px;
+	}
 `;
 
 export const DropdownHeader = styled.div`
@@ -32,6 +67,21 @@ export const DropdownHeader = styled.div`
 	align-items: center;
 	gap: 10px;
 	background: white;
+
+	@media (max-width: 1220px) {
+		padding: 11.2px 14px;
+		gap: 7px;
+	}
+
+	@media (min-width: 1440px) and (max-width: 1919px) {
+		padding: 12.8px 16px;
+		gap: 8px;
+	}
+
+	@media (min-width: 1920px) {
+		padding: 17.6px 22px;
+		gap: 11px;
+	}
 `;
 
 export const HeaderIcon = styled.div`
@@ -47,6 +97,18 @@ export const Title = styled.h2`
 	color: #111827;
 	margin: 0;
 	flex: 1;
+
+	@media (max-width: 1220px) {
+		font-size: 14px;
+	}
+
+	@media (min-width: 1440px) and (max-width: 1919px) {
+		font-size: 15px;
+	}
+
+	@media (min-width: 1920px) {
+		font-size: 18px;
+	}
 `;
 
 export const CloseButton = styled.button`
@@ -65,18 +127,57 @@ export const CloseButton = styled.button`
 		background: #f3f4f6;
 		color: #111827;
 	}
+
+	@media (max-width: 1220px) {
+		padding: 2.8px;
+		border-radius: 2.8px;
+	}
+
+	@media (min-width: 1440px) and (max-width: 1919px) {
+		padding: 3.2px;
+		border-radius: 3.2px;
+	}
+
+	@media (min-width: 1920px) {
+		padding: 4.4px;
+		border-radius: 4.4px;
+	}
 `;
 
 export const SearchContainer = styled.div`
 	padding: 12px 16px;
 	border-bottom: 1px solid #e5e7eb;
 	background: white;
+
+	@media (max-width: 1220px) {
+		padding: 8.4px 11.2px;
+	}
+
+	@media (min-width: 1440px) and (max-width: 1919px) {
+		padding: 9.6px 12.8px;
+	}
+
+	@media (min-width: 1920px) {
+		padding: 13.2px 17.6px;
+	}
 `;
 
 export const SearchWrapper = styled.div`
 	position: relative;
 	display: flex;
 	gap: 8px;
+
+	@media (max-width: 1220px) {
+		gap: 5.6px;
+	}
+
+	@media (min-width: 1440px) and (max-width: 1919px) {
+		gap: 6.4px;
+	}
+
+	@media (min-width: 1920px) {
+		gap: 8.8px;
+	}
 `;
 
 export const SearchInput = styled.input`
@@ -96,6 +197,24 @@ export const SearchInput = styled.input`
 		border-color: #133e87;
 		box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
 	}
+
+	@media (max-width: 1220px) {
+		padding: 5.6px 8.4px 5.6px 25.2px;
+		border-radius: 4.2px;
+		font-size: 12px;
+	}
+
+	@media (min-width: 1440px) and (max-width: 1919px) {
+		padding: 6.4px 9.6px 6.4px 28.8px;
+		border-radius: 4.8px;
+		font-size: 13px;
+	}
+
+	@media (min-width: 1920px) {
+		padding: 8.8px 13.2px 8.8px 39.6px;
+		border-radius: 6.6px;
+		font-size: 16px;
+	}
 `;
 
 export const SearchIcon = styled.div`
@@ -105,6 +224,18 @@ export const SearchIcon = styled.div`
 	transform: translateY(-50%);
 	color: #9ca3af;
 	pointer-events: none;
+
+	@media (max-width: 1220px) {
+		left: 8.4px;
+	}
+
+	@media (min-width: 1440px) and (max-width: 1919px) {
+		left: 9.6px;
+	}
+
+	@media (min-width: 1920px) {
+		left: 13.2px;
+	}
 `;
 
 export const CreateButton = styled.button`
@@ -125,6 +256,24 @@ export const CreateButton = styled.button`
 
 	&:active {
 		transform: scale(0.98);
+	}
+
+	@media (max-width: 1220px) {
+		padding: 5.6px 11.2px;
+		border-radius: 4.2px;
+		font-size: 12px;
+	}
+
+	@media (min-width: 1440px) and (max-width: 1919px) {
+		padding: 6.4px 12.8px;
+		border-radius: 4.8px;
+		font-size: 13px;
+	}
+
+	@media (min-width: 1920px) {
+		padding: 8.8px 17.6px;
+		border-radius: 6.6px;
+		font-size: 16px;
 	}
 `;
 
@@ -151,6 +300,57 @@ export const ThreadsSection = styled.div`
 	&::-webkit-scrollbar-thumb:hover {
 		background: #9ca3af;
 	}
+
+	@media (max-width: 1220px) {
+		padding: 11.2px;
+		max-height: 315px;
+
+		&::-webkit-scrollbar {
+			width: 5.6px;
+		}
+
+		&::-webkit-scrollbar-track {
+			border-radius: 2.8px;
+		}
+
+		&::-webkit-scrollbar-thumb {
+			border-radius: 2.8px;
+		}
+	}
+
+	@media (min-width: 1440px) and (max-width: 1919px) {
+		padding: 12.8px;
+		max-height: 360px;
+
+		&::-webkit-scrollbar {
+			width: 6.4px;
+		}
+
+		&::-webkit-scrollbar-track {
+			border-radius: 3.2px;
+		}
+
+		&::-webkit-scrollbar-thumb {
+			border-radius: 3.2px;
+		}
+	}
+
+	@media (min-width: 1920px) {
+		padding: 17.6px;
+		max-height: 495px;
+
+		&::-webkit-scrollbar {
+			width: 8.8px;
+		}
+
+		&::-webkit-scrollbar-track {
+			border-radius: 4.4px;
+		}
+
+		&::-webkit-scrollbar-thumb {
+			border-radius: 4.4px;
+		}
+	}
 `;
 
 export const SectionTitle = styled.div`
@@ -160,12 +360,42 @@ export const SectionTitle = styled.div`
 	text-transform: uppercase;
 	margin-bottom: 12px;
 	letter-spacing: 0.5px;
+
+	@media (max-width: 1220px) {
+		font-size: 11px;
+		margin-bottom: 8.4px;
+		letter-spacing: 0.35px;
+	}
+
+	@media (min-width: 1440px) and (max-width: 1919px) {
+		font-size: 12px;
+		margin-bottom: 9.6px;
+		letter-spacing: 0.4px;
+	}
+
+	@media (min-width: 1920px) {
+		font-size: 14px;
+		margin-bottom: 13.2px;
+		letter-spacing: 0.55px;
+	}
 `;
 
 export const ThreadsList = styled.div`
 	display: flex;
 	flex-direction: column;
 	gap: 8px;
+
+	@media (max-width: 1220px) {
+		gap: 5.6px;
+	}
+
+	@media (min-width: 1440px) and (max-width: 1919px) {
+		gap: 6.4px;
+	}
+
+	@media (min-width: 1920px) {
+		gap: 8.8px;
+	}
 `;
 
 export const ThreadItem = styled.div<{ isActive?: boolean }>`
@@ -180,6 +410,21 @@ export const ThreadItem = styled.div<{ isActive?: boolean }>`
 		border-color: #133e87;
 		background: #f9fafb;
 	}
+
+	@media (max-width: 1220px) {
+		padding: 8.4px;
+		border-radius: 5.6px;
+	}
+
+	@media (min-width: 1440px) and (max-width: 1919px) {
+		padding: 9.6px;
+		border-radius: 6.4px;
+	}
+
+	@media (min-width: 1920px) {
+		padding: 13.2px;
+		border-radius: 8.8px;
+	}
 `;
 
 export const ThreadItemHeader = styled.div`
@@ -187,6 +432,18 @@ export const ThreadItemHeader = styled.div`
 	align-items: flex-start;
 	justify-content: space-between;
 	margin-bottom: 8px;
+
+	@media (max-width: 1220px) {
+		margin-bottom: 5.6px;
+	}
+
+	@media (min-width: 1440px) and (max-width: 1919px) {
+		margin-bottom: 6.4px;
+	}
+
+	@media (min-width: 1920px) {
+		margin-bottom: 8.8px;
+	}
 `;
 
 export const ThreadInfo = styled.div`
@@ -202,6 +459,21 @@ export const ThreadName = styled.div`
 	white-space: nowrap;
 	overflow: hidden;
 	text-overflow: ellipsis;
+
+	@media (max-width: 1220px) {
+		font-size: 12px;
+		margin-bottom: 2.8px;
+	}
+
+	@media (min-width: 1440px) and (max-width: 1919px) {
+		font-size: 13px;
+		margin-bottom: 3.2px;
+	}
+
+	@media (min-width: 1920px) {
+		font-size: 16px;
+		margin-bottom: 4.4px;
+	}
 `;
 
 export const ThreadMeta = styled.div`
@@ -210,12 +482,39 @@ export const ThreadMeta = styled.div`
 	gap: 8px;
 	font-size: 12px;
 	color: #6b7280;
+
+	@media (max-width: 1220px) {
+		gap: 5.6px;
+		font-size: 11px;
+	}
+
+	@media (min-width: 1440px) and (max-width: 1919px) {
+		gap: 6.4px;
+		font-size: 12px;
+	}
+
+	@media (min-width: 1920px) {
+		gap: 8.8px;
+		font-size: 14px;
+	}
 `;
 
 export const AuthorInfo = styled.div`
 	display: flex;
 	align-items: center;
 	gap: 4px;
+
+	@media (max-width: 1220px) {
+		gap: 2.8px;
+	}
+
+	@media (min-width: 1440px) and (max-width: 1919px) {
+		gap: 3.2px;
+	}
+
+	@media (min-width: 1920px) {
+		gap: 4.4px;
+	}
 `;
 
 export const AuthorIcon = styled.div`
@@ -227,6 +526,21 @@ export const AuthorIcon = styled.div`
 	align-items: center;
 	justify-content: center;
 	flex-shrink: 0;
+
+	@media (max-width: 1220px) {
+		width: 11.2px;
+		height: 11.2px;
+	}
+
+	@media (min-width: 1440px) and (max-width: 1919px) {
+		width: 12.8px;
+		height: 12.8px;
+	}
+
+	@media (min-width: 1920px) {
+		width: 17.6px;
+		height: 17.6px;
+	}
 `;
 
 export const AuthorIconInner = styled.div`
@@ -234,6 +548,21 @@ export const AuthorIconInner = styled.div`
 	height: 8px;
 	border-radius: 50%;
 	background: white;
+
+	@media (max-width: 1220px) {
+		width: 5.6px;
+		height: 5.6px;
+	}
+
+	@media (min-width: 1440px) and (max-width: 1919px) {
+		width: 6.4px;
+		height: 6.4px;
+	}
+
+	@media (min-width: 1920px) {
+		width: 8.8px;
+		height: 8.8px;
+	}
 `;
 
 export const AuthorName = styled.span`
@@ -252,24 +581,75 @@ export const ThreadDescription = styled.div`
 	-webkit-line-clamp: 2;
 	-webkit-box-orient: vertical;
 	overflow: hidden;
+
+	@media (max-width: 1220px) {
+		font-size: 12px;
+	}
+
+	@media (min-width: 1440px) and (max-width: 1919px) {
+		font-size: 13px;
+	}
+
+	@media (min-width: 1920px) {
+		font-size: 15px;
+	}
 `;
 
 export const EmptyState = styled.div`
 	padding: 40px 20px;
 	text-align: center;
 	color: #9ca3af;
+
+	@media (max-width: 1220px) {
+		padding: 28px 14px;
+	}
+
+	@media (min-width: 1440px) and (max-width: 1919px) {
+		padding: 32px 16px;
+	}
+
+	@media (min-width: 1920px) {
+		padding: 44px 22px;
+	}
 `;
 
 export const EmptyIcon = styled.div`
 	font-size: 48px;
 	margin-bottom: 16px;
 	opacity: 0.5;
+
+	@media (max-width: 1220px) {
+		font-size: 33.6px;
+		margin-bottom: 11.2px;
+	}
+
+	@media (min-width: 1440px) and (max-width: 1919px) {
+		font-size: 38.4px;
+		margin-bottom: 12.8px;
+	}
+
+	@media (min-width: 1920px) {
+		font-size: 52.8px;
+		margin-bottom: 17.6px;
+	}
 `;
 
 export const EmptyText = styled.p`
 	font-size: 14px;
 	color: #6b7280;
 	margin: 0;
+
+	@media (max-width: 1220px) {
+		font-size: 12px;
+	}
+
+	@media (min-width: 1440px) and (max-width: 1919px) {
+		font-size: 13px;
+	}
+
+	@media (min-width: 1920px) {
+		font-size: 16px;
+	}
 `;
 
 export const EditButton = styled.button`
@@ -304,6 +684,21 @@ export const EditButton = styled.button`
 	&:focus {
 		outline: none;
 	}
+
+	@media (max-width: 1220px) {
+		padding: 2.8px;
+		border-radius: 2.8px;
+	}
+
+	@media (min-width: 1440px) and (max-width: 1919px) {
+		padding: 3.2px;
+		border-radius: 3.2px;
+	}
+
+	@media (min-width: 1920px) {
+		padding: 4.4px;
+		border-radius: 4.4px;
+	}
 `;
 
 export const DeleteButton = styled.button`
@@ -330,5 +725,20 @@ export const DeleteButton = styled.button`
 
 	&:focus {
 		outline: none;
+	}
+
+	@media (max-width: 1220px) {
+		padding: 2.8px;
+		border-radius: 2.8px;
+	}
+
+	@media (min-width: 1440px) and (max-width: 1919px) {
+		padding: 3.2px;
+		border-radius: 3.2px;
+	}
+
+	@media (min-width: 1920px) {
+		padding: 4.4px;
+		border-radius: 4.4px;
 	}
 `;

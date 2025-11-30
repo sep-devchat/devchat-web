@@ -43,16 +43,14 @@ const MessageActions: React.FC<MessageActionsProps> = ({
 }) => {
 	return (
 		<div
-			className={`flex gap-2 items-center opacity-0 group-hover:opacity-100 transition`}
+			className={`flex gap-2 items-center opacity-0 group-hover:opacity-100 transition max-[1220px]:gap-[5.6px] min-[1440px]:gap-[6.4px] min-[1920px]:gap-[8.8px]`}
 		>
 			<DropdownMenu>
 				<DropdownMenuTrigger asChild>
 					<button
-						className="text-sm px-2 py-1 rounded hover:bg-muted"
+						className="text-sm px-2 py-1 rounded hover:bg-muted max-[1220px]:text-[11px] max-[1220px]:px-[5.6px] max-[1220px]:py-[2.8px] max-[1220px]:rounded-[4.2px] min-[1440px]:text-[12px] min-[1440px]:px-[6.4px] min-[1440px]:py-[3.2px] min-[1440px]:rounded-[4.8px] min-[1920px]:text-[14px] min-[1920px]:px-[8.8px] min-[1920px]:py-[4.4px] min-[1920px]:rounded-[6.6px]"
 						onClick={(e) => {
-							// stop propagation để không trigger click on message
 							e.stopPropagation();
-							// vẫn dùng hoveredMessageId nếu bạn cần tracking (optional)
 							setHoveredMessageId(
 								hoveredMessageId === `menu-${m.id}` ? null : `menu-${m.id}`,
 							);
@@ -65,17 +63,16 @@ const MessageActions: React.FC<MessageActionsProps> = ({
 
 				<DropdownMenuContent
 					side="bottom"
-					align="end"
-					className="w-40"
+					align="start"
+					className="w-40 max-[1220px]:w-[112px] min-[1440px]:w-[128px] min-[1920px]:w-[176px]"
 					onClick={(e) => e.stopPropagation()}
 				>
-					{/* Thread action: show Open if exists else Create (only owner can create) */}
 					{showThreadAction &&
 						(existingThreadId ? (
 							<DropdownMenuItem
-								className="px-3 py-2 cursor-pointer"
+								className="px-3 py-2 cursor-pointer max-[1220px]:px-[8.4px] max-[1220px]:py-[5.6px] max-[1220px]:text-[11px] min-[1440px]:px-[9.6px] min-[1440px]:py-[6.4px] min-[1440px]:text-[12px] min-[1920px]:px-[13.2px] min-[1920px]:py-[8.8px] min-[1920px]:text-[14px]"
 								onSelect={() => {
-									handleCreateThread(m); // will early-return with toast for open
+									handleCreateThread(m);
 									setHoveredMessageId(null);
 								}}
 							>
@@ -84,7 +81,7 @@ const MessageActions: React.FC<MessageActionsProps> = ({
 						) : (
 							isCurrentUser && (
 								<DropdownMenuItem
-									className="px-3 py-2 cursor-pointer"
+									className="px-3 py-2 cursor-pointer max-[1220px]:px-[8.4px] max-[1220px]:py-[5.6px] max-[1220px]:text-[11px] min-[1440px]:px-[9.6px] min-[1440px]:py-[6.4px] min-[1440px]:text-[12px] min-[1920px]:px-[13.2px] min-[1920px]:py-[8.8px] min-[1920px]:text-[14px]"
 									onSelect={() => {
 										handleCreateThread(m);
 										setHoveredMessageId(null);
@@ -101,7 +98,7 @@ const MessageActions: React.FC<MessageActionsProps> = ({
 								handleEdit(m);
 								setHoveredMessageId(null);
 							}}
-							className="px-3 py-2 cursor-pointer"
+							className="px-3 py-2 cursor-pointer max-[1220px]:px-[8.4px] max-[1220px]:py-[5.6px] max-[1220px]:text-[11px] min-[1440px]:px-[9.6px] min-[1440px]:py-[6.4px] min-[1440px]:text-[12px] min-[1920px]:px-[13.2px] min-[1920px]:py-[8.8px] min-[1920px]:text-[14px]"
 						>
 							Edit
 						</DropdownMenuItem>
@@ -112,7 +109,7 @@ const MessageActions: React.FC<MessageActionsProps> = ({
 							handleCopy(m);
 							setHoveredMessageId(null);
 						}}
-						className="px-3 py-2 cursor-pointer"
+						className="px-3 py-2 cursor-pointer max-[1220px]:px-[8.4px] max-[1220px]:py-[5.6px] max-[1220px]:text-[11px] min-[1440px]:px-[9.6px] min-[1440px]:py-[6.4px] min-[1440px]:text-[12px] min-[1920px]:px-[13.2px] min-[1920px]:py-[8.8px] min-[1920px]:text-[14px]"
 					>
 						Copy
 					</DropdownMenuItem>
@@ -123,7 +120,7 @@ const MessageActions: React.FC<MessageActionsProps> = ({
 								handleReport(m);
 								setHoveredMessageId(null);
 							}}
-							className="px-3 py-2 cursor-pointer"
+							className="px-3 py-2 cursor-pointer max-[1220px]:px-[8.4px] max-[1220px]:py-[5.6px] max-[1220px]:text-[11px] min-[1440px]:px-[9.6px] min-[1440px]:py-[6.4px] min-[1440px]:text-[12px] min-[1920px]:px-[13.2px] min-[1920px]:py-[8.8px] min-[1920px]:text-[14px]"
 						>
 							Report
 						</DropdownMenuItem>
@@ -138,7 +135,7 @@ const MessageActions: React.FC<MessageActionsProps> = ({
 									handleDelete(m);
 									setHoveredMessageId(null);
 								}}
-								className="px-3 py-2 text-red-600"
+								className="px-3 py-2 text-red-600 max-[1220px]:px-[8.4px] max-[1220px]:py-[5.6px] max-[1220px]:text-[11px] min-[1440px]:px-[9.6px] min-[1440px]:py-[6.4px] min-[1440px]:text-[12px] min-[1920px]:px-[13.2px] min-[1920px]:py-[8.8px] min-[1920px]:text-[14px]"
 							>
 								Delete
 							</DropdownMenuItem>
@@ -147,10 +144,8 @@ const MessageActions: React.FC<MessageActionsProps> = ({
 				</DropdownMenuContent>
 			</DropdownMenu>
 
-			{/* </div> */}
-
 			<button
-				className="text-sm px-2 py-1 rounded hover:bg-muted"
+				className="text-sm px-2 py-1 rounded hover:bg-muted max-[1220px]:text-[11px] max-[1220px]:px-[5.6px] max-[1220px]:py-[2.8px] max-[1220px]:rounded-[4.2px] min-[1440px]:text-[12px] min-[1440px]:px-[6.4px] min-[1440px]:py-[3.2px] min-[1440px]:rounded-[4.8px] min-[1920px]:text-[14px] min-[1920px]:px-[8.8px] min-[1920px]:py-[4.4px] min-[1920px]:rounded-[6.6px]"
 				onClick={(e) => {
 					e.stopPropagation();
 					handleReply(m);
@@ -159,36 +154,6 @@ const MessageActions: React.FC<MessageActionsProps> = ({
 			>
 				↩
 			</button>
-
-			{/* <div className="relative">
-				<button
-					className="text-sm px-2 py-1 rounded hover:bg-muted"
-					onClick={(e) => {
-						e.stopPropagation();
-						setReactionPickerFor(reactionPickerFor === m.id ? null : m.id);
-					}}
-					aria-label="reaction"
-				>
-					😊
-				</button>
-
-				{reactionPickerFor === m.id && (
-					<div
-						className="absolute right-0 mt-2 w-max rounded shadow-md bg-popover p-2 z-50 grid grid-cols-6 gap-1"
-						onClick={(e) => e.stopPropagation()}
-					>
-						{["❤️", "😂", "😮", "😢", "😡", "👍"].map((r) => (
-							<button
-								key={r}
-								className="p-1 text-lg rounded hover:bg-muted"
-								onClick={() => handleReact(m.id, r)}
-							>
-								{r}
-							</button>
-						))}
-					</div>
-				)}
-			</div> */}
 		</div>
 	);
 };

@@ -274,7 +274,7 @@ const SearchFilter: React.FC<Props> = ({
 													}}
 													aria-label="unassigned-only"
 												/>
-												<span>Unassigned only</span>
+												<S.Tag>Unassigned only</S.Tag>
 											</S.CheckboxLabel>
 										</S.FormGroup>
 									</S.FormGroup>

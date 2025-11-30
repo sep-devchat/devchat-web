@@ -110,6 +110,18 @@ export const GroupList = styled.ul`
 	scrollbar-width: none;
 	overflow-x: visible;
 	padding-bottom: 40px;
+
+	@media (max-width: 1220px) {
+		gap: 12px;
+	}
+
+	@media (min-width: 1440px) {
+		gap: 16px;
+	}
+
+	@media (min-width: 1920px) {
+		gap: 20px;
+	}
 `;
 
 export const GroupListOnly = styled.div`
@@ -124,6 +136,18 @@ export const GroupListOnly = styled.div`
 	height: 100%;
 	border-top-radius: 60px;
 	padding-top: 40px;
+
+	@media (max-width: 1220px) {
+		gap: 12px;
+	}
+
+	@media (min-width: 1440px) {
+		gap: 16px;
+	}
+
+	@media (min-width: 1920px) {
+		gap: 20px;
+	}
 `;
 
 export const GroupItem = styled.li`
@@ -229,6 +253,24 @@ export const GroupButton = styled.button<{
 
 	&:focus {
 		outline: none;
+	}
+
+	@media (max-width: 1220px) {
+		width: 38px;
+		height: 38px;
+		font-size: 12.5px;
+	}
+
+	@media (min-width: 1440px) {
+		width: 39px;
+		height: 39px;
+		font-size: 13.5px;
+	}
+
+	@media (min-width: 1920px) {
+		width: 42px;
+		height: 42px;
+		font-size: 16px;
 	}
 `;
 

@@ -59,6 +59,29 @@ export const MessageRow: React.FC<MessageRowProps> = React.memo(
 		directUserId,
 	}) => {
 		const [hovered, setHovered] = useState(false);
+		const [windowWidth, setWindowWidth] = React.useState(
+			typeof window !== "undefined" ? window.innerWidth : 1440,
+		);
+
+		React.useEffect(() => {
+			const handleResize = () => setWindowWidth(window.innerWidth);
+			window.addEventListener("resize", handleResize);
+			return () => window.removeEventListener("resize", handleResize);
+		}, []);
+
+		const getResponsiveSize = (base: number) => {
+			if (windowWidth <= 1220) return base * 0.7;
+			if (windowWidth >= 1920) return base * 1.1;
+			if (windowWidth >= 1440) return base * 0.8;
+			return base;
+		};
+
+		const getResponsiveFontSize = () => {
+			if (windowWidth <= 1220) return "11px";
+			if (windowWidth >= 1920) return "14px";
+			if (windowWidth >= 1440) return "12px";
+			return "14px";
+		};
 
 		const parentPreviewText = truncatePreview(
 			getReplyPreviewText(m.parentMessage ?? null),
@@ -77,15 +100,31 @@ export const MessageRow: React.FC<MessageRowProps> = React.memo(
 							<img
 								src={m.sender.avatarUrl}
 								alt={name}
-								className="h-8 w-8 rounded-full"
+								style={{
+									width: `${getResponsiveSize(32)}px`, // 32px = 8 * 4
+									height: `${getResponsiveSize(32)}px`,
+								}}
+								className="rounded-full"
 							/>
 						) : (
-							<div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center text-xs font-medium select-none">
+							<div
+								style={{
+									width: `${getResponsiveSize(32)}px`,
+									height: `${getResponsiveSize(32)}px`,
+									fontSize: getResponsiveFontSize(),
+								}}
+								className="rounded-full bg-muted flex items-center justify-center font-medium select-none"
+							>
 								{initials || (name[0] ?? "?")}
 							</div>
 						)
 					) : (
-						<div className="h-8 w-8" />
+						<div
+							style={{
+								width: `${getResponsiveSize(32)}px`,
+								height: `${getResponsiveSize(32)}px`,
+							}}
+						/>
 					)}
 
 					<div
@@ -93,18 +132,44 @@ export const MessageRow: React.FC<MessageRowProps> = React.memo(
 					>
 						{showAvatarAndHeader && (
 							<div
-								className={`flex gap-4 items-center text-xs text-muted-foreground mb-1 ${isCurrentUser ? "flex-row-reverse" : ""}`}
+								className={`flex items-center mb-1 ${isCurrentUser ? "flex-row-reverse" : ""}`}
+								style={{
+									gap: `${getResponsiveSize(16)}px`, // 16px = gap-4
+									fontSize: getResponsiveFontSize(),
+									marginBottom: `${getResponsiveSize(4)}px`,
+								}}
 							>
-								<span className="font-bold text-sm">{name}</span>
+								<span
+									className="font-bold"
+									style={{
+										fontSize:
+											windowWidth <= 1220
+												? "12px"
+												: windowWidth >= 1920
+													? "16px"
+													: windowWidth >= 1440
+														? "13px"
+														: "14px",
+									}}
+								>
+									{name}
+								</span>
 								<span>{formatMessageTime(m.createdAt)}</span>
 							</div>
 						)}
 						<div
-							className={`flex w-full items-end gap-2 ${isCurrentUser ? "flex-row-reverse" : ""}`}
+							className={`flex w-full items-end ${isCurrentUser ? "flex-row-reverse" : ""}`}
+							style={{
+								gap: `${getResponsiveSize(8)}px`,
+							}}
 						>
 							<MessageBubbleStyle
-								className={`message-bubble relative w-fit rounded-lg px-3 py-2 text-sm shadow-none ${isCurrentUser ? "me" : "other"} ${(m as any).pending ? "opacity-50" : ""}`}
-								style={{ whiteSpace: "pre-wrap" }}
+								className={`message-bubble relative w-fit rounded-lg shadow-none ${isCurrentUser ? "me" : "other"} ${(m as any).pending ? "opacity-50" : ""}`}
+								style={{
+									whiteSpace: "pre-wrap",
+									padding: `${getResponsiveSize(8)}px ${getResponsiveSize(12)}px`,
+									fontSize: getResponsiveFontSize(),
+								}}
 							>
 								{m.parentMessageId && (
 									<button
@@ -115,13 +180,33 @@ export const MessageRow: React.FC<MessageRowProps> = React.memo(
 											typeof handleGoToMessage === "function" &&
 											handleGoToMessage(m.parentMessageId)
 										}
-										className={`group/parent mb-2 w-full max-w-[320px] text-left focus:outline-none`}
+										className={`group/parent w-full text-left focus:outline-none`}
+										style={{
+											marginBottom: `${getResponsiveSize(8)}px`,
+											maxWidth: `${getResponsiveSize(320)}px`,
+										}}
 									>
-										<div className="flex items-start gap-2 rounded-md bg-muted/40 hover:bg-muted/60 transition-colors ring-1 ring-border/40 hover:ring-border px-2 py-1">
-											<div className="mt-0.5 text-muted-foreground group-hover/parent:text-primary transition-colors">
-												<CornerUpLeft size={14} />
+										<div
+											className="flex items-start rounded-md bg-muted/40 hover:bg-muted/60 transition-colors ring-1 ring-border/40 hover:ring-border"
+											style={{
+												gap: `${getResponsiveSize(8)}px`,
+												padding: `${getResponsiveSize(4)}px ${getResponsiveSize(8)}px`,
+											}}
+										>
+											<div
+												className="text-muted-foreground group-hover/parent:text-primary transition-colors"
+												style={{
+													marginTop: `${getResponsiveSize(2)}px`,
+												}}
+											>
+												<CornerUpLeft size={getResponsiveSize(14)} />
 											</div>
-											<div className="flex flex-col text-xs leading-snug">
+											<div
+												className="flex flex-col leading-snug"
+												style={{
+													fontSize: getResponsiveFontSize(),
+												}}
+											>
 												<span className="font-medium text-muted-foreground/80 group-hover/parent:text-primary/80">
 													{(m.parentMessage?.sender as any)?.name ||
 														(m.parentMessage?.sender as any)?.username ||
@@ -149,16 +234,51 @@ export const MessageRow: React.FC<MessageRowProps> = React.memo(
 											e.stopPropagation();
 											handleCreateThread(m);
 										}}
-										className="mt-2 inline-flex items-center gap-1 rounded-full bg-primary/15 px-2 py-0.5 text-[11px] font-medium text-primary hover:bg-primary/25 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+										className="inline-flex items-center rounded-full bg-primary/15 font-medium text-primary hover:bg-primary/25 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+										style={{
+											marginTop: `${getResponsiveSize(8)}px`,
+											gap: `${getResponsiveSize(4)}px`,
+											padding: `${getResponsiveSize(2)}px ${getResponsiveSize(8)}px`,
+											fontSize:
+												windowWidth <= 1220
+													? "10px"
+													: windowWidth >= 1920
+														? "12px"
+														: windowWidth >= 1440
+															? "11px"
+															: "11px",
+										}}
 										type="button"
 										aria-label="Open thread"
 									>
-										<span className="inline-block h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
+										<span
+											className="inline-block rounded-full bg-primary animate-pulse"
+											style={{
+												width: `${getResponsiveSize(6)}px`,
+												height: `${getResponsiveSize(6)}px`,
+											}}
+										/>
 										Thread
-										<span className="text-xs">↗</span>
+										<span style={{ fontSize: getResponsiveFontSize() }}>
+											↗
+										</span>
 									</button>
 								)}
-								<span className="absolute -bottom-4 left-2 text-[10px] tracking-wide text-muted-foreground/70 opacity-0 group-hover/bubble:opacity-100 transition-opacity">
+								<span
+									className="absolute tracking-wide text-muted-foreground/70 opacity-0 group-hover/bubble:opacity-100 transition-opacity"
+									style={{
+										bottom: `${getResponsiveSize(-16)}px`,
+										left: `${getResponsiveSize(8)}px`,
+										fontSize:
+											windowWidth <= 1220
+												? "9px"
+												: windowWidth >= 1920
+													? "11px"
+													: windowWidth >= 1440
+														? "10px"
+														: "10px",
+									}}
+								>
 									{formatMessageTime(m.createdAt)}
 								</span>
 							</MessageBubbleStyle>
