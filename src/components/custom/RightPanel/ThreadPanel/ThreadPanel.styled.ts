@@ -19,6 +19,63 @@ const theme = {
 	},
 };
 
+export const responsiveStyles = `
+	<style>
+    @media (min-width: 1440px) and (max-width: 1919px) {
+      .thread-panel .text-sm,
+      .thread-panel input[type="text"] { font-size: 13px !important; }
+      .thread-panel .text-xs,
+      .thread-panel .text-[13px] { font-size: 13px !important; }
+      .thread-panel .text-[11px],
+      .thread-panel .text-[10px] { font-size: 12px !important; }
+      .thread-panel .px-3 { padding-left: 9.6px; padding-right: 9.6px; }
+      .thread-panel .py-2 { padding-top: 6.4px; padding-bottom: 6.4px; }
+      .thread-panel .px-5 { padding-left: 16px; padding-right: 16px; }
+      .thread-panel .gap-1\.5 { gap: 4.8px; }
+      .thread-panel .gap-6 { gap: 19.2px; }
+      .thread-panel .rounded-2xl { border-radius: 12.8px; }
+      .thread-panel .rounded-lg { border-radius: 6.4px; }
+      .thread-panel .rounded-md { border-radius: 4.8px; }
+      .thread-panel .max-w-\[220px\] { max-width: 176px; }
+    }
+    @media (max-width: 1220px) {
+      .thread-panel .text-sm,
+      .thread-panel input[type="text"] { font-size: 13px !important; }
+      .thread-panel .text-xs,
+      .thread-panel .text-[13px] { font-size: 12px !important; }
+      .thread-panel .text-[11px],
+      .thread-panel .text-[10px] { font-size: 11px !important; }
+      .thread-panel .px-3 { padding-left: 8.4px; padding-right: 8.4px; }
+      .thread-panel .py-2 { padding-top: 5.6px; padding-bottom: 5.6px; }
+      .thread-panel .px-5 { padding-left: 14px; padding-right: 14px; }
+      .thread-panel .gap-1\.5 { gap: 4.2px; }
+      .thread-panel .gap-6 { gap: 16.8px; }
+      .thread-panel .rounded-2xl { border-radius: 11.2px; }
+      .thread-panel .rounded-lg { border-radius: 5.6px; }
+      .thread-panel .rounded-md { border-radius: 4.2px; }
+      .thread-panel .max-w-\[78%\] { max-width: 68%; }
+      .thread-panel .max-w-\[220px\] { max-width: 154px; }
+    }
+    @media (min-width: 1920px) {
+      .thread-panel .text-sm,
+      .thread-panel input[type="text"] { font-size: 16px !important; }
+      .thread-panel .text-xs,
+      .thread-panel .text-[13px] { font-size: 16px !important; }
+      .thread-panel .text-[11px],
+      .thread-panel .text-[10px] { font-size: 14px !important; }
+      .thread-panel .px-3 { padding-left: 13.2px; padding-right: 13.2px; }
+      .thread-panel .py-2 { padding-top: 8.8px; padding-bottom: 8.8px; }
+      .thread-panel .px-5 { padding-left: 22px; padding-right: 22px; }
+      .thread-panel .gap-1\.5 { gap: 6.6px; }
+      .thread-panel .gap-6 { gap: 26.4px; }
+      .thread-panel .rounded-2xl { border-radius: 17.6px; }
+      .thread-panel .rounded-lg { border-radius: 8.8px; }
+      .thread-panel .rounded-md { border-radius: 6.6px; }
+      .thread-panel .max-w-\[220px\] { max-width: 242px; }
+    }
+  </style>
+`;
+
 export const PageWrapper = styled.div`
 	height: 100%;
 	width: 600px;
@@ -404,18 +461,6 @@ export const CheckboxDescription = styled.p`
 
 export const MessageInput = styled.div`
 	border-top: 1px solid ${theme.color.grey200};
-
-	@media (max-width: 1220px) {
-		padding: 11.2px;
-	}
-
-	@media (min-width: 1440px) and (max-width: 1919px) {
-		padding: 12.8px;
-	}
-
-	@media (min-width: 1920px) {
-		padding: 17.6px;
-	}
 `;
 
 export const InputContainer = styled.div`

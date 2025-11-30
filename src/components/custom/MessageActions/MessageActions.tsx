@@ -24,6 +24,7 @@ type MessageActionsProps = {
 	handleCreateThread: (m: MessageResponse) => void;
 	isCurrentUser: boolean;
 	existingThreadId: string | null;
+	showThreadAction?: boolean;
 };
 
 const MessageActions: React.FC<MessageActionsProps> = ({
@@ -38,6 +39,7 @@ const MessageActions: React.FC<MessageActionsProps> = ({
 	handleReply,
 	handleCreateThread,
 	existingThreadId,
+	showThreadAction = true,
 }) => {
 	return (
 		<div
@@ -65,18 +67,8 @@ const MessageActions: React.FC<MessageActionsProps> = ({
 					className="w-40 max-[1220px]:w-[112px] min-[1440px]:w-[128px] min-[1920px]:w-[176px]"
 					onClick={(e) => e.stopPropagation()}
 				>
-					{existingThreadId ? (
-						<DropdownMenuItem
-							className="px-3 py-2 cursor-pointer max-[1220px]:px-[8.4px] max-[1220px]:py-[5.6px] max-[1220px]:text-[11px] min-[1440px]:px-[9.6px] min-[1440px]:py-[6.4px] min-[1440px]:text-[12px] min-[1920px]:px-[13.2px] min-[1920px]:py-[8.8px] min-[1920px]:text-[14px]"
-							onSelect={() => {
-								handleCreateThread(m);
-								setHoveredMessageId(null);
-							}}
-						>
-							Open Thread
-						</DropdownMenuItem>
-					) : (
-						isCurrentUser && (
+					{showThreadAction &&
+						(existingThreadId ? (
 							<DropdownMenuItem
 								className="px-3 py-2 cursor-pointer max-[1220px]:px-[8.4px] max-[1220px]:py-[5.6px] max-[1220px]:text-[11px] min-[1440px]:px-[9.6px] min-[1440px]:py-[6.4px] min-[1440px]:text-[12px] min-[1920px]:px-[13.2px] min-[1920px]:py-[8.8px] min-[1920px]:text-[14px]"
 								onSelect={() => {
@@ -84,10 +76,21 @@ const MessageActions: React.FC<MessageActionsProps> = ({
 									setHoveredMessageId(null);
 								}}
 							>
-								Create Thread
+								Open Thread
 							</DropdownMenuItem>
-						)
-					)}
+						) : (
+							isCurrentUser && (
+								<DropdownMenuItem
+									className="px-3 py-2 cursor-pointer max-[1220px]:px-[8.4px] max-[1220px]:py-[5.6px] max-[1220px]:text-[11px] min-[1440px]:px-[9.6px] min-[1440px]:py-[6.4px] min-[1440px]:text-[12px] min-[1920px]:px-[13.2px] min-[1920px]:py-[8.8px] min-[1920px]:text-[14px]"
+									onSelect={() => {
+										handleCreateThread(m);
+										setHoveredMessageId(null);
+									}}
+								>
+									Create Thread
+								</DropdownMenuItem>
+							)
+						))}
 
 					{isCurrentUser && (
 						<DropdownMenuItem
