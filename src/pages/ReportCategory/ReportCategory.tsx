@@ -380,7 +380,7 @@ const ReportCategory = () => {
 									<tr>
 										<S.Th>Name & description</S.Th>
 										<S.Th>Status</S.Th>
-										<S.Th $align="right">Actions</S.Th>
+										<S.Th>Actions</S.Th>
 									</tr>
 								</S.TableHead>
 								<tbody>
@@ -399,7 +399,7 @@ const ReportCategory = () => {
 													{category.isRemoved ? "Archived" : "Active"}
 												</S.StatusBadge>
 											</S.Td>
-											<S.Td $align="right">
+											<S.Td>
 												<S.Actions>
 													<S.IconButton
 														onClick={() => handleOpenEdit(category)}
