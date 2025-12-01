@@ -19,10 +19,12 @@ export const ContentContainer = styled.div`
 	max-width: 1200px;
 	gap: 10px;
 
-	@media (max-width: 768px) {
-		flex-direction: column;
-		max-width: 400px;
-		gap: 16px;
+	@media (min-width: 1440px) and (max-width: 1919px) {
+		max-width: 1000px;
+	}
+
+	@media (min-width: 1920px) {
+		max-width: 1200px;
 	}
 `;
 
@@ -37,8 +39,19 @@ export const LoginCard = styled.div`
 	justify-content: center;
 	border-radius: 16px;
 	box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-	max-height: 600px;
 	align-self: center;
+
+	@media (max-width: 1220px) {
+		margin: 0 auto;
+	}
+
+	@media (min-width: 1440px) and (max-width: 1919px) {
+		padding: 16px 28px;
+	}
+
+	@media (min-width: 1920px) {
+		padding: 24px 32px;
+	}
 
 	@media (max-width: 768px) {
 		flex: none;
@@ -58,21 +71,46 @@ export const ImageSection = styled.div<{ backgroundImage: string }>`
 	box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
 	margin: -15px;
 	margin-left: 10px;
-	height: 670px;
+	height: 660px;
+	transition: opacity 0.3s ease;
 
 	@media (max-width: 768px) {
 		flex: none;
 		min-height: 300px;
 		margin: 10px;
 	}
+
+	@media (max-width: 1220px) {
+		display: none;
+	}
+
+	@media (min-width: 1440px) and (max-width: 1919px) {
+		height: 500px;
+	}
+
+	@media (min-width: 1920px) {
+		height: 670px;
+	}
 `;
 
 export const WelcomeTitle = styled.h1`
-	font-size: 26px;
+	font-size: 24px;
 	font-weight: 600;
 	color: #1a1a1a;
 	margin-bottom: 8px;
 	line-height: 1.2;
+
+	@media (max-width: 1220px) {
+		font-size: 20px;
+	}
+
+	@media (min-width: 1440px) and (max-width: 1919px) {
+		font-size: 20px;
+	}
+
+	@media (min-width: 1920px) {
+		font-size: 22px;
+	}
 `;
 
 export const WelcomeSubtitle = styled.p`
@@ -80,11 +118,38 @@ export const WelcomeSubtitle = styled.p`
 	color: #666666;
 	margin-bottom: 28px;
 	line-height: 1.5;
+
+	@media (max-width: 1220px) {
+		font-size: 15px;
+		margin-bottom: 10px;
+	}
+
+	@media (min-width: 1440px) and (max-width: 1919px) {
+		font-size: 14px;
+		margin-bottom: 10px;
+	}
+
+	@media (min-width: 1920px) {
+		font-size: 17px;
+		margin-bottom: 16px;
+	}
 `;
 
 export const FormGroup = styled.div`
 	margin-bottom: 20px;
 	position: relative;
+
+	@media (max-width: 1220px) {
+		margin-bottom: 10px;
+	}
+
+	@media (min-width: 1440px) and (max-width: 1919px) {
+		margin-bottom: 10px;
+	}
+
+	@media (min-width: 1920px) {
+		margin-bottom: 12px;
+	}
 `;
 
 export const Label = styled.label`
@@ -93,6 +158,21 @@ export const Label = styled.label`
 	font-weight: 500;
 	color: #1a1a1a;
 	margin-bottom: 6px;
+
+	@media (max-width: 1220px) {
+		font-size: 14px;
+		margin-bottom: 6px;
+	}
+
+	@media (min-width: 1440px) and (max-width: 1919px) {
+		font-size: 13px;
+		margin-bottom: 5px;
+	}
+
+	@media (min-width: 1920px) {
+		font-size: 16px;
+		margin-bottom: 8px;
+	}
 `;
 
 export const Input = styled.input`
@@ -117,6 +197,21 @@ export const Input = styled.input`
 	&:hover {
 		border-color: #9ca3af;
 	}
+
+	@media (max-width: 1220px) {
+		font-size: 12.5px;
+		padding: 10px 12px;
+	}
+
+	@media (min-width: 1440px) and (max-width: 1919px) {
+		font-size: 13px;
+		padding: 11px 15px;
+	}
+
+	@media (min-width: 1920px) {
+		font-size: 16px;
+		padding: 14px 18px;
+	}
 `;
 
 export const ForgotPasswordLink = styled.a`
@@ -129,6 +224,21 @@ export const ForgotPasswordLink = styled.a`
 
 	&:hover {
 		text-decoration: underline;
+	}
+
+	@media (max-width: 1220px) {
+		font-size: 13px;
+		top: 70px;
+	}
+
+	@media (min-width: 1440px) and (max-width: 1919px) {
+		font-size: 12px;
+		top: 75px;
+	}
+
+	@media (min-width: 1920px) {
+		font-size: 14px;
+		top: 90px;
 	}
 `;
 
@@ -161,6 +271,24 @@ export const SignInButton = styled.button`
 		transform: none;
 		box-shadow: none;
 	}
+
+	@media (max-width: 1220px) {
+		font-size: 16px;
+		padding: 12px 22px;
+		margin-top: 24px;
+	}
+
+	@media (min-width: 1440px) and (max-width: 1919px) {
+		font-size: 15px;
+		padding: 11px 22px;
+		margin-top: 30px;
+	}
+
+	@media (min-width: 1920px) {
+		font-size: 18px;
+		padding: 14px 28px;
+		margin-top: 34px;
+	}
 `;
 
 export const Divider = styled.div`
@@ -184,6 +312,21 @@ export const Divider = styled.div`
 
 	&::after {
 		margin-left: 0.75em;
+	}
+
+	@media (max-width: 1220px) {
+		font-size: 14px;
+		margin: 16px 0;
+	}
+
+	@media (min-width: 1440px) and (max-width: 1919px) {
+		font-size: 13px;
+		margin: 18px 0;
+	}
+
+	@media (min-width: 1920px) {
+		font-size: 16px;
+		margin: 24px 0;
 	}
 `;
 
@@ -215,11 +358,43 @@ export const SocialButton = styled.button`
 	&:active {
 		transform: translateY(0);
 	}
+
+	@media (max-width: 1220px) {
+		font-size: 14px;
+		padding: 10px 18px;
+		gap: 10px;
+		margin-bottom: 8px;
+	}
+
+	@media (min-width: 1440px) and (max-width: 1919px) {
+		font-size: 13px;
+		padding: 9px 15px;
+		gap: 11px;
+	}
+
+	@media (min-width: 1920px) {
+		font-size: 16px;
+		padding: 12px 18px;
+		gap: 14px;
+		margin-bottom: 12px;
+	}
 `;
 
 export const GitHubButton = styled(SocialButton)`
 	color: #3c4043;
 	height: 38px;
+
+	@media (max-width: 1220px) {
+		height: 36px;
+	}
+
+	@media (min-width: 1440px) and (max-width: 1919px) {
+		height: 36px;
+	}
+
+	@media (min-width: 1920px) {
+		height: 42px;
+	}
 `;
 
 export const SignUpText = styled.p`
@@ -227,6 +402,21 @@ export const SignUpText = styled.p`
 	font-size: 14px;
 	color: #666666;
 	margin-top: 16px;
+
+	@media (max-width: 1220px) {
+		font-size: 14px;
+		margin-top: 12px;
+	}
+
+	@media (min-width: 1440px) and (max-width: 1919px) {
+		font-size: 13px;
+		margin-top: 14px;
+	}
+
+	@media (min-width: 1920px) {
+		font-size: 16px;
+		margin-top: 20px;
+	}
 `;
 
 export const SignUpLink = styled.a`
@@ -264,6 +454,16 @@ export const EyeIcon = styled.button`
 	&:focus {
 		outline: none;
 	}
+
+	@media (max-width: 1220px) {
+		right: 10px;
+		padding: 3px;
+	}
+
+	@media (min-width: 1920px) {
+		right: 14px;
+		padding: 5px;
+	}
 `;
 
 export const SocialButtonsContainer = styled.div`
@@ -271,12 +471,29 @@ export const SocialButtonsContainer = styled.div`
 	flex-direction: column;
 	gap: 12px;
 	width: 100%;
+	align-items: stretch;
+
+	@media (max-width: 1220px) {
+		gap: 10px;
+	}
+
+	@media (min-width: 1920px) {
+		gap: 14px;
+	}
 `;
 
 export const SocialButtonsRow = styled.div`
 	display: flex;
 	gap: 12px;
 	width: 100%;
+
+	@media (max-width: 1220px) {
+		gap: 10px;
+	}
+
+	@media (min-width: 1920px) {
+		gap: 14px;
+	}
 
 	@media (max-width: 480px) {
 		flex-direction: column;
@@ -301,6 +518,16 @@ export const GitHubIcon = styled.img`
 	width: 18px;
 	height: 18px;
 	object-fit: contain;
+
+	@media (max-width: 1220px) {
+		width: 16px;
+		height: 16px;
+	}
+
+	@media (min-width: 1920px) {
+		width: 20px;
+		height: 20px;
+	}
 `;
 
 export const GoogleLoginWrapper = styled.div`
@@ -316,5 +543,23 @@ export const GoogleLoginWrapper = styled.div`
 	& button {
 		min-height: 36px !important;
 		border-radius: 16px !important;
+	}
+
+	@media (max-width: 1220px) {
+		& > div {
+			min-height: 32px !important;
+		}
+		& button {
+			min-height: 32px !important;
+		}
+	}
+
+	@media (min-width: 1920px) {
+		& > div {
+			min-height: 40px !important;
+		}
+		& button {
+			min-height: 40px !important;
+		}
 	}
 `;
