@@ -32,6 +32,7 @@ import {
 } from "@/services/taskAPI";
 import { Task as ApiTask, TaskStatus } from "@/types/task";
 import { RootState } from "@/store";
+import { resolveLockState } from "../../RightPanel/TaskGroup/TaskGroup.helpers";
 
 type DisplayTask = {
 	id: string;
@@ -43,6 +44,8 @@ type DisplayTask = {
 	dueDate?: string | null;
 	createdAt?: number;
 	done?: boolean;
+	isLocked?: boolean;
+	lockedAt?: string;
 };
 
 type Props = {
@@ -52,71 +55,24 @@ type Props = {
 
 const ACTIVE_STATUSES: TaskStatus[] = [TaskStatus.TODO, TaskStatus.IN_PROGRESS];
 const ACTIVE_STATUS_QUERY = ACTIVE_STATUSES.join(",");
-
-const now = Date.now();
-const SAMPLE_TASKS: DisplayTask[] = [
-	{
-		id: "sample-1",
-		name: "Share product update",
-		description: "Summarize launch decisions with the design guild.",
-		priority: 1,
-		status: TaskStatus.TODO,
-		startDate: new Date(now - 1000 * 60 * 60 * 24).toISOString(),
-		dueDate: new Date(now + 1000 * 60 * 60 * 24 * 2).toISOString(),
-		createdAt: now - 1000 * 60 * 60 * 12,
-		done: false,
-	},
-	{
-		id: "sample-2",
-		name: "Prep weekly sync",
-		description: "Collect blockers before Friday's check-in.",
-		priority: 2,
-		status: TaskStatus.IN_PROGRESS,
-		startDate: new Date(now - 1000 * 60 * 60 * 6).toISOString(),
-		dueDate: new Date(now + 1000 * 60 * 60 * 24 * 5).toISOString(),
-		createdAt: now - 1000 * 60 * 60 * 3,
-		done: false,
-	},
-	{
-		id: "sample-3",
-		name: "Close retro items",
-		description: "Mark the last sprint's retro tasks as done.",
-		priority: 3,
-		status: TaskStatus.DONE,
-		startDate: new Date(now - 1000 * 60 * 60 * 24 * 3).toISOString(),
-		dueDate: new Date(now - 1000 * 60 * 60 * 24).toISOString(),
-		createdAt: now - 1000 * 60 * 60 * 24,
-		done: true,
-	},
-];
+const LOCKED_TASK_MESSAGE =
+	"Tasks marked as done for more than 3 days can no longer be updated or deleted.";
 
 function convertApiTaskToLocalTask(apiTask: ApiTask): DisplayTask {
-	try {
-		return {
-			id: apiTask.id,
-			name: apiTask.name,
-			description: apiTask.description,
-			priority: apiTask.priority,
-			status: apiTask.status,
-			startDate: apiTask.startDate,
-			dueDate: apiTask.dueDate,
-			createdAt: new Date(apiTask.createdAt).getTime(),
-			done: apiTask.status === TaskStatus.DONE,
-		};
-	} catch (error) {
-		console.warn("Unable to convert task", error, apiTask);
-		return {
-			id: apiTask.id || crypto.randomUUID(),
-			name: apiTask.name || "Untitled task",
-			description: apiTask.description,
-			priority: apiTask.priority ?? 3,
-			status: apiTask.status ?? TaskStatus.TODO,
-			startDate: apiTask.startDate,
-			dueDate: apiTask.dueDate,
-			createdAt: Date.now(),
-			done: apiTask.status === TaskStatus.DONE,
-		};
-	}
+	const { isLocked, lockedAt } = resolveLockState(apiTask);
+	return {
+		id: apiTask.id,
+		name: apiTask.name,
+		description: apiTask.description,
+		priority: apiTask.priority,
+		status: apiTask.status,
+		startDate: apiTask.startDate,
+		dueDate: apiTask.dueDate,
+		createdAt: new Date(apiTask.createdAt).getTime(),
+		done: apiTask.status === TaskStatus.DONE,
+		isLocked,
+		lockedAt,
+	};
 }
 
 function formatDateShort(iso?: string | null) {
@@ -154,7 +110,6 @@ function getStatusColor(status?: TaskStatus) {
 }
 
 export default function GroupTodo({ groupId, groupName }: Props) {
-	const [sampleTasks, setSampleTasks] = useState<DisplayTask[]>(SAMPLE_TASKS);
 	const [draggingId, setDraggingId] = useState<string | null>(null);
 	const dragItemIdRef = useRef<string | null>(null);
 	const [showDoneTasks, setShowDoneTasks] = useState(false);
@@ -185,7 +140,7 @@ export default function GroupTodo({ groupId, groupName }: Props) {
 		isLoading,
 		isFetching,
 		isError,
-	} = useQuery({
+	} = useQuery<DisplayTask[]>({
 		queryKey,
 		queryFn: async () => {
 			if (!groupId) return [];
@@ -220,29 +175,16 @@ export default function GroupTodo({ groupId, groupName }: Props) {
 	});
 
 	const usingSampleData = !hasValidGroup;
-	const tasksToRender = usingSampleData
-		? sampleTasks.filter((task) => {
-				if (!task.status) return true;
-				if (showDoneTasks) return true;
-				return ACTIVE_STATUSES.includes(task.status);
-			})
-		: apiTasks;
+	const tasksToRender = apiTasks;
 	const isRefreshing = !usingSampleData && isFetching && !isLoading;
 	const statusControlDisabled =
 		!usingSampleData && updateTaskStatusMutation.isPending;
 
 	const handleStatusChange = (taskId: string, status: TaskStatus) => {
-		if (usingSampleData || !groupId) {
-			setSampleTasks((prev) =>
-				prev.map((task: DisplayTask) =>
-					task.id === taskId
-						? { ...task, status, done: status === TaskStatus.DONE }
-						: task,
-				),
-			);
+		const targetTask = tasksToRender.find((task) => task.id === taskId);
+		if (targetTask?.isLocked) {
 			return;
 		}
-
 		updateTaskStatusMutation.mutate({ taskId, data: { status } });
 	};
 
@@ -267,19 +209,6 @@ export default function GroupTodo({ groupId, groupName }: Props) {
 			cleanupDrag();
 			return;
 		}
-
-		setSampleTasks((prev) => {
-			const next = [...prev];
-			const fromIndex = next.findIndex((task) => task.id === sourceId);
-			let toIndex = next.findIndex((task) => task.id === targetId);
-			if (fromIndex === -1 || toIndex === -1) return prev;
-			const [moved] = next.splice(fromIndex, 1);
-			if (fromIndex < toIndex) {
-				toIndex -= 1;
-			}
-			next.splice(toIndex, 0, moved);
-			return next;
-		});
 
 		cleanupDrag();
 	};
@@ -320,6 +249,10 @@ export default function GroupTodo({ groupId, groupName }: Props) {
 						priorityLevel === 1 ? "P1" : priorityLevel === 2 ? "P2" : "P3";
 					const statusLabel = getStatusLabel(task.status);
 					const statusColor = getStatusColor(task.status);
+					const isTaskLocked = Boolean(task.isLocked);
+					const lockedSince = task.lockedAt
+						? formatDateShort(task.lockedAt)
+						: null;
 
 					return (
 						<TaskItem
@@ -401,6 +334,16 @@ export default function GroupTodo({ groupId, groupName }: Props) {
 										<StatusBlock>
 											<div style={{ color: statusColor }}>
 												Status: <strong>{statusLabel}</strong>
+												{isTaskLocked && (
+													<span
+														style={{
+															marginLeft: "0.35rem",
+															fontSize: "0.75rem",
+														}}
+													>
+														(locked)
+													</span>
+												)}
 											</div>
 											<Select
 												value={task.status ?? TaskStatus.TODO}
@@ -410,7 +353,14 @@ export default function GroupTodo({ groupId, groupName }: Props) {
 														Number(event.target.value) as TaskStatus,
 													)
 												}
-												disabled={statusControlDisabled}
+												disabled={statusControlDisabled || isTaskLocked}
+												title={
+													isTaskLocked && lockedSince
+														? `${LOCKED_TASK_MESSAGE}\nLocked since ${lockedSince}`
+														: isTaskLocked
+															? LOCKED_TASK_MESSAGE
+															: undefined
+												}
 											>
 												<option value={TaskStatus.TODO}>To Do</option>
 												<option value={TaskStatus.IN_PROGRESS}>
@@ -418,6 +368,13 @@ export default function GroupTodo({ groupId, groupName }: Props) {
 												</option>
 												<option value={TaskStatus.DONE}>Done</option>
 											</Select>
+											{isTaskLocked && (
+												<small
+													style={{ color: "#dc2626", marginTop: "0.25rem" }}
+												>
+													{LOCKED_TASK_MESSAGE}
+												</small>
+											)}
 										</StatusBlock>
 									</TaskMetaColumn>
 								</TaskContent>

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useSelector } from "react-redux";
 import { RootState } from "@/store";
 import {
@@ -6,13 +6,14 @@ import {
 	ResizablePanel,
 	ResizablePanelGroup,
 } from "@/components/ui/resizable";
-import { X } from "lucide-react";
+import { RefreshCcw, X } from "lucide-react";
 import { Change } from "./types";
 import { CodeEditor } from "./CodeEditor/CodeEditor";
 import { ChangeHistory } from "./ChangeHistory/ChangeHistory";
 import { DiffViewer } from "./DiffViewer/DiffViewer";
 import * as S from "./CodeCollab.styled";
 import { Spinner } from "@/components/ui/spinner";
+import { Button } from "@/components/ui/button";
 import {
 	getCodeBlockById,
 	getDirectCodeBlockById,
@@ -22,6 +23,14 @@ import {
 	updateCodeCollaboration,
 } from "@/services/codeCollabAPI";
 import { toast } from "sonner";
+const normalizeLanguage = (lang?: string): string => {
+	if (!lang) return "java";
+	const normalized = lang.toLowerCase();
+	if (["js", "javascript", "node"].includes(normalized)) return "javascript";
+	if (["py", "python"].includes(normalized)) return "python";
+	if (["java"].includes(normalized)) return "java";
+	return normalized;
+};
 
 interface CodeCollabProps {
 	codeBlockId: string;
@@ -59,6 +68,7 @@ export default function CodeCollab({
 	);
 	const [pendingEditId, setPendingEditId] = useState<string | null>(null);
 	const [showResetConfirm, setShowResetConfirm] = useState(false);
+	const [isRefreshing, setIsRefreshing] = useState(false);
 
 	const [codeLanguage, setCodeLanguage] = useState<string>("java");
 
@@ -84,27 +94,25 @@ export default function CodeCollab({
 		? `${currentUserProfile.firstName} ${currentUserProfile.lastName}`
 		: "Unknown User";
 
-	const normalizeLanguage = (lang?: string): string => {
-		if (!lang) return "java";
-		const normalized = lang.toLowerCase();
-		if (["js", "javascript", "node"].includes(normalized)) return "javascript";
-		if (["py", "python"].includes(normalized)) return "python";
-		if (["java"].includes(normalized)) return "java";
-		return normalized;
-	};
-
 	const isChannelContext = Boolean(channelId && groupId);
 	const isDirectContext = Boolean(directUserId);
 
-	useEffect(() => {
-		const fetchData = async () => {
-			try {
-				setIsLoading(true);
-				setError(null);
+	const fetchCollaboration = useCallback(
+		async (options?: { silent?: boolean; updateEditor?: boolean }) => {
+			const silent = options?.silent ?? false;
+			const shouldUpdateEditor = options?.updateEditor ?? true;
+			if (!codeBlockId || (!isChannelContext && !isDirectContext)) {
+				setError("Missing required params");
+				return;
+			}
 
-				if (!codeBlockId || (!isChannelContext && !isDirectContext)) {
-					throw new Error("Missing required params");
+			try {
+				if (silent) {
+					setIsRefreshing(true);
+				} else {
+					setIsLoading(true);
 				}
+				setError(null);
 
 				const codeBlockResponse =
 					isDirectContext && directUserId
@@ -141,37 +149,66 @@ export default function CodeCollab({
 				const latestOwnRevision = historyChanges.find(
 					(change) => change.userId === currentUserId,
 				);
-				if (latestOwnRevision) {
-					setEditableCode(latestOwnRevision.code);
-					setLastSavedCode(latestOwnRevision.code);
-					setEditingRevisionId(latestOwnRevision.id);
-					setSelectedDiff(null);
-					toast.info("Resuming your last collaboration revision");
-				} else {
-					setEditableCode(originalContent);
-					setLastSavedCode(originalContent);
-					setEditingRevisionId(null);
-					setSelectedDiff(null);
+				if (shouldUpdateEditor) {
+					if (latestOwnRevision) {
+						setEditableCode(latestOwnRevision.code);
+						setLastSavedCode(latestOwnRevision.code);
+						setEditingRevisionId(latestOwnRevision.id);
+						setSelectedDiff(null);
+						if (!silent) {
+							toast.info("Resuming your last collaboration revision");
+						}
+					} else {
+						setEditableCode(originalContent);
+						setLastSavedCode(originalContent);
+						setEditingRevisionId(null);
+						setSelectedDiff(null);
+					}
 				}
 			} catch (err: any) {
 				console.error("💥 Fetch error:", err);
 				setError(err?.message || "Failed to load data");
 			} finally {
-				setIsLoading(false);
+				if (silent) {
+					setIsRefreshing(false);
+				} else {
+					setIsLoading(false);
+				}
 			}
-		};
+		},
+		[
+			channelId,
+			codeBlockId,
+			currentUserId,
+			directUserId,
+			groupId,
+			isChannelContext,
+			isDirectContext,
+		],
+	);
 
+	useEffect(() => {
 		if (codeBlockId && (isChannelContext || isDirectContext)) {
-			fetchData();
+			fetchCollaboration();
 		}
-	}, [
-		codeBlockId,
-		channelId,
-		groupId,
-		directUserId,
-		isChannelContext,
-		isDirectContext,
-	]);
+	}, [codeBlockId, fetchCollaboration, isChannelContext, isDirectContext]);
+
+	useEffect(() => {
+		if (!codeBlockId || (!isChannelContext && !isDirectContext)) {
+			return;
+		}
+		const intervalId = window.setInterval(() => {
+			fetchCollaboration({ silent: true, updateEditor: false });
+		}, 5000);
+		return () => {
+			window.clearInterval(intervalId);
+		};
+	}, [codeBlockId, fetchCollaboration, isChannelContext, isDirectContext]);
+
+	const handleRefresh = () => {
+		if (isLoading || isRefreshing) return;
+		fetchCollaboration({ silent: true });
+	};
 
 	const handleEditRevision = (changeId: string) => {
 		const change = changes.find((c) => c.id === changeId);
@@ -289,6 +326,11 @@ export default function CodeCollab({
 
 			setChanges((prev) => prev.filter((c) => c.id !== pendingDeleteId));
 
+			if (editingRevisionId === pendingDeleteId) {
+				setEditingRevisionId(null);
+				setLastSavedCode(originalCode);
+			}
+
 			if (selectedDiff && selectedDiff.id === pendingDeleteId) {
 				setSelectedDiff(null);
 			}
@@ -403,73 +445,100 @@ export default function CodeCollab({
 
 	return (
 		<S.Container>
-			<ResizablePanelGroup
-				direction="horizontal"
-				className="h-full"
-				style={{
-					border: "1px solid rgba(209, 224, 253, 0.6)",
-					background: "#ffffff",
-					borderRadius: "12px",
-					overflow: "hidden",
-					boxShadow: "0 4px 12px rgba(123, 159, 232, 0.12)",
-				}}
-			>
-				<ResizableHandle />
+			<S.Toolbar>
+				<S.ToolbarHint>
+					Refresh whenever you need the latest collaborators' revisions.
+				</S.ToolbarHint>
+				<Button
+					variant="outline"
+					size="sm"
+					onClick={handleRefresh}
+					disabled={isLoading || isRefreshing}
+				>
+					{isRefreshing ? (
+						<span className="flex items-center gap-2">
+							<Spinner className="h-4 w-4" />
+							Refreshing...
+						</span>
+					) : (
+						<span className="flex items-center gap-2">
+							<RefreshCcw className="h-4 w-4" />
+							Refresh
+						</span>
+					)}
+				</Button>
+			</S.Toolbar>
+			<S.PanelArea>
+				<ResizablePanelGroup
+					direction="horizontal"
+					className="h-full"
+					style={{
+						border: "1px solid rgba(209, 224, 253, 0.6)",
+						background: "#ffffff",
+						borderRadius: "12px",
+						overflow: "hidden",
+						boxShadow: "0 4px 12px rgba(123, 159, 232, 0.12)",
+					}}
+				>
+					<ResizableHandle />
 
-				<ResizablePanel defaultSize={50} minSize={35}>
-					<ResizablePanelGroup direction="vertical">
-						<ResizablePanel defaultSize={50} minSize={30}>
-							<S.CodeEditorWrapper>
-								<CodeEditor
-									code={originalCode}
-									readOnly={true}
-									title="Original Code (Read-only)"
-									language={codeLanguage}
-								/>
-							</S.CodeEditorWrapper>
-						</ResizablePanel>
+					<ResizablePanel defaultSize={50} minSize={35}>
+						<ResizablePanelGroup direction="vertical">
+							<ResizablePanel defaultSize={50} minSize={30}>
+								<S.CodeEditorWrapper>
+									<CodeEditor
+										code={originalCode}
+										readOnly={true}
+										title="Original Code (Read-only)"
+										language={codeLanguage}
+									/>
+								</S.CodeEditorWrapper>
+							</ResizablePanel>
 
-						<ResizableHandle />
+							<ResizableHandle />
 
-						<ResizablePanel defaultSize={50} minSize={30}>
-							<S.CodeEditorWrapperBottom>
-								<CodeEditor
-									code={editableCode}
-									onChange={setEditableCode}
-									title={editingRevisionId ? "Editing Revision" : "Your Edits"}
-									showSave={true}
-									onSave={handleSave}
-									hasChanges={hasChanges}
-									isSaving={isSaving}
-									onReset={handleResetConfirm}
-									userRevisionCount={userRevisionCount}
-									language={codeLanguage}
-								/>
-							</S.CodeEditorWrapperBottom>
-						</ResizablePanel>
-					</ResizablePanelGroup>
-				</ResizablePanel>
+							<ResizablePanel defaultSize={50} minSize={30}>
+								<S.CodeEditorWrapperBottom>
+									<CodeEditor
+										code={editableCode}
+										onChange={setEditableCode}
+										title={
+											editingRevisionId ? "Editing Revision" : "Your Edits"
+										}
+										showSave={true}
+										onSave={handleSave}
+										hasChanges={hasChanges}
+										isSaving={isSaving}
+										onReset={handleResetConfirm}
+										userRevisionCount={userRevisionCount}
+										language={codeLanguage}
+									/>
+								</S.CodeEditorWrapperBottom>
+							</ResizablePanel>
+						</ResizablePanelGroup>
+					</ResizablePanel>
 
-				<ResizableHandle />
+					<ResizableHandle />
 
-				<ResizablePanel defaultSize={22} minSize={16} maxSize={35}>
-					<ChangeHistory
-						changes={changes}
-						onChangeClick={setSelectedDiff}
-						onDeleteChange={(changeId) => {
-							const change = changes.find((c) => c.id === changeId);
-							if (change && change.userId === currentUserId) {
-								setPendingDeleteId(changeId);
-								setShowDeleteConfirm(true);
-							} else {
-								toast.error("You can only delete your own revisions");
-							}
-						}}
-						onEditChange={handleEditRevision}
-						currentUserId={currentUserId}
-					/>
-				</ResizablePanel>
-			</ResizablePanelGroup>
+					<ResizablePanel defaultSize={22} minSize={16} maxSize={35}>
+						<ChangeHistory
+							changes={changes}
+							onChangeClick={setSelectedDiff}
+							onDeleteChange={(changeId) => {
+								const change = changes.find((c) => c.id === changeId);
+								if (change && change.userId === currentUserId) {
+									setPendingDeleteId(changeId);
+									setShowDeleteConfirm(true);
+								} else {
+									toast.error("You can only delete your own revisions");
+								}
+							}}
+							onEditChange={handleEditRevision}
+							currentUserId={currentUserId}
+						/>
+					</ResizablePanel>
+				</ResizablePanelGroup>
+			</S.PanelArea>
 
 			{selectedDiff && selectedDiff.code && (
 				<DiffViewer

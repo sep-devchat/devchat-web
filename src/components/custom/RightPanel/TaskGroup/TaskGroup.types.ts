@@ -11,6 +11,7 @@ export type Task = {
 	assignedTo: string;
 	isLocked: boolean;
 	lockedAt?: string;
+	updatedAt: string;
 };
 
 export type TaskFormData = {

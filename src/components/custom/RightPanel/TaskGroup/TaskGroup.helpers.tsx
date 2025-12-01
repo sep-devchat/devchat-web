@@ -5,7 +5,7 @@ import { Task as ApiTask, TaskStatus, TaskPriority } from "@/types/task";
 
 const TASK_LOCK_WINDOW_IN_MS = 3 * 24 * 60 * 60 * 1000;
 
-const resolveLockState = (apiTask: ApiTask) => {
+export const resolveLockState = (apiTask: ApiTask) => {
 	if (apiTask.status !== TaskStatus.DONE || !apiTask.updatedAt) {
 		return { isLocked: false, lockedAt: undefined as string | undefined };
 	}
@@ -49,6 +49,7 @@ export const convertApiTaskToLocal = (apiTask: ApiTask): Task => {
 		assignedTo: apiTask.assignee?.id || "",
 		isLocked,
 		lockedAt,
+		updatedAt: apiTask.updatedAt,
 	};
 };
 

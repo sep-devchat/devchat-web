@@ -3,6 +3,13 @@ import styled from "styled-components";
 export const Container = styled.div`
 	width: 100%;
 	height: 800px;
+	display: flex;
+	flex-direction: column;
+	gap: 0.75rem;
+
+	@media (max-width: 1220px) {
+		gap: 0.5rem;
+	}
 
 	@media (min-width: 1440px) {
 		height: 620px;
@@ -15,6 +22,29 @@ export const Container = styled.div`
 	@media (max-width: 1220px) {
 		height: 640px;
 	}
+`;
+
+export const Toolbar = styled.div`
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.75rem;
+	padding: 0 0.25rem;
+`;
+
+export const ToolbarHint = styled.span`
+	font-size: 0.85rem;
+	color: #475569;
+	opacity: 0.9;
+
+	@media (max-width: 1220px) {
+		font-size: 0.75rem;
+	}
+`;
+
+export const PanelArea = styled.div`
+	flex: 1;
+	min-height: 0;
 `;
 
 export const PanelContainer = styled.div`

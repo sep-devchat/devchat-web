@@ -110,7 +110,7 @@ const TaskList: React.FC<TaskListProps> = ({
 						<S.TaskHeader>
 							<S.TaskTitle>{task.name}</S.TaskTitle>
 							<S.TaskActions>
-								{isGroupCreator ? (
+								{isGroupCreator && !task.isLocked ? (
 									<span title="Edit task">
 										<Edit2
 											size={18}
@@ -132,7 +132,7 @@ const TaskList: React.FC<TaskListProps> = ({
 										<Lock size={18} style={{ color: "#b45309" }} />
 									</span>
 								)}
-								{isGroupCreator && (
+								{isGroupCreator && !task.isLocked && (
 									<span title={task.isLocked ? LOCKED_TOOLTIP : "Delete task"}>
 										<Trash2
 											size={18}
@@ -215,6 +215,10 @@ const TaskList: React.FC<TaskListProps> = ({
 							</S.MetaItem>
 							<S.MetaItem>
 								<Calendar size={14} /> Due: {formatDate(task.dueDate)}
+							</S.MetaItem>
+							<S.MetaItem>
+								<Calendar size={14} /> Last Updated:{" "}
+								{formatDate(task.updatedAt)}
 							</S.MetaItem>
 						</S.TaskMeta>
 					</S.TaskCard>
