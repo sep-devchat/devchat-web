@@ -16,10 +16,7 @@ import {
 	SelectItem,
 	SelectTrigger,
 } from "@/components/ui/select";
-import {
-	getAllProgrammingLanguages,
-	type ProgrammingLanguageResponse,
-} from "@/services/programmingLanguagesAPI";
+import { ProgrammingLanguageEnum } from "@/utils/enum";
 
 export type CodeEditorRef = {
 	/** Get current editor text value */
@@ -76,9 +73,9 @@ export type CodeEditorProps = {
 };
 
 const DEFAULT_LANGUAGES: LanguageOption[] = [
-	{ label: "JavaScript", value: "javascript" },
-	{ label: "Python", value: "python" },
-	{ label: "Java", value: "java" },
+	{ label: "JavaScript", value: ProgrammingLanguageEnum.JAVASCRIPT },
+	{ label: "Python", value: ProgrammingLanguageEnum.PYTHON },
+	{ label: "Java", value: ProgrammingLanguageEnum.JAVA },
 ];
 
 const CodeEditor = React.forwardRef<CodeEditorRef, CodeEditorProps>(
@@ -111,22 +108,13 @@ const CodeEditor = React.forwardRef<CodeEditorRef, CodeEditorProps>(
 		const disposablesRef = useRef<Array<{ dispose: () => void }>>([]);
 		const [isFocused, setIsFocused] = useState(false);
 		const [dynHeight, setDynHeight] = useState<number | string>(height);
-		const [serverLanguages, setServerLanguages] = useState<
-			LanguageOption[] | null
-		>(null);
 
 		const fallbackLanguages = useMemo<LanguageOption[]>(
 			() => (languages && languages.length > 0 ? languages : DEFAULT_LANGUAGES),
 			[languages],
 		);
 
-		const availableLanguages = useMemo<LanguageOption[]>(
-			() =>
-				serverLanguages && serverLanguages.length > 0
-					? serverLanguages
-					: fallbackLanguages,
-			[serverLanguages, fallbackLanguages],
-		);
+		const availableLanguages = fallbackLanguages;
 
 		const initialLang =
 			language ||
@@ -138,57 +126,6 @@ const CodeEditor = React.forwardRef<CodeEditorRef, CodeEditorProps>(
 			() => availableLanguages.find((item) => item.value === internalLang),
 			[availableLanguages, internalLang],
 		);
-
-		useEffect(() => {
-			let isCancelled = false;
-			const mapLanguages = (
-				items: ProgrammingLanguageResponse[],
-			): LanguageOption[] =>
-				items
-					.map((lang) => {
-						if (!lang?.languageName || !lang?.isExecutable || !lang?.isActive)
-							return null;
-						const value =
-							lang.languageCode?.toLowerCase() ??
-							lang.languageName.toLowerCase();
-						return {
-							label: lang.languageName,
-							value,
-							icon: lang.languageIcon,
-						} satisfies LanguageOption;
-					})
-					.filter(Boolean) as LanguageOption[];
-
-			const extractPayload = (
-				response: unknown,
-			): ProgrammingLanguageResponse[] => {
-				const nested = (
-					response as { data?: { data?: ProgrammingLanguageResponse[] } }
-				)?.data?.data;
-				if (Array.isArray(nested)) return nested;
-				const direct = (response as { data?: ProgrammingLanguageResponse[] })
-					?.data;
-				return Array.isArray(direct) ? direct : [];
-			};
-
-			const fetchLanguages = async () => {
-				try {
-					const response = await getAllProgrammingLanguages();
-					const payload = extractPayload(response);
-					if (!isCancelled && payload.length > 0) {
-						setServerLanguages(mapLanguages(payload));
-					}
-				} catch {
-					if (!isCancelled) {
-						setServerLanguages(null);
-					}
-				}
-			};
-			fetchLanguages();
-			return () => {
-				isCancelled = true;
-			};
-		}, []);
 
 		useEffect(() => {
 			if (!language && availableLanguages.length > 0) {
