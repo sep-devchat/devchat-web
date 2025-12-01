@@ -29,7 +29,12 @@ export type CodeEditorRef = {
 	formatDocument: () => void;
 };
 
-export type LanguageOption = { label: string; value: string; icon?: string };
+export type LanguageOption = {
+	label: string;
+	value: string;
+	icon?: string;
+	preset: string;
+};
 
 export type CodeEditorProps = {
 	/** Controlled value (preferred). Use with onChange */
@@ -73,11 +78,31 @@ export type CodeEditorProps = {
 };
 
 const DEFAULT_LANGUAGES: LanguageOption[] = [
-	{ label: "JavaScript", value: ProgrammingLanguageEnum.JAVASCRIPT },
-	{ label: "Python", value: ProgrammingLanguageEnum.PYTHON },
-	{ label: "Java", value: ProgrammingLanguageEnum.JAVA },
-	{ label: "C", value: ProgrammingLanguageEnum.C },
-	{ label: "C++", value: ProgrammingLanguageEnum.CPP },
+	{
+		label: "JavaScript",
+		value: ProgrammingLanguageEnum.JAVASCRIPT,
+		preset: `console.log("Hello, World!");`,
+	},
+	{
+		label: "Python",
+		value: ProgrammingLanguageEnum.PYTHON,
+		preset: `print("Hello, World!")`,
+	},
+	{
+		label: "Java",
+		value: ProgrammingLanguageEnum.JAVA,
+		preset: `// Please do not remove the Main class\npublic class Main {\n\tpublic static void main(String[] args) {\n\t\tSystem.out.println("Hello, World!");\n\t}\n}`,
+	},
+	{
+		label: "C",
+		value: ProgrammingLanguageEnum.C,
+		preset: `#include <stdio.h>\n\nint main() {\n\tprintf("Hello, World!\\n");\n\treturn 0;\n}`,
+	},
+	{
+		label: "C++",
+		value: ProgrammingLanguageEnum.CPP,
+		preset: `#include <iostream>\n\nint main() {\n\tstd::cout << "Hello, World!" << std::endl;\n\treturn 0;\n}`,
+	},
 ];
 
 const CodeEditor = React.forwardRef<CodeEditorRef, CodeEditorProps>(
@@ -110,6 +135,7 @@ const CodeEditor = React.forwardRef<CodeEditorRef, CodeEditorProps>(
 		const disposablesRef = useRef<Array<{ dispose: () => void }>>([]);
 		const [isFocused, setIsFocused] = useState(false);
 		const [dynHeight, setDynHeight] = useState<number | string>(height);
+		const hasAppliedInitialPresetRef = useRef(false);
 
 		const fallbackLanguages = useMemo<LanguageOption[]>(
 			() => (languages && languages.length > 0 ? languages : DEFAULT_LANGUAGES),
@@ -182,9 +208,36 @@ const CodeEditor = React.forwardRef<CodeEditorRef, CodeEditorProps>(
 			}
 		}, []);
 
+		const applyPresetForLanguage = useCallback(
+			(langValue: string) => {
+				const presetText =
+					availableLanguages.find((item) => item.value === langValue)?.preset ??
+					"";
+				const isControlled = typeof value !== "undefined";
+				if (!isControlled && editorRef.current) {
+					editorRef.current.setValue(presetText);
+				}
+				onChange?.(presetText);
+			},
+			[availableLanguages, onChange, value],
+		);
+
+		const handleLangChange = useCallback(
+			(next: string) => {
+				setInternalLang(next);
+				if (onLanguageChange) onLanguageChange(next);
+				applyPresetForLanguage(next);
+			},
+			[applyPresetForLanguage, onLanguageChange],
+		);
+
 		const handleMount: OnMount = useCallback(
 			(ed, m: Monaco) => {
 				editorRef.current = ed;
+				if (!hasAppliedInitialPresetRef.current) {
+					applyPresetForLanguage(internalLang);
+					hasAppliedInitialPresetRef.current = true;
+				}
 				if (defaultValue && ed.getValue() === defaultValue && m) {
 					try {
 						ed.getAction("editor.action.formatDocument")?.run();
@@ -300,6 +353,8 @@ const CodeEditor = React.forwardRef<CodeEditorRef, CodeEditorProps>(
 				closeOnEmptyBackspace,
 				onClose,
 				onCtrlEnter,
+				applyPresetForLanguage,
+				internalLang,
 			],
 		);
 
@@ -308,14 +363,6 @@ const CodeEditor = React.forwardRef<CodeEditorRef, CodeEditorProps>(
 				if (onChange) onChange(val ?? "");
 			},
 			[onChange],
-		);
-
-		const handleLangChange = useCallback(
-			(next: string) => {
-				setInternalLang(next);
-				if (onLanguageChange) onLanguageChange(next);
-			},
-			[onLanguageChange],
 		);
 
 		useImperativeHandle(
