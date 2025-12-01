@@ -3,6 +3,20 @@ import { CreateCodeBlockRequest } from "@/services/code-block/code-block.type";
 /* eslint-disable @typescript-eslint/no-explicit-any */
 export type InboxType = null | "normal" | "quillCode" | "image" | "file";
 
+export type UploadPreview = {
+	id: string;
+	name: string;
+	size: number;
+	type: string;
+	progress: number;
+	status: "pending" | "uploading" | "uploaded" | "error";
+};
+
+type PreviewMeta = {
+	uploadingImages?: number;
+	previewUploads?: UploadPreview[];
+};
+
 export type ChatInputPayload = (
 	| { type: "text"; text: string; clientTempId?: string }
 	| { type: "files"; files: File[] }
@@ -10,7 +24,12 @@ export type ChatInputPayload = (
 			type: "preview";
 			text: string;
 			clientTempId: string;
-			meta?: { uploadingImages?: number };
+			meta?: PreviewMeta;
+	  }
+	| {
+			type: "preview-progress";
+			clientTempId: string;
+			meta: PreviewMeta;
 	  }
 ) & { attachmentIds?: string[]; codeBlock?: CreateCodeBlockRequest };
 

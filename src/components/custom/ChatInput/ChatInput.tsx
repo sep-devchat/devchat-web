@@ -17,6 +17,7 @@ import Editor, { EditorHandle } from "../ChatInputComponent/Editor/Editor";
 import {
 	ChatInputProps,
 	InboxType,
+	UploadPreview,
 } from "../ChatInputComponent/ChatTypeModal/InboxType";
 import {
 	directUploadWithSignature,
@@ -70,6 +71,7 @@ export default function ChatInput({
 
 	const editorRef = useRef<EditorHandle | null>(null);
 	const fileInputRef = useRef<HTMLInputElement | null>(null);
+	const previewUploadsRef = useRef<UploadPreview[]>([]);
 
 	const [toolbarVisible, setToolbarVisible] = useState(false);
 	const [toolbarPos, setToolbarPos] = useState({ top: 0, left: 0 });
@@ -298,6 +300,7 @@ export default function ChatInput({
 
 	async function uploadFileAndGetUrl(
 		file: File,
+		options?: { onProgress?: (progress: number) => void },
 	): Promise<{ url: string; attachmentId: string } | null> {
 		try {
 			const suggestedPublicId = `${file.name.replace(/\s+/g, "_")}_${Date.now()}`;
@@ -308,7 +311,11 @@ export default function ChatInput({
 			const { upload: uploadRes, delivery } = await directUploadWithSignature({
 				file,
 				signature: sig,
-				onProgress: () => {},
+				onProgress: (evt) => {
+					if (!options?.onProgress) return;
+					const next = typeof evt.progress === "number" ? evt.progress : 0;
+					options.onProgress(Math.max(0, Math.min(100, next)));
+				},
 				generateDelivery: false,
 			});
 			const result = await saveDirectUpload(uploadRes);
@@ -358,34 +365,102 @@ export default function ChatInput({
 			) {
 				// Create a clientTempId for preview and final message linkage
 				const clientTempId = `temp-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+				const imageFiles = snapshotFiles.filter((f) =>
+					f.type.startsWith("image/"),
+				);
+				const previewUploads: UploadPreview[] = imageFiles.map((file, idx) => ({
+					id: `${clientTempId}-img-${idx}`,
+					name: file.name,
+					size: file.size,
+					type: file.type || "image/*",
+					progress: 0,
+					status: "pending",
+				}));
+				previewUploadsRef.current = previewUploads;
+				const previewEntryMap = new Map<File, string>();
+				imageFiles.forEach((file, idx) => {
+					previewEntryMap.set(file, `${clientTempId}-img-${idx}`);
+				});
+
+				const emitPreviewUpdate = () => {
+					if (!previewUploadsRef.current.length || !onSend) return;
+					const snapshot = previewUploadsRef.current.map((entry) => ({
+						...entry,
+					}));
+					void onSend?.({
+						type: "preview-progress",
+						clientTempId,
+						meta: { previewUploads: snapshot },
+					});
+				};
+
+				const patchPreviewEntry = (
+					entryId: string | undefined,
+					partial: Partial<UploadPreview>,
+				) => {
+					if (!entryId || previewUploadsRef.current.length === 0) return;
+					previewUploadsRef.current = previewUploadsRef.current.map((entry) =>
+						entry.id === entryId ? { ...entry, ...partial } : entry,
+					);
+					emitPreviewUpdate();
+				};
+
 				// Send a preview payload immediately to show low-opacity message
 				await onSend?.({
 					type: "preview",
 					text: typedMd,
 					clientTempId,
 					meta: {
-						uploadingImages: snapshotFiles.filter((f) =>
-							f.type.startsWith("image/"),
-						).length,
+						uploadingImages: imageFiles.length,
+						previewUploads: previewUploads.length
+							? previewUploads.map((entry) => ({ ...entry }))
+							: undefined,
 					},
 				});
 				const mdParts: string[] = [];
 				if (typedMd.length > 0) mdParts.push(typedMd);
 				const attachmentIds: string[] = [];
 				for (const f of snapshotFiles) {
-					const uploadResult = await uploadFileAndGetUrl(f);
-					if (!uploadResult) continue;
-					attachmentIds.push(uploadResult.attachmentId);
-					if (uploadResult.url)
-						mdParts.push(
-							f.type.startsWith("image/")
-								? `![](${uploadResult.url})`
-								: `[${f.name}](${uploadResult.url})`,
-						);
-					else
-						mdParts.push(
-							f.type.startsWith("image/") ? `![]()` : `[${f.name}]()`,
-						);
+					const previewEntryId = previewEntryMap.get(f);
+					if (previewEntryId) {
+						patchPreviewEntry(previewEntryId, {
+							status: "uploading",
+							progress: 1,
+						});
+					}
+					try {
+						const uploadResult = await uploadFileAndGetUrl(f, {
+							onProgress: (value) =>
+								patchPreviewEntry(previewEntryId, {
+									status: "uploading",
+									progress: value,
+								}),
+						});
+						if (!uploadResult) {
+							patchPreviewEntry(previewEntryId, { status: "error" });
+							continue;
+						}
+						if (previewEntryId) {
+							patchPreviewEntry(previewEntryId, {
+								status: "uploaded",
+								progress: 100,
+							});
+						}
+						attachmentIds.push(uploadResult.attachmentId);
+						if (uploadResult.url)
+							mdParts.push(
+								f.type.startsWith("image/")
+									? `![](${uploadResult.url})`
+									: `[${f.name}](${uploadResult.url})`,
+							);
+						else
+							mdParts.push(
+								f.type.startsWith("image/") ? `![]()` : `[${f.name}]()`,
+							);
+					} catch (error) {
+						console.error("[ChatInput] failed to upload file", f.name, error);
+						patchPreviewEntry(previewEntryId, { status: "error" });
+					}
 				}
 				const combined = mdParts.join("\n");
 				const sent = await onSend?.({
@@ -417,6 +492,7 @@ export default function ChatInput({
 						}
 					}
 				} catch {}
+				previewUploadsRef.current = [];
 				return;
 			}
 

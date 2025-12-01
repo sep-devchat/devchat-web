@@ -580,6 +580,11 @@ export const useThreadPanelController = ({
 				size: a.size,
 				type: a.type,
 			}));
+			const previewUploads = Array.isArray((m as any).previewUploads)
+				? ((m as any).previewUploads as any[]).map((upload) => ({
+						...upload,
+					}))
+				: undefined;
 			let codeBlock: UIMessage["codeBlock"] = null;
 			const fenceMatch = m.content?.match(/```(\w+)?\n[\s\S]*?```/);
 			if (fenceMatch) {
@@ -614,6 +619,7 @@ export const useThreadPanelController = ({
 				isCurrentUser: !!profile?.id && sender?.id === profile?.id,
 				attachments: parsedAttachments,
 				codeBlock,
+				uploadPreviews: previewUploads,
 			};
 		});
 	}, [mergedMessages, profile?.id]);
@@ -764,6 +770,22 @@ export const useThreadPanelController = ({
 
 			const parentMessageId = replyToMessage?.id ?? null;
 
+			if (payload.type === "preview-progress") {
+				if (!payload.clientTempId) return;
+				setRealtimeMessages((prev) =>
+					prev.map((m) => {
+						if (m.id !== payload.clientTempId) return m;
+						const next = { ...m } as any;
+						next.previewUploads =
+							payload.meta?.previewUploads?.map((entry: any) => ({
+								...entry,
+							})) ?? [];
+						return next;
+					}),
+				);
+				return;
+			}
+
 			if (payload.type === "preview") {
 				const previewId =
 					payload.clientTempId ||
@@ -782,6 +804,13 @@ export const useThreadPanelController = ({
 					attachments: [],
 				} as any;
 				(optimistic as any).optimistic = true;
+				(optimistic as any).pending = true;
+				const previewUploads = payload.meta?.previewUploads?.map(
+					(entry: any) => ({ ...entry }),
+				);
+				if (previewUploads?.length) {
+					(optimistic as any).previewUploads = previewUploads;
+				}
 				(optimistic as any).clientTempId = payload.clientTempId || previewId;
 				setRealtimeMessages((prev) => [...prev, optimistic]);
 				return;
@@ -844,9 +873,8 @@ export const useThreadPanelController = ({
 				(optimistic as any).optimistic = true;
 				(optimistic as any).clientTempId = payload.clientTempId ?? null;
 				setRealtimeMessages((prev) => {
-					const filtered = payload.clientTempId
-						? prev.filter((m) => m.id !== payload.clientTempId)
-						: prev;
+					const targetId = payload.clientTempId || optimisticId;
+					const filtered = prev.filter((m) => m.id !== targetId);
 					return [...filtered, optimistic];
 				});
 

@@ -9,7 +9,7 @@ export default function FilePreview({ files, imagePreviews, onRemove }: Props) {
 	return (
 		<div
 			className="max-[1220px]:mt-[5.6px] min-[1440px]:mt-[6.4px] min-[1920px]:mt-[8.8px]"
-			style={{ marginTop: 8 }}
+			style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap" }}
 		>
 			{files.map((f, i) => (
 				<div

@@ -403,7 +403,7 @@ const MarkdownPreview = ({
 							),
 						}}
 					>
-						{content}
+						{hasImageGrid ? markdownBody : content}
 					</Markdown>
 				</Suspense>
 
@@ -414,13 +414,13 @@ const MarkdownPreview = ({
 								key={`${img.src}-${idx}`}
 								type="button"
 								onClick={() => handleImagePreview(img.src, img.alt)}
-								className="group block overflow-hidden rounded-lg border border-border bg-muted/20"
-								style={{ width: "250px", height: "250px" }}
+								className="group block flex-1 basis-full overflow-hidden rounded-lg border border-border bg-muted/20 sm:basis-[calc(50%-0.75rem)] lg:basis-[calc(33.333%-0.75rem)]"
+								style={{ maxWidth: "250px", maxHeight: "250px" }}
 							>
 								<img
 									src={img.src}
 									alt={img.alt}
-									className="h-full w-full object-cover transition duration-200 group-hover:scale-[1.03]"
+									className="h-full w-full object-cover transition duration-200 group-hover:scale-[1.02]"
 									loading="lazy"
 								/>
 							</button>
