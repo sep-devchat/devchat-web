@@ -40,6 +40,7 @@ export default function ResizableFloatingWindow({
 }: Props) {
 	const titleBarHeight = 48;
 	const rndRef = useRef<any>(null);
+	const groupTabRef = useRef<HTMLDivElement | null>(null);
 
 	const getInitialPos = () => {
 		if (typeof window === "undefined") return { x: 10, y: 10 };
@@ -133,6 +134,15 @@ export default function ResizableFloatingWindow({
 		setPos({ x: position.x, y: position.y });
 	};
 
+	const handleGroupTabWheel = (event: React.WheelEvent<HTMLDivElement>) => {
+		if (!groupTabRef.current) return;
+		if (Math.abs(event.deltaY) <= Math.abs(event.deltaX)) {
+			return;
+		}
+		event.preventDefault();
+		groupTabRef.current.scrollBy({ left: event.deltaY, behavior: "smooth" });
+	};
+
 	return (
 		<Rnd
 			ref={rndRef}
@@ -201,7 +211,11 @@ export default function ResizableFloatingWindow({
 						</div>
 					)}
 
-					<GroupTab aria-hidden={otherTabs.length === 0 ? true : undefined}>
+					<GroupTab
+						aria-hidden={otherTabs.length === 0 ? true : undefined}
+						onWheel={handleGroupTabWheel}
+						ref={groupTabRef}
+					>
 						<div style={{ display: "flex", gap: 8 }}>
 							{otherTabs.map((t) => (
 								<TabButton

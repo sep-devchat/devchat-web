@@ -23,6 +23,7 @@ import {
 	EditPermissions,
 	TaskFormData,
 	TaskFilters,
+	TaskFormErrors,
 } from "./TaskGroup.types";
 import {
 	convertApiTaskToLocal,
@@ -172,9 +173,25 @@ export default function TaskGroup({ onClose, groupId }: TaskGroupProps) {
 	const [formData, setFormData] = useState<TaskFormData>(createEmptyFormState);
 	const [originalFormData, setOriginalFormData] =
 		useState<TaskFormData>(createEmptyFormState);
+	const [formErrors, setFormErrors] = useState<TaskFormErrors>({});
+
+	const updateFieldError = (field: keyof TaskFormErrors, message?: string) => {
+		setFormErrors((prev) => {
+			if (message) {
+				return { ...prev, [field]: message };
+			}
+			if (!prev[field]) {
+				return prev;
+			}
+			const next = { ...prev };
+			delete next[field];
+			return next;
+		});
+	};
 
 	const handleFormFieldChange = (field: keyof TaskFormData, value: string) => {
 		setFormData((prev) => ({ ...prev, [field]: value }));
+		updateFieldError(field);
 	};
 
 	const handleStartDateChange = (value: string) => {
@@ -185,11 +202,12 @@ export default function TaskGroup({ onClose, groupId }: TaskGroupProps) {
 				prev.dueDate &&
 				new Date(prev.dueDate).getTime() < new Date(value).getTime()
 			) {
-				fireAlert("warning", "Due date adjusted to match the new start date");
 				next.dueDate = value;
 			}
 			return next;
 		});
+		updateFieldError("startDate");
+		updateFieldError("dueDate");
 	};
 
 	const handleDueDateChange = (value: string) => {
@@ -198,10 +216,14 @@ export default function TaskGroup({ onClose, groupId }: TaskGroupProps) {
 			formData.startDate &&
 			new Date(value).getTime() < new Date(formData.startDate).getTime()
 		) {
-			fireAlert("warning", "Due date cannot be earlier than the start date");
+			updateFieldError(
+				"dueDate",
+				"Due date cannot be earlier than the start date.",
+			);
 			return;
 		}
 		setFormData((prev) => ({ ...prev, dueDate: value }));
+		updateFieldError("dueDate");
 	};
 
 	const statusOptions = STATUS_OPTIONS;
@@ -224,16 +246,33 @@ export default function TaskGroup({ onClose, groupId }: TaskGroupProps) {
 			return true;
 		}
 		if (due < start) {
-			fireAlert("warning", "Due date cannot be earlier than the start date");
+			updateFieldError(
+				"dueDate",
+				"Due date cannot be earlier than the start date.",
+			);
 			return false;
 		}
+		updateFieldError("dueDate");
 		return true;
+	};
+
+	const validateRequiredFields = () => {
+		const errors: TaskFormErrors = {};
+		if (!formData.name.trim()) {
+			errors.name = "Task name is required.";
+		}
+		if (!formData.priority) {
+			errors.priority = "Priority is required.";
+		}
+		setFormErrors(errors);
+		return Object.keys(errors).length === 0;
 	};
 
 	const resetForm = () => {
 		const empty = createEmptyFormState();
 		setFormData(empty);
 		setOriginalFormData(empty);
+		setFormErrors({});
 	};
 
 	const createTaskMutation = useMutation({
@@ -319,12 +358,8 @@ export default function TaskGroup({ onClose, groupId }: TaskGroupProps) {
 			fireAlert("error", "No group selected");
 			return;
 		}
-		if (!formData.name.trim()) {
-			fireAlert("warning", "Task name is required");
-			return;
-		}
-		if (!formData.startDate) {
-			fireAlert("warning", "Start date is required");
+		const hasRequired = validateRequiredFields();
+		if (!hasRequired) {
 			return;
 		}
 		if (!validateDateOrder()) {
@@ -351,18 +386,16 @@ export default function TaskGroup({ onClose, groupId }: TaskGroupProps) {
 			fireAlert("error", "No group selected");
 			return;
 		}
-		if (!formData.name.trim()) {
-			fireAlert("warning", "Task name is required");
-			return;
-		}
 		if (editPermissions.fullAccess) {
-			if (!formData.startDate) {
-				fireAlert("warning", "Start date is required");
+			const hasRequired = validateRequiredFields();
+			if (!hasRequired) {
 				return;
 			}
 			if (!validateDateOrder()) {
 				return;
 			}
+		} else {
+			setFormErrors({});
 		}
 
 		if (!editPermissions.fullAccess) {
@@ -445,6 +478,7 @@ export default function TaskGroup({ onClose, groupId }: TaskGroupProps) {
 		};
 		setFormData(taskData);
 		setOriginalFormData(taskData);
+		setFormErrors({});
 		setIsUpdateOpen(true);
 	};
 
@@ -549,7 +583,11 @@ export default function TaskGroup({ onClose, groupId }: TaskGroupProps) {
 			<CreateTaskDialog
 				isOpen={isCreateOpen}
 				formData={formData}
-				onClose={() => setIsCreateOpen(false)}
+				formErrors={formErrors}
+				onClose={() => {
+					setIsCreateOpen(false);
+					setFormErrors({});
+				}}
 				onSubmit={handleCreate}
 				isSubmitting={createTaskMutation.isPending}
 				priorityOptions={priorityOptions}
@@ -563,7 +601,11 @@ export default function TaskGroup({ onClose, groupId }: TaskGroupProps) {
 			<UpdateTaskDialog
 				isOpen={isUpdateOpen}
 				formData={formData}
-				onClose={() => setIsUpdateOpen(false)}
+				formErrors={formErrors}
+				onClose={() => {
+					setIsUpdateOpen(false);
+					setFormErrors({});
+				}}
 				onSubmit={handleUpdate}
 				isProcessing={isUpdateProcessing}
 				hasChanges={hasFormChanges}

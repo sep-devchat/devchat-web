@@ -67,8 +67,21 @@ export const TabsRow = styled.nav`
 export const GroupTab = styled.div`
 	flex: 1;
 	overflow-x: auto;
-	//   webkit-overflow-scrolling: touch;
-	scrollbar-width: none;
+	overflow-y: hidden;
+	padding-bottom: 4px;
+	scrollbar-width: thin;
+	scrollbar-color: rgba(148, 163, 184, 0.6) transparent;
+	overscroll-behavior-x: contain;
+	&::-webkit-scrollbar {
+		height: 6px;
+	}
+	&::-webkit-scrollbar-thumb {
+		background: rgba(148, 163, 184, 0.65);
+		border-radius: 999px;
+	}
+	&::-webkit-scrollbar-track {
+		background: transparent;
+	}
 `;
 
 export const TabButton = styled.button<{ selected?: boolean }>`

@@ -1,10 +1,8 @@
 import React, { useEffect, useRef, useState } from "react";
 import { ChevronDown, X } from "lucide-react";
+import * as S from "./CustomSelect.styled";
 
 type Option = { value: string; label: string };
-
-const DISABLED_BG = "#ffffff";
-const DISABLED_OPACITY = 0.6;
 
 const CustomSelect: React.FC<{
 	value: string;
@@ -53,146 +51,66 @@ const CustomSelect: React.FC<{
 	};
 
 	return (
-		<div
-			className="custom-select-wrapper"
-			style={{
-				position: "relative",
-				opacity: disabled ? DISABLED_OPACITY : 1,
-				width: "100%",
-			}}
-			ref={selectRef}
-			onClick={() => !disabled && setIsOpen((s) => !s)}
-			role="button"
-			aria-expanded={isOpen}
-			tabIndex={0}
-			onKeyDown={(e) => {
-				if (disabled) return;
-				if (e.key === "Enter" || e.key === " ") {
-					e.preventDefault();
-					setIsOpen((s) => !s);
-				} else if (e.key === "Escape") {
-					setIsOpen(false);
-				}
-			}}
-		>
-			<div
-				className="select-control"
-				style={{
-					width: "100%",
-					border: `1.5px solid ${isOpen ? "#133e87" : "#e5e7eb"}`,
-					borderRadius: "10px",
-					color: "#1f2937",
-					background: disabled ? DISABLED_BG : "white",
-					cursor: disabled ? "not-allowed" : "pointer",
-					transition: "all 0.3s ease",
-					userSelect: "none" as const,
-					display: "flex",
-					alignItems: "center",
-					justifyContent: "space-between",
-					gap: 8,
+		<S.SelectWrapper ref={selectRef} $disabled={disabled}>
+			<S.SelectControl
+				$open={isOpen}
+				$disabled={disabled}
+				type="button"
+				onClick={() => !disabled && setIsOpen((s) => !s)}
+				aria-haspopup="listbox"
+				aria-expanded={isOpen}
+				onKeyDown={(e) => {
+					if (disabled) return;
+					if (e.key === "Enter" || e.key === " ") {
+						e.preventDefault();
+						setIsOpen((s) => !s);
+					} else if (e.key === "Escape") {
+						setIsOpen(false);
+					}
 				}}
+				disabled={disabled}
 			>
-				<div
-					style={{
-						flex: 1,
-						overflow: "hidden",
-						textOverflow: "ellipsis",
-						whiteSpace: "nowrap",
-					}}
-				>
+				<S.ValueText $isPlaceholder={!selectedOption}>
 					{selectedOption ? selectedOption.label : placeholder || "Select..."}
-				</div>
-
-				<div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+				</S.ValueText>
+				<S.ActionArea>
 					{allowClear && !disabled && value && (
-						<button
+						<S.ClearButton
 							onClick={handleClear}
 							aria-label="Clear selection"
-							title="Clear selection"
-							style={{
-								border: "none",
-								background: "transparent",
-								padding: 4,
-								display: "flex",
-								alignItems: "center",
-								justifyContent: "center",
-								cursor: "pointer",
-								color: "#6b7280",
-							}}
+							type="button"
 						>
 							<X className="icon-size" />
-						</button>
+						</S.ClearButton>
 					)}
-
-					<div
-						style={{
-							position: "absolute",
-							right: "12px",
-							top: "50%",
-							transform: `translateY(-50%) rotate(${isOpen ? "180deg" : "0deg"})`,
-							color: "#6b7280",
-							pointerEvents: "none",
-							transition: "transform 0.3s ease",
-							opacity: disabled ? DISABLED_OPACITY : 1,
-						}}
-					>
-						<ChevronDown className="icon-size" />
-					</div>
-				</div>
-			</div>
+				</S.ActionArea>
+				<S.Chevron $open={isOpen} $disabled={disabled}>
+					<ChevronDown className="icon-size" />
+				</S.Chevron>
+			</S.SelectControl>
 
 			{isOpen && !disabled && (
-				<div
-					className="select-dropdown"
-					style={{
-						position: "absolute",
-						left: 0,
-						right: 0,
-						background: "white",
-						border: "1.5px solid #e5e7eb",
-						borderRadius: "12px",
-						zIndex: 1000,
-						overflow: "hidden",
-					}}
-				>
+				<S.Dropdown role="listbox">
 					{placeholder && (
-						<div
-							className="select-option placeholder-option"
-							style={{
-								color: "#6b7280",
-								fontWeight: 500,
-								fontStyle: "italic",
-								cursor: "pointer",
-								transition: "all 0.2s ease",
-								borderRadius: "8px",
-								display: "flex",
-								alignItems: "center",
-							}}
+						<S.PlaceholderOption
+							$selected={!value}
+							role="option"
+							aria-selected={!value}
 							onClick={(e) => {
 								e.stopPropagation();
 								handleSelect("");
 							}}
 						>
 							{placeholder}
-						</div>
+						</S.PlaceholderOption>
 					)}
 
 					{options.map((option) => {
 						const isSelected = option.value === value;
 						return (
-							<div
+							<S.Option
 								key={option.value}
-								className="select-option"
-								style={{
-									color: isSelected ? "white" : "#1f2937",
-									fontWeight: isSelected ? 600 : 500,
-									background: isSelected ? "#133e87" : "white",
-									cursor: "pointer",
-									transition: "all 0.2s ease",
-									borderRadius: "8px",
-									display: "flex",
-									alignItems: "center",
-								}}
+								$selected={isSelected}
 								onClick={(e) => {
 									e.stopPropagation();
 									handleSelect(option.value);
@@ -201,12 +119,12 @@ const CustomSelect: React.FC<{
 								aria-selected={isSelected}
 							>
 								{option.label}
-							</div>
+							</S.Option>
 						);
 					})}
-				</div>
+				</S.Dropdown>
 			)}
-		</div>
+		</S.SelectWrapper>
 	);
 };
 

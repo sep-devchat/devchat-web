@@ -3,7 +3,12 @@ import { Trash } from "lucide-react";
 import CustomSelect from "../../CustomSelect/CustomSelect";
 import CustomDatePicker from "../../CustomDatePicker/CustomDatePicker";
 import * as S from "./TaskGroup.styled";
-import { TaskFormData, SelectOption, EditPermissions } from "./TaskGroup.types";
+import {
+	TaskFormData,
+	SelectOption,
+	EditPermissions,
+	TaskFormErrors,
+} from "./TaskGroup.types";
 import { formatDate } from "./TaskGroup.helpers";
 
 const Dialog: React.FC<{
@@ -23,6 +28,7 @@ const Dialog: React.FC<{
 export type CreateTaskDialogProps = {
 	isOpen: boolean;
 	formData: TaskFormData;
+	formErrors: TaskFormErrors;
 	onClose: () => void;
 	onSubmit: () => void;
 	isSubmitting: boolean;
@@ -46,6 +52,7 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
 	onFormFieldChange,
 	onStartDateChange,
 	onDueDateChange,
+	formErrors,
 }) => {
 	return (
 		<Dialog open={isOpen} onOpenChange={() => onClose()}>
@@ -63,18 +70,24 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
 							value={formData.name}
 							onChange={(e) => onFormFieldChange("name", e.target.value)}
 							placeholder="Enter task name"
+							aria-invalid={Boolean(formErrors.name)}
 						/>
+						{formErrors.name && (
+							<S.FieldError role="alert">{formErrors.name}</S.FieldError>
+						)}
 					</S.FormGroup>
 
 					<S.FormGroup>
-						<S.Label>
-							Description <span style={{ color: "#D83232" }}>*</span>
-						</S.Label>
+						<S.Label>Description</S.Label>
 						<S.TextArea
 							value={formData.description}
 							onChange={(e) => onFormFieldChange("description", e.target.value)}
 							placeholder="Enter task description"
+							aria-invalid={Boolean(formErrors.description)}
 						/>
+						{formErrors.description && (
+							<S.FieldError role="alert">{formErrors.description}</S.FieldError>
+						)}
 					</S.FormGroup>
 
 					<S.FormRow>
@@ -88,6 +101,11 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
 									onChange={(value) => onFormFieldChange("priority", value)}
 									options={priorityOptions}
 								/>
+								{formErrors.priority && (
+									<S.FieldError role="alert">
+										{formErrors.priority}
+									</S.FieldError>
+								)}
 							</S.FormGroup>
 						</S.FormColumn>
 					</S.FormRow>
@@ -99,16 +117,21 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
 							onChange={onStartDateChange}
 							allowClear
 						/>
+						{formErrors.startDate && (
+							<S.FieldError role="alert">{formErrors.startDate}</S.FieldError>
+						)}
 					</S.FormGroup>
 
 					<S.FormGroup>
-						<S.Label>
-							Due Date <span style={{ color: "#D83232" }}>*</span>
-						</S.Label>
+						<S.Label>Due Date</S.Label>
 						<CustomDatePicker
 							value={formData.dueDate}
 							onChange={onDueDateChange}
+							allowClear
 						/>
+						{formErrors.dueDate && (
+							<S.FieldError role="alert">{formErrors.dueDate}</S.FieldError>
+						)}
 					</S.FormGroup>
 
 					<S.FormGroup>
@@ -122,6 +145,9 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
 							}
 							disabled={membersLoading}
 						/>
+						{formErrors.assignedTo && (
+							<S.FieldError role="alert">{formErrors.assignedTo}</S.FieldError>
+						)}
 					</S.FormGroup>
 				</S.DialogBody>
 
@@ -145,6 +171,7 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
 export type UpdateTaskDialogProps = {
 	isOpen: boolean;
 	formData: TaskFormData;
+	formErrors: TaskFormErrors;
 	onClose: () => void;
 	onSubmit: () => void;
 	isProcessing: boolean;
@@ -180,6 +207,7 @@ export const UpdateTaskDialog: React.FC<UpdateTaskDialogProps> = ({
 	onFormFieldChange,
 	onStartDateChange,
 	onDueDateChange,
+	formErrors,
 }) => {
 	return (
 		<Dialog open={isOpen} onOpenChange={() => onClose()}>
@@ -217,12 +245,13 @@ export const UpdateTaskDialog: React.FC<UpdateTaskDialogProps> = ({
 								background: editPermissions.fullAccess ? "white" : "#f3f4f6",
 							}}
 						/>
+						{formErrors.name && (
+							<S.FieldError role="alert">{formErrors.name}</S.FieldError>
+						)}
 					</S.FormGroup>
 
 					<S.FormGroup>
-						<S.Label>
-							Description <span style={{ color: "#D83232" }}>*</span>
-						</S.Label>
+						<S.Label>Description</S.Label>
 						<S.TextArea
 							value={formData.description}
 							onChange={(e) => onFormFieldChange("description", e.target.value)}
@@ -234,6 +263,9 @@ export const UpdateTaskDialog: React.FC<UpdateTaskDialogProps> = ({
 								background: editPermissions.fullAccess ? "white" : "#f3f4f6",
 							}}
 						/>
+						{formErrors.description && (
+							<S.FieldError role="alert">{formErrors.description}</S.FieldError>
+						)}
 					</S.FormGroup>
 
 					<S.FormRow>
@@ -246,6 +278,9 @@ export const UpdateTaskDialog: React.FC<UpdateTaskDialogProps> = ({
 									options={statusOptions}
 									disabled={!editPermissions.canEdit}
 								/>
+								{formErrors.status && (
+									<S.FieldError role="alert">{formErrors.status}</S.FieldError>
+								)}
 							</S.FormGroup>
 						</S.FormColumn>
 
@@ -260,6 +295,11 @@ export const UpdateTaskDialog: React.FC<UpdateTaskDialogProps> = ({
 									options={priorityOptions}
 									disabled={!editPermissions.fullAccess}
 								/>
+								{formErrors.priority && (
+									<S.FieldError role="alert">
+										{formErrors.priority}
+									</S.FieldError>
+								)}
 							</S.FormGroup>
 						</S.FormColumn>
 					</S.FormRow>
@@ -272,23 +312,26 @@ export const UpdateTaskDialog: React.FC<UpdateTaskDialogProps> = ({
 							allowClear
 							disabled={!editPermissions.fullAccess}
 						/>
+						{formErrors.startDate && (
+							<S.FieldError role="alert">{formErrors.startDate}</S.FieldError>
+						)}
 					</S.FormGroup>
 
 					<S.FormGroup>
-						<S.Label>
-							Due Date <span style={{ color: "#D83232" }}>*</span>
-						</S.Label>
+						<S.Label>Due Date</S.Label>
 						<CustomDatePicker
 							value={formData.dueDate}
 							onChange={onDueDateChange}
 							disabled={!editPermissions.fullAccess}
+							allowClear
 						/>
+						{formErrors.dueDate && (
+							<S.FieldError role="alert">{formErrors.dueDate}</S.FieldError>
+						)}
 					</S.FormGroup>
 
 					<S.FormGroup>
-						<S.Label>
-							Assign To <span style={{ color: "#D83232" }}>*</span>
-						</S.Label>
+						<S.Label>Assign To</S.Label>
 						<CustomSelect
 							value={formData.assignedTo}
 							onChange={(value) => onFormFieldChange("assignedTo", value)}
@@ -298,6 +341,9 @@ export const UpdateTaskDialog: React.FC<UpdateTaskDialogProps> = ({
 							}
 							disabled={!editPermissions.fullAccess || membersLoading}
 						/>
+						{formErrors.assignedTo && (
+							<S.FieldError role="alert">{formErrors.assignedTo}</S.FieldError>
+						)}
 					</S.FormGroup>
 				</S.DialogBody>
 

@@ -44,7 +44,6 @@ const TaskList: React.FC<TaskListProps> = ({
 	tasks,
 	apiTasks,
 	groupMembers,
-	currentUserId,
 	isGroupCreator,
 	onOpenTask,
 	onDeleteTask,
@@ -105,27 +104,25 @@ const TaskList: React.FC<TaskListProps> = ({
 			{tasks.map((task) => {
 				const statusColors = getStatusColor(task.status);
 				const priorityColors = getPriorityColor(task.priority);
-				const canEdit =
-					!task.isLocked &&
-					(isGroupCreator || task.assignedTo === currentUserId);
 
 				return (
 					<S.TaskCard key={task.id}>
 						<S.TaskHeader>
 							<S.TaskTitle>{task.name}</S.TaskTitle>
 							<S.TaskActions>
-								<span title="View task">
-									<Eye
-										size={18}
-										style={{ cursor: "pointer", color: "#6b7280" }}
-										onClick={() => onOpenTask(task)}
-									/>
-								</span>
-								{canEdit && (
+								{isGroupCreator ? (
 									<span title="Edit task">
 										<Edit2
 											size={18}
 											style={{ cursor: "pointer", color: "#608BC1" }}
+											onClick={() => onOpenTask(task)}
+										/>
+									</span>
+								) : (
+									<span title="View task">
+										<Eye
+											size={18}
+											style={{ cursor: "pointer", color: "#6b7280" }}
 											onClick={() => onOpenTask(task)}
 										/>
 									</span>

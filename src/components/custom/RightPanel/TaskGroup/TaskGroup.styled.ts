@@ -624,9 +624,25 @@ export const FormGroup = styled.div`
 	}
 `;
 
+export const FieldError = styled.p`
+	color: ${theme.color.cancel};
+	font-size: 0.85rem;
+	margin: 0.35rem 0 0;
+	font-weight: 500;
+
+	@media (max-width: 1220px) {
+		font-size: 0.8rem;
+	}
+
+	@media (min-width: 1920px) {
+		font-size: 0.95rem;
+	}
+`;
+
 export const FormRow = styled.div`
 	display: flex;
 	gap: 16px;
+	flex-wrap: wrap;
 
 	@media (min-width: 1440px) {
 		gap: 12.8px;
@@ -635,10 +651,20 @@ export const FormRow = styled.div`
 	@media (min-width: 1920px) {
 		gap: 17.6px;
 	}
+
+	@media (max-width: 768px) {
+		flex-direction: column;
+		gap: 12px;
+	}
 `;
 
 export const FormColumn = styled.div`
 	flex: 1;
+	min-width: 0;
+
+	@media (max-width: 768px) {
+		width: 100%;
+	}
 `;
 
 export const Label = styled.label`

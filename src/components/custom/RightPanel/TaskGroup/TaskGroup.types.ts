@@ -23,6 +23,8 @@ export type TaskFormData = {
 	assignedTo: string;
 };
 
+export type TaskFormErrors = Partial<Record<keyof TaskFormData, string>>;
+
 export type GroupMember = {
 	id: string;
 	username: string;
