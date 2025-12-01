@@ -25,6 +25,7 @@ type MessageActionsProps = {
 	isCurrentUser: boolean;
 	existingThreadId: string | null;
 	showThreadAction?: boolean;
+	directUserId?: string;
 };
 
 const MessageActions: React.FC<MessageActionsProps> = ({
@@ -40,6 +41,7 @@ const MessageActions: React.FC<MessageActionsProps> = ({
 	handleCreateThread,
 	existingThreadId,
 	showThreadAction = true,
+	directUserId,
 }) => {
 	return (
 		<div
@@ -79,7 +81,8 @@ const MessageActions: React.FC<MessageActionsProps> = ({
 								Open Thread
 							</DropdownMenuItem>
 						) : (
-							isCurrentUser && (
+							isCurrentUser &&
+							!directUserId && (
 								<DropdownMenuItem
 									className="px-3 py-2 cursor-pointer max-[1220px]:px-[8.4px] max-[1220px]:py-[5.6px] max-[1220px]:text-[11px] min-[1440px]:px-[9.6px] min-[1440px]:py-[6.4px] min-[1440px]:text-[12px] min-[1920px]:px-[13.2px] min-[1920px]:py-[8.8px] min-[1920px]:text-[14px]"
 									onSelect={() => {

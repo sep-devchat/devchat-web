@@ -17,6 +17,8 @@ import {
 	DateText,
 } from "../ThreadPanel.styled";
 import { cn } from "@/lib/utils";
+import { Progress } from "@/components/ui/progress";
+import type { UploadPreview } from "@/components/custom/ChatInputComponent/ChatTypeModal/InboxType";
 
 const ThreadMessages: React.FC<ThreadMessagesProps> = ({
 	groupedMessages,
@@ -66,6 +68,8 @@ const ThreadMessages: React.FC<ThreadMessagesProps> = ({
 
 					{dateMessages.map((msg) => {
 						const authorLabel = msg.isCurrentUser ? "You" : msg.author;
+						const uploadPreviews = (msg.uploadPreviews ??
+							[]) as UploadPreview[];
 						const headerClassName = msg.isCurrentUser
 							? "flex-row-reverse gap-1.5"
 							: "";
@@ -175,6 +179,34 @@ const ThreadMessages: React.FC<ThreadMessagesProps> = ({
 												content={msg.content}
 												className={markdownPreviewClassName}
 											/>
+											{uploadPreviews.length > 0 && (
+												<div className="mt-3 flex w-full min-w-[200px] max-w-[320px] flex-col gap-2">
+													{uploadPreviews.map((upload) => (
+														<div
+															key={upload.id}
+															className="rounded-md border border-border/60 bg-background/80 p-2"
+														>
+															<div className="flex items-center justify-between text-[11px] font-medium text-muted-foreground">
+																<span className="truncate" title={upload.name}>
+																	{upload.name}
+																</span>
+																<span>{Math.round(upload.progress ?? 0)}%</span>
+															</div>
+															<Progress
+																value={upload.progress ?? 0}
+																className="mt-1"
+															/>
+															<p className="mt-1 text-[11px] text-muted-foreground">
+																{upload.status === "error"
+																	? "Upload failed"
+																	: upload.status === "uploaded"
+																		? "Uploaded"
+																		: "Uploading..."}
+															</p>
+														</div>
+													))}
+												</div>
+											)}
 										</div>
 										<MessageTime className={timestampClass}>
 											{msg.time}

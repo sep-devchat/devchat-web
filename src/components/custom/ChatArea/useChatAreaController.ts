@@ -1145,6 +1145,9 @@ export const useChatAreaController = (): ChatAreaControllerResult => {
 				const clientTempId =
 					payload.clientTempId ||
 					`temp-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+				const previewUploads = payload.meta?.previewUploads?.map(
+					(entry: any) => ({ ...entry }),
+				);
 				const optimistic: MessageResponse = {
 					id: clientTempId,
 					content: text,
@@ -1159,8 +1162,28 @@ export const useChatAreaController = (): ChatAreaControllerResult => {
 						avatarUrl: profile?.avatarUrl,
 					} as any,
 				} as any;
+				(optimistic as any).pending = true;
+				if (previewUploads?.length) {
+					(optimistic as any).previewUploads = previewUploads;
+				}
 
 				setRealtimeMessages((prev) => [...prev, optimistic]);
+				return;
+			}
+
+			if (payload.type === "preview-progress") {
+				if (!payload.clientTempId) return;
+				setRealtimeMessages((prev) =>
+					prev.map((msg) => {
+						if (msg.id !== payload.clientTempId) return msg;
+						const next = { ...msg } as any;
+						next.previewUploads =
+							payload.meta?.previewUploads?.map((entry: any) => ({
+								...entry,
+							})) ?? [];
+						return next;
+					}),
+				);
 				return;
 			}
 
@@ -1198,7 +1221,11 @@ export const useChatAreaController = (): ChatAreaControllerResult => {
 					} as any,
 				} as any;
 
-				setRealtimeMessages((prev) => [...prev, optimistic]);
+				setRealtimeMessages((prev) => {
+					const targetId = payload.clientTempId || tempId;
+					const filtered = prev.filter((m) => m.id !== targetId);
+					return [...filtered, optimistic];
+				});
 
 				const ev = isDirectMode
 					? SocketEvents.SEND_DIRECT_MESSAGE
@@ -1249,6 +1276,7 @@ export const useChatAreaController = (): ChatAreaControllerResult => {
 				for (const f of mdFiles) {
 					try {
 						const content = await f.text();
+						console.log("[ChatArea] read markdown file", f.text(), content);
 						const mdTempId = `temp-${Date.now()}-${Math.floor(Math.random() * 10000)}-md`;
 
 						const optimisticMd: MessageResponse = {

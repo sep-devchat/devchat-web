@@ -5,6 +5,8 @@ import { getReplyPreviewText, truncatePreview } from "@/utils/replyPreview";
 import { MessageItem, MessageBubbleStyle } from "../ChatArea.styled";
 import MarkdownPreview from "../../MarkdownPreview";
 import MessageActions from "../../MessageActions/MessageActions";
+import { Progress } from "@/components/ui/progress";
+import type { UploadPreview } from "@/components/custom/ChatInputComponent/ChatTypeModal/InboxType";
 
 const MarkdownPreviewMemo = React.memo(MarkdownPreview);
 
@@ -86,6 +88,7 @@ export const MessageRow: React.FC<MessageRowProps> = React.memo(
 		const parentPreviewText = truncatePreview(
 			getReplyPreviewText(m.parentMessage ?? null),
 		);
+		const previewUploads = ((m as any).previewUploads ?? []) as UploadPreview[];
 
 		return (
 			<div
@@ -228,6 +231,35 @@ export const MessageRow: React.FC<MessageRowProps> = React.memo(
 									directUserId={directUserId}
 								/>
 
+								{previewUploads.length > 0 && (
+									<div className="mt-3 flex w-full min-w-[220px] max-w-[320px] flex-col gap-2">
+										{previewUploads.map((upload) => (
+											<div
+												key={upload.id}
+												className="rounded-md border border-border/60 bg-background/80 p-2"
+											>
+												<div className="flex items-center justify-between text-[11px] font-medium text-muted-foreground">
+													<span className="truncate" title={upload.name}>
+														{upload.name}
+													</span>
+													<span>{Math.round(upload.progress ?? 0)}%</span>
+												</div>
+												<Progress
+													value={upload.progress ?? 0}
+													className="mt-1"
+												/>
+												<p className="mt-1 text-[11px] text-muted-foreground">
+													{upload.status === "error"
+														? "Upload failed"
+														: upload.status === "uploaded"
+															? "Uploaded"
+															: "Uploading..."}
+												</p>
+											</div>
+										))}
+									</div>
+								)}
+
 								{existingThreadId && !m.thread?.id && (
 									<button
 										onClick={(e) => {
@@ -299,6 +331,7 @@ export const MessageRow: React.FC<MessageRowProps> = React.memo(
 									isCurrentUser={isCurrentUser}
 									handleCreateThread={handleCreateThread}
 									existingThreadId={existingThreadId}
+									directUserId={directUserId}
 								/>
 							</div>
 						</div>

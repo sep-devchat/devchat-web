@@ -1,4 +1,5 @@
 import type { MessageResponse } from "@/services/messageAPI";
+import type { UploadPreview } from "@/components/custom/ChatInputComponent/ChatTypeModal/InboxType";
 
 export interface UIMessage {
 	id: string;
@@ -11,6 +12,7 @@ export interface UIMessage {
 	isCurrentUser?: boolean;
 	attachments?: Array<{ name: string; size: number; type: string }>;
 	codeBlock?: { language?: string; content: string } | null;
+	uploadPreviews?: UploadPreview[];
 }
 
 export type GroupedMessages = Array<[string, UIMessage[]]>;
