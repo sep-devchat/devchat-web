@@ -34,6 +34,14 @@ const languageSelectItems = [
 		label: "Python",
 		value: ProgrammingLanguageEnum.PYTHON,
 	},
+	{
+		label: "C",
+		value: ProgrammingLanguageEnum.C,
+	},
+	{
+		label: "C++",
+		value: ProgrammingLanguageEnum.CPP,
+	},
 ];
 
 export const Route = createFileRoute("/test/code")({

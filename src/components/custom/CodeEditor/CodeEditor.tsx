@@ -76,6 +76,8 @@ const DEFAULT_LANGUAGES: LanguageOption[] = [
 	{ label: "JavaScript", value: ProgrammingLanguageEnum.JAVASCRIPT },
 	{ label: "Python", value: ProgrammingLanguageEnum.PYTHON },
 	{ label: "Java", value: ProgrammingLanguageEnum.JAVA },
+	{ label: "C", value: ProgrammingLanguageEnum.C },
+	{ label: "C++", value: ProgrammingLanguageEnum.CPP },
 ];
 
 const CodeEditor = React.forwardRef<CodeEditorRef, CodeEditorProps>(

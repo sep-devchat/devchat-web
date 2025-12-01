@@ -4,6 +4,8 @@ const LANGUAGE_ALIASES: Record<ProgrammingLanguageEnum, string[]> = {
 	[ProgrammingLanguageEnum.JAVASCRIPT]: ["javascript", "js", "node", "nodejs"],
 	[ProgrammingLanguageEnum.PYTHON]: ["python", "py"],
 	[ProgrammingLanguageEnum.JAVA]: ["java"],
+	[ProgrammingLanguageEnum.C]: ["c"],
+	[ProgrammingLanguageEnum.CPP]: ["cpp", "c++", "cplusplus"],
 };
 
 export const mapLanguageToEnum = (

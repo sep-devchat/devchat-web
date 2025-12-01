@@ -19,7 +19,7 @@ import {
 	DialogDescription,
 } from "@/components/ui/dialog";
 import { runCode } from "@/services/code/code.api";
-import { ProgrammingLanguageEnum } from "@/utils/enum";
+import { mapLanguageToEnum } from "@/utils/code-runner";
 import * as S from "./CodeEditor.styled";
 import { cn } from "@/lib/utils";
 
@@ -88,17 +88,8 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
 		}
 	};
 
-	const toEnumLanguage = (lang: string): ProgrammingLanguageEnum | null => {
-		const val = (lang || "").toLowerCase();
-		if (["javascript", "js"].includes(val))
-			return ProgrammingLanguageEnum.JAVASCRIPT;
-		if (["python", "py"].includes(val)) return ProgrammingLanguageEnum.PYTHON;
-		if (["java"].includes(val)) return ProgrammingLanguageEnum.JAVA;
-		return null;
-	};
-
 	const handleRun = async () => {
-		const enumLang = toEnumLanguage(language);
+		const enumLang = mapLanguageToEnum(language);
 
 		if (!enumLang) {
 			setRunError(
