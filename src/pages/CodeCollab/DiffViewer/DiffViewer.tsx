@@ -11,11 +11,6 @@ import { DiffEditor } from "@monaco-editor/react";
 import Editor from "@monaco-editor/react";
 import { editor } from "monaco-editor";
 import {
-	ResizableHandle,
-	ResizablePanel,
-	ResizablePanelGroup,
-} from "@/components/ui/resizable";
-import {
 	Dialog,
 	DialogContent,
 	DialogHeader,
@@ -73,28 +68,6 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({
 		};
 	}, []);
 
-	const editorRef = useRef<any>(null);
-
-	useEffect(() => {
-		const updateFontSize = () => {
-			if (!editorRef.current) return;
-
-			const width = window.innerWidth;
-			let fontSize = 12;
-
-			if (width < 1220) fontSize = 14;
-			else if (width >= 1440 && width < 1920) fontSize = 12;
-			else if (width >= 1920) fontSize = 15;
-
-			editorRef.current.updateOptions({ fontSize });
-		};
-
-		updateFontSize();
-		window.addEventListener("resize", updateFontSize);
-
-		return () => window.removeEventListener("resize", updateFontSize);
-	}, []);
-
 	const handleDiffEditorMount = (diffEditor: editor.IStandaloneDiffEditor) => {
 		diffEditorRef.current = diffEditor;
 
@@ -109,6 +82,37 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({
 			readOnly: true,
 		});
 	};
+
+	useEffect(() => {
+		const updateFontSize = () => {
+			if (!diffEditorRef.current) return;
+			const width = window.innerWidth;
+			let fontSize = 13;
+
+			if (width < 1220) fontSize = 14;
+			else if (width >= 1920) fontSize = 15;
+
+			diffEditorRef.current.getOriginalEditor().updateOptions({ fontSize });
+			diffEditorRef.current.getModifiedEditor().updateOptions({ fontSize });
+		};
+
+		updateFontSize();
+		window.addEventListener("resize", updateFontSize);
+
+		return () => window.removeEventListener("resize", updateFontSize);
+	}, []);
+
+	useEffect(() => {
+		if (!diffEditorRef.current) return;
+		const model = diffEditorRef.current.getModel();
+		if (!model) return;
+		if (model.original.getValue() !== original) {
+			model.original.setValue(original);
+		}
+		if (model.modified.getValue() !== modified) {
+			model.modified.setValue(modified);
+		}
+	}, [original, modified]);
 
 	const handleRunCode = async (code: string, type: "original" | "modified") => {
 		const enumLang = mapLanguageToEnum(language);
@@ -206,90 +210,86 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({
 
 					<div className="flex-1 overflow-hidden">
 						{isHalf ? (
-							<ResizablePanelGroup direction="vertical">
-								<ResizablePanel defaultSize={50} minSize={30}>
-									<div className="h-full flex flex-col bg-white">
-										<div className="flex items-center justify-between px-4 py-3 border-b border-red-200 bg-red-50 flex-shrink-0">
-											<span className="text-sm font-semibold text-red-600">
-												Original Code
-											</span>
-											<S.RunButton
-												onClick={() => handleRunCode(original, "original")}
-												disabled={isRunningOriginal}
-											>
-												{isRunningOriginal ? (
-													<Spinner className="h-3.5 w-3.5" />
-												) : (
-													<Play
-														style={{ width: "0.875rem", height: "0.875rem" }}
-													/>
-												)}
-												{isRunningOriginal ? "Running..." : "Run"}
-											</S.RunButton>
-										</div>
-										<div className="flex-1">
-											<Editor
-												height="100%"
-												language={language}
-												value={original}
-												theme="vs"
-												options={{
-													readOnly: true,
-													minimap: { enabled: false },
-													fontSize: 13,
-													lineNumbers: "on",
-													scrollBeyondLastLine: false,
-													automaticLayout: true,
-													wordWrap: "off",
-												}}
-											/>
-										</div>
+							<div className="h-full flex flex-col gap-4">
+								<div className="flex flex-col bg-white rounded-lg border border-red-100 shadow-sm overflow-hidden">
+									<div className="flex items-center justify-between px-4 py-2.5 border-b border-red-200 bg-red-50">
+										<span className="text-sm font-semibold text-red-600">
+											Original Code
+										</span>
+										<S.RunButton
+											onClick={() => handleRunCode(original, "original")}
+											disabled={isRunningOriginal}
+										>
+											{isRunningOriginal ? (
+												<Spinner className="h-3.5 w-3.5" />
+											) : (
+												<Play
+													style={{ width: "0.875rem", height: "0.875rem" }}
+												/>
+											)}
+											{isRunningOriginal ? "Running..." : "Run"}
+										</S.RunButton>
 									</div>
-								</ResizablePanel>
+									<Editor
+										height="300px"
+										language={language || "plaintext"}
+										value={original}
+										options={{
+											readOnly: true,
+											minimap: { enabled: false },
+											fontSize: 13,
+											lineNumbers: "on",
+											scrollBeyondLastLine: false,
+											automaticLayout: true,
+											wordWrap: "off",
+										}}
+									/>
+								</div>
 
-								<ResizableHandle />
-
-								<ResizablePanel defaultSize={50} minSize={30}>
-									<div className="h-full flex flex-col bg-white">
-										<div className="flex items-center justify-between px-4 py-3 border-b border-green-200 bg-green-50 flex-shrink-0">
-											<span className="text-sm font-semibold text-green-600">
-												Modified Code
-											</span>
-											<S.RunButton
-												onClick={() => handleRunCode(modified, "modified")}
-												disabled={isRunningModified}
-											>
-												{isRunningModified ? (
-													<Spinner className="h-3.5 w-3.5" />
-												) : (
-													<Play
-														style={{ width: "0.875rem", height: "0.875rem" }}
-													/>
-												)}
-												{isRunningModified ? "Running..." : "Run"}
-											</S.RunButton>
-										</div>
-										<div className="flex-1">
-											<Editor
-												height="100%"
-												language={language}
-												value={modified}
-												theme="vs"
-												options={{
-													readOnly: true,
-													minimap: { enabled: false },
-													fontSize: 13,
-													lineNumbers: "on",
-													scrollBeyondLastLine: false,
-													automaticLayout: true,
-													wordWrap: "off",
-													theme: "vs-dark",
-												}}
-											/>
-										</div>
+								<div className="flex flex-col bg-white rounded-lg border border-green-100 shadow-sm overflow-hidden flex-1">
+									<div className="flex items-center justify-between px-4 py-2.5 border-b border-green-200 bg-green-50">
+										<span className="text-sm font-semibold text-green-600">
+											Modified Code
+										</span>
+										<S.RunButton
+											onClick={() => handleRunCode(modified, "modified")}
+											disabled={isRunningModified}
+										>
+											{isRunningModified ? (
+												<Spinner className="h-3.5 w-3.5" />
+											) : (
+												<Play
+													style={{ width: "0.875rem", height: "0.875rem" }}
+												/>
+											)}
+											{isRunningModified ? "Running..." : "Run"}
+										</S.RunButton>
 									</div>
-								</ResizablePanel>
-							</ResizablePanelGroup>
+									<DiffEditor
+										height="100%"
+										language={language || "plaintext"}
+										original={original}
+										modified={modified}
+										onMount={handleDiffEditorMount}
+										theme="vs"
+										options={{
+											readOnly: true,
+											renderSideBySide: false,
+											enableSplitViewResizing: true,
+											renderOverviewRuler: true,
+											scrollBeyondLastLine: false,
+											minimap: { enabled: false },
+											fontSize: 13,
+											lineNumbers: "on",
+											automaticLayout: true,
+											wordWrap: "off",
+											renderIndicators: true,
+											ignoreTrimWhitespace: false,
+											diffWordWrap: "off",
+										}}
+									/>
+								</div>
+							</div>
 						) : (
 							<div className="h-full relative">
 								<div className="absolute top-0 left-0 right-0 z-10 flex pointer-events-none">
@@ -334,7 +334,7 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({
 								<div className="h-full pt-14 bg-white">
 									<DiffEditor
 										height="100%"
-										language={language}
+										language={language || "plaintext"}
 										original={original}
 										modified={modified}
 										onMount={handleDiffEditorMount}
