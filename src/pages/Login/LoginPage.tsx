@@ -376,7 +376,6 @@ const LoginPage: React.FC<LoginPageProps> = ({
 						style={{
 							opacity: isLoading ? 0.6 : 1,
 							cursor: isLoading ? "not-allowed" : "pointer",
-							minHeight: "44px",
 						}}
 					>
 						{isLoading ? "Signing in..." : "Sign in"}
@@ -445,7 +444,7 @@ const LoginPage: React.FC<LoginPageProps> = ({
 
 				<ImageSection
 					backgroundImage={testImage}
-					style={{ minHeight: "calc(100vh - 40px)" }}
+					style={{ minHeight: "calc(100vh - 50px)" }}
 				/>
 			</ContentContainer>
 		</LoginContainer>

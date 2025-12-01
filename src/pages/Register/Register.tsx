@@ -12,14 +12,14 @@ import {
 	RegisterCard,
 	ImageSection,
 	WelcomeTitle,
-	WelcomeSubtitle,
+	// WelcomeSubtitle,
 	FormGroup,
 	FormRow,
 	Label,
 	Input,
 	RegisterButton,
 	Divider,
-	DividerText,
+	// DividerText,
 	GitHubButton,
 	SignInText,
 	SignInLink,
@@ -587,9 +587,9 @@ const RegisterPage: React.FC<RegisterPageProps> = ({
 
 				<RegisterCard>
 					<WelcomeTitle>Register</WelcomeTitle>
-					<WelcomeSubtitle>
+					{/* <WelcomeSubtitle>
 						Please fill in the form to create an account.
-					</WelcomeSubtitle>
+					</WelcomeSubtitle> */}
 
 					{errors.general && (
 						<div
@@ -1056,9 +1056,7 @@ const RegisterPage: React.FC<RegisterPageProps> = ({
 						{isLoading ? "Registering..." : "Register Account"}
 					</RegisterButton>
 
-					<Divider>
-						<DividerText>or</DividerText>
-					</Divider>
+					<Divider>{/* <DividerText>or</DividerText> */}</Divider>
 
 					<SocialButtonsContainer>
 						<SocialButtonsRow>
