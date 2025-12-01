@@ -1,7 +1,7 @@
 import styled from "styled-components";
 
 export const PageContainer = styled.div`
-	padding: 32px;
+	padding: 0 24px;
 	display: flex;
 	flex-direction: column;
 	gap: 24px;
@@ -9,11 +9,14 @@ export const PageContainer = styled.div`
 `;
 
 export const Panel = styled.div`
-	background: rgba(255, 255, 255, 0.9);
-	border-radius: 24px;
+	background: white;
+	border-radius: 12px;
 	padding: 24px;
-	border: 1px solid rgba(15, 23, 42, 0.08);
-	box-shadow: 0 24px 60px rgba(15, 23, 42, 0.08);
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+	flex-shrink: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 16px;
 `;
 
 export const HeaderRow = styled.div`
@@ -99,26 +102,31 @@ export const RefreshButton = styled.button`
 	justify-content: center;
 	cursor: pointer;
 	color: #0f172a;
+
+	&:focus {
+		outline: none;
+	}
 `;
 
 export const TableCard = styled(Panel)`
 	padding: 0;
 	overflow: hidden;
+	border-radius: 12px;
 `;
 
 export const TableHeader = styled.div`
-	padding: 20px 24px;
+	padding: 24px;
 	border-bottom: 1px solid rgba(15, 23, 42, 0.06);
-	background: rgba(248, 250, 252, 0.9);
+	background: white;
 	display: flex;
 	flex-direction: column;
 	gap: 6px;
 `;
 
 export const TableTitle = styled.h2`
-	margin: 0;
-	font-size: 20px;
-	color: #0f172a;
+	font-size: 24px;
+	color: #27364b;
+	font-weight: 600;
 `;
 
 export const TableSubtitle = styled.p`
@@ -268,6 +276,10 @@ export const PaginationButton = styled.button`
 	&:disabled {
 		opacity: 0.4;
 		cursor: not-allowed;
+	}
+
+	&:focus {
+		outline: none;
 	}
 `;
 

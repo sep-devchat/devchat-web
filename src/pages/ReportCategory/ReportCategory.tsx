@@ -297,7 +297,7 @@ const ReportCategory = () => {
 			<S.Panel>
 				<S.HeaderRow>
 					<S.TitleBlock>
-						<S.Title>Report categories</S.Title>
+						{/* <S.Title>Report categories</S.Title> */}
 						<S.Subtitle>
 							Curate the categories reviewers use to triage abuse and policy
 							violations.

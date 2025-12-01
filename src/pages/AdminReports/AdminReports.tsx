@@ -34,6 +34,7 @@ import {
 	ListFilter,
 	Loader2,
 	RefreshCcw,
+	ChevronDown,
 } from "lucide-react";
 import * as S from "./AdminReports.styled";
 
@@ -313,7 +314,7 @@ const AdminReports = () => {
 			<S.Panel>
 				<S.HeaderRow>
 					<S.TitleBlock>
-						<S.Title>User reports</S.Title>
+						{/* <S.Title>User reports</S.Title> */}
 						<S.Subtitle>
 							Review flagged messages, filter by category, and inspect reporter
 							context.
@@ -344,26 +345,62 @@ const AdminReports = () => {
 				</S.HeaderRow>
 				<S.FiltersGrid>
 					<S.FilterField as="div">
-						<span>Categories</span>
 						<DropdownMenu>
 							<DropdownMenuTrigger asChild>
-								<S.CategoryButton type="button">
-									<Filter size={16} />
+								<S.CategoryButton
+									type="button"
+									className={
+										categoryPillLabels.length > 0 ? "has-selection" : ""
+									}
+								>
+									<Filter size={18} strokeWidth={2.5} />
 									<div>
 										<div>{categoryButtonLabel}</div>
-										<S.CategoryStatus>{categoryButtonHint}</S.CategoryStatus>
+										<S.CategoryStatus $selected={categoryPillLabels.length > 0}>
+											{categoryButtonHint}
+										</S.CategoryStatus>
 									</div>
+									<ChevronDown
+										size={16}
+										style={{
+											marginLeft: "auto",
+											opacity: 0.6,
+											transition: "transform 0.2s ease",
+										}}
+									/>
 								</S.CategoryButton>
 							</DropdownMenuTrigger>
-							<DropdownMenuContent className="w-72">
-								<DropdownMenuLabel>Filter by category</DropdownMenuLabel>
-								<DropdownMenuSeparator />
+							<DropdownMenuContent
+								align="start"
+								sideOffset={8}
+								style={{
+									borderRadius: "12px",
+									border: "1px solid #e2e8f0",
+									boxShadow: "0 10px 40px rgba(0, 0, 0, 0.12)",
+									padding: "8px",
+									width: "var(--radix-dropdown-menu-trigger-width)",
+									minWidth: "280px",
+								}}
+							>
+								<DropdownMenuLabel
+									style={{
+										fontSize: "14px",
+										fontWeight: 600,
+										color: "#0f172a",
+										padding: "8px 26px 6px",
+									}}
+								>
+									Filter by category
+								</DropdownMenuLabel>
+								<DropdownMenuSeparator style={{ margin: "6px 0" }} />
 								{availableCategories.length === 0 ? (
 									<p
 										style={{
-											padding: "6px 10px",
+											padding: "12px",
 											fontSize: 13,
 											color: "#64748b",
+											textAlign: "center",
+											margin: 0,
 										}}
 									>
 										No active categories
@@ -374,17 +411,33 @@ const AdminReports = () => {
 											key={category.id}
 											checked={selectedCategories.includes(category.id)}
 											onCheckedChange={() => toggleCategory(category.id)}
+											style={{
+												padding: "10px 12px",
+												borderRadius: "8px",
+												margin: "2px 0",
+												cursor: "pointer",
+												transition: "all 0.15s ease",
+											}}
 										>
-											<div>
-												<p style={{ margin: 0, fontSize: 14, fontWeight: 600 }}>
+											<div style={{ paddingLeft: "8px" }}>
+												<p
+													style={{
+														margin: "0 8px",
+														fontSize: 14,
+														fontWeight: 600,
+														color: "#0f172a",
+														lineHeight: 1.4,
+													}}
+												>
 													{category.name}
 												</p>
 												{category.description && (
 													<p
 														style={{
-															margin: 0,
+															margin: "0 8px",
 															fontSize: 12,
 															color: "#94a3b8",
+															lineHeight: 1.4,
 														}}
 													>
 														{category.description}

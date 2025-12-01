@@ -17,27 +17,22 @@ const proseReset = css`
 `;
 
 export const PageContainer = styled.div`
-	padding: 32px;
+	padding: 0 24px;
 	display: flex;
 	flex-direction: column;
 	gap: 24px;
 	min-height: 100vh;
-	/*
-	Removing the gradient keeps this view consistent with other admin layouts that rely on the
-	global background. Panels still render their own surface styling.
-*/
-	background: transparent;
 `;
 
 export const Panel = styled.div`
-	background: rgba(255, 255, 255, 0.95);
-	border-radius: 24px;
+	background: white;
+	border-radius: 12px;
 	padding: 24px;
-	border: 1px solid rgba(15, 23, 42, 0.08);
-	box-shadow: 0 24px 60px rgba(15, 23, 42, 0.08);
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+	flex-shrink: 0;
 	display: flex;
 	flex-direction: column;
-	gap: 24px;
+	gap: 16px;
 `;
 
 export const HeaderRow = styled.div`
@@ -75,22 +70,25 @@ export const ActionGroup = styled.div`
 `;
 
 export const ActionButton = styled.button<{ $variant?: "primary" | "ghost" }>`
-	border: ${(props) =>
-		props.$variant === "ghost" ? "1px solid rgba(15, 23, 42, 0.15)" : "none"};
 	background: ${(props) =>
-		props.$variant === "ghost"
-			? "transparent"
-			: "linear-gradient(120deg, #2563eb 0%, #4f46e5 100%)"};
-	color: ${(props) => (props.$variant === "ghost" ? "#0f172a" : "#ffffff")};
-	border-radius: 14px;
-	padding: 10px 18px;
+		props.$variant === "ghost" ? "transparent" : "#1952B3"};
+	color: ${(props) => (props.$variant === "ghost" ? "#1952B3" : "#ffffff")};
+	transition: opacity 0.2s ease;
+
+	padding: 8px 16px;
+	border-radius: 6px;
 	font-size: 14px;
-	font-weight: 600;
+	font-weight: 500;
+	cursor: pointer;
+	transition: all 0.15s ease;
+	border: 1px solid transparent;
+	white-space: nowrap;
 	display: inline-flex;
 	align-items: center;
+	justify-content: center;
 	gap: 8px;
-	cursor: pointer;
-	transition: opacity 0.2s ease;
+	min-height: 36px;
+	border: 1px solid #1952b3;
 
 	&:disabled {
 		opacity: 0.5;
@@ -99,51 +97,129 @@ export const ActionButton = styled.button<{ $variant?: "primary" | "ghost" }>`
 `;
 
 export const FiltersGrid = styled.div`
-	display: grid;
-	grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-	gap: 20px;
+	display: flex;
+	flex-direction: column;
+	gap: 16px;
 `;
 
 export const FilterField = styled.label`
 	display: flex;
 	flex-direction: column;
-	gap: 8px;
+	gap: 12px;
 	font-size: 14px;
 	color: #475569;
 `;
 
 export const CategoryButton = styled.button`
 	width: 100%;
-	border-radius: 14px;
-	border: 1px solid #dbeafe;
-	background: rgba(248, 250, 252, 0.95);
-	padding: 12px 14px;
+	border-radius: 12px;
+	border: 2px solid
+		${(props) =>
+			props.className?.includes("has-selection") ? "#3b82f6" : "#e2e8f0"};
+	background: ${(props) =>
+		props.className?.includes("has-selection")
+			? "linear-gradient(135deg, #eff6ff 0%, #f0f9ff 100%)"
+			: "#ffffff"};
+	padding: 12px 16px;
 	font-size: 14px;
 	color: #0f172a;
-	display: inline-flex;
+	display: flex;
 	align-items: center;
-	gap: 10px;
+	gap: 12px;
 	justify-content: flex-start;
 	cursor: pointer;
+	transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+	box-shadow: ${(props) =>
+		props.className?.includes("has-selection")
+			? "0 2px 8px rgba(59, 130, 246, 0.12)"
+			: "0 1px 3px rgba(0, 0, 0, 0.06)"};
+	font-weight: 500;
+	position: relative;
+	overflow: hidden;
+
+	&:hover {
+		border-color: ${(props) =>
+			props.className?.includes("has-selection") ? "#2563eb" : "#3b82f6"};
+		box-shadow: 0 4px 12px rgba(59, 130, 246, 0.18);
+		transform: translateY(-1px);
+	}
+
+	&:active {
+		transform: translateY(0);
+	}
+
+	> svg {
+		flex-shrink: 0;
+		width: 20px;
+		height: 20px;
+		color: ${(props) =>
+			props.className?.includes("has-selection") ? "#3b82f6" : "#64748b"};
+		transition: all 0.2s ease;
+	}
+
+	> div {
+		flex: 1;
+		text-align: left;
+
+		> div:first-child {
+			font-weight: 600;
+			font-size: 14px;
+			color: ${(props) =>
+				props.className?.includes("has-selection") ? "#1e40af" : "#0f172a"};
+			margin-bottom: 2px;
+			line-height: 1.4;
+		}
+	}
+
+	&:focus {
+		outline: none;
+	}
 `;
 
-export const CategoryStatus = styled.span`
-	font-size: 13px;
-	color: #94a3b8;
+export const CategoryStatus = styled.span<{ $selected?: boolean }>`
+	font-size: 12px;
+	color: ${(props) => (props.$selected ? "#3b82f6" : "#64748b")};
+	font-weight: 400;
+	line-height: 1.3;
 `;
 
 export const FilterTags = styled.div`
 	display: flex;
 	flex-wrap: wrap;
 	gap: 8px;
+	margin-top: 4px;
+	animation: fadeIn 0.3s ease-in-out;
+
+	@keyframes fadeIn {
+		from {
+			opacity: 0;
+			transform: translateY(-4px);
+		}
+		to {
+			opacity: 1;
+			transform: translateY(0);
+		}
+	}
 `;
 
 export const FilterTag = styled.span`
-	border-radius: 999px;
-	background: rgba(15, 23, 42, 0.08);
-	color: #0f172a;
-	padding: 4px 12px;
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	border-radius: 6px;
+	background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+	color: #ffffff;
+	padding: 4px 10px;
 	font-size: 12px;
+	font-weight: 500;
+	box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2);
+	transition: all 0.2s ease;
+	line-height: 1.5;
+
+	&:hover {
+		box-shadow: 0 3px 8px rgba(59, 130, 246, 0.3);
+		transform: translateY(-1px);
+	}
 `;
 
 export const ReporterFilterNotice = styled.div`
@@ -167,6 +243,10 @@ export const ReporterFilterButton = styled.button`
 	padding: 6px 14px;
 	border-radius: 999px;
 	cursor: pointer;
+
+	&:focus {
+		outline: none;
+	}
 `;
 
 export const ReporterFilterCode = styled.code`
@@ -197,14 +277,14 @@ export const Select = styled.select`
 
 export const TableCard = styled(Panel)`
 	padding: 0;
-	border-radius: 24px;
+	border-radius: 12px;
 	overflow: hidden;
 `;
 
 export const TableHeader = styled.div`
-	padding: 20px 24px;
+	padding: 24px;
 	border-bottom: 1px solid rgba(15, 23, 42, 0.08);
-	background: rgba(248, 250, 252, 0.9);
+	background: white;
 	display: flex;
 	flex-direction: column;
 	gap: 6px;
@@ -219,9 +299,9 @@ export const TableHeaderRow = styled.div`
 `;
 
 export const TableTitle = styled.h2`
-	margin: 0;
-	font-size: 22px;
-	color: #0f172a;
+	font-size: 24px;
+	color: #27364b;
+	font-weight: 600;
 `;
 
 export const TableSubtitle = styled.p`
@@ -427,6 +507,10 @@ export const ViewButton = styled.button`
 	gap: 6px;
 	align-items: center;
 	cursor: pointer;
+
+	&:focus {
+		outline: none;
+	}
 `;
 
 export const StateMessage = styled.div`
@@ -494,6 +578,10 @@ export const PaginationButton = styled.button`
 	&:disabled {
 		opacity: 0.35;
 		cursor: not-allowed;
+	}
+
+	&:focus {
+		outline: none;
 	}
 `;
 
@@ -611,4 +699,8 @@ export const DetailActionButton = styled.button`
 	align-items: center;
 	gap: 8px;
 	cursor: pointer;
+
+	&:focus {
+		outline: none;
+	}
 `;
