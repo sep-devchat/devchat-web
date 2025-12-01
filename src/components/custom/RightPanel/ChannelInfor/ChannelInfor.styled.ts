@@ -4,31 +4,23 @@ import styled from "styled-components";
 export const PageWrapper = styled.div`
 	height: 100%;
 	width: 100%;
-	max-width: 480px;
 	position: relative;
 	display: flex;
 	flex-direction: column;
-	margin-right: 18px;
+	margin: 0;
 	background: ${theme.color.grey30};
 	border-radius: 0px 10px 10px 0px;
 
 	@media (max-width: 1220px) {
 		width: 100%;
-		margin: 0;
 		border-radius: 0px 10px 10px 0px;
 	}
 
 	@media (min-width: 1440px) and (max-width: 1919px) {
-		width: 420px;
-		margin-right: 14.4px;
-		margin-left: 9.6px;
 		border-radius: 8px;
 	}
 
 	@media (min-width: 1920px) {
-		width: 660px;
-		margin-right: 19.8px;
-		margin-left: 13.2px;
 		border-radius: 11px;
 	}
 `;

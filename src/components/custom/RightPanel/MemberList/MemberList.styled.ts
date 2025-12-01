@@ -3,21 +3,20 @@ import styled from "styled-components";
 
 export const PageWrapper = styled.div`
 	height: 100%;
-	width: 21.875rem;
+	width: 100%;
+	max-width: none;
 	position: relative;
 	display: flex;
 	flex-direction: column;
-	margin-right: 1.125rem;
+	margin-right: 0;
 	background: ${theme.color.grey30};
 	border-radius: 0 0.625rem 0.625rem 0;
 
 	@media (max-width: 1220px) {
-		width: 29.5rem;
 		border-radius: 0 0.5rem 0.5rem 0;
 	}
 
 	@media (min-width: 1440px) {
-		width: 20rem;
 		border-radius: 0 0.75rem 0.75rem 0;
 	}
 `;
