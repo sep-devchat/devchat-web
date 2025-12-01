@@ -15,7 +15,7 @@ import type {
 } from "@/components/custom/ChatInputComponent/ChatTypeModal/InboxType";
 import { detailThread } from "@/services/threadAPI";
 import { detailUser } from "@/services/userAPI";
-import { MessageResponse } from "@/services/messageAPI";
+import { MessageResponse, ThreadMessageResponse } from "@/services/messageAPI";
 import { SocketEvents } from "@/utils/constants";
 import useSocket from "@/hooks/useSocket";
 import useSocketEvent from "@/hooks/useSocketEvent";
@@ -24,7 +24,7 @@ import { ThreadMessagesProps, ThreadPanelProps, UIMessage } from "./types";
 
 interface QueuedEmit {
 	event: string;
-	payload: Record<string, unknown>;
+	payload: Record<string, unknown> | string;
 	onAck?: (ack: any) => void;
 }
 
@@ -34,6 +34,13 @@ interface ThreadPanelControllerResult {
 	threadName: string;
 	messagesProps: ThreadMessagesProps;
 	chatInputProps: ChatInputProps;
+	deleteDialogProps: {
+		open: boolean;
+		submitting: boolean;
+		messageContent: string | null;
+		onOpenChange: (open: boolean) => void;
+		onConfirm: () => void;
+	};
 }
 
 const defaultMessageGroups: Array<[string, UIMessage[]]> = [];
@@ -46,10 +53,12 @@ export const useThreadPanelController = ({
 }: ThreadPanelProps): ThreadPanelControllerResult => {
 	const [threadName, setThreadName] = useState<string>("Thread");
 	const [isLoading, setIsLoading] = useState<boolean>(false);
-	const [realtimeMessages, setRealtimeMessages] = useState<MessageResponse[]>(
-		[],
-	);
-	const [baseMessages, setBaseMessages] = useState<MessageResponse[]>([]);
+	const [realtimeMessages, setRealtimeMessages] = useState<
+		ThreadMessageResponse[]
+	>([]);
+	const [baseMessages, setBaseMessages] = useState<ThreadMessageResponse[]>([]);
+	const realtimeMessagesRef = useRef<ThreadMessageResponse[]>([]);
+	const baseMessagesRef = useRef<ThreadMessageResponse[]>([]);
 	const [userScrolledUp, setUserScrolledUp] = useState(false);
 	const messagesContainerRef = useRef<HTMLDivElement | null>(null);
 	const bottomRef = useRef<HTMLDivElement | null>(null);
@@ -62,12 +71,14 @@ export const useThreadPanelController = ({
 	const attachBottomRef = useCallback((node: HTMLDivElement | null) => {
 		bottomRef.current = node;
 	}, []);
-	const [editingMessage, setEditingMessage] = useState<MessageResponse | null>(
-		null,
-	);
-	const [replyToMessage, setReplyToMessage] = useState<MessageResponse | null>(
-		null,
-	);
+	const [editingMessage, setEditingMessage] =
+		useState<ThreadMessageResponse | null>(null);
+	const [replyToMessage, setReplyToMessage] =
+		useState<ThreadMessageResponse | null>(null);
+	const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+	const [messagePendingDelete, setMessagePendingDelete] =
+		useState<ThreadMessageResponse | null>(null);
+	const [deleteSubmitting, setDeleteSubmitting] = useState(false);
 	const [actionMenuFor, setActionMenuFor] = useState<string | null>(null);
 	const [reactionPickerFor, setReactionPickerFor] = useState<string | null>(
 		null,
@@ -84,6 +95,14 @@ export const useThreadPanelController = ({
 		}
 	}, [threadCreatorInfo]);
 
+	useEffect(() => {
+		realtimeMessagesRef.current = realtimeMessages;
+	}, [realtimeMessages]);
+
+	useEffect(() => {
+		baseMessagesRef.current = baseMessages;
+	}, [baseMessages]);
+
 	const profile = useSelector((state: RootState) => state.user.profile);
 	const queryClient = useQueryClient();
 	const { socket, waitUntilReady } = useSocket();
@@ -91,7 +110,7 @@ export const useThreadPanelController = ({
 	const queueEmit = useCallback(
 		(
 			event: string,
-			payload: Record<string, unknown>,
+			payload: Record<string, unknown> | string,
 			onAck?: (ack: any) => void,
 		) => {
 			setEmitQueue((prev) => [...prev, { event, payload, onAck }]);
@@ -102,7 +121,7 @@ export const useThreadPanelController = ({
 	const safeEmit = useCallback(
 		(
 			event: string,
-			payload: Record<string, unknown>,
+			payload: Record<string, unknown> | string,
 			options?: { onAck?: (ack: any) => void },
 		): Promise<any> => {
 			const hasThreadContext = Boolean(groupId && channelId && threadId);
@@ -185,6 +204,7 @@ export const useThreadPanelController = ({
 	}, [groupId, channelId, safeEmit]);
 
 	const fetchThreadMessages = useCallback(async () => {
+		await waitUntilReady();
 		if (!threadId || !groupId || !channelId) {
 			setBaseMessages([]);
 			setRealtimeMessages([]);
@@ -226,6 +246,8 @@ export const useThreadPanelController = ({
 		safeEmit,
 		handleFetchThreadMessagesAck,
 		joinRoomForThread,
+		waitUntilReady,
+		emitQueue,
 	]);
 
 	const onServerThreadMessage = useCallback(
@@ -242,7 +264,7 @@ export const useThreadPanelController = ({
 				thread: raw.thread || ({ id: resolvedThreadId } as any),
 				senderId: raw.senderId || raw.sender?.id || raw.sender_id || "unknown",
 				parentMessageId: raw.parentMessageId || raw.parentMessage?.id || null,
-				parentMessage: null as any,
+				parentMessage: raw.parentMessage,
 				content: raw.content ?? "",
 				createdAt: raw.createdAt ? new Date(raw.createdAt) : new Date(),
 				updatedAt: raw.updatedAt ? new Date(raw.updatedAt) : new Date(),
@@ -278,32 +300,12 @@ export const useThreadPanelController = ({
 			queryClient.setQueryData(
 				["thread_messages", groupId, channelId, threadId],
 				(old: any) => {
-					const arr: MessageResponse[] = Array.isArray(old)
+					const arr: ThreadMessageResponse[] = Array.isArray(old)
 						? old
 						: (old?.data ?? []);
 					const map = new Map(arr.map((m) => [m.id, m]));
 					map.set(incoming.id, incoming);
 					return Array.from(map.values());
-				},
-			);
-		},
-		[threadId, groupId, channelId, queryClient],
-	);
-
-	const onServerDeleteThreadMessage = useCallback(
-		(payload: any) => {
-			if (!payload) return;
-			const id = payload.id || payload.messageId;
-			if (!id) return;
-			setRealtimeMessages((prev) => prev.filter((m) => m.id !== id));
-			setBaseMessages((prev) => prev.filter((m) => m.id !== id));
-			queryClient.setQueryData(
-				["thread_messages", groupId, channelId, threadId],
-				(old: any) => {
-					const arr: MessageResponse[] = Array.isArray(old)
-						? old
-						: (old?.data ?? []);
-					return arr.filter((m) => m.id !== id);
 				},
 			);
 		},
@@ -325,7 +327,7 @@ export const useThreadPanelController = ({
 			queryClient.setQueryData(
 				["thread_messages", groupId, channelId, threadId],
 				(old: any) => {
-					const arr: MessageResponse[] = Array.isArray(old)
+					const arr: ThreadMessageResponse[] = Array.isArray(old)
 						? old
 						: (old?.data ?? []);
 					return arr.map((m) => (m.id === incoming.id ? incoming : m));
@@ -336,10 +338,6 @@ export const useThreadPanelController = ({
 	);
 
 	useSocketEvent(SocketEvents.SEND_THREAD_MESSAGE, onServerThreadMessage);
-	useSocketEvent(
-		SocketEvents.DELETE_THREAD_MESSAGE,
-		onServerDeleteThreadMessage,
-	);
 	useSocketEvent(SocketEvents.EDIT_THREAD_MESSAGE, onServerEditThreadMessage);
 
 	useEffect(() => {
@@ -405,6 +403,7 @@ export const useThreadPanelController = ({
 		threadId,
 		groupId,
 		channelId,
+		queryClient,
 	]);
 
 	const loadThreadDetails = useCallback(async () => {
@@ -656,26 +655,64 @@ export const useThreadPanelController = ({
 		toast.info("Reporting thread messages from this view will arrive soon.");
 	}, []);
 
-	const handleDeleteMessage = useCallback(
-		(message: MessageResponse) => {
-			if (!socket || !threadId) return;
-			const confirmed = window.confirm("Delete this message?");
-			if (!confirmed) return;
-			try {
-				socket.emit(SocketEvents.DELETE_THREAD_MESSAGE, {
-					messageId: message.id,
-					threadId,
-					channelId,
-					groupId,
-				});
-			} catch (err) {
-				console.error(
-					"[ThreadPanel] failed to emit DELETE_THREAD_MESSAGE",
-					err,
-				);
-			}
+	const handleDeleteMessage = useCallback((message: MessageResponse) => {
+		setMessagePendingDelete(message as ThreadMessageResponse);
+		setDeleteDialogOpen(true);
+	}, []);
+
+	const confirmDelete = useCallback(async () => {
+		if (!messagePendingDelete || !threadId) return;
+		setDeleteSubmitting(true);
+		const deleteId = messagePendingDelete.id;
+		try {
+			socket?.emit(SocketEvents.DELETE_THREAD_MESSAGE, deleteId);
+		} catch (err) {
+			console.error("[ThreadPanel] failed to emit DELETE_THREAD_MESSAGE", err);
+		} finally {
+			setDeleteSubmitting(false);
+			setDeleteDialogOpen(false);
+			setMessagePendingDelete(null);
+		}
+	}, [
+		messagePendingDelete,
+		safeEmit,
+		threadId,
+		channelId,
+		groupId,
+		queryClient,
+	]);
+
+	const onServerDeleteThreadMessage = useCallback(
+		(payload: any) => {
+			if (!payload) return;
+			console.log("[ThreadPanel] onServerDeleteThreadMessage", payload);
+			const id = payload.id || payload.messageId || payload;
+			if (!id) return;
+			setRealtimeMessages((prev) => prev.filter((m) => m.id !== id));
+			setBaseMessages((prev) => prev.filter((m) => m.id !== id));
+			queryClient.setQueryData(
+				["thread_messages", groupId, channelId, threadId],
+				(old: any) => {
+					const arr: MessageResponse[] = Array.isArray(old)
+						? old
+						: (old?.data ?? []);
+					return arr.filter((m) => m.id !== id);
+				},
+			);
 		},
-		[socket, threadId, channelId, groupId],
+		[threadId, groupId, channelId, queryClient],
+	);
+
+	const handleDeleteDialogOpenChange = useCallback((open: boolean) => {
+		setDeleteDialogOpen(open);
+		if (!open) {
+			setMessagePendingDelete(null);
+		}
+	}, []);
+
+	useSocketEvent(
+		SocketEvents.DELETE_THREAD_MESSAGE,
+		onServerDeleteThreadMessage,
 	);
 
 	const handleReact = useCallback((messageId: string, reaction: string) => {
@@ -754,7 +791,7 @@ export const useThreadPanelController = ({
 				const text = payload.text?.trim() ?? "";
 				if (!text && !payload.codeBlock) return;
 				if (editingMessage) {
-					const updated: MessageResponse = {
+					const updated: ThreadMessageResponse = {
 						...editingMessage,
 						content: text,
 						updatedAt: new Date(),
@@ -786,7 +823,7 @@ export const useThreadPanelController = ({
 				const optimisticId = payload.clientTempId
 					? `optimistic-${payload.clientTempId}`
 					: `optimistic-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-				const optimistic: MessageResponse = {
+				const optimistic: ThreadMessageResponse = {
 					id: optimisticId,
 					channelId,
 					thread: { id: threadId } as any,
@@ -814,8 +851,6 @@ export const useThreadPanelController = ({
 				});
 
 				const ackPromise = safeEmit(SocketEvents.SEND_THREAD_MESSAGE, {
-					groupId,
-					channelId,
 					threadId,
 					content: text,
 					attachmentIds: payload.attachmentIds,
@@ -848,7 +883,7 @@ export const useThreadPanelController = ({
 						const mdTempId = `optimistic-${Date.now()}-${Math.floor(
 							Math.random() * 1000,
 						)}-md`;
-						const optimisticMd: MessageResponse = {
+						const optimisticMd: ThreadMessageResponse = {
 							id: mdTempId,
 							channelId,
 							thread: { id: threadId } as any,
@@ -967,6 +1002,13 @@ export const useThreadPanelController = ({
 		threadName,
 		messagesProps,
 		chatInputProps,
+		deleteDialogProps: {
+			open: deleteDialogOpen,
+			submitting: deleteSubmitting,
+			messageContent: messagePendingDelete?.content ?? null,
+			onOpenChange: handleDeleteDialogOpenChange,
+			onConfirm: confirmDelete,
+		},
 	};
 };
 
