@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import bgImage from "@/assets/image/loginBackground.png";
 import { useNavigate } from "@tanstack/react-router";
-import { Bell, CircleX, LogOut, Search, Shield, User } from "lucide-react";
+import { CircleX, LogOut, Search, User } from "lucide-react";
 import React, { useEffect, useRef } from "react";
 import {
 	ContentWrapper,
@@ -29,7 +29,9 @@ import { useSocket } from "@/hooks";
 type SettingsSection =
 	// | "general"
 	// | "appearance"
-	"notification" | "account" | "privacy";
+	// "notification" |
+	// "privacy" |
+	"account";
 
 interface MenuItemType {
 	id: SettingsSection;
@@ -56,8 +58,8 @@ export const SettingsMenu: React.FC<SettingsMenuProps> = ({
 		// { id: "general", label: "General", icon: Settings },
 		{ id: "account", label: "Account", icon: User },
 		// { id: "appearance", label: "Appearance", icon: Palette },
-		{ id: "notification", label: "Notification and activity", icon: Bell },
-		{ id: "privacy", label: "Privacy", icon: Shield },
+		// { id: "notification", label: "Notification and activity", icon: Bell },
+		// { id: "privacy", label: "Privacy", icon: Shield },
 	];
 
 	useEffect(() => {

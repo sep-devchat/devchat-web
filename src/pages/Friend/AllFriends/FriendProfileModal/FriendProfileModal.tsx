@@ -60,6 +60,15 @@ import {
 	TextArea,
 	Username,
 	UserName,
+	LanguagesSection,
+	LanguagesSectionTitle,
+	LanguagesList,
+	LanguageItem,
+	RankBadge,
+	LanguageIcon,
+	LanguageInfo,
+	LanguageName,
+	LanguageProficiency,
 } from "./FriendProfileModal.styled";
 import { listFriends, sendFriendRequest } from "@/services/friendAPI";
 import { InfoButton } from "@/components/custom/ActionButton/InfoButton";
@@ -110,6 +119,58 @@ const FriendProfileModal: React.FC<FriendProfileModalProps> = ({
 	const [selectedReason, setSelectedReason] = useState("");
 	const [reportDetails, setReportDetails] = useState("");
 	const [menuOpen, setMenuOpen] = useState(false);
+
+	// Mock data for top 4 programming languages
+	const mockTopLanguages = [
+		{
+			id: "1",
+			languageId: "js-001",
+			proficiencyLevel: "EXPERT",
+			orderIndex: 1,
+			language: {
+				id: "js-001",
+				languageName: "JavaScript",
+				languageIcon:
+					"https://cdn.jsdelivr.net/gh/devicons/devicon/icons/javascript/javascript-original.svg",
+			},
+		},
+		{
+			id: "2",
+			languageId: "ts-001",
+			proficiencyLevel: "ADVANCED",
+			orderIndex: 2,
+			language: {
+				id: "ts-001",
+				languageName: "TypeScript",
+				languageIcon:
+					"https://cdn.jsdelivr.net/gh/devicons/devicon/icons/typescript/typescript-original.svg",
+			},
+		},
+		{
+			id: "3",
+			languageId: "py-001",
+			proficiencyLevel: "INTERMEDIATE",
+			orderIndex: 3,
+			language: {
+				id: "py-001",
+				languageName: "Python",
+				languageIcon:
+					"https://cdn.jsdelivr.net/gh/devicons/devicon/icons/python/python-original.svg",
+			},
+		},
+		{
+			id: "4",
+			languageId: "java-001",
+			proficiencyLevel: "BEGINNER",
+			orderIndex: 4,
+			language: {
+				id: "java-001",
+				languageName: "Java",
+				languageIcon:
+					"https://cdn.jsdelivr.net/gh/devicons/devicon/icons/java/java-original.svg",
+			},
+		},
+	];
 
 	// New: isFriend state (true if friend is in my friend list)
 	const [isFriend, setIsFriend] = useState(false);
@@ -420,72 +481,134 @@ const FriendProfileModal: React.FC<FriendProfileModalProps> = ({
 						</ModalHeader>
 
 						<ModalBody>
-							<AvatarSection style={{ marginTop: "24px" }}>
-								<Avatar
-									src={
-										(friend.avatar ?? friend.avatarUrl ?? undefined) as
-											| string
-											| undefined
-									}
-									alt={friend.name}
-								/>
-								<UserName>{friend.name}</UserName>
-								<Username>@{friend.username}</Username>
+							{/* Two-column layout */}
+							<div style={{ display: "flex", gap: "24px", marginTop: "24px" }}>
+								{/* Left Column - Info Section */}
+								<div style={{ flex: 1 }}>
+									<InfoSection>
+										<AvatarSection style={{ marginTop: "24px" }}>
+											<Avatar
+												src={
+													(friend.avatar ?? friend.avatarUrl ?? undefined) as
+														| string
+														| undefined
+												}
+												alt={friend.name}
+											/>
+											<UserName>{friend.name}</UserName>
+											<Username>@{friend.username}</Username>
 
-								{isYou ?? (
-									<StatusBadge $isActive={isFriend}>
-										<span
-											style={{
-												width: "6px",
-												height: "6px",
-												borderRadius: "50%",
-												background: isFriend ? "#16a34a" : "#6b7280",
-											}}
-										/>
-										{isFriend ? "Friend" : "Not Friend"}
-									</StatusBadge>
-								)}
-							</AvatarSection>
+											{isYou ?? (
+												<StatusBadge $isActive={isFriend}>
+													<span
+														style={{
+															width: "6px",
+															height: "6px",
+															borderRadius: "50%",
+															background: isFriend ? "#16a34a" : "#6b7280",
+														}}
+													/>
+													{isFriend ? "Friend" : "Not Friend"}
+												</StatusBadge>
+											)}
+										</AvatarSection>
+										<InfoItem>
+											<IconWrapper>
+												<Mail size={18} />
+											</IconWrapper>
+											<InfoContent>
+												<InfoLabel>Email</InfoLabel>
+												<InfoValue>{friend.email}</InfoValue>
+											</InfoContent>
+										</InfoItem>{" "}
+										<InfoItem>
+											<IconWrapper>
+												<Calendar size={18} />
+											</IconWrapper>
+											<InfoContent>
+												<InfoLabel>Created Since</InfoLabel>
+												<InfoValue>{formatDate(friend.createdAt)}</InfoValue>
+											</InfoContent>
+										</InfoItem>
+										{isFriend ?? (
+											<InfoItem>
+												<IconWrapper>
+													<Shield size={18} />
+												</IconWrapper>
+												<InfoContent>
+													<InfoLabel>Account Status</InfoLabel>
+													<InfoValue>
+														{friend.emailVerified
+															? "✓ - Email Verified"
+															: "X - Email Not Verified"}
+														{friend.isAdmin && " • Admin"}
+													</InfoValue>
+												</InfoContent>
+											</InfoItem>
+										)}
+									</InfoSection>
+								</div>
 
-							<InfoSection>
-								<InfoItem>
-									<IconWrapper>
-										<Mail size={18} />
-									</IconWrapper>
-									<InfoContent>
-										<InfoLabel>Email</InfoLabel>
-										<InfoValue>{friend.email}</InfoValue>
-									</InfoContent>
-								</InfoItem>
-
-								<InfoItem>
-									<IconWrapper>
-										<Calendar size={18} />
-									</IconWrapper>
-									<InfoContent>
-										<InfoLabel>Created Since</InfoLabel>
-										<InfoValue>{formatDate(friend.createdAt)}</InfoValue>
-									</InfoContent>
-								</InfoItem>
-
-								{isFriend ?? (
-									<InfoItem>
-										<IconWrapper>
-											<Shield size={18} />
-										</IconWrapper>
-										<InfoContent>
-											<InfoLabel>Account Status</InfoLabel>
-											<InfoValue>
-												{friend.emailVerified
-													? "✓ - Email Verified"
-													: "X - Email Not Verified"}
-												{friend.isAdmin && " • Admin"}
-											</InfoValue>
-										</InfoContent>
-									</InfoItem>
-								)}
-							</InfoSection>
-
+								{/* Right Column - Top 4 Programming Languages */}
+								<div style={{ flex: 1 }}>
+									{mockTopLanguages.length > 0 && (
+										<LanguagesSection>
+											<LanguagesSectionTitle>
+												🏆 Top Programming Languages
+											</LanguagesSectionTitle>
+											<LanguagesList>
+												{mockTopLanguages.map((lang, index) => {
+													const rank = index + 1;
+													return (
+														<LanguageItem key={lang.id} $rank={rank}>
+															{rank <= 3 && (
+																<RankBadge $rank={rank}>
+																	{rank === 1 ? "🥇" : rank === 2 ? "🥈" : "🥉"}
+																</RankBadge>
+															)}
+															{rank === 4 && (
+																<div
+																	style={{
+																		width: "24px",
+																		height: "24px",
+																		display: "flex",
+																		alignItems: "center",
+																		justifyContent: "center",
+																		fontSize: "14px",
+																		fontWeight: 600,
+																		color: "#6b7280",
+																	}}
+																>
+																	4
+																</div>
+															)}
+															<LanguageIcon
+																src={lang.language.languageIcon}
+																alt={lang.language.languageName}
+																onError={(e) => {
+																	(e.target as HTMLImageElement).src =
+																		"https://via.placeholder.com/40?text=" +
+																		lang.language.languageName.charAt(0);
+																}}
+															/>
+															<LanguageInfo>
+																<LanguageName>
+																	{lang.language.languageName}
+																</LanguageName>
+																<LanguageProficiency
+																	$level={lang.proficiencyLevel}
+																>
+																	{lang.proficiencyLevel}
+																</LanguageProficiency>
+															</LanguageInfo>
+														</LanguageItem>
+													);
+												})}
+											</LanguagesList>
+										</LanguagesSection>
+									)}
+								</div>
+							</div>{" "}
 							{/* Show Edit Profile if isYou, otherwise Unfriend/Add Friend */}
 							{isYou ? (
 								<InfoButton

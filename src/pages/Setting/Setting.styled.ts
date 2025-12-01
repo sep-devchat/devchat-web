@@ -78,6 +78,10 @@ export const CardDescription = styled.p`
 
 export const CardContent = styled.div`
 	padding: 1.5rem;
+	display: flex;
+	flex-direction: column;
+	gap: 1.5rem;
+	width: 100%;
 
 	@media (min-width: 1440px) {
 		padding: 1.2rem;

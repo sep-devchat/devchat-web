@@ -105,11 +105,14 @@ export const CenterPanel = styled.div<{
 export const OutletContainer = styled.div<{
 	$hidden?: boolean;
 	$fullBleed?: boolean;
+	$type?: string;
 }>`
 	flex: 1;
 	overflow: hidden;
 	background: ${(props) => (props.$fullBleed ? "transparent" : "white")};
 	display: ${(props) => (props.$hidden ? "none" : "block")};
+	border-bottom-right-radius: ${(props) =>
+		props.$type !== "users" ? "10px" : "0px"};
 `;
 
 export const BottomSpacer = styled.div`

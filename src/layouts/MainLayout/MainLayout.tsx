@@ -474,6 +474,7 @@ const MainLayout = () => {
 								<OutletContainer
 									$hidden={!isCodeCollabRoute && hasOpenPanel}
 									$fullBleed={isCodeCollabRoute}
+									$type={panelTab}
 								>
 									<Outlet />
 								</OutletContainer>

@@ -52,7 +52,30 @@ export interface Profile {
 	lastLogin?: Date;
 	timezone?: string;
 	method?: string;
-	isAdmin?: boolean; // added for frontend admin guard
+	isAdmin?: boolean;
+	userLanguages: UserLanguage[];
+}
+
+export interface UserLanguage {
+	id: string;
+	userId: string;
+	languageId: string;
+	proficiencyLevel: string;
+	orderIndex: number;
+	createdAt: string;
+	updatedAt: string;
+	language: {
+		id: string;
+		languageCode: string;
+		languageName: string;
+		languageVersion: string;
+		languageIcon: string;
+		syntaxHighlighting: string;
+		codeExecutions: number;
+		createdAt: string;
+		updatedAt: string;
+		isExecutable: true;
+	};
 }
 
 export interface PkceIssueTokenRequest {

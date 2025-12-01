@@ -17,6 +17,12 @@ export interface UserResponse {
 	timezone: string;
 }
 
+export interface UserLanguage {
+	languageId: string;
+	proficiencyLevel: "BEGINNER" | "INTERMEDIATE" | "ADVANCED" | "EXPERT";
+	orderIndex: number;
+}
+
 export interface UserPostRequest {
 	id?: string;
 	username?: string;
@@ -27,6 +33,7 @@ export interface UserPostRequest {
 	timezone?: string;
 	isActive?: boolean;
 	password?: string;
+	userLanguages?: UserLanguage[];
 }
 
 export const listUsers = (page: number, limit: number, search?: string) => {
