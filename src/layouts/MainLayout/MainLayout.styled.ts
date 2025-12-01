@@ -81,6 +81,8 @@ export const CenterPanel = styled.div<{
 	min-width: 0;
 	overflow: hidden;
 	gap: ${(props) => (props.$isCollapsed ? "0.75rem" : "0")};
+	border-radius: ${(props) =>
+		props.$hasRightBorderRadius ? "0 8px 8px 0" : "0"};
 
 	${(props) =>
 		props.$isCollapsed &&

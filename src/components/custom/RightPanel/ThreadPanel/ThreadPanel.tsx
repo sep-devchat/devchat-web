@@ -1,5 +1,6 @@
 import React from "react";
 import ChatInput from "@/components/custom/ChatInput/ChatInput";
+import { DeleteMessageDialog } from "@/components/custom/ChatArea/parts/DeleteMessageDialog";
 import {
 	MessageInput,
 	MessagesArea,
@@ -20,6 +21,7 @@ const ThreadPanel: React.FC<ThreadPanelProps> = (props) => {
 		isLoading,
 		hasThreadSelected,
 		threadName,
+		deleteDialogProps,
 	} = useThreadPanelController(props);
 
 	if (isLoading) {
@@ -52,6 +54,7 @@ const ThreadPanel: React.FC<ThreadPanelProps> = (props) => {
 			<MessageInput className="relative">
 				<ChatInput {...chatInputProps} />
 			</MessageInput>
+			<DeleteMessageDialog {...deleteDialogProps} />
 		</PageWrapper>
 	);
 };

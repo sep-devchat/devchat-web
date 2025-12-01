@@ -3,7 +3,7 @@ import { CornerUpLeft } from "lucide-react";
 import MarkdownPreview from "@/components/custom/MarkdownPreview";
 import MessageActions from "@/components/custom/MessageActions/MessageActions";
 import { getReplyPreviewText, truncatePreview } from "@/utils/replyPreview";
-import type { MessageResponse } from "@/services/messageAPI";
+import type { ThreadMessageResponse } from "@/services/messageAPI";
 import { ThreadMessagesProps } from "../types";
 import {
 	Message,
@@ -16,6 +16,7 @@ import {
 	Line,
 	DateText,
 } from "../ThreadPanel.styled";
+import { cn } from "@/lib/utils";
 
 const ThreadMessages: React.FC<ThreadMessagesProps> = ({
 	groupedMessages,
@@ -37,7 +38,7 @@ const ThreadMessages: React.FC<ThreadMessagesProps> = ({
 	bottomRef,
 	threadId,
 }) => {
-	const getSenderLabel = (sender?: MessageResponse["sender"] | null) => {
+	const getSenderLabel = (sender?: ThreadMessageResponse["sender"] | null) => {
 		if (!sender) return "Original message";
 		const fullName = [sender.firstName, sender.lastName]
 			.filter(Boolean)
@@ -46,6 +47,8 @@ const ThreadMessages: React.FC<ThreadMessagesProps> = ({
 			fullName || sender.username || (sender as any)?.name || "Original message"
 		);
 	};
+
+	let previousSenderId: string | null = null;
 
 	return (
 		<div
@@ -67,8 +70,8 @@ const ThreadMessages: React.FC<ThreadMessagesProps> = ({
 							? "flex-row-reverse gap-1.5"
 							: "";
 						const bubbleClasses = msg.isCurrentUser
-							? "max-w-[78%] items-center rounded-2xl bg-[#D2E0F9] px-3 py-2 flex self-end"
-							: "max-w-[78%] flex self-start rounded-2xl bg-[#eff2f5] px-3 py-2 text-[#111111]";
+							? "max-w-[78%] items-center rounded-2xl bg-[#D2E0F9] px-3 py-2 flex self-end flex-col items-start"
+							: "max-w-[78%] flex self-start flex-col rounded-2xl bg-[#eff2f5] px-3 py-2 text-[#111111]";
 						const avatarClassName = msg.isCurrentUser
 							? "order-2 ring-2 ring-[#133E87]"
 							: "ring-2 ring-slate-300";
@@ -79,34 +82,56 @@ const ThreadMessages: React.FC<ThreadMessagesProps> = ({
 							? "prose-invert text-black text-sm"
 							: "text-sm text-slate-900";
 						const rowWrapperClass = msg.isCurrentUser
-							? "flex items-start justify-start gap-2 flex-row-reverse"
-							: "flex items-start justify-start gap-2";
+							? "flex items-center justify-start gap-2 flex-row-reverse"
+							: "flex items-center justify-start gap-2";
 						const actionMessage = messageMap.get(msg.id);
 						const shouldShowActions = !!actionMessage && !msg.optimistic;
 						const messageWrapperClass = ["group", messageClassName]
 							.filter(Boolean)
 							.join(" ");
 
-						const parentMessage: MessageResponse | null =
+						const parentMessage: ThreadMessageResponse | null =
 							actionMessage?.parentMessage ?? null;
 						const parentMessageId = actionMessage?.parentMessageId;
 						const parentPreviewText = parentMessage
 							? truncatePreview(getReplyPreviewText(parentMessage))
 							: "View original message";
 
-						return (
+						const currentSenderId = actionMessage?.sender?.id ?? null;
+						const isSameSenderAsPrevious = Boolean(
+							previousSenderId &&
+								currentSenderId &&
+								previousSenderId === currentSenderId,
+						);
+						const showAvatar = !isSameSenderAsPrevious;
+						const showAuthorMeta = !isSameSenderAsPrevious;
+						const showTimestamp = !isSameSenderAsPrevious;
+						const timestampClass = showTimestamp
+							? "text-[11px] opacity-70"
+							: "text-[11px] opacity-0 group-hover:opacity-70 transition-opacity duration-150";
+
+						const renderedMessage = (
 							<Message
 								key={msg.id}
 								id={`thread-message-${msg.id}`}
-								className={messageWrapperClass}
+								className={cn(
+									messageWrapperClass,
+									isSameSenderAsPrevious &&
+										msg.isCurrentUser &&
+										"flex-row-reverse",
+								)}
 							>
-								<Avatar className={avatarClassName}>
-									<img
-										src={msg.avatarUrl}
-										alt={authorLabel}
-										className="h-full w-full rounded-full object-cover"
-									/>
-								</Avatar>
+								{showAvatar ? (
+									<Avatar className={avatarClassName}>
+										<img
+											src={msg.avatarUrl}
+											alt={authorLabel}
+											className="h-full w-full rounded-full object-cover"
+										/>
+									</Avatar>
+								) : (
+									<div className="w-8 h-8 shrink-0" aria-hidden="true" />
+								)}
 								<MessageContent
 									className={
 										msg.isCurrentUser
@@ -115,14 +140,13 @@ const ThreadMessages: React.FC<ThreadMessagesProps> = ({
 									}
 								>
 									<MessageHeader className={headerClassName}>
-										<AuthorName
-											className={msg.isCurrentUser ? "text-white" : undefined}
-										>
-											{authorLabel}
-										</AuthorName>
-										<MessageTime className="text-[11px] opacity-70">
-											{msg.time}
-										</MessageTime>
+										{showAuthorMeta && (
+											<AuthorName
+												className={msg.isCurrentUser ? "text-white" : undefined}
+											>
+												{authorLabel}
+											</AuthorName>
+										)}
 									</MessageHeader>
 									<div className={rowWrapperClass}>
 										<div className={bubbleClasses}>
@@ -152,6 +176,9 @@ const ThreadMessages: React.FC<ThreadMessagesProps> = ({
 												className={markdownPreviewClassName}
 											/>
 										</div>
+										<MessageTime className={timestampClass}>
+											{msg.time}
+										</MessageTime>
 										{shouldShowActions && actionMessage && (
 											<MessageActions
 												m={actionMessage}
@@ -183,6 +210,9 @@ const ThreadMessages: React.FC<ThreadMessagesProps> = ({
 								</MessageContent>
 							</Message>
 						);
+
+						previousSenderId = currentSenderId ?? null;
+						return renderedMessage;
 					})}
 				</div>
 			))}
