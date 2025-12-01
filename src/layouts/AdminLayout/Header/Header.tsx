@@ -146,6 +146,13 @@ const Header: React.FC = () => {
 			};
 		}
 
+		if (pathname.startsWith("/admin/reports")) {
+			return {
+				title: "User reports",
+				path: "/admin/reports",
+			};
+		}
+
 		return null;
 	};
 

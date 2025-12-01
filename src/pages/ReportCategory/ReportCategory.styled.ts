@@ -1,7 +1,7 @@
 import styled from "styled-components";
 
 export const PageContainer = styled.div`
-	padding: 32px;
+	padding: 0 24px;
 	display: flex;
 	flex-direction: column;
 	gap: 24px;
@@ -9,11 +9,14 @@ export const PageContainer = styled.div`
 `;
 
 export const Panel = styled.div`
-	background: rgba(255, 255, 255, 0.9);
-	border-radius: 24px;
+	background: white;
+	border-radius: 12px;
 	padding: 24px;
-	border: 1px solid rgba(15, 23, 42, 0.08);
-	box-shadow: 0 24px 60px rgba(15, 23, 42, 0.08);
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+	flex-shrink: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 16px;
 `;
 
 export const HeaderRow = styled.div`
@@ -99,26 +102,31 @@ export const RefreshButton = styled.button`
 	justify-content: center;
 	cursor: pointer;
 	color: #0f172a;
+
+	&:focus {
+		outline: none;
+	}
 `;
 
 export const TableCard = styled(Panel)`
 	padding: 0;
 	overflow: hidden;
+	border-radius: 12px;
 `;
 
 export const TableHeader = styled.div`
-	padding: 20px 24px;
+	padding: 24px;
 	border-bottom: 1px solid rgba(15, 23, 42, 0.06);
-	background: rgba(248, 250, 252, 0.9);
+	background: white;
 	display: flex;
 	flex-direction: column;
 	gap: 6px;
 `;
 
 export const TableTitle = styled.h2`
-	margin: 0;
-	font-size: 20px;
-	color: #0f172a;
+	font-size: 24px;
+	color: #27364b;
+	font-weight: 600;
 `;
 
 export const TableSubtitle = styled.p`
@@ -134,36 +142,56 @@ export const TableWrapper = styled.div`
 export const Table = styled.table`
 	width: 100%;
 	border-collapse: collapse;
-	background: transparent;
+	table-layout: fixed;
 `;
 
 export const TableHead = styled.thead`
-	background: rgba(15, 23, 42, 0.02);
-	text-transform: uppercase;
+	background: #f8fafc;
+	border-bottom: 2px solid #e2e8f0;
+`;
+
+export const Th = styled.th`
+	text-align: left;
+	padding: 12px 16px;
 	font-size: 12px;
-	color: #64748b;
-`;
-
-export const Th = styled.th<{ $align?: "left" | "center" | "right" }>`
-	text-align: ${(props) => props.$align ?? "left"};
-	padding: 14px 24px;
 	font-weight: 600;
-	letter-spacing: 0.04em;
-	border-bottom: 1px solid rgba(15, 23, 42, 0.05);
-`;
+	color: #64748b;
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
 
-export const Tr = styled.tr`
-	&:not(:last-child) td {
-		border-bottom: 1px solid rgba(15, 23, 42, 0.05);
+	&:last-child {
+		text-align: right;
+		width: 120px;
+	}
+
+	&:nth-child(2) {
+		width: 350px;
 	}
 `;
 
-export const Td = styled.td<{ $align?: "left" | "center" | "right" }>`
-	padding: 18px 24px;
-	font-size: 14px;
-	color: #0f172a;
-	vertical-align: top;
-	text-align: ${(props) => props.$align ?? "left"};
+export const Tr = styled.tr`
+	border-bottom: 1px solid #e2e8f0;
+	transition: background-color 0.15s ease;
+
+	&:hover {
+		background-color: #f8fafc;
+	}
+`;
+
+export const Td = styled.td`
+	padding: 16px;
+	vertical-align: middle;
+
+	&:last-child {
+		text-align: right;
+	}
+`;
+
+export const Actions = styled.div`
+	display: inline-flex;
+	gap: 8px;
+	align-items: center;
+	justify-content: flex-end;
 `;
 
 export const NameCell = styled.div`
@@ -190,11 +218,6 @@ export const StatusBadge = styled.span<{ $variant: "active" | "removed" }>`
 		props.$variant === "active"
 			? "rgba(34, 197, 94, 0.15)"
 			: "rgba(148, 163, 184, 0.2)"};
-`;
-
-export const Actions = styled.div`
-	display: flex;
-	gap: 8px;
 `;
 
 export const IconButton = styled.button<{ $variant?: "ghost" | "danger" }>`
@@ -268,6 +291,10 @@ export const PaginationButton = styled.button`
 	&:disabled {
 		opacity: 0.4;
 		cursor: not-allowed;
+	}
+
+	&:focus {
+		outline: none;
 	}
 `;
 

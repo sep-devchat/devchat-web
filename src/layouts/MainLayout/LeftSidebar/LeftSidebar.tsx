@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { X, MessageCircle, Settings, PlusIcon } from "lucide-react";
+import { X, MessageCircle, PlusIcon } from "lucide-react";
 import {
 	SearchInput,
 	FriendList,
@@ -16,14 +16,14 @@ import {
 	ChannelTypeName,
 	ChannelTypeDescription,
 	InputModal,
-	PrivateSection,
-	PrivateIcon,
-	PrivateContent,
-	PrivateTitle,
-	PrivateDescription,
-	Toggle,
-	ToggleInput,
-	ToggleSlider,
+	// PrivateSection,
+	// PrivateIcon,
+	// PrivateContent,
+	// PrivateTitle,
+	// PrivateDescription,
+	// Toggle,
+	// ToggleInput,
+	// ToggleSlider,
 	ModalFooter,
 	ButtonModal,
 	Divider,
@@ -57,11 +57,13 @@ import { ChannelItem } from "@/components/custom/ChannelItem/ChannelItem";
 import { listDirectMessagePeers } from "@/services/messageAPI";
 import { Profile } from "@/services/auth/auth.type";
 import ProfileSection from "../Profile";
+
 interface LeftSidebarProps {
 	setSettingSelect: (value: boolean) => void;
 }
 
 const CHANNEL_HISTORY_KEY = "group_channel_history";
+const POLLING_INTERVAL = 5000;
 
 const getLastChannelForGroup = (groupId: string): string | null => {
 	try {
@@ -140,6 +142,8 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
 	const [dmPeers, setDmPeers] = useState<Profile[]>([]);
 	const [dmLoading, setDmLoading] = useState<boolean>(false);
 
+	const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
 	React.useEffect(() => {
 		if (params.groupId && search.channel) {
 			saveLastChannelForGroup(params.groupId, search.channel);
@@ -178,14 +182,17 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
 
 		fetchChannelsList();
 	}, [params.groupId]);
-
-	const fetchChannelsList = async () => {
+	const fetchChannelsList = async (isPolling: boolean = false) => {
 		if (!params.groupId) return;
 
 		try {
 			const res = await listChannels(params.groupId);
 			const channelData = res?.data?.data || res?.data || [];
 			setChannels(channelData);
+
+			if (isPolling) {
+				return;
+			}
 
 			if (!channelData || channelData.length === 0) {
 				isFirstFetch.current = false;
@@ -218,10 +225,58 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
 			isFirstFetch.current = false;
 		} catch (err) {
 			console.error("Failed to fetch channels:", err);
-			setChannels([]);
+			if (!isPolling) {
+				setChannels([]);
+			}
 			isFirstFetch.current = false;
 		}
 	};
+
+	useEffect(() => {
+		if (pollingIntervalRef.current) {
+			clearInterval(pollingIntervalRef.current);
+			pollingIntervalRef.current = null;
+		}
+
+		if (!params.groupId) {
+			setChannels([]);
+			isFirstFetch.current = true;
+			prevGroupId.current = undefined;
+
+			(async () => {
+				try {
+					setDmLoading(true);
+					const res = await listDirectMessagePeers();
+					const payload = (res as any)?.data ?? (res as any);
+					setDmPeers(Array.isArray(payload) ? payload : []);
+				} catch (err) {
+					console.error("Failed to fetch DM peers:", err);
+					setDmPeers([]);
+				} finally {
+					setDmLoading(false);
+				}
+			})();
+			return;
+		}
+
+		if (prevGroupId.current !== params.groupId) {
+			isFirstFetch.current = true;
+			prevGroupId.current = params.groupId;
+		}
+
+		fetchChannelsList(false);
+
+		pollingIntervalRef.current = setInterval(() => {
+			fetchChannelsList(true);
+		}, POLLING_INTERVAL);
+
+		return () => {
+			if (pollingIntervalRef.current) {
+				clearInterval(pollingIntervalRef.current);
+				pollingIntervalRef.current = null;
+			}
+		};
+	}, [params.groupId]);
 
 	const handleAddChannel = () => {
 		setIsModalOpen(true);
@@ -250,7 +305,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
 			console.log("Create channel response:", res);
 
 			if (res && (res.message === "Created successfully" || res.data)) {
-				await fetchChannelsList();
+				await fetchChannelsList(false);
 				handleCloseModal();
 			}
 		} catch (err) {
@@ -386,9 +441,9 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
 									search: (s: any) => ({ ...s, channel: c.id }),
 								})
 							}
-							onChannelUpdated={fetchChannelsList}
+							onChannelUpdated={() => fetchChannelsList(false)}
 							onChannelDeleted={() => {
-								fetchChannelsList();
+								fetchChannelsList(false);
 								if (search.channel === c.id) {
 									navigate({
 										to: "/chat/group/$groupId",
@@ -439,11 +494,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
 										borderRadius: "8px",
 									}}
 								>
-									<MemberItem
-										showTooltip={false}
-										member={member}
-										// buttonType="more"
-									/>
+									<MemberItem showTooltip={false} member={member} />
 								</div>
 							);
 						})
@@ -498,29 +549,6 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
 								onChange={(e) => setChannelDescription(e.target.value)}
 								placeholder="What is this channel about?"
 							/>
-						</FormSection>
-
-						<FormSection>
-							<PrivateSection>
-								<PrivateIcon>
-									<Settings size={20} />
-								</PrivateIcon>
-								<PrivateContent>
-									<PrivateTitle>Private Channel</PrivateTitle>
-									<PrivateDescription>
-										Only selected members and roles will be able to view this
-										channel.
-									</PrivateDescription>
-								</PrivateContent>
-								<Toggle>
-									<ToggleInput
-										type="checkbox"
-										checked={isPrivate}
-										onChange={(e) => setIsPrivate(e.target.checked)}
-									/>
-									<ToggleSlider checked={isPrivate} />
-								</Toggle>
-							</PrivateSection>
 						</FormSection>
 						<Divider />
 						<ModalFooter>
