@@ -41,7 +41,13 @@ type AddGroupFormValues = {
 	avatar?: File | null;
 };
 
-export default function InviteSection() {
+type InviteSectionProps = {
+	canInvite?: boolean;
+};
+
+export default function InviteSection({
+	canInvite = true,
+}: InviteSectionProps) {
 	const { handleSubmit, reset } = useForm<AddGroupFormValues>({
 		defaultValues: {
 			name: "",
@@ -218,6 +224,7 @@ export default function InviteSection() {
 	}, [friends, search, groupMembers]);
 
 	const handleAddSingle = async (userId: string) => {
+		if (!canInvite) return;
 		if (!groupId) {
 			alert("No group id provided.");
 			return;
@@ -254,6 +261,7 @@ export default function InviteSection() {
 
 	const inviteLink = `https://devchat-hihihehe/${groupId}`;
 	const handleCopy = async () => {
+		if (!canInvite) return;
 		try {
 			await navigator.clipboard.writeText(inviteLink);
 			try {
@@ -315,6 +323,7 @@ export default function InviteSection() {
 	}, [emailInput, friends]);
 
 	const handleSendEmailInvite = async () => {
+		if (!canInvite) return;
 		const email = emailInput.trim().toLowerCase();
 		if (!validateEmail(email)) {
 			setEmailError("Invalid email format");
@@ -376,7 +385,13 @@ export default function InviteSection() {
 			<TitleArea>
 				<TitleSection>Invite</TitleSection>
 				<DescripSection>
-					Invite friends to <strong>{groupName}</strong>
+					{canInvite ? (
+						<>
+							Invite friends to <strong>{groupName}</strong>
+						</>
+					) : (
+						"You can view the current invite list, but only the group owner can send invitations."
+					)}
 				</DescripSection>
 			</TitleArea>
 
@@ -390,14 +405,15 @@ export default function InviteSection() {
 						<CopyButton
 							type="button"
 							onClick={handleCopy}
+							disabled={!canInvite}
 							style={
 								copiedInvite
 									? {
-											backgroundColor: `${theme.color.successBackground}`,
-											color: `${theme.color.success}`,
-											border: "1px solid `${theme.color.successBackground}`",
+											backgroundColor: theme.color.successBackground,
+											color: theme.color.success,
+											border: `1px solid ${theme.color.successBackground}`,
 										}
-									: {}
+									: undefined
 							}
 						>
 							{copiedInvite ? "Copied" : "Copy"}
@@ -420,7 +436,10 @@ export default function InviteSection() {
 							type="button"
 							onClick={handleSendEmailInvite}
 							disabled={
-								sendingEmail || !!emailError || emailInput.trim() === ""
+								sendingEmail ||
+								!!emailError ||
+								emailInput.trim() === "" ||
+								!canInvite
 							}
 							style={{ minWidth: 80 }}
 						>
@@ -533,7 +552,7 @@ export default function InviteSection() {
 											<AddButton
 												$added={hasPendingInvite}
 												onClick={() => handleAddSingle(u.id)}
-												disabled={hasPendingInvite || adding}
+												disabled={hasPendingInvite || adding || !canInvite}
 												style={
 													hasPendingInvite
 														? {

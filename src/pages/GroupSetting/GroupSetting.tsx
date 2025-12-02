@@ -75,11 +75,11 @@ export const GroupSetting: React.FC<GroupSettingProps> = ({
 	const renderActiveSection = () => {
 		switch (activeSection) {
 			case "profile":
-				return <ProfileSection />;
+				return <ProfileSection canEdit={isAdmin} />;
 			case "invite":
-				return <InviteSection />;
+				return <InviteSection canInvite={isAdmin} />;
 			case "member":
-				return <MemberSection />;
+				return <MemberSection canManageMembers={isAdmin} />;
 			case "activity":
 				return <ActivitySection />;
 			case "delete":
@@ -120,7 +120,6 @@ export const GroupSetting: React.FC<GroupSettingProps> = ({
 										$isActive={activeSection === item.id}
 										onClick={() => setActiveSection(item.id)}
 										role="button"
-										tabIndex={0}
 										onKeyDown={(e) => {
 											if (e.key === "Enter" || e.key === " ")
 												setActiveSection(item.id);

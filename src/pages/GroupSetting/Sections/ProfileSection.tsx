@@ -48,7 +48,13 @@ type AddGroupFormValues = {
 	avatar?: File | null;
 };
 
-export default function ProfileSection() {
+type ProfileSectionProps = {
+	canEdit?: boolean;
+};
+
+export default function ProfileSection({
+	canEdit = true,
+}: ProfileSectionProps) {
 	const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
 	const [avatarFile, setAvatarFile] = useState<File | null>(null);
 	const params = useParams({ strict: false }) as { groupId?: string };
@@ -75,6 +81,7 @@ export default function ProfileSection() {
 
 	const handleAvatarChange = useCallback(
 		(file?: File | null) => {
+			if (!canEdit) return;
 			if (!file) {
 				setAvatarFile(null);
 				setAvatarPreview(null);
@@ -98,7 +105,7 @@ export default function ProfileSection() {
 			reader.onload = () => setAvatarPreview(reader.result as string);
 			reader.readAsDataURL(file);
 		},
-		[setValue],
+		[setValue, canEdit],
 	);
 
 	// upload progress / error states
@@ -158,6 +165,7 @@ export default function ProfileSection() {
 	}, [groupId, reset]);
 
 	const onSubmit = async (data: AddGroupFormValues) => {
+		if (!canEdit) return;
 		if (!groupId) {
 			alert("Missing group id");
 			return;
@@ -287,6 +295,7 @@ export default function ProfileSection() {
 	};
 
 	const handleReset = useCallback(() => {
+		if (!canEdit) return;
 		// Nếu có initialFormRef thì reset về giá trị đó; không có thì không làm gì
 		if (initialFormRef.current) {
 			reset(initialFormRef.current, { keepDefaultValues: true });
@@ -302,24 +311,26 @@ export default function ProfileSection() {
 		// clear upload UI states
 		setAvatarUploadProgress(null);
 		setAvatarUploadError(null);
-	}, [reset]);
+	}, [reset, canEdit]);
 
-	const actions: Action[] = [
-		{
-			key: "reset",
-			label: "Reset",
-			variant: "link",
-			onClick: handleReset,
-			ariaLabel: "Reset changes",
-		},
-		{
-			key: "save",
-			label: isSubmitting ? "Saving..." : "Save Changes",
-			variant: "primary",
-			onClick: handleSubmit(onSubmit),
-			disabled: !isDirty || isSubmitting,
-		},
-	];
+	const actions: Action[] = canEdit
+		? [
+				{
+					key: "reset",
+					label: "Reset",
+					variant: "link",
+					onClick: handleReset,
+					ariaLabel: "Reset changes",
+				},
+				{
+					key: "save",
+					label: isSubmitting ? "Saving..." : "Save Changes",
+					variant: "primary",
+					onClick: handleSubmit(onSubmit),
+					disabled: !isDirty || isSubmitting,
+				},
+			]
+		: [];
 
 	return (
 		<SectionWrapper>
@@ -327,7 +338,11 @@ export default function ProfileSection() {
 
 			<TitleArea>
 				<TitleSection>Server Profile</TitleSection>
-				<DescripSection>helo</DescripSection>
+				<DescripSection>
+					{canEdit
+						? "Update your group details and branding."
+						: "Viewing only. Contact the group owner to make changes."}
+				</DescripSection>
 			</TitleArea>
 
 			{/* Form submission still works via onSubmit + handleSubmit, but Save button calls handleSubmit as well */}
@@ -358,6 +373,7 @@ export default function ProfileSection() {
 							<Input
 								type="file"
 								accept="image/*"
+								disabled={!canEdit}
 								onChange={(e) => {
 									const file = e.target.files?.[0];
 									handleAvatarChange(file ?? null);
@@ -366,7 +382,7 @@ export default function ProfileSection() {
 							<Note>Image formats: jpg, png. Maximum size 5MB.</Note>
 						</FileInputWrapper>
 
-						{avatarPreview && (
+						{avatarPreview && canEdit && (
 							<SmallButton
 								type="button"
 								onClick={() => handleAvatarChange(null)}
@@ -416,6 +432,7 @@ export default function ProfileSection() {
 					<StyledInput
 						id="name"
 						placeholder="e.g.: Frontend Team"
+						disabled={!canEdit}
 						{...register("name", {
 							required: "Group name is required",
 							maxLength: { value: 100, message: "Maximum 100 characters" },
@@ -430,6 +447,7 @@ export default function ProfileSection() {
 					<StyledTextarea
 						id="description"
 						placeholder="Short description of the group..."
+						disabled={!canEdit}
 						{...register("description")}
 					/>
 				</Field>
@@ -437,9 +455,13 @@ export default function ProfileSection() {
 				{/* Floating card (mặc định luôn hiển thị). Buttons gọi handler ở parent */}
 				<FloatingCard
 					message={
-						<div>
-							<strong>Careful</strong> — you have unsaved changes!
-						</div>
+						canEdit ? (
+							<div>
+								<strong>Careful</strong> — you have unsaved changes!
+							</div>
+						) : (
+							<div>Viewing only. Editing is limited to the group owner.</div>
+						)
 					}
 					actions={actions}
 					icon={<Save size={18} />}

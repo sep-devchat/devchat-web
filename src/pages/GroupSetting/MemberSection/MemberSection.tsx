@@ -9,24 +9,15 @@ import {
 	TitleArea,
 	TitleSection,
 } from "../GroupSetting.styled";
-import { ContentArea } from "./MemberSection.styled";
-import {
-	deleteMemberGroup,
-	membersGroup,
-	updateRoleMember,
-} from "@/services/userGroupAPI";
-import { listRoleGroup } from "@/services/roleAPI";
+import { ContentArea, Avatar } from "./MemberSection.styled";
+import { deleteMemberGroup, membersGroup } from "@/services/userGroupAPI";
 import { useForm } from "react-hook-form";
 import { useParams } from "@tanstack/react-router";
+import { useAuth } from "@/hooks";
+import { detailGroup } from "@/services/groupAPI";
 
 // shadcn components (adjust import paths if your project uses different aliases)
 import { Button } from "@/components/ui/button";
-import {
-	DropdownMenu,
-	DropdownMenuContent,
-	DropdownMenuItem,
-	DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import {
 	Dialog,
 	DialogContent,
@@ -39,30 +30,37 @@ import {
 /**
  * RoleBadge: nhỏ, hiển thị icon/initial + tên role (dùng trong cột Role)
  */
-const RoleBadge: React.FC<{ role?: any }> = ({ role }) => {
-	if (!role) {
-		return <span className="text-sm text-gray-500">No role</span>;
-	}
-	// show small circle with first letter as icon
-	const initial = (role.name ?? "").trim()[0]?.toUpperCase() ?? "?";
-	return (
-		<div className="inline-flex items-center gap-2">
-			<span
-				className="inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-semibold text-white"
-				style={{ backgroundColor: "#4f46e5" }}
-				title={role.name}
-				aria-hidden
-			>
-				{initial}
-			</span>
-			<span className="text-sm">{role.name}</span>
-		</div>
-	);
+// const RoleBadge: React.FC<{ role?: any }> = ({ role }) => {
+// 	if (!role) {
+// 		return <span className="text-sm text-gray-500">No role</span>;
+// 	}
+// 	// show small circle with first letter as icon
+// 	const initial = (role.name ?? "").trim()[0]?.toUpperCase() ?? "?";
+// 	return (
+// 		<div className="inline-flex items-center gap-2">
+// 			<span
+// 				className="inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-semibold text-white"
+// 				style={{ backgroundColor: "#4f46e5" }}
+// 				title={role.name}
+// 				aria-hidden
+// 			>
+// 				{initial}
+// 			</span>
+// 			<span className="text-sm">{role.name}</span>
+// 		</div>
+// 	);
+// };
+
+type MemberSectionProps = {
+	canManageMembers?: boolean;
 };
 
-export default function MemberSection() {
+export default function MemberSection({
+	canManageMembers,
+}: MemberSectionProps) {
 	const params = useParams({ strict: false }) as { groupId?: string };
 	const groupId = params.groupId;
+	const { profile } = useAuth();
 
 	const [loading, setLoading] = useState(false);
 	const [page, setPage] = useState(1);
@@ -71,10 +69,11 @@ export default function MemberSection() {
 	const [rowData, setRowData] = useState<any[]>([]);
 	const [allMembersCache, setAllMembersCache] = useState<any[]>([]);
 	const [search, setSearch] = useState("");
-	const [selectedRow, setSelectedRow] = useState<any | null>(null); // single selection
+	const [selectedRows, setSelectedRows] = useState<any[]>([]); // multi-selection
 	const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
-	const [roles, setRoles] = useState<any[] | null>(null);
-	const [roleLoading, setRoleLoading] = useState(false);
+	const [roles] = useState<any[] | null>(null);
+	const [roleLoading] = useState(false);
+	const [isGroupOwner, setIsGroupOwner] = useState(Boolean(canManageMembers));
 
 	const {
 		formState: { isSubmitting },
@@ -87,6 +86,23 @@ export default function MemberSection() {
 		},
 	});
 
+	// fetch group details to determine if current user is owner
+	const fetchGroupDetails = useCallback(async () => {
+		if (typeof canManageMembers === "boolean") {
+			setIsGroupOwner(canManageMembers);
+			return;
+		}
+		if (!groupId || !profile?.id) return;
+		try {
+			const res = await detailGroup(groupId);
+			const createdBy = res?.data?.createdBy;
+			setIsGroupOwner(createdBy === profile.id);
+		} catch (err) {
+			console.error("fetch group details failed", err);
+			setIsGroupOwner(false);
+		}
+	}, [groupId, profile?.id, canManageMembers]);
+
 	// fetch members
 	const fetchData = useCallback(async () => {
 		if (!groupId) return;
@@ -94,23 +110,31 @@ export default function MemberSection() {
 			setLoading(true);
 			const res = await membersGroup(groupId);
 			const members = res?.data ?? [];
-			setRowData(members);
-			setAllMembersCache(members);
+			// Filter out current logged-in user
+			const filteredMembers = members.filter(
+				(member: any) => member.id !== profile?.id,
+			);
+			setRowData(filteredMembers);
+			setAllMembersCache(filteredMembers);
 			if (res?.pagination) {
-				setTotalRow(res.pagination.total ?? members.length);
+				setTotalRow(res.pagination.total ?? filteredMembers.length);
 			} else {
-				setTotalRow(members.length);
+				setTotalRow(filteredMembers.length);
 			}
 		} catch (err) {
 			console.error("fetch members failed", err);
 		} finally {
 			setLoading(false);
 		}
-	}, [groupId, limit]);
+	}, [groupId, profile?.id]);
+
+	useEffect(() => {
+		fetchGroupDetails();
+	}, [fetchGroupDetails]);
 
 	useEffect(() => {
 		fetchData();
-	}, [fetchData]);
+	}, [fetchData, profile?.id]);
 
 	// quick client-side search
 	useEffect(() => {
@@ -130,111 +154,120 @@ export default function MemberSection() {
 		setRowData(filtered);
 	}, [search, allMembersCache]);
 
-	// selection handler — normalize to single item
+	// selection handler — handle multiple selections for owners
 	const handleSelectionChange = (rows: any[] | any) => {
 		if (!rows) {
-			setSelectedRow(null);
+			setSelectedRows([]);
 			return;
 		}
 		if (Array.isArray(rows)) {
-			setSelectedRow(rows.length > 0 ? rows[0] : null);
+			setSelectedRows(rows);
 		} else {
-			setSelectedRow(rows ?? null);
+			setSelectedRows([rows]);
 		}
 	};
 
 	// load roles once when needed
-	const ensureRoles = async () => {
-		if (roles) return roles;
-		setRoleLoading(true);
-		try {
-			const res = await listRoleGroup();
-			const r = res?.data ?? [];
-			setRoles(r);
-			return r;
-		} catch (err) {
-			console.error("load roles failed", err);
-			return [];
-		} finally {
-			setRoleLoading(false);
-		}
-	};
+	// const ensureRoles = async () => {
+	// 	if (roles) return roles;
+	// 	setRoleLoading(true);
+	// 	try {
+	// 		const res = await listRoleGroup();
+	// 		const r = res?.data ?? [];
+	// 		setRoles(r);
+	// 		return r;
+	// 	} catch (err) {
+	// 		console.error("load roles failed", err);
+	// 		return [];
+	// 	} finally {
+	// 		setRoleLoading(false);
+	// 	}
+	// };
 
 	/**
 	 * handleAddRole: accepts roleItem or null to remove role.
 	 * If roleItem === null => we attempt to remove role (send { role: null })
 	 */
-	const handleAddRole = async (userId: string, roleItem: any | null) => {
-		if (!groupId) return;
-		try {
-			setRoleLoading(true);
-			await updateRoleMember(groupId, userId, { role: roleItem });
-			// optimistic update
-			setRowData((prev) =>
-				prev.map((r) => (r.id === userId ? { ...r, role: roleItem } : r)),
-			);
-			if (selectedRow?.id === userId) {
-				setSelectedRow((s: any) => (s ? { ...s, role: roleItem } : s));
-			}
-		} catch (err) {
-			console.error("update role failed", err);
-		} finally {
-			setRoleLoading(false);
-		}
-	};
+	// const handleAddRole = async (userId: string, roleItem: any | null) => {
+	// 	if (!groupId) return;
+	// 	try {
+	// 		setRoleLoading(true);
+	// 		await updateRoleMember(groupId, userId, { role: roleItem });
+	// 		// optimistic update
+	// 		setRowData((prev) =>
+	// 			prev.map((r) => (r.id === userId ? { ...r, role: roleItem } : r)),
+	// 		);
+	// 		if (selectedRow?.id === userId) {
+	// 			setSelectedRow((s: any) => (s ? { ...s, role: roleItem } : s));
+	// 		}
+	// 	} catch (err) {
+	// 		console.error("update role failed", err);
+	// 	} finally {
+	// 		setRoleLoading(false);
+	// 	}
+	// };
 
 	const confirmDelete = async () => {
-		if (!groupId || !selectedRow) return;
+		if (!groupId || selectedRows.length === 0) return;
 		try {
 			setLoading(true);
-			await deleteMemberGroup(groupId, selectedRow.id);
+			// Delete all selected members
+			await Promise.all(
+				selectedRows.map((member) =>
+					deleteMemberGroup(groupId, member.id).catch((err) =>
+						console.error(`Failed to delete member ${member.id}:`, err),
+					),
+				),
+			);
 			await fetchData();
-			setSelectedRow(null);
+			setSelectedRows([]);
 			setOpenDeleteDialog(false);
 		} catch (err) {
-			console.error("delete member failed", err);
+			console.error("delete members failed", err);
 		} finally {
 			setLoading(false);
 		}
 	};
 
+	const handleCancelDelete = () => {
+		setOpenDeleteDialog(false);
+	};
+
 	const computeInitials = (name?: string | null) => {
-		if (!name) return "--";
+		if (!name || name.trim() === "") return "NA";
 		const pieces = name.trim().split(/\s+/).filter(Boolean);
-		if (pieces.length === 0) return "--";
+		if (pieces.length === 0) return "NA";
 		const initials = pieces
 			.map((p) => p[0] ?? "")
 			.join("")
 			.slice(0, 2)
 			.toUpperCase();
-		return initials;
+		return initials || "NA";
 	};
 
 	const AvatarItem: React.FC<{ src?: string | null; name?: string }> = ({
 		src,
 		name,
 	}) => {
-		const [failed, setFailed] = useState(false);
-		const initials = computeInitials(name ?? "");
-		if (src && !failed) {
-			return (
-				<img
-					src={src}
-					alt={name ?? "avatar"}
-					className="w-8 h-8 rounded-full object-cover inline-block"
-					onError={() => setFailed(true)}
-				/>
-			);
-		}
+		const initials = computeInitials(name);
+
 		return (
-			<span
-				className="inline-flex items-center justify-center w-8 h-8 rounded-full font-semibold text-white"
-				style={{ backgroundColor: "#8b5cf6" }}
-				aria-hidden
-				title={name ?? initials}
-			>
-				{initials}
-			</span>
+			<Avatar title={name ?? "Avatar"}>
+				{src && src.trim() ? (
+					<img
+						src={src}
+						alt={name ?? "avatar"}
+						style={{ borderRadius: "50%" }}
+						onError={(e) => {
+							// Fallback to initials if image fails to load
+							const target = e.target as HTMLImageElement;
+							target.style.display = "none";
+						}}
+					/>
+				) : (
+					<span>{initials}</span>
+				)}
+			</Avatar>
 		);
 	};
 
@@ -246,14 +279,12 @@ export default function MemberSection() {
 				headerName: "Avatar",
 				editable: false,
 				align: "center",
-				valueFormatter: (row?: any) => {
+				valueFormatter: (_v: any, row?: any) => {
 					const src = row?.avatarUrl ?? null;
-					return (
-						<AvatarItem
-							src={src}
-							name={`${row?.firstName ?? ""} ${row?.lastName ?? ""}`}
-						/>
-					);
+					const firstName = row?.firstName ?? "";
+					const lastName = row?.lastName ?? "";
+					const fullName = `${firstName} ${lastName}`.trim();
+					return <AvatarItem src={src} name={fullName || "Unknown"} />;
 				},
 			},
 			{
@@ -271,99 +302,40 @@ export default function MemberSection() {
 				align: "left",
 				valueFormatter: (v: any) => v ?? "—",
 			},
-			{
-				field: "role",
-				headerName: "Role",
-				editable: false,
-				align: "center",
-				valueFormatter: (_v: any, row?: any) => {
-					const currentRole = row?.role ?? null;
-					// Dropdown: current role visible + a trigger to open dropdown of available roles
-					return (
-						<div className="flex items-center gap-2">
-							<RoleBadge role={currentRole} />
-
-							<DropdownMenu>
-								<DropdownMenuTrigger asChild>
-									<Button
-										size="sm"
-										variant="outline"
-										onClick={() => {
-											// ensure roles loaded before opening (most UI libs open on click; we preload)
-											ensureRoles();
-										}}
-										aria-label={`change-role-${row?.id}`}
-									>
-										Manage
-									</Button>
-								</DropdownMenuTrigger>
-
-								<DropdownMenuContent align="end" className="min-w-[160px]">
-									{roleLoading ? (
-										<DropdownMenuItem onSelect={() => {}}>
-											Loading...
-										</DropdownMenuItem>
-									) : roles && roles.length > 0 ? (
-										<>
-											{roles.map((r) => (
-												<DropdownMenuItem
-													key={r.name ?? r.id}
-													onSelect={async () => {
-														await handleAddRole(row.id, r);
-													}}
-												>
-													{r.name}
-												</DropdownMenuItem>
-											))}
-											<DropdownMenuItem
-												onSelect={async () => await handleAddRole(row.id, null)}
-											>
-												Remove role
-											</DropdownMenuItem>
-										</>
-									) : (
-										<DropdownMenuItem onSelect={() => {}}>
-											No roles
-										</DropdownMenuItem>
-									)}
-								</DropdownMenuContent>
-							</DropdownMenu>
-						</div>
-					);
-				},
-			},
 		],
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 		[roles, roleLoading],
 	);
 
-	const actions: Action[] = [
-		// {
-		//   key: "assign",
-		//   label: "Assign role",
-		//   variant: "secondary",
-		//   onClick: async () => {
-		//     if (!selectedRow) return;
-		//     const loaded = await ensureRoles();
-		//     if (!loaded || loaded.length === 0) return;
-		//     const names = loaded.map((r: any, idx: number) => `${idx + 1}. ${r.name}`).join("\n");
-		//     const choice = window.prompt(`Select role by number for ${selectedRow.firstName ?? ""} ${selectedRow.lastName ?? ""}:\n${names}`);
-		//     if (!choice) return;
-		//     const idx = parseInt(choice, 10) - 1;
-		//     if (isNaN(idx) || idx < 0 || idx >= loaded.length) return;
-		//     const picked = loaded[idx];
-		//     await handleAddRole(selectedRow.id, picked);
-		//   },
-		//   disabled: !selectedRow || isSubmitting,
-		// },
-		{
-			key: "delete",
-			label: "Delete",
-			variant: "primary",
-			onClick: () => setOpenDeleteDialog(true),
-			disabled: !selectedRow || isSubmitting,
-		},
-	];
+	const actions: Action[] = isGroupOwner
+		? [
+				// {
+				//   key: "assign",
+				//   label: "Assign role",
+				//   variant: "secondary",
+				//   onClick: async () => {
+				//     if (selectedRows.length === 0) return;
+				//     const loaded = await ensureRoles();
+				//     if (!loaded || loaded.length === 0) return;
+				//     const names = loaded.map((r: any, idx: number) => `${idx + 1}. ${r.name}`).join("\n");
+				//     const choice = window.prompt(`Select role by number:\n${names}`);
+				//     if (!choice) return;
+				//     const idx = parseInt(choice, 10) - 1;
+				//     if (isNaN(idx) || idx < 0 || idx >= loaded.length) return;
+				//     const picked = loaded[idx];
+				//     await Promise.all(selectedRows.map(member => handleAddRole(member.id, picked)));
+				//   },
+				//   disabled: selectedRows.length === 0 || isSubmitting,
+				// },
+				{
+					key: "delete",
+					label: `Delete (${selectedRows.length})`,
+					variant: "destructive",
+					onClick: () => setOpenDeleteDialog(true),
+					disabled: selectedRows.length === 0 || isSubmitting,
+				},
+			]
+		: [];
 
 	return (
 		<SectionWrapper>
@@ -400,22 +372,29 @@ export default function MemberSection() {
 					totalRows={totalRow}
 					initialPageSize={limit}
 					onPageSizeChange={(s: number) => setLimit(s)}
-					// set single-selection mode; if your CTable expects a different prop name, adjust accordingly
-					rowSelection="single"
-					onSelectionChange={handleSelectionChange}
+					// Show multiple selection only for group owners
+					rowSelection={isGroupOwner ? "multiple" : undefined}
+					onSelectionChange={isGroupOwner ? handleSelectionChange : undefined}
 				/>
 			</ContentArea>
 
 			<FloatingCard
-				visible={!!selectedRow}
+				visible={selectedRows.length > 0 && isGroupOwner}
 				message={
 					<div>
-						<strong>
-							{selectedRow
-								? `${selectedRow.firstName ?? ""} ${selectedRow.lastName ?? ""}`
-								: 0}
-						</strong>{" "}
-						selected
+						<div>
+							<strong>{selectedRows.length}</strong> member
+							{selectedRows.length !== 1 ? "s" : ""} selected
+						</div>
+						{/*{selectedRows.length > 0 && (
+							<div className="text-xs text-gray-600 mt-1 max-h-32 overflow-y-auto">
+								{selectedRows.map((member) => (
+									<div key={member.id}>
+										{member.firstName} {member.lastName}
+									</div>
+								))}
+							</div>
+						)}*/}
 					</div>
 				}
 				actions={actions}
@@ -429,19 +408,37 @@ export default function MemberSection() {
 						<DialogDescription>
 							Are you sure you want to delete{" "}
 							<strong>
-								{selectedRow
-									? `${selectedRow.firstName ?? ""} ${selectedRow.lastName ?? ""}`
-									: ""}
+								{selectedRows.length === 1
+									? `${selectedRows[0]?.firstName ?? ""} ${selectedRows[0]?.lastName ?? ""}`
+									: `${selectedRows.length} member${selectedRows.length !== 1 ? "s" : ""}`}
 							</strong>
 							? This action cannot be undone.
 						</DialogDescription>
 					</DialogHeader>
+					{selectedRows.length > 1 && (
+						<div className="max-h-64 overflow-y-auto bg-gray-50 p-3 rounded mb-4">
+							<div className="text-sm font-semibold mb-2">
+								Selected members:
+							</div>
+							<ul className="text-sm space-y-1">
+								{selectedRows.map((member) => (
+									<li key={member.id} className="text-gray-700">
+										• {member.firstName} {member.lastName} ({member.email})
+									</li>
+								))}
+							</ul>
+						</div>
+					)}
 					<DialogFooter className="flex gap-2">
-						<Button variant="ghost" onClick={() => setOpenDeleteDialog(false)}>
+						<Button variant="ghost" onClick={handleCancelDelete}>
 							Cancel
 						</Button>
-						<Button variant="destructive" onClick={confirmDelete}>
-							Confirm
+						<Button
+							variant="destructive"
+							onClick={confirmDelete}
+							disabled={isSubmitting || loading}
+						>
+							{isSubmitting || loading ? "Deleting..." : "Delete"}
 						</Button>
 					</DialogFooter>
 				</DialogContent>

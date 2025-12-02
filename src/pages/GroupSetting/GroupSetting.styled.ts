@@ -280,7 +280,10 @@ export const MenuNav = styled.nav`
 	}
 `;
 
-export const MenuItem = styled.button<{ $isActive: boolean }>`
+export const MenuItem = styled.button<{
+	$isActive: boolean;
+	$disabled?: boolean;
+}>`
 	width: 100%;
 	display: flex;
 	align-items: center;
@@ -292,7 +295,8 @@ export const MenuItem = styled.button<{ $isActive: boolean }>`
 	font-weight: 500;
 	font-size: 0.875rem;
 	transition: all 0.2s ease;
-	cursor: pointer;
+	cursor: ${({ $disabled }) => ($disabled ? "not-allowed" : "pointer")};
+	opacity: ${({ $disabled }) => ($disabled ? 0.6 : 1)};
 
 	&:focus {
 		outline: none;
@@ -309,15 +313,20 @@ export const MenuItem = styled.button<{ $isActive: boolean }>`
     color: #1A1A1A;
     border: none;
    
-    &:hover {
-      background: #f9fafb;
-      border: none;
-    }
-    
     &:focus {
       outline: none;
     }
   `}
+
+	&:hover {
+		${({ $isActive, $disabled }) =>
+			$disabled || $isActive
+				? ""
+				: `
+      background: #f9fafb;
+      border: none;
+    `}
+	}
 
 	@media (max-width: 1220px) {
 		font-size: 14px;

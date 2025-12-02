@@ -11,7 +11,7 @@ export type Action = {
 };
 
 export interface FloatingCardProps {
-	message: React.ReactNode;
+	message?: React.ReactNode;
 	actions?: Action[];
 	className?: string;
 	icon?: React.ReactNode;
