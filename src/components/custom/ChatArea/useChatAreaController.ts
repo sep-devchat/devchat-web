@@ -43,6 +43,19 @@ import type { ChatMessagesViewportProps } from "./parts/ChatMessagesViewport";
 import type { ChatDialogsProps } from "./parts/ChatDialogs";
 import { MessageReportType } from "@/services/reportAPI";
 
+const AI_PROVIDER_USERNAMES = ["openai-bot", "gemini-bot"];
+const detectAiMention = (text: string): "openai" | "gemini" | null => {
+	const match = text.match(/@(openai|gemini)\b/i);
+	if (!match) return null;
+	return match[1].toLowerCase() as "openai" | "gemini";
+};
+const buildAiPreviewContent = (provider: "openai" | "gemini") =>
+	provider === "openai" ? "OpenAI is thinking..." : "Gemini is thinking...";
+const isAiUsername = (username?: string | null) =>
+	AI_PROVIDER_USERNAMES.includes((username ?? "").toLowerCase());
+const isAiBotSender = (sender?: { username?: string | null }) =>
+	isAiUsername(sender?.username ?? "");
+
 export interface ChatAreaControllerResult {
 	shouldShowDirectHeader: boolean;
 	directHeaderProps: DirectMessageHeaderProps | null;
@@ -313,36 +326,87 @@ export const useChatAreaController = (): ChatAreaControllerResult => {
 
 			// Remove matching optimistic and add server message to realtime list
 			setRealtimeMessages((prev) => {
-				const withoutOptimistics = prev.filter((m) => {
-					if (payload.clientTempId && m.id === payload.clientTempId) {
-						return false;
-					}
-					// Fallback match for text/files when no clientTempId is present
-					if (!payload.clientTempId && m.id?.startsWith?.("temp-")) {
+				const next: MessageResponse[] = [];
+				const resolvedParentIds: Record<string, string> = {};
+				for (const message of prev) {
+					let skip = false;
+					let current = message;
+					let resolvedTempId: string | null = null;
+					if (payload.clientTempId && message.id === payload.clientTempId) {
+						skip = true;
+						resolvedTempId = message.id;
+					} else if (
+						!payload.clientTempId &&
+						message.id?.startsWith?.("temp-")
+					) {
 						const sameSender =
-							m.sender?.id === payload.senderId ||
-							m.sender?.id === payload.sender?.id;
-						const sameChannel = m.channelId === payload.channelId;
+							message.sender?.id === payload.senderId ||
+							message.sender?.id === payload.sender?.id;
+						const sameChannel = message.channelId === payload.channelId;
 						const sameThread =
-							(m.thread?.id ?? null) ===
+							(message.thread?.id ?? null) ===
 							(payload.threadId ?? payload.thread?.id ?? null);
-						const sameContent = (m.content || "") === (payload.content || "");
-						const sameAttachments = Array.isArray((m as any).attachments)
+						const sameContent =
+							(message.content || "") === (payload.content || "");
+						const sameAttachments = Array.isArray((message as any).attachments)
 							? Array.isArray(payload.attachments) &&
-								(m as any).attachments.length === payload.attachments.length
-							: !(m as any).attachments && !payload.attachments;
+								(message as any).attachments.length ===
+									payload.attachments?.length
+							: !(message as any).attachments && !payload.attachments;
 						if (
 							sameSender &&
 							sameChannel &&
 							sameThread &&
 							(sameContent || sameAttachments)
 						) {
-							return false;
+							skip = true;
+							resolvedTempId = message.id;
 						}
 					}
-					return true;
+					if (resolvedTempId) {
+						resolvedParentIds[resolvedTempId] = serverMsg.id;
+					}
+					if (skip) continue;
+					const aiPreviewMeta = (message as any).aiPreviewMeta;
+					if (aiPreviewMeta) {
+						const updatedParentId =
+							aiPreviewMeta.parentMessageId ||
+							(resolvedParentIds[aiPreviewMeta.parentTempId] ?? null);
+						if (!aiPreviewMeta.parentMessageId && updatedParentId) {
+							(current as any).aiPreviewMeta = {
+								...aiPreviewMeta,
+								parentMessageId: updatedParentId,
+							};
+						}
+						const parentMatchId = ((current as any).aiPreviewMeta
+							?.parentMessageId ?? null) as string | null;
+						if (
+							parentMatchId &&
+							serverMsg.parentMessageId &&
+							parentMatchId === serverMsg.parentMessageId &&
+							isAiBotSender(serverMsg.sender)
+						) {
+							continue; // remove preview once AI responds
+						}
+					}
+					next.push(current);
+				}
+				const withParentUpdates = next.map((msg) => {
+					const aiPreviewMeta = (msg as any).aiPreviewMeta;
+					if (!aiPreviewMeta || aiPreviewMeta.parentMessageId) return msg;
+					const tempId = aiPreviewMeta.parentTempId;
+					if (!tempId) return msg;
+					const resolvedId = resolvedParentIds[tempId];
+					if (!resolvedId) return msg;
+					const updated = { ...msg } as MessageResponse;
+					(updated as any).aiPreviewMeta = {
+						...aiPreviewMeta,
+						parentMessageId: resolvedId,
+					};
+					return updated;
 				});
-				return [...withoutOptimistics, serverMsg];
+				withParentUpdates.push(serverMsg);
+				return withParentUpdates;
 			});
 
 			// Update query cache with the server message
@@ -1250,6 +1314,39 @@ export const useChatAreaController = (): ChatAreaControllerResult => {
 
 				const ackPromise = safeEmit(ev, p);
 				setReplyToMessage(null);
+				if (!isDirectMode) {
+					const aiProvider = detectAiMention(text);
+					if (aiProvider) {
+						const previewId = `ai-preview-${payload.clientTempId || tempId}`;
+						const providerLabel = aiProvider === "openai" ? "OpenAI" : "Gemini";
+						const aiPreviewMessage: MessageResponse = {
+							id: previewId,
+							content: buildAiPreviewContent(aiProvider),
+							createdAt: new Date().toISOString(),
+							channelId: channelIdParam as string,
+							thread: threadIdParam
+								? ({ id: threadIdParam } as any)
+								: undefined,
+							senderId: `${aiProvider}-bot`,
+							sender: {
+								id: `${aiProvider}-bot`,
+								firstName: providerLabel,
+								lastName: "Bot",
+								username: `${aiProvider}-bot`,
+								avatarUrl: null,
+							} as any,
+							parentMessageId: null,
+							parentMessage: null,
+						} as any;
+						(aiPreviewMessage as any).pending = true;
+						(aiPreviewMessage as any).aiPreviewMeta = {
+							provider: aiProvider,
+							parentTempId: payload.clientTempId || tempId,
+							parentMessageId: null,
+						};
+						setRealtimeMessages((prev) => [...prev, aiPreviewMessage]);
+					}
+				}
 				return ackPromise; // allow caller (ChatInput) to access server-assigned messageId for AI ask
 			}
 
