@@ -75,3 +75,38 @@ export const ContentArea = styled.div`
 		gap: 1.4rem;
 	}
 `;
+
+export const Avatar = styled.div`
+	border-radius: 50%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	overflow: hidden;
+	flex-shrink: 0;
+	background: hsl(var(--primary));
+	color: white;
+	font-weight: 600;
+	width: 32px;
+	height: 32px;
+	font-size: 12px;
+	margin: 0 auto;
+	line-height: 1;
+	vertical-align: middle;
+
+	img {
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+		border-radius: 50%;
+		display: block;
+	}
+
+	span {
+		line-height: 1;
+		height: 100%;
+		width: 100%;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+`;
