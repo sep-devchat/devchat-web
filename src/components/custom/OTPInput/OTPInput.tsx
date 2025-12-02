@@ -21,6 +21,7 @@ type OTPInputProps = {
 	className?: string;
 	inputClassName?: string;
 	style?: React.CSSProperties;
+	enablePaste?: boolean;
 };
 
 const normalize = (s: string | undefined, len: number) =>
@@ -41,6 +42,7 @@ const OTPInput = forwardRef<OTPRef, OTPInputProps>(
 			className,
 			inputClassName,
 			style,
+			enablePaste = false,
 		},
 		ref,
 	) => {
@@ -162,6 +164,23 @@ const OTPInput = forwardRef<OTPRef, OTPInputProps>(
 			});
 		}, [current]);
 
+		const handlePaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+			if (!enablePaste) return;
+			e.preventDefault();
+			const pasted = e.clipboardData.getData("text").replace(/[^0-9]/g, "");
+			if (!pasted) return;
+			const chars = pasted.slice(0, length).split("");
+			const next = [...Array(length)].map((_, idx) => chars[idx] ?? "");
+			if (isControlled) onChange?.(next.join(""));
+			else setInternal(next);
+			next.forEach((ch, idx) => {
+				const el = inputsRef.current[idx];
+				if (el) el.value = ch ?? "";
+			});
+			const lastIdx = Math.min(chars.length - 1, length - 1);
+			if (lastIdx >= 0) inputsRef.current[lastIdx]?.focus();
+		};
+
 		return (
 			<div
 				className={className}
@@ -183,6 +202,7 @@ const OTPInput = forwardRef<OTPRef, OTPInputProps>(
 						defaultValue={current[idx] ?? ""}
 						onChange={handleChange(idx)}
 						onKeyDown={handleKeyDown(idx)}
+						onPaste={handlePaste}
 						className={inputClassName}
 						style={{
 							width: 48,

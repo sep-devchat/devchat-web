@@ -16,7 +16,7 @@ export const Wrapper = styled.div`
 	gap: 1rem;
 	box-sizing: border-box;
 	z-index: 100;
-	position: absolute;
+	position: fixed;
 	bottom: 30px;
 	left: 50%;
 	transform: translateX(-50%);

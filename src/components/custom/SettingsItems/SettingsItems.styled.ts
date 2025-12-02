@@ -767,19 +767,16 @@ export const SettingItem = styled.div<{ $noBorder?: boolean }>`
 	display: flex;
 	align-items: flex-start;
 	justify-content: space-between;
-	margin-bottom: 1rem;
 	border: ${({ $noBorder }) => ($noBorder ? "none" : "1px solid #AAAAAA")};
 	border-radius: 0.5rem;
 	padding: 1rem;
 
 	@media (min-width: 1440px) {
-		margin-bottom: 0.8rem;
 		border-radius: 0.4rem;
 		padding: 0.8rem;
 	}
 
 	@media (max-width: 1220px) {
-		margin-bottom: 0.875rem;
 		border-radius: 0.35rem;
 		padding: 0.875rem;
 	}
@@ -973,18 +970,14 @@ export const FormContainer = styled.div`
 	background: white;
 	border-radius: 0.5rem;
 	overflow: hidden;
-	margin: 0 auto;
 	border: 1px solid #aaaaaa;
-	margin-bottom: 1rem;
 
 	@media (min-width: 1440px) {
 		border-radius: 0.4rem;
-		margin-bottom: 0.8rem;
 	}
 
 	@media (max-width: 1220px) {
 		border-radius: 0.35rem;
-		margin-bottom: 0.875rem;
 	}
 `;
 
@@ -1029,6 +1022,10 @@ export const Avatar = styled.div`
 	color: white;
 	font-size: 1.5rem;
 	font-weight: 600;
+	position: relative;
+	cursor: pointer;
+	overflow: hidden;
+
 	@media (max-width: 1220px) {
 		width: 2.8rem;
 		height: 2.8rem;
@@ -1046,6 +1043,48 @@ export const Avatar = styled.div`
 		height: 3.2rem;
 		font-size: 18px;
 	}
+`;
+
+export const AvatarOverlay = styled.div`
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	background: rgba(0, 0, 0, 0.6);
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	opacity: 0;
+	transition: opacity 0.2s ease;
+	color: white;
+	font-size: 10px;
+	font-weight: 500;
+	gap: 2px;
+
+	${Avatar}:hover & {
+		opacity: 1;
+	}
+
+	@media (max-width: 1220px) {
+		font-size: 8px;
+		gap: 1px;
+	}
+
+	@media (min-width: 1440px) and (max-width: 1919px) {
+		font-size: 9px;
+		gap: 1.5px;
+	}
+
+	@media (min-width: 1920px) {
+		font-size: 11px;
+		gap: 2px;
+	}
+`;
+
+export const AvatarUploadInput = styled.input`
+	display: none;
 `;
 
 export const ProfileDetails = styled.div`
@@ -1240,6 +1279,13 @@ export const Input = styled.input`
 
 	&::placeholder {
 		color: #9ca3af;
+	}
+
+	&:disabled {
+		background: #f5f6f8;
+		color: #6b7280;
+		border-color: #e5e7eb;
+		cursor: not-allowed;
 	}
 `;
 

@@ -18,7 +18,7 @@ export const ModalContainer = styled.div`
 	background: white;
 	border-radius: 12px;
 	width: 100%;
-	max-width: 500px;
+	max-width: 800px;
 	max-height: 90vh;
 	overflow-y: auto;
 	box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
@@ -311,4 +311,135 @@ export const Button = styled.button<{ $variant?: "primary" | "secondary" }>`
       background: #e5e7eb;
     }
   `}
+`;
+
+export const LanguagesSection = styled.div`
+	margin-top: 24px;
+	padding: 16px;
+	background: #f9fafb;
+	border-radius: 12px;
+`;
+
+export const LanguagesSectionTitle = styled.h3`
+	font-size: 14px;
+	font-weight: 600;
+	color: #374151;
+	margin: 0 0 16px 0;
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
+`;
+
+export const LanguagesList = styled.div`
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+`;
+
+export const LanguageItem = styled.div<{ $rank: number }>`
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	padding: 12px;
+	background: white;
+	border-radius: 8px;
+	border: 2px solid
+		${(props) =>
+			props.$rank === 1
+				? "#fbbf24"
+				: props.$rank === 2
+					? "#d1d5db"
+					: props.$rank === 3
+						? "#f59e0b"
+						: "#e5e7eb"};
+	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+	position: relative;
+	overflow: hidden;
+
+	&::before {
+		content: "";
+		position: absolute;
+		left: 0;
+		top: 0;
+		bottom: 0;
+		width: 4px;
+		background: ${(props) =>
+			props.$rank === 1
+				? "linear-gradient(180deg, #fbbf24 0%, #f59e0b 100%)"
+				: props.$rank === 2
+					? "linear-gradient(180deg, #d1d5db 0%, #9ca3af 100%)"
+					: props.$rank === 3
+						? "linear-gradient(180deg, #f59e0b 0%, #d97706 100%)"
+						: "#e5e7eb"};
+	}
+`;
+
+export const RankBadge = styled.div<{ $rank: number }>`
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 32px;
+	height: 32px;
+	border-radius: 50%;
+	font-size: 14px;
+	font-weight: 700;
+	background: ${(props) =>
+		props.$rank === 1
+			? "linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)"
+			: props.$rank === 2
+				? "linear-gradient(135deg, #d1d5db 0%, #9ca3af 100%)"
+				: "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)"};
+	color: ${(props) => (props.$rank === 2 ? "#374151" : "white")};
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+	flex-shrink: 0;
+`;
+
+export const LanguageIcon = styled.img`
+	width: 40px;
+	height: 40px;
+	object-fit: contain;
+	flex-shrink: 0;
+`;
+
+export const LanguageInfo = styled.div`
+	flex: 1;
+	min-width: 0;
+`;
+
+export const LanguageName = styled.div`
+	font-size: 14px;
+	font-weight: 600;
+	color: #1f2937;
+	margin-bottom: 4px;
+`;
+
+export const LanguageProficiency = styled.div<{ $level: string }>`
+	display: inline-block;
+	padding: 2px 8px;
+	border-radius: 4px;
+	font-size: 11px;
+	font-weight: 500;
+	background: ${(props) => {
+		switch (props.$level) {
+			case "EXPERT":
+				return "#dcfce7";
+			case "ADVANCED":
+				return "#dbeafe";
+			case "INTERMEDIATE":
+				return "#fef3c7";
+			default:
+				return "#fee2e2";
+		}
+	}};
+	color: ${(props) => {
+		switch (props.$level) {
+			case "EXPERT":
+				return "#166534";
+			case "ADVANCED":
+				return "#1e40af";
+			case "INTERMEDIATE":
+				return "#92400e";
+			default:
+				return "#991b1b";
+		}
+	}};
 `;

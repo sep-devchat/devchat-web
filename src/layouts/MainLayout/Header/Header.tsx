@@ -146,7 +146,11 @@ const Header = ({
 	const displayedTitle =
 		isGroupPage && channelData?.name ? `# ${channelData.name}` : baseTitle;
 	const [hoveredIcon, setHoveredIcon] = useState<string | null>(null);
-	const compact = iconSelected === "spool" || iconSelected === "code";
+	const compact =
+		iconSelected === "spool" ||
+		iconSelected === "code" ||
+		iconSelected === "info" ||
+		iconSelected === "tasks";
 
 	const handleThreadIconClick = () => {
 		if (groupId && channelId) {

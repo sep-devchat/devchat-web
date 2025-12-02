@@ -4,6 +4,10 @@ import styled from "styled-components";
 export const PageWrapper = styled.div`
 	height: 100%;
 	width: 100%;
+<<<<<<< Updated upstream
+=======
+	// max-width: 480px;
+>>>>>>> Stashed changes
 	position: relative;
 	display: flex;
 	flex-direction: column;
@@ -679,7 +683,7 @@ export const SectionTitle = styled.h3`
 
 export const ImageGrid = styled.div`
 	display: grid;
-	grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+	grid-template-columns: repeat(3, minmax(120px, 1fr));
 	gap: 8px;
 
 	@media (max-width: 1220px) {

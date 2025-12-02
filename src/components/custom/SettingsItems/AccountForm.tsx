@@ -2,6 +2,8 @@
 import React, { useEffect, useRef, useState } from "react";
 import {
 	Avatar,
+	AvatarOverlay,
+	AvatarUploadInput,
 	FormContainer,
 	FormContent,
 	FormGroup,
@@ -20,6 +22,7 @@ import { resendVerifyEmail } from "@/services/auth/authAPI";
 import { AvatarImg, NoAvatar } from "@/pages/Setting/Setting.styled";
 import { InfoButton } from "../ActionButton/InfoButton";
 import { toast } from "sonner";
+import { Upload } from "lucide-react";
 
 interface AccountFormProps {
 	initialData?: Profile | any;
@@ -27,17 +30,20 @@ interface AccountFormProps {
 	onChange?: (data: any) => void;
 	onEditEmail?: () => void;
 	onEditPassword?: () => void;
+	onAvatarChange?: (file: File) => void;
 }
 
 const AccountForm: React.FC<AccountFormProps> = ({
 	initialData = {},
 	resetKey = 0,
 	onChange,
+	onAvatarChange,
 }) => {
 	const [local, setLocal] = useState<any>({ ...initialData });
 	const [isSendingVerify, setIsSendingVerify] = useState(false);
 	const mountedRef = useRef(false);
 	const skipOnChangeRef = useRef(false);
+	const fileInputRef = useRef<HTMLInputElement>(null);
 
 	useEffect(() => {
 		setLocal({ ...initialData });
@@ -62,6 +68,39 @@ const AccountForm: React.FC<AccountFormProps> = ({
 		setLocal((prev: any) => ({ ...prev, [field]: value }));
 	};
 
+	const handleAvatarClick = () => {
+		fileInputRef.current?.click();
+	};
+
+	const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+		const file = e.target.files?.[0];
+		if (!file) return;
+
+		if (!file.type.startsWith("image/")) {
+			toast.error("Only image files are accepted");
+			return;
+		}
+		if (file.size > 5 * 1024 * 1024) {
+			toast.error("Maximum file size is 5MB");
+			return;
+		}
+
+		// Preview locally
+		const reader = new FileReader();
+		reader.onload = () => {
+			setLocal((prev: any) => ({
+				...prev,
+				avatarUrl: reader.result as string,
+			}));
+		};
+		reader.readAsDataURL(file);
+
+		// Notify parent
+		if (onAvatarChange) {
+			onAvatarChange(file);
+		}
+	};
+
 	//   const handleEditEmailClick = () => {
 	//     if (onEditEmail) onEditEmail();
 	//   };
@@ -74,7 +113,7 @@ const AccountForm: React.FC<AccountFormProps> = ({
 		<FormContainer>
 			<ProfileHeader>
 				<ProfileInfo>
-					<Avatar>
+					<Avatar onClick={handleAvatarClick}>
 						{local?.avatarUrl ? (
 							<AvatarImg src={local.avatarUrl} alt="avatar preview" />
 						) : (
@@ -83,46 +122,58 @@ const AccountForm: React.FC<AccountFormProps> = ({
 								{(local?.lastName ?? "")?.charAt(0)}
 							</NoAvatar>
 						)}
+						<AvatarOverlay>
+							<Upload size={16} />
+							<span>Upload</span>
+						</AvatarOverlay>
 					</Avatar>
+					<AvatarUploadInput
+						ref={fileInputRef}
+						type="file"
+						accept="image/*"
+						onChange={handleFileChange}
+					/>
 					<ProfileDetails>
 						<ProfileName>{local?.username}</ProfileName>
 						<ProfileEmail>{local?.email}</ProfileEmail>
 					</ProfileDetails>
 				</ProfileInfo>
-				<InfoButton
-					onClick={async () => {
-						if (!local?.email) {
-							window.dispatchEvent(
-								new CustomEvent("app:alert", {
-									detail: {
-										type: "warning",
-										message: "No email available to verify",
-										duration: 4000,
-									},
-								}),
-							);
-							return;
-						}
+				{!local.emailVerified ? (
+					<InfoButton
+						onClick={async () => {
+							if (!local?.email) {
+								window.dispatchEvent(
+									new CustomEvent("app:alert", {
+										detail: {
+											type: "warning",
+											message: "No email available to verify",
+											duration: 4000,
+										},
+									}),
+								);
+								return;
+							}
 
-						try {
-							setIsSendingVerify(true);
-							const res = await resendVerifyEmail({
-								email: String(local.email),
-							});
+							try {
+								setIsSendingVerify(true);
+								const res = await resendVerifyEmail({
+									email: String(local.email),
+								});
 
-							toast.success(
-								res?.message || "Verification email sent successfully",
-							);
-						} catch {
-							toast.error("Failed to send verification email");
-						} finally {
-							setIsSendingVerify(false);
-						}
-					}}
-					disabled={isSendingVerify}
-				>
-					{isSendingVerify ? "Sending..." : "Verify email"}
-				</InfoButton>
+								toast.success(
+									res?.message || "Verification email sent successfully",
+								);
+							} catch {
+								toast.error("Failed to send verification email");
+							} finally {
+								setIsSendingVerify(false);
+							}
+						}}
+						disabled={isSendingVerify}
+					>
+						{isSendingVerify ? "Sending..." : "Verify email"}
+					</InfoButton>
+				) : null}
 			</ProfileHeader>
 
 			<FormContent>
@@ -154,7 +205,7 @@ const AccountForm: React.FC<AccountFormProps> = ({
 
 				<FormRow>
 					<FormGroup>
-						<Label>User Name</Label>
+						<Label>Username</Label>
 						<Input
 							type="text"
 							value={local?.username ?? ""}
@@ -162,6 +213,7 @@ const AccountForm: React.FC<AccountFormProps> = ({
 								handleInputChange("username", e.target.value)
 							}
 							placeholder="Enter username"
+							disabled
 						/>
 					</FormGroup>
 
