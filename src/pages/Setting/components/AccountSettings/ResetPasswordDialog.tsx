@@ -173,7 +173,7 @@ export const ResetPasswordDialog: React.FC<ResetPasswordDialogProps> = ({
 
 				{step === 1 && (
 					<div className="grid gap-3">
-						<OTPInput length={6} value={code} onChange={setCode} />
+						<OTPInput length={6} value={code} onChange={setCode} enablePaste />
 						<div className="flex gap-2 justify-center items-center">
 							<Button
 								variant="outline"

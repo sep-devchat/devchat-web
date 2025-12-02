@@ -230,7 +230,7 @@ export const AccountSettings: React.FC = () => {
 					<SettingItemButton
 						icon={<Lock />}
 						title="Account Removal"
-						description="Disabling your account means you can recover it at any time after taking this action."
+						description="Disable your account."
 						buttons={[
 							{
 								text: "Delete Account",

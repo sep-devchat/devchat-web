@@ -205,7 +205,7 @@ const AccountForm: React.FC<AccountFormProps> = ({
 
 				<FormRow>
 					<FormGroup>
-						<Label>User Name</Label>
+						<Label>Username</Label>
 						<Input
 							type="text"
 							value={local?.username ?? ""}
@@ -213,6 +213,7 @@ const AccountForm: React.FC<AccountFormProps> = ({
 								handleInputChange("username", e.target.value)
 							}
 							placeholder="Enter username"
+							disabled
 						/>
 					</FormGroup>
 

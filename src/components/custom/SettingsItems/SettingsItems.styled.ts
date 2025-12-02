@@ -1280,6 +1280,13 @@ export const Input = styled.input`
 	&::placeholder {
 		color: #9ca3af;
 	}
+
+	&:disabled {
+		background: #f5f6f8;
+		color: #6b7280;
+		border-color: #e5e7eb;
+		cursor: not-allowed;
+	}
 `;
 
 export const EmailSection = styled.div`
