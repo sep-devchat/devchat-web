@@ -51,7 +51,13 @@ import {
 // 	);
 // };
 
-export default function MemberSection() {
+type MemberSectionProps = {
+	canManageMembers?: boolean;
+};
+
+export default function MemberSection({
+	canManageMembers,
+}: MemberSectionProps) {
 	const params = useParams({ strict: false }) as { groupId?: string };
 	const groupId = params.groupId;
 	const { profile } = useAuth();
@@ -67,7 +73,7 @@ export default function MemberSection() {
 	const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
 	const [roles] = useState<any[] | null>(null);
 	const [roleLoading] = useState(false);
-	const [isGroupOwner, setIsGroupOwner] = useState(false);
+	const [isGroupOwner, setIsGroupOwner] = useState(Boolean(canManageMembers));
 
 	const {
 		formState: { isSubmitting },
@@ -82,6 +88,10 @@ export default function MemberSection() {
 
 	// fetch group details to determine if current user is owner
 	const fetchGroupDetails = useCallback(async () => {
+		if (typeof canManageMembers === "boolean") {
+			setIsGroupOwner(canManageMembers);
+			return;
+		}
 		if (!groupId || !profile?.id) return;
 		try {
 			const res = await detailGroup(groupId);
@@ -91,7 +101,7 @@ export default function MemberSection() {
 			console.error("fetch group details failed", err);
 			setIsGroupOwner(false);
 		}
-	}, [groupId, profile?.id]);
+	}, [groupId, profile?.id, canManageMembers]);
 
 	// fetch members
 	const fetchData = useCallback(async () => {
