@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
-import MemberItem from "../../MemberItem/MemberItem";
+import MemberItem, { type Member } from "../../MemberItem/MemberItem";
 import {
 	CPHeader,
 	CPHeaderIcon,
@@ -17,69 +17,57 @@ import {
 	SearchContainer,
 	SearchInput,
 } from "./FriendList.styled";
-import { listFriends } from "@/services/friendAPI";
+import { listFriends, type FriendUser } from "@/services/friendAPI";
 import { type RootState } from "@/store";
 import { Search, X } from "lucide-react";
 import FriendProfileModal from "@/pages/Friend/AllFriends/FriendProfileModal/FriendProfileModal";
-
-interface Member {
-	id: string;
-	name: string;
-	avatar: string;
-	isOnline: boolean;
-
-	username: string;
-	email: string;
-	firstName: string | null;
-	lastName: string | null;
-	avatarUrl: string;
-	isActive: boolean;
-	emailVerified: boolean;
-	createdAt: string;
-	lastLogin: string | null;
-	isAdmin: boolean;
-}
 
 interface Props {
 	onMenuAction: (action: string, name: string, id: string) => void;
 }
 
 const FriendList: React.FC<Props> = ({ onMenuAction }) => {
-	const [friends, setFriends] = useState<Member[]>([]);
+	const [friends, setFriends] = useState<FriendUser[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [showSearch, setShowSearch] = useState(false);
 	const [searchQuery, setSearchQuery] = useState("");
 
-	const [selectedFriend, setSelectedFriend] = useState<Member | null>(null);
+	const [selectedFriend, setSelectedFriend] = useState<FriendUser | null>(null);
 	const [isModalOpen, setIsModalOpen] = useState(false);
 	const currentUserId = useSelector(
 		(state: RootState) => state.user.profile?.id,
 	);
+
+	const getFriendName = (friend: FriendUser) => {
+		return (
+			friend.name ||
+			`${friend.firstName ?? ""} ${friend.lastName ?? ""}`.trim() ||
+			friend.username ||
+			friend.email ||
+			"Friend"
+		);
+	};
+
+	const getAvatarSrc = (friend: FriendUser) => {
+		return (
+			friend.avatar ||
+			friend.avatarUrl ||
+			"https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face"
+		);
+	};
 
 	const fetchFriends = async () => {
 		try {
 			setLoading(true);
 			const response = await listFriends(1, 100);
 			const friendsData = response.data || [];
-			const friendsWithStatus: Member[] = friendsData.map((friend: any) => ({
-				id: friend.id,
-				name: `${friend.firstName} ${friend.lastName}`,
-				username: friend.username,
-				email: friend.email,
-				firstName: friend.firstName,
-				lastName: friend.lastName,
-				avatarUrl: friend.avatarUrl,
-				isActive: friend.isActive,
-				emailVerified: friend.emailVerified,
-				createdAt: friend.createdAt,
-				lastLogin: friend.lastLogin,
-				isAdmin: friend.isAdmin,
-				avatar:
-					friend.avatarUrl ||
-					"https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face",
-				isOnline: Math.random() > 0.5,
+			const normalizedFriends: FriendUser[] = friendsData.map((friend) => ({
+				...friend,
+				name: getFriendName(friend),
+				avatar: getAvatarSrc(friend),
+				isOnline: friend.isOnline ?? Math.random() > 0.5,
 			}));
-			setFriends(friendsWithStatus);
+			setFriends(normalizedFriends);
 		} catch (error) {
 			console.error("Error fetching friends:", error);
 		} finally {
@@ -103,7 +91,7 @@ const FriendList: React.FC<Props> = ({ onMenuAction }) => {
 		};
 	}, []);
 
-	const handleButtonClick = (member: Member) => {
+	const handleButtonClick = (member: FriendUser) => {
 		setSelectedFriend(member);
 		setIsModalOpen(true);
 	};
@@ -116,7 +104,7 @@ const FriendList: React.FC<Props> = ({ onMenuAction }) => {
 	};
 
 	const filteredFriends = friends.filter((friend) =>
-		friend.name.toLowerCase().includes(searchQuery.toLowerCase()),
+		getFriendName(friend).toLowerCase().includes(searchQuery.toLowerCase()),
 	);
 
 	const handleUnfriend = (id: string, name: string) => {
@@ -161,16 +149,26 @@ const FriendList: React.FC<Props> = ({ onMenuAction }) => {
 								{searchQuery ? "No friends found" : "No friends yet"}
 							</div>
 						) : (
-							filteredFriends.map((friend) => (
-								<MemberItem
-									key={friend.id}
-									member={friend}
-									showTooltip={true}
-									buttonType="more"
-									onButtonClick={() => handleButtonClick(friend)}
-									currentUserId={currentUserId}
-								/>
-							))
+							filteredFriends.map((friend) => {
+								const memberData: Member = {
+									id: friend.id,
+									name: getFriendName(friend),
+									avatar: getAvatarSrc(friend),
+									isOnline: friend.isOnline ?? false,
+									email: friend.email,
+									createdAt: friend.createdAt,
+								};
+								return (
+									<MemberItem
+										key={friend.id}
+										member={memberData}
+										showTooltip={true}
+										buttonType="more"
+										onButtonClick={() => handleButtonClick(friend)}
+										currentUserId={currentUserId}
+									/>
+								);
+							})
 						)}
 					</MembersList>
 				</MemberSection>

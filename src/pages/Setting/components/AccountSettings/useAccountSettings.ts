@@ -116,7 +116,7 @@ export const useAccountSettings = () => {
 	useEffect(() => {
 		const fetchLanguages = async () => {
 			try {
-				const response = await getAllProgrammingLanguages();
+				const response = await getAllProgrammingLanguages({ isActive: true });
 				if (response && response.data && Array.isArray(response.data)) {
 					setAvailableLanguages(response.data);
 				} else {
@@ -288,7 +288,8 @@ export const useAccountSettings = () => {
 			}
 
 			const allLanguages = [...userLanguages, ...newLanguageForms];
-			if (allLanguages.length > 0) {
+			const hadLanguages = originalLanguages.length > 0;
+			if (allLanguages.length > 0 || hadLanguages) {
 				payload.userLanguages = allLanguages.map((lang: any) => ({
 					languageId: lang.languageId || lang.language?.id,
 					proficiencyLevel: lang.proficiencyLevel,
@@ -442,31 +443,46 @@ export const useAccountSettings = () => {
 		setEditingLanguageId(null);
 	};
 
-	const handleUpdateLanguage = (id: string, data: any) => {
-		setUserLanguages(
-			userLanguages.map((lang: any) =>
-				lang.id === id
-					? {
-							...lang,
-							...data,
-							languageId: lang.languageId || lang.language?.id,
-						}
-					: lang,
+	const applyLanguagePatch = (lang: any, data: any) => {
+		const nextLanguageId =
+			data.languageId ?? lang.languageId ?? lang.language?.id ?? "";
+		const selectedLanguage = availableLanguages.find(
+			(languageOption) => languageOption.id === nextLanguageId,
+		);
+		return {
+			...lang,
+			...data,
+			languageId: nextLanguageId,
+			language: selectedLanguage ? { ...selectedLanguage } : lang.language,
+		};
+	};
+
+	const handleLanguageDraftChange = (id: string, data: any) => {
+		setUserLanguages((prev) =>
+			prev.map((lang: any) =>
+				lang.id === id ? applyLanguagePatch(lang, data) : lang,
 			),
 		);
-		setEditingLanguageId(null);
 	};
 
 	const handleDeleteLanguage = (id: string) => {
 		setUserLanguages(userLanguages.filter((lang: any) => lang.id !== id));
 	};
 
-	const getAvailableLanguages = () => {
+	const getAvailableLanguages = (includeLanguageId?: string) => {
 		const selectedIds = [
-			...userLanguages.map((lang: any) => lang.languageId || lang.language?.id),
-			...newLanguageForms.map((form) => form.languageId),
-		];
-		return availableLanguages.filter((lang) => !selectedIds.includes(lang.id));
+			...userLanguages.map(
+				(lang: any) => lang.languageId || lang.language?.id || "",
+			),
+			...newLanguageForms.map((form) => form.languageId || ""),
+		].filter(Boolean);
+
+		return availableLanguages.filter((lang) => {
+			if (includeLanguageId && lang.id === includeLanguageId) {
+				return true;
+			}
+			return !selectedIds.includes(lang.id);
+		});
 	};
 
 	const getUsedOrderIndexes = (excludeId?: string) => {
@@ -576,7 +592,7 @@ export const useAccountSettings = () => {
 		handleNewLanguageChange,
 		handleEditLanguage,
 		handleCancelEditLanguage,
-		handleUpdateLanguage,
+		handleLanguageDraftChange,
 		handleDeleteLanguage,
 		getAvailableLanguages,
 		getUsedOrderIndexes,

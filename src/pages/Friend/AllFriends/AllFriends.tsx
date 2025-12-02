@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { MoreHorizontal, Search, Star, UserMinus } from "lucide-react";
 import Empty from "@/components/custom/Empty";
@@ -25,28 +25,11 @@ import {
 	PageButton,
 	NoResults,
 } from "../Friend.styled";
-import { getMutualFriends } from "@/services/friendAPI";
+import { getMutualFriends, type FriendUser } from "@/services/friendAPI";
 import FriendProfileModal from "./FriendProfileModal/FriendProfileModal";
 
-interface FriendType {
-	id: string;
-	name: string;
-	firstName: string | null;
-	lastName: string | null;
-	handle: string;
-	avatarUrl: string;
-	mutualFriends: number;
-	username: string;
-	email: string;
-	isActive: boolean;
-	emailVerified: boolean;
-	createdAt: string;
-	lastLogin: string | null;
-	isAdmin: boolean;
-}
-
 interface Props {
-	allFriends: FriendType[];
+	allFriends: FriendUser[];
 	searchAll: string;
 	setSearchAll: (s: string) => void;
 	currentPage: number;
@@ -73,7 +56,7 @@ const AllFriends: React.FC<Props> = ({
 		Record<string, number>
 	>({});
 	const [loading, setLoading] = useState(false);
-	const [selectedFriend, setSelectedFriend] = useState<FriendType | null>(null);
+	const [selectedFriend, setSelectedFriend] = useState<FriendUser | null>(null);
 	const [isModalOpen, setIsModalOpen] = useState(false);
 
 	useEffect(() => {
@@ -110,12 +93,25 @@ const AllFriends: React.FC<Props> = ({
 		}
 	}, [allFriends]);
 
-	const filteredFriends = allFriends.filter((friend) => {
-		const name = (friend.name ?? "").toString().toLowerCase();
-		const handle = (friend.handle ?? "").toString().toLowerCase();
-		const q = searchAll.toLowerCase();
-		return name.includes(q) || handle.includes(q);
-	});
+	const getFriendName = useCallback((friend: FriendUser) => {
+		return (
+			`${friend.firstName ?? ""} ${friend.lastName ?? ""}`.trim() ||
+			friend.username ||
+			friend.email ||
+			"User"
+		);
+	}, []);
+
+	const filteredFriends = useMemo(() => {
+		const query = searchAll.toLowerCase();
+		return allFriends.filter((friend) => {
+			const name = getFriendName(friend).toLowerCase();
+			const handle = (friend.username ? `@${friend.username}` : "")
+				.toString()
+				.toLowerCase();
+			return name.includes(query) || handle.includes(query);
+		});
+	}, [allFriends, getFriendName, searchAll]);
 
 	const indexOfLastFriend = currentPage * friendsPerPage;
 	const indexOfFirstFriend = indexOfLastFriend - friendsPerPage;
@@ -161,73 +157,85 @@ const AllFriends: React.FC<Props> = ({
 				className="hide-scrollbar"
 				style={{ scrollbarWidth: "none" }}
 			>
-				{currentFriends.map((friend) => (
-					<FriendCard
-						key={friend.id}
-						onClick={() =>
-							navigate({
-								to: "/chat/user/$userId",
-								params: { userId: friend.id },
-							})
-						}
-						style={{ cursor: "pointer" }}
-					>
-						<CardContent>
-							<CardHeader>
-								<div
-									style={{ display: "flex", gap: "8px", alignItems: "center" }}
-								>
-									<Avatar src={friend.avatarUrl} alt={friend.name} />
-									<FriendInfo>
-										<FriendName>
-											{friend.name ??
-												`${friend.firstName ?? ""} ${friend.lastName ?? ""}`}
-										</FriendName>
-										<MutualFriends>
-											{loading
-												? "Loading..."
-												: `${mutualFriendsCount[friend.id] ?? 0} mutual friends`}
-										</MutualFriends>
-									</FriendInfo>
-								</div>
-								<MenuContainer>
-									<MenuButton
-										onClick={(e) => {
-											e.stopPropagation();
-											onMenuToggle(friend.id, e);
+				{currentFriends.map((friend) => {
+					const friendName = getFriendName(friend);
+					const avatarSrc =
+						friend.avatar ??
+						friend.avatarUrl ??
+						"https://images.unsplash.com/photo-1494790108755-2616b332c-c3?w=100&h=100&fit=crop&crop=face";
+
+					return (
+						<FriendCard
+							key={friend.id}
+							onClick={() =>
+								navigate({
+									to: "/chat/user/$userId",
+									params: { userId: friend.id },
+								})
+							}
+							style={{ cursor: "pointer" }}
+						>
+							<CardContent>
+								<CardHeader>
+									<div
+										style={{
+											display: "flex",
+											gap: "8px",
+											alignItems: "center",
 										}}
 									>
-										<MoreHorizontal size={20} color="#6B7280" />
-									</MenuButton>
-									{activeMenu === friend.id && (
-										<MenuDropdown>
-											<MenuItem
-												onClick={(e) => {
-													e.stopPropagation();
-													handleMenuAction("Profile", friend.name, friend.id);
-													onMenuToggle("", e);
-												}}
-											>
-												<Star size={18} style={{ marginRight: "12px" }} />
-												<span>Profile</span>
-											</MenuItem>
-											<MenuItem
-												onClick={(e) => {
-													e.stopPropagation();
-													handleMenuAction("Unfriend", friend.name, friend.id);
-													onMenuToggle("", e);
-												}}
-											>
-												<UserMinus size={18} style={{ marginRight: "12px" }} />
-												<span>Unfriend</span>
-											</MenuItem>
-										</MenuDropdown>
-									)}
-								</MenuContainer>
-							</CardHeader>
-						</CardContent>
-					</FriendCard>
-				))}
+										<Avatar src={avatarSrc} alt={friendName} />
+										<FriendInfo>
+											<FriendName>{friendName}</FriendName>
+											<MutualFriends>
+												{loading
+													? "Loading..."
+													: `${mutualFriendsCount[friend.id] ?? 0} mutual friends`}
+											</MutualFriends>
+										</FriendInfo>
+									</div>
+									<MenuContainer>
+										<MenuButton
+											onClick={(e) => {
+												e.stopPropagation();
+												onMenuToggle(friend.id, e);
+											}}
+										>
+											<MoreHorizontal size={20} color="#6B7280" />
+										</MenuButton>
+										{activeMenu === friend.id && (
+											<MenuDropdown>
+												<MenuItem
+													onClick={(e) => {
+														e.stopPropagation();
+														handleMenuAction("Profile", friendName, friend.id);
+														onMenuToggle("", e);
+													}}
+												>
+													<Star size={18} style={{ marginRight: "12px" }} />
+													<span>Profile</span>
+												</MenuItem>
+												<MenuItem
+													onClick={(e) => {
+														e.stopPropagation();
+														handleMenuAction("Unfriend", friendName, friend.id);
+														onMenuToggle("", e);
+													}}
+												>
+													<UserMinus
+														size={18}
+														style={{ marginRight: "12px" }}
+													/>
+													<span>Unfriend</span>
+												</MenuItem>
+											</MenuDropdown>
+										)}
+									</MenuContainer>
+								</CardHeader>
+							</CardContent>
+						</FriendCard>
+					);
+				})}
 			</FriendsGrid>
 			{filteredFriends.length > friendsPerPage && (
 				<PaginationContainer>
@@ -261,7 +269,7 @@ const AllFriends: React.FC<Props> = ({
 			<FriendProfileModal
 				isOpen={isModalOpen}
 				onClose={() => setIsModalOpen(false)}
-				friend={selectedFriend as any}
+				friend={selectedFriend}
 				onUnfriend={handleUnfriend}
 			/>
 		</>

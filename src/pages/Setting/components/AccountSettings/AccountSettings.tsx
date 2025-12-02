@@ -76,7 +76,6 @@ export const AccountSettings: React.FC = () => {
 		isDeleting,
 		// Languages state
 		userLanguages,
-		availableLanguages,
 		newLanguageForms,
 		editingLanguageId,
 		// Handlers
@@ -93,7 +92,7 @@ export const AccountSettings: React.FC = () => {
 		handleNewLanguageChange,
 		handleEditLanguage,
 		handleCancelEditLanguage,
-		handleUpdateLanguage,
+		handleLanguageDraftChange,
 		handleDeleteLanguage,
 		getAvailableLanguages,
 		getUsedOrderIndexes,
@@ -213,12 +212,11 @@ export const AccountSettings: React.FC = () => {
 					<ProgrammingLanguagesSection
 						userLanguages={userLanguages}
 						newLanguageForms={newLanguageForms}
-						availableLanguages={availableLanguages}
 						editingLanguageId={editingLanguageId}
 						handleAddLanguage={handleAddLanguage}
 						handleEditLanguage={handleEditLanguage}
 						handleCancelEditLanguage={handleCancelEditLanguage}
-						handleUpdateLanguage={handleUpdateLanguage}
+						handleLanguageDraftChange={handleLanguageDraftChange}
 						handleDeleteLanguage={handleDeleteLanguage}
 						handleNewLanguageChange={handleNewLanguageChange}
 						handleRemoveNewLanguageForm={handleRemoveNewLanguageForm}

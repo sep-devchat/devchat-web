@@ -1,5 +1,30 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { get, post, remove, patch } from "./apiCaller";
+import { get, post, remove, patch, type ApiResponseDto } from "./apiCaller";
+import type { UserLanguage } from "./auth/auth.type";
+
+export interface FriendUser {
+	id: string;
+	username: string;
+	email: string;
+	firstName: string | null;
+	lastName: string | null;
+	avatarUrl: string | null;
+	avatar?: string | null;
+	name?: string;
+	handle?: string;
+	mutualFriends?: number;
+	isOnline?: boolean;
+	isActive: boolean;
+	isAdmin?: boolean;
+	emailVerified: boolean;
+	createdAt: string;
+	updatedAt?: string;
+	lastLogin?: string | null;
+	timezone?: string | null;
+	userLanguages?: UserLanguage[];
+}
+
+export type FriendListResponse = ApiResponseDto<FriendUser[]>;
 
 export interface FriendRequest {
 	id: string;
@@ -136,7 +161,7 @@ export const listFriends = (
 	limit: number = 100,
 	search: string = "",
 ) => {
-	return get<any>(
+	return get<FriendUser[]>(
 		`/api/friends?page=${page}&limit=${limit}${search ? `&search=${search}` : ""}`,
 	);
 };

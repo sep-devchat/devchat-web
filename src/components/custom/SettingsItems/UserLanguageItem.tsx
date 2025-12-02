@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
-import { Edit2, Trash2, Check, X } from "lucide-react";
+import { Check, Edit2, Trash2 } from "lucide-react";
 import IconButton from "../ActionButton/IconButton";
 import { ProgrammingLanguageResponse } from "@/services/programmingLanguagesAPI";
 import StyledSelect from "../CustomSelect/StyledSelect";
@@ -188,14 +188,44 @@ const ActionsContainer = styled.div`
 	}
 `;
 
+const EditSelectGrid = styled.div`
+	display: grid;
+	grid-template-columns: 1.3fr 1fr 1fr;
+	gap: 8px;
+	margin-top: 4px;
+
+	@media (max-width: 768px) {
+		grid-template-columns: 1fr;
+	}
+`;
+
 const EditSelectWrapper = styled.div`
-	flex: 1;
+	width: 100%;
 `;
 
 const EditControls = styled.div`
 	display: flex;
 	gap: 8px;
 	align-items: center;
+`;
+
+const EditActionButton = styled.button<{ $variant?: "primary" | "ghost" }>`
+	padding: 8px 14px;
+	border-radius: 6px;
+	font-size: 13px;
+	font-weight: 600;
+	border: 1px solid
+		${(props) => (props.$variant === "primary" ? "#133e87" : "#d1d5db")};
+	background: ${(props) =>
+		props.$variant === "primary" ? "#133e87" : "transparent"};
+	color: ${(props) => (props.$variant === "primary" ? "#ffffff" : "#4b5563")};
+	transition: all 0.2s ease;
+	cursor: pointer;
+
+	&:hover {
+		background: ${(props) =>
+			props.$variant === "primary" ? "#0f3071" : "#f3f4f6"};
+	}
 `;
 
 const PROFICIENCY_LEVELS = [
@@ -221,7 +251,11 @@ interface UserLanguageItemProps {
 	isEditing?: boolean;
 	onEdit: () => void;
 	onCancelEdit?: () => void;
-	onUpdate?: (data: { proficiencyLevel: string; orderIndex: number }) => void;
+	onChange?: (data: {
+		languageId: string;
+		proficiencyLevel: string;
+		orderIndex: number;
+	}) => void;
 	onDelete: () => void;
 }
 
@@ -235,22 +269,61 @@ const getProficiencyLabel = (level: string): string => {
 	return labels[level] || level;
 };
 
+type LanguageEditData = {
+	languageId: string;
+	proficiencyLevel: string;
+	orderIndex: number;
+};
+
 const UserLanguageItem: React.FC<UserLanguageItemProps> = ({
 	language,
 	isTopThree,
-	// availableLanguages,
+	availableLanguages = [],
 	usedOrderIndexes = [],
 	maxOrderIndex = 10,
 	isEditing = false,
 	onEdit,
 	onCancelEdit,
-	onUpdate,
+	onChange,
 	onDelete,
 }) => {
-	const [editData, setEditData] = useState({
+	const normalizedLanguageId = language.languageId || language.id || "";
+	const getBaseData = (): LanguageEditData => ({
+		languageId: normalizedLanguageId,
 		proficiencyLevel: language.proficiencyLevel,
 		orderIndex: language.orderIndex,
 	});
+	const [editData, setEditData] = useState<LanguageEditData>(getBaseData());
+	const [initialEditData, setInitialEditData] =
+		useState<LanguageEditData>(getBaseData());
+	const wasEditingRef = useRef(false);
+
+	useEffect(() => {
+		const snapshot = getBaseData();
+		if (isEditing && !wasEditingRef.current) {
+			setEditData(snapshot);
+			setInitialEditData(snapshot);
+		}
+		if (!isEditing) {
+			setEditData(snapshot);
+		}
+		wasEditingRef.current = isEditing;
+	}, [
+		isEditing,
+		normalizedLanguageId,
+		language.proficiencyLevel,
+		language.orderIndex,
+	]);
+
+	const resolveLanguageName = () => {
+		if (language.languageName && language.languageName !== "string") {
+			return language.languageName;
+		}
+		const fallback = availableLanguages.find((lang) => {
+			return lang.id === (language.languageId || language.id);
+		});
+		return fallback?.languageName || "Unknown";
+	};
 
 	const getAvailableOrderIndexes = () => {
 		const allIndexes = Array.from({ length: maxOrderIndex }, (_, i) => i + 1);
@@ -260,20 +333,83 @@ const UserLanguageItem: React.FC<UserLanguageItemProps> = ({
 		);
 	};
 
-	const handleSave = () => {
-		if (onUpdate) {
-			onUpdate(editData);
+	const resolvedLanguageName = resolveLanguageName();
+
+	const languageOptions = useMemo(() => {
+		if (!normalizedLanguageId) return availableLanguages;
+		const exists = availableLanguages.some(
+			(langOption) => langOption.id === normalizedLanguageId,
+		);
+		if (exists) return availableLanguages;
+		return [
+			...availableLanguages,
+			{
+				id: normalizedLanguageId,
+				languageName: resolvedLanguageName,
+				languageCode: "",
+				languageIcon: language.languageIcon,
+				languageVersion: "",
+				syntaxHighlighting: "",
+				codeExecutions: 0,
+				isExecutable: false,
+				isActive: true,
+				createdAt: "",
+				createdBy: "",
+				updatedAt: "",
+				updatedBy: "",
+			} as ProgrammingLanguageResponse,
+		];
+	}, [
+		availableLanguages,
+		normalizedLanguageId,
+		language.languageIcon,
+		resolvedLanguageName,
+	]);
+
+	const editingLanguageDetails = useMemo(() => {
+		const selectedId = isEditing ? editData.languageId : normalizedLanguageId;
+		if (!selectedId) {
+			return {
+				name: resolvedLanguageName,
+				icon: language.languageIcon,
+			};
 		}
+		const selected = languageOptions.find(
+			(langOption) => langOption.id === selectedId,
+		);
+		if (selected) {
+			return { name: selected.languageName, icon: selected.languageIcon };
+		}
+		return {
+			name: resolvedLanguageName,
+			icon: language.languageIcon,
+		};
+	}, [
+		isEditing,
+		editData.languageId,
+		normalizedLanguageId,
+		language.languageIcon,
+		languageOptions,
+		resolvedLanguageName,
+	]);
+
+	const handleFieldChange = (patch: Partial<LanguageEditData>) => {
+		setEditData((prev) => {
+			const next = { ...prev, ...patch } as LanguageEditData;
+			onChange?.(next);
+			return next;
+		});
+	};
+
+	const handleDone = () => {
 		if (onCancelEdit) {
 			onCancelEdit();
 		}
 	};
 
 	const handleCancel = () => {
-		setEditData({
-			proficiencyLevel: language.proficiencyLevel,
-			orderIndex: language.orderIndex,
-		});
+		setEditData(initialEditData);
+		onChange?.(initialEditData);
 		if (onCancelEdit) {
 			onCancelEdit();
 		}
@@ -285,8 +421,8 @@ const UserLanguageItem: React.FC<UserLanguageItemProps> = ({
 				<LanguageInfo>
 					{isTopThree && <RankBadge>#{language.orderIndex}</RankBadge>}
 					<LanguageIcon
-						src={language.languageIcon}
-						alt={language.languageName}
+						src={editingLanguageDetails.icon}
+						alt={editingLanguageDetails.name}
 						onError={(e: any) => {
 							e.target.src =
 								"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40'%3E%3Crect fill='%23ddd' width='40' height='40'/%3E%3C/svg%3E";
@@ -294,18 +430,29 @@ const UserLanguageItem: React.FC<UserLanguageItemProps> = ({
 					/>
 					<LanguageDetails style={{ flex: 1 }}>
 						<LanguageName $isTopThree={isTopThree}>
-							{language.languageName}
+							{editingLanguageDetails.name}
 						</LanguageName>
-						<div style={{ display: "flex", gap: "8px", marginTop: "4px" }}>
+						<EditSelectGrid>
+							<EditSelectWrapper>
+								<StyledSelect
+									value={editData.languageId}
+									onValueChange={(value) =>
+										handleFieldChange({ languageId: value })
+									}
+									options={languageOptions.map((langOption) => ({
+										value: langOption.id,
+										label: langOption.languageName,
+									}))}
+									placeholder="Programming language"
+									isTopThree={isTopThree}
+								/>
+							</EditSelectWrapper>
 							<EditSelectWrapper>
 								<StyledSelect
 									value={editData.proficiencyLevel}
-									onValueChange={(value) => {
-										setEditData((prev) => ({
-											...prev,
-											proficiencyLevel: value,
-										}));
-									}}
+									onValueChange={(value) =>
+										handleFieldChange({ proficiencyLevel: value })
+									}
 									options={PROFICIENCY_LEVELS}
 									placeholder="Proficiency"
 									isTopThree={isTopThree}
@@ -314,12 +461,11 @@ const UserLanguageItem: React.FC<UserLanguageItemProps> = ({
 							<EditSelectWrapper>
 								<StyledSelect
 									value={editData.orderIndex.toString()}
-									onValueChange={(value) => {
-										setEditData((prev) => ({
-											...prev,
-											orderIndex: parseInt(value),
-										}));
-									}}
+									onValueChange={(value) =>
+										handleFieldChange({
+											orderIndex: parseInt(value, 10),
+										})
+									}
 									options={getAvailableOrderIndexes().map((index) => ({
 										value: index.toString(),
 										label: `#${index}`,
@@ -328,7 +474,7 @@ const UserLanguageItem: React.FC<UserLanguageItemProps> = ({
 									isTopThree={isTopThree}
 								/>
 							</EditSelectWrapper>
-						</div>
+						</EditSelectGrid>
 					</LanguageDetails>
 				</LanguageInfo>
 				<EditControls>
@@ -336,24 +482,29 @@ const UserLanguageItem: React.FC<UserLanguageItemProps> = ({
 						icon={Check}
 						size={32}
 						iconSize={16}
-						color={isTopThree ? "#ffffff" : "#10b981"}
-						onClick={handleSave}
+						color={isTopThree ? "#1f2937" : "#10b981"}
+						onClick={handleDone}
 						hoverBg={
-							isTopThree ? "rgba(255,255,255,0.2)" : "rgba(16,185,129,0.1)"
+							isTopThree ? "rgba(19,62,135,0.12)" : "rgba(16,185,129,0.1)"
 						}
-						ariaLabel="Save changes"
-						title="Save"
+						ariaLabel="Update language"
+						title="Update"
 					/>
 					<IconButton
-						icon={X}
+						icon={Trash2}
 						size={32}
 						iconSize={16}
-						color={isTopThree ? "#ffffff" : "#6b7280"}
-						onClick={handleCancel}
-						hoverBg={isTopThree ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.05)"}
-						ariaLabel="Cancel"
-						title="Cancel"
+						color="#ef4444"
+						onClick={onDelete}
+						hoverBg={
+							isTopThree ? "rgba(239,68,68,0.15)" : "rgba(239,68,68,0.1)"
+						}
+						ariaLabel="Delete language"
+						title="Delete"
 					/>
+					<EditActionButton $variant="ghost" onClick={handleCancel}>
+						Cancel
+					</EditActionButton>
 				</EditControls>
 			</LanguageItemWrapper>
 		);
@@ -365,7 +516,7 @@ const UserLanguageItem: React.FC<UserLanguageItemProps> = ({
 				{isTopThree && <RankBadge>#{language.orderIndex}</RankBadge>}
 				<LanguageIcon
 					src={language.languageIcon}
-					alt={language.languageName}
+					alt={resolvedLanguageName}
 					onError={(e: any) => {
 						e.target.src =
 							"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40'%3E%3Crect fill='%23ddd' width='40' height='40'/%3E%3C/svg%3E";
@@ -373,7 +524,7 @@ const UserLanguageItem: React.FC<UserLanguageItemProps> = ({
 				/>
 				<LanguageDetails>
 					<LanguageName $isTopThree={isTopThree}>
-						{language.languageName}
+						{resolvedLanguageName}
 					</LanguageName>
 					<LanguageMeta $isTopThree={isTopThree}>
 						{getProficiencyLabel(language.proficiencyLevel)}
@@ -386,9 +537,9 @@ const UserLanguageItem: React.FC<UserLanguageItemProps> = ({
 					icon={Edit2}
 					size={32}
 					iconSize={16}
-					color={isTopThree ? "#ffffff" : "#6b7280"}
+					color="#1f2937"
 					onClick={onEdit}
-					hoverBg={isTopThree ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.05)"}
+					hoverBg={isTopThree ? "rgba(19,62,135,0.12)" : "rgba(0,0,0,0.05)"}
 					ariaLabel="Edit language"
 					title="Edit"
 				/>
@@ -396,9 +547,9 @@ const UserLanguageItem: React.FC<UserLanguageItemProps> = ({
 					icon={Trash2}
 					size={32}
 					iconSize={16}
-					color={isTopThree ? "#ffffff" : "#ef4444"}
+					color="#ef4444"
 					onClick={onDelete}
-					hoverBg={isTopThree ? "rgba(255,255,255,0.2)" : "rgba(239,68,68,0.1)"}
+					hoverBg={isTopThree ? "rgba(239,68,68,0.12)" : "rgba(239,68,68,0.1)"}
 					ariaLabel="Delete language"
 					title="Delete"
 				/>

@@ -27,6 +27,7 @@ import {
 	unfriendUser,
 	FriendRequest,
 	deleteFriendRequest,
+	FriendUser,
 } from "@/services/friendAPI";
 import {
 	listSentInvitationGr,
@@ -83,7 +84,7 @@ const Friend: React.FC = () => {
 	} | null>(null);
 	const [isUnfriendLoading, setIsUnfriendLoading] = useState(false);
 
-	const [allFriends, setAllFriends] = useState<any[]>([]);
+	const [allFriends, setAllFriends] = useState<FriendUser[]>([]);
 	const [pendingFriendRequests, setPendingFriendRequests] = useState<
 		PendingFriend[]
 	>([]);
@@ -235,31 +236,9 @@ const Friend: React.FC = () => {
 		setIsLoadingUsers(true);
 		try {
 			const response = await listFriends(1, 100);
-			console.log("Friends API Response:", response);
-
-			if (response && response.data) {
-				const normalized = response.data.map((u: any) => ({
-					id: u.id,
-					name:
-						`${u.firstName ?? ""} ${u.lastName ?? ""}`.trim() ||
-						u.username ||
-						"User",
-					firstName: u.firstName,
-					lastName: u.lastName,
-					handle: u.username ? `@${u.username}` : "",
-					avatarUrl:
-						u.avatarUrl ||
-						"https://images.unsplash.com/photo-1494790108755-2616b332c-c3?w=100&h=100&fit=crop&crop=face",
-					mutualFriends: 0,
-					createdAt: u.createdAt,
-					email: u.email,
-					username: u.username,
-					isActive: u.isActive,
-				}));
-
-				console.log("Normalized friends:", normalized);
-				setAllFriends(normalized);
-			}
+			const friends = response?.data ?? [];
+			console.log("Friends API Response:", friends);
+			setAllFriends(friends);
 		} catch (err) {
 			console.error("Failed to fetch friends", err);
 			showGlobalAlert({

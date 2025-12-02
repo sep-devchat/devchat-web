@@ -18,16 +18,18 @@ import {
 interface ProgrammingLanguagesSectionProps {
 	userLanguages: any[];
 	newLanguageForms: any[];
-	availableLanguages: any[];
 	editingLanguageId: string | null;
 	handleAddLanguage: () => void;
 	handleEditLanguage: (id: string) => void;
 	handleCancelEditLanguage: () => void;
-	handleUpdateLanguage: (id: string, data: any) => void;
+	handleLanguageDraftChange: (
+		id: string,
+		data: { languageId: string; proficiencyLevel: string; orderIndex: number },
+	) => void;
 	handleDeleteLanguage: (id: string) => void;
 	handleNewLanguageChange: (id: string, data: any) => void;
 	handleRemoveNewLanguageForm: (id: string) => void;
-	getAvailableLanguages: () => any[];
+	getAvailableLanguages: (includeLanguageId?: string) => any[];
 	getUsedOrderIndexes: (excludeId?: string) => number[];
 	getMaxOrderIndex: () => number;
 }
@@ -37,12 +39,11 @@ export const ProgrammingLanguagesSection: React.FC<
 > = ({
 	userLanguages,
 	newLanguageForms,
-	availableLanguages,
 	editingLanguageId,
 	handleAddLanguage,
 	handleEditLanguage,
 	handleCancelEditLanguage,
-	handleUpdateLanguage,
+	handleLanguageDraftChange,
 	handleDeleteLanguage,
 	handleNewLanguageChange,
 	handleRemoveNewLanguageForm,
@@ -104,13 +105,19 @@ export const ProgrammingLanguagesSection: React.FC<
 									orderIndex: lang.orderIndex,
 								}}
 								isTopThree={lang.orderIndex <= 3}
-								availableLanguages={availableLanguages}
+								availableLanguages={getAvailableLanguages(
+									lang.languageId || lang.language?.id,
+								)}
 								usedOrderIndexes={getUsedOrderIndexes(lang.id)}
 								maxOrderIndex={getMaxOrderIndex()}
 								isEditing={editingLanguageId === lang.id}
 								onEdit={() => handleEditLanguage(lang.id)}
 								onCancelEdit={handleCancelEditLanguage}
-								onUpdate={(data) => handleUpdateLanguage(lang.id, data)}
+								onChange={(data: {
+									languageId: string;
+									proficiencyLevel: string;
+									orderIndex: number;
+								}) => handleLanguageDraftChange(lang.id, data)}
 								onDelete={() => handleDeleteLanguage(lang.id)}
 							/>
 						))}
@@ -121,7 +128,7 @@ export const ProgrammingLanguagesSection: React.FC<
 								languageId={form.languageId}
 								proficiencyLevel={form.proficiencyLevel}
 								orderIndex={form.orderIndex}
-								availableLanguages={getAvailableLanguages()}
+								availableLanguages={getAvailableLanguages(form.languageId)}
 								usedOrderIndexes={getUsedOrderIndexes(form.id)}
 								maxOrderIndex={getMaxOrderIndex()}
 								onChange={(data) => handleNewLanguageChange(form.id, data)}

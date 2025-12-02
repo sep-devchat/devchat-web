@@ -35,6 +35,7 @@ import {
 	listAllFriendRequests,
 	acceptFriendRequest,
 	declineFriendRequest,
+	FriendUser,
 } from "@/services/friendAPI";
 import { toast } from "sonner";
 import type { DirectMessageHeaderProps } from "./parts/DirectMessageHeader";
@@ -177,12 +178,12 @@ export const useChatAreaController = (): ChatAreaControllerResult => {
 	});
 
 	// Try to determine friend relationship (best-effort)
-	const { data: friendList } = useQuery<any>({
+	const { data: friendList } = useQuery<FriendUser[]>({
 		queryKey: ["friends"],
 		queryFn: async () => {
 			try {
 				const res = await listFriends();
-				return (res as any)?.data ?? (res as any);
+				return res.data ?? [];
 			} catch {
 				return [];
 			}
@@ -208,9 +209,7 @@ export const useChatAreaController = (): ChatAreaControllerResult => {
 		const meId = profile?.id;
 		const targetId = directUserIdParam;
 		if (!meId || !targetId) return false;
-		return friendList.some((fr: any) => {
-			return fr.id === directUserIdParam;
-		});
+		return friendList.some((fr) => fr.id === directUserIdParam);
 	}, [friendList, profile?.id, directUserIdParam, friendRequestId]);
 
 	const isPending = useMemo(() => {

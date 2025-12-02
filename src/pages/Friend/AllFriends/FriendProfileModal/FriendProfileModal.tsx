@@ -1,12 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
 	X,
 	Mail,
 	Calendar,
 	Shield,
-	AlertTriangle,
-	Ban,
 	UserMinus,
 	UserPlus,
 	MoreVertical,
@@ -26,13 +24,10 @@ import {
 	DropdownMenuSub,
 	DropdownMenuSubTrigger,
 	DropdownMenuSubContent,
-	DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import {
 	Avatar,
 	AvatarSection,
-	Button,
-	ButtonGroup,
 	HeaderActions,
 	IconWrapper,
 	InfoContent,
@@ -44,20 +39,7 @@ import {
 	ModalContainer,
 	ModalHeader,
 	ModalOverlay,
-	RadioInput,
-	ReasonDesc,
-	ReasonOption,
-	ReasonSection,
-	ReasonText,
-	ReasonTitle,
-	ReportDescription,
-	ReportHeader,
-	ReportIcon,
-	ReportModalContent,
-	ReportTitle,
-	SectionLabel,
 	StatusBadge,
-	TextArea,
 	Username,
 	UserName,
 	LanguagesSection,
@@ -69,13 +51,18 @@ import {
 	LanguageInfo,
 	LanguageName,
 	LanguageProficiency,
+	LanguagesEmptyState,
 } from "./FriendProfileModal.styled";
-import { listFriends, sendFriendRequest } from "@/services/friendAPI";
+import {
+	listFriends,
+	sendFriendRequest,
+	type FriendUser,
+} from "@/services/friendAPI";
 import { InfoButton } from "@/components/custom/ActionButton/InfoButton";
 import { useSelector } from "react-redux";
 import { RootState } from "@/store";
 import { SaveButton } from "@/components/custom/ActionButton/SaveButton";
-import { theme } from "@/themes";
+import { UserLanguage } from "@/services/auth/auth.type";
 
 interface Group {
 	id: string;
@@ -85,23 +72,8 @@ interface Group {
 interface FriendProfileModalProps {
 	isOpen: boolean;
 	onClose: () => void;
-	friend: {
-		id: string;
-		username: string;
-		email: string;
-		firstName: string | null;
-		lastName: string | null;
-		name: string;
-		avatar: string;
-		avatarUrl: string | null;
-		isActive: boolean;
-		emailVerified: boolean;
-		createdAt: string;
-		lastLogin: string | null;
-		isAdmin: boolean;
-	} | null;
+	friend: FriendUser | null;
 	onUnfriend?: (id: string, name: string) => void;
-	onBlock?: (id: string, name: string) => void;
 	groupId?: string;
 }
 
@@ -110,67 +82,11 @@ const FriendProfileModal: React.FC<FriendProfileModalProps> = ({
 	onClose,
 	friend,
 	onUnfriend,
-	onBlock,
 	groupId,
 }) => {
 	const [groups, setGroups] = useState<Group[]>([]);
 	const [loadingGroups, setLoadingGroups] = useState(false);
-	const [showReportModal, setShowReportModal] = useState(false);
-	const [selectedReason, setSelectedReason] = useState("");
-	const [reportDetails, setReportDetails] = useState("");
 	const [menuOpen, setMenuOpen] = useState(false);
-
-	// Mock data for top 4 programming languages
-	const mockTopLanguages = [
-		{
-			id: "1",
-			languageId: "js-001",
-			proficiencyLevel: "EXPERT",
-			orderIndex: 1,
-			language: {
-				id: "js-001",
-				languageName: "JavaScript",
-				languageIcon:
-					"https://cdn.jsdelivr.net/gh/devicons/devicon/icons/javascript/javascript-original.svg",
-			},
-		},
-		{
-			id: "2",
-			languageId: "ts-001",
-			proficiencyLevel: "ADVANCED",
-			orderIndex: 2,
-			language: {
-				id: "ts-001",
-				languageName: "TypeScript",
-				languageIcon:
-					"https://cdn.jsdelivr.net/gh/devicons/devicon/icons/typescript/typescript-original.svg",
-			},
-		},
-		{
-			id: "3",
-			languageId: "py-001",
-			proficiencyLevel: "INTERMEDIATE",
-			orderIndex: 3,
-			language: {
-				id: "py-001",
-				languageName: "Python",
-				languageIcon:
-					"https://cdn.jsdelivr.net/gh/devicons/devicon/icons/python/python-original.svg",
-			},
-		},
-		{
-			id: "4",
-			languageId: "java-001",
-			proficiencyLevel: "BEGINNER",
-			orderIndex: 4,
-			language: {
-				id: "java-001",
-				languageName: "Java",
-				languageIcon:
-					"https://cdn.jsdelivr.net/gh/devicons/devicon/icons/java/java-original.svg",
-			},
-		},
-	];
 
 	// New: isFriend state (true if friend is in my friend list)
 	const [isFriend, setIsFriend] = useState(false);
@@ -180,13 +96,39 @@ const FriendProfileModal: React.FC<FriendProfileModalProps> = ({
 	);
 	const currentUserId = currentUserProfile?.id || "";
 	const [isYou, setIsYou] = useState(false);
+	const resolvedLanguages = useMemo(() => {
+		if (!friend) return [] as UserLanguage[];
+		if (isYou && currentUserProfile?.userLanguages) {
+			return [...currentUserProfile.userLanguages].sort(
+				(a, b) =>
+					(a.orderIndex ?? Number.MAX_SAFE_INTEGER) -
+					(b.orderIndex ?? Number.MAX_SAFE_INTEGER),
+			);
+		}
+		if (friend.userLanguages) {
+			return [...friend.userLanguages].sort(
+				(a, b) =>
+					(a.orderIndex ?? Number.MAX_SAFE_INTEGER) -
+					(b.orderIndex ?? Number.MAX_SAFE_INTEGER),
+			);
+		}
+		return [] as UserLanguage[];
+	}, [friend, isYou, currentUserProfile]);
+	const topLanguages = resolvedLanguages.slice(0, 4);
+	const friendDisplayName = useMemo(() => {
+		if (!friend) return "";
+		return (
+			friend.name ||
+			`${friend.firstName ?? ""} ${friend.lastName ?? ""}`.trim() ||
+			friend.username ||
+			friend.email ||
+			"Friend"
+		);
+	}, [friend]);
 
 	useEffect(() => {
 		if (!isOpen) {
 			setMenuOpen(false);
-			setShowReportModal(false);
-			setSelectedReason("");
-			setReportDetails("");
 		}
 	}, [isOpen, groupId]);
 
@@ -287,38 +229,6 @@ const FriendProfileModal: React.FC<FriendProfileModalProps> = ({
 		}
 	};
 
-	const handleBlock = () => {
-		if (friend && onBlock) {
-			onBlock(friend.id, fullName);
-			setMenuOpen(false);
-		}
-	};
-
-	const handleReport = () => {
-		setShowReportModal(true);
-		setMenuOpen(false);
-	};
-
-	const handleSubmitReport = () => {
-		if (!selectedReason) {
-			toast.error("Please select a reason for reporting");
-			return;
-		}
-
-		// TODO: Call API to submit report
-		toast.success(`Report submitted successfully for ${fullName}`);
-		setShowReportModal(false);
-		setSelectedReason("");
-		setReportDetails("");
-		onClose();
-	};
-
-	const handleBackToProfile = () => {
-		setShowReportModal(false);
-		setSelectedReason("");
-		setReportDetails("");
-	};
-
 	if (!isOpen || !friend) return null;
 
 	const formatDate = (dateString: string | null) => {
@@ -331,42 +241,7 @@ const FriendProfileModal: React.FC<FriendProfileModalProps> = ({
 		});
 	};
 
-	const fullName =
-		`${friend.firstName || ""} ${friend.lastName || ""}`.trim() ||
-		friend.username;
-
-	const reportReasons = [
-		{
-			value: "spam",
-			title: "Spam or Scam",
-			description: "Sending unwanted messages or suspicious links",
-		},
-		{
-			value: "harassment",
-			title: "Harassment or Bullying",
-			description: "Threatening, intimidating, or abusive behavior",
-		},
-		{
-			value: "inappropriate",
-			title: "Inappropriate Content",
-			description: "Sharing offensive or explicit material",
-		},
-		{
-			value: "impersonation",
-			title: "Impersonation",
-			description: "Pretending to be someone else",
-		},
-		{
-			value: "security",
-			title: "Security Concern",
-			description: "Hacking attempts or suspicious activity",
-		},
-		{
-			value: "other",
-			title: "Other",
-			description: "Something else that violates our guidelines",
-		},
-	];
+	const fullName = friendDisplayName || friend?.username || "";
 
 	// New: Add friend flow with feedback + state update
 	const handleAddFriend = async () => {
@@ -396,307 +271,233 @@ const FriendProfileModal: React.FC<FriendProfileModalProps> = ({
 	return (
 		<ModalOverlay onClick={onClose}>
 			<ModalContainer onClick={(e) => e.stopPropagation()}>
-				{!showReportModal ? (
-					<>
-						<ModalHeader>
-							<HeaderActions>
-								{isFriend ? (
-									<DropdownMenu
-										open={menuOpen}
-										onOpenChange={(open) => {
-											setMenuOpen(open);
-											if (open && groups.length === 0)
-												fetchGroups().catch((err) => console.error(err));
-										}}
-									>
-										<DropdownMenuTrigger asChild>
-											<div>
-												<IconButton
-													onClick={() => {
-														/* trigger handled by DropdownMenuTrigger */
-													}}
-													icon={MoreVertical}
-												/>
-											</div>
-										</DropdownMenuTrigger>
-
-										<DropdownMenuContent align="end">
-											<DropdownMenuSub>
-												<DropdownMenuSubTrigger>
-													Invite to Group
-												</DropdownMenuSubTrigger>
-												<DropdownMenuSubContent>
-													{loadingGroups ? (
-														<DropdownMenuItem disabled>
-															Loading groups...
-														</DropdownMenuItem>
-													) : groups.length === 0 ? (
-														<DropdownMenuItem disabled>
-															No groups available
-														</DropdownMenuItem>
-													) : (
-														groups.map((g) => (
-															<DropdownMenuItem
-																key={g.id}
-																onClick={(e) => {
-																	e.stopPropagation();
-																	handleInviteToGroup(g.id, g.name);
-																}}
-															>
-																{g.name}
-															</DropdownMenuItem>
-														))
-													)}
-												</DropdownMenuSubContent>
-											</DropdownMenuSub>
-
-											<DropdownMenuSeparator />
-
-											<DropdownMenuItem
-												onClick={(e) => {
-													e.stopPropagation();
-													handleBlock();
+				<>
+					<ModalHeader>
+						<HeaderActions>
+							{isFriend ? (
+								<DropdownMenu
+									open={menuOpen}
+									onOpenChange={(open) => {
+										setMenuOpen(open);
+										if (open && groups.length === 0)
+											fetchGroups().catch((err) => console.error(err));
+									}}
+								>
+									<DropdownMenuTrigger asChild>
+										<div>
+											<IconButton
+												onClick={() => {
+													/* trigger handled by DropdownMenuTrigger */
 												}}
-											>
-												<Ban size={16} />
-												<span style={{ marginLeft: 8 }}>Block</span>
-											</DropdownMenuItem>
-
-											<DropdownMenuItem
-												onClick={(e) => {
-													e.stopPropagation();
-													handleReport();
-												}}
-												style={{ color: `${theme.color.error}` }}
-											>
-												<AlertTriangle size={16} />
-												<span style={{ marginLeft: 8 }}>Report</span>
-											</DropdownMenuItem>
-										</DropdownMenuContent>
-									</DropdownMenu>
-								) : null}
-
-								<IconButton onClick={onClose} icon={X} iconSize={20} />
-							</HeaderActions>
-						</ModalHeader>
-
-						<ModalBody>
-							{/* Two-column layout */}
-							<div style={{ display: "flex", gap: "24px", marginTop: "24px" }}>
-								{/* Left Column - Info Section */}
-								<div style={{ flex: 1 }}>
-									<InfoSection>
-										<AvatarSection style={{ marginTop: "24px" }}>
-											<Avatar
-												src={
-													(friend.avatar ?? friend.avatarUrl ?? undefined) as
-														| string
-														| undefined
-												}
-												alt={friend.name}
+												icon={MoreVertical}
 											/>
-											<UserName>{friend.name}</UserName>
-											<Username>@{friend.username}</Username>
+										</div>
+									</DropdownMenuTrigger>
 
-											{isYou ?? (
-												<StatusBadge $isActive={isFriend}>
-													<span
-														style={{
-															width: "6px",
-															height: "6px",
-															borderRadius: "50%",
-															background: isFriend ? "#16a34a" : "#6b7280",
-														}}
-													/>
-													{isFriend ? "Friend" : "Not Friend"}
-												</StatusBadge>
-											)}
-										</AvatarSection>
+									<DropdownMenuContent align="end">
+										<DropdownMenuSub>
+											<DropdownMenuSubTrigger>
+												Invite to Group
+											</DropdownMenuSubTrigger>
+											<DropdownMenuSubContent>
+												{loadingGroups ? (
+													<DropdownMenuItem disabled>
+														Loading groups...
+													</DropdownMenuItem>
+												) : groups.length === 0 ? (
+													<DropdownMenuItem disabled>
+														No groups available
+													</DropdownMenuItem>
+												) : (
+													groups.map((g) => (
+														<DropdownMenuItem
+															key={g.id}
+															onClick={(e) => {
+																e.stopPropagation();
+																handleInviteToGroup(g.id, g.name);
+															}}
+														>
+															{g.name}
+														</DropdownMenuItem>
+													))
+												)}
+											</DropdownMenuSubContent>
+										</DropdownMenuSub>
+									</DropdownMenuContent>
+								</DropdownMenu>
+							) : null}
+
+							<IconButton onClick={onClose} icon={X} iconSize={20} />
+						</HeaderActions>
+					</ModalHeader>
+
+					<ModalBody>
+						{/* Two-column layout */}
+						<div style={{ display: "flex", gap: "24px", marginTop: "24px" }}>
+							{/* Left Column - Info Section */}
+							<div style={{ flex: 1 }}>
+								<InfoSection>
+									<AvatarSection style={{ marginTop: "24px" }}>
+										<Avatar
+											src={
+												(friend?.avatar ?? friend?.avatarUrl ?? undefined) as
+													| string
+													| undefined
+											}
+											alt={friendDisplayName}
+										/>
+										<UserName>{friendDisplayName}</UserName>
+										<Username>@{friend.username}</Username>
+
+										{isYou ?? (
+											<StatusBadge $isActive={isFriend}>
+												<span
+													style={{
+														width: "6px",
+														height: "6px",
+														borderRadius: "50%",
+														background: isFriend ? "#16a34a" : "#6b7280",
+													}}
+												/>
+												{isFriend ? "Friend" : "Not Friend"}
+											</StatusBadge>
+										)}
+									</AvatarSection>
+									<InfoItem>
+										<IconWrapper>
+											<Mail size={18} />
+										</IconWrapper>
+										<InfoContent>
+											<InfoLabel>Email</InfoLabel>
+											<InfoValue>{friend.email}</InfoValue>
+										</InfoContent>
+									</InfoItem>{" "}
+									<InfoItem>
+										<IconWrapper>
+											<Calendar size={18} />
+										</IconWrapper>
+										<InfoContent>
+											<InfoLabel>Created Since</InfoLabel>
+											<InfoValue>{formatDate(friend.createdAt)}</InfoValue>
+										</InfoContent>
+									</InfoItem>
+									{isFriend ?? (
 										<InfoItem>
 											<IconWrapper>
-												<Mail size={18} />
+												<Shield size={18} />
 											</IconWrapper>
 											<InfoContent>
-												<InfoLabel>Email</InfoLabel>
-												<InfoValue>{friend.email}</InfoValue>
-											</InfoContent>
-										</InfoItem>{" "}
-										<InfoItem>
-											<IconWrapper>
-												<Calendar size={18} />
-											</IconWrapper>
-											<InfoContent>
-												<InfoLabel>Created Since</InfoLabel>
-												<InfoValue>{formatDate(friend.createdAt)}</InfoValue>
+												<InfoLabel>Account Status</InfoLabel>
+												<InfoValue>
+													{friend.emailVerified
+														? "✓ - Email Verified"
+														: "X - Email Not Verified"}
+													{friend.isAdmin && " • Admin"}
+												</InfoValue>
 											</InfoContent>
 										</InfoItem>
-										{isFriend ?? (
-											<InfoItem>
-												<IconWrapper>
-													<Shield size={18} />
-												</IconWrapper>
-												<InfoContent>
-													<InfoLabel>Account Status</InfoLabel>
-													<InfoValue>
-														{friend.emailVerified
-															? "✓ - Email Verified"
-															: "X - Email Not Verified"}
-														{friend.isAdmin && " • Admin"}
-													</InfoValue>
-												</InfoContent>
-											</InfoItem>
-										)}
-									</InfoSection>
-								</div>
-
-								{/* Right Column - Top 4 Programming Languages */}
-								<div style={{ flex: 1 }}>
-									{mockTopLanguages.length > 0 && (
-										<LanguagesSection>
-											<LanguagesSectionTitle>
-												🏆 Top Programming Languages
-											</LanguagesSectionTitle>
-											<LanguagesList>
-												{mockTopLanguages.map((lang, index) => {
-													const rank = index + 1;
-													return (
-														<LanguageItem key={lang.id} $rank={rank}>
-															{rank <= 3 && (
-																<RankBadge $rank={rank}>
-																	{rank === 1 ? "🥇" : rank === 2 ? "🥈" : "🥉"}
-																</RankBadge>
-															)}
-															{rank === 4 && (
-																<div
-																	style={{
-																		width: "24px",
-																		height: "24px",
-																		display: "flex",
-																		alignItems: "center",
-																		justifyContent: "center",
-																		fontSize: "14px",
-																		fontWeight: 600,
-																		color: "#6b7280",
-																	}}
-																>
-																	4
-																</div>
-															)}
-															<LanguageIcon
-																src={lang.language.languageIcon}
-																alt={lang.language.languageName}
-																onError={(e) => {
-																	(e.target as HTMLImageElement).src =
-																		"https://via.placeholder.com/40?text=" +
-																		lang.language.languageName.charAt(0);
-																}}
-															/>
-															<LanguageInfo>
-																<LanguageName>
-																	{lang.language.languageName}
-																</LanguageName>
-																<LanguageProficiency
-																	$level={lang.proficiencyLevel}
-																>
-																	{lang.proficiencyLevel}
-																</LanguageProficiency>
-															</LanguageInfo>
-														</LanguageItem>
-													);
-												})}
-											</LanguagesList>
-										</LanguagesSection>
 									)}
-								</div>
-							</div>{" "}
-							{/* Show Edit Profile if isYou, otherwise Unfriend/Add Friend */}
-							{isYou ? (
-								<InfoButton
-									leftIcon={<Edit size={18} />}
-									onClick={handleEditProfile}
-									children={"Edit Profile"}
-									style={{ marginTop: "12px", width: "100%" }}
-								/>
-							) : isFriend ? (
-								<DeleteButton
-									onClick={handleUnfriend}
-									leftIcon={<UserMinus size={18} />}
-									children={"Unfriend"}
-									style={{ marginTop: "12px", width: "100%" }}
-								/>
-							) : (
-								<SaveButton
-									onClick={handleAddFriend}
-									leftIcon={<UserPlus size={18} />}
-									children={addingFriend ? "Sending..." : "Add Friend"}
-									style={{ marginTop: "12px", width: "100%" }}
-									disabled={addingFriend}
-								/>
-							)}
-						</ModalBody>
-					</>
-				) : (
-					<>
-						<ModalHeader>
-							<HeaderActions>
-								<IconButton onClick={onClose} icon={X} iconSize={20} />
-							</HeaderActions>
-						</ModalHeader>
+								</InfoSection>
+							</div>
 
-						<ReportModalContent>
-							<ReportHeader>
-								<ReportIcon>
-									<AlertTriangle size={24} />
-								</ReportIcon>
-								<div>
-									<ReportTitle>Report User</ReportTitle>
-								</div>
-							</ReportHeader>
-							<ReportDescription>
-								Help us understand what's happening with{" "}
-								<strong>{fullName}</strong>. Your report is anonymous and will
-								be reviewed by our team.
-							</ReportDescription>
+							{/* Right Column - Top Programming Languages */}
+							<div style={{ flex: 1 }}>
+								<LanguagesSection>
+									<LanguagesSectionTitle>
+										🏆 Top Programming Languages
+									</LanguagesSectionTitle>
+									{topLanguages.length > 0 ? (
+										<LanguagesList>
+											{topLanguages.map((lang, index) => {
+												const rank = index + 1;
+												const languageName =
+													lang.language?.languageName || "Unknown language";
+												const iconFallbackText =
+													languageName.charAt(0).toUpperCase() || "?";
+												const iconSrc =
+													lang.language?.languageIcon ||
+													`https://via.placeholder.com/40?text=${encodeURIComponent(iconFallbackText)}`;
+												const level = lang.proficiencyLevel || "UNKNOWN";
 
-							<ReasonSection>
-								<SectionLabel>What's the issue?</SectionLabel>
-								{reportReasons.map((reason) => (
-									<ReasonOption key={reason.value}>
-										<RadioInput
-											type="radio"
-											name="reason"
-											value={reason.value}
-											checked={selectedReason === reason.value}
-											onChange={(e) => setSelectedReason(e.target.value)}
-										/>
-										<ReasonText>
-											<ReasonTitle>{reason.title}</ReasonTitle>
-											<ReasonDesc>{reason.description}</ReasonDesc>
-										</ReasonText>
-									</ReasonOption>
-								))}
-							</ReasonSection>
-
-							<ReasonSection>
-								<SectionLabel>Additional details (optional)</SectionLabel>
-								<TextArea
-									placeholder="Provide more context about this issue to help us review it faster..."
-									value={reportDetails}
-									onChange={(e) => setReportDetails(e.target.value)}
-								/>
-							</ReasonSection>
-
-							<ButtonGroup>
-								<Button $variant="secondary" onClick={handleBackToProfile}>
-									Back
-								</Button>
-								<Button $variant="primary" onClick={handleSubmitReport}>
-									Submit Report
-								</Button>
-							</ButtonGroup>
-						</ReportModalContent>
-					</>
-				)}
+												return (
+													<LanguageItem
+														key={lang.id ?? `${lang.languageId}-${rank}`}
+														$rank={rank}
+													>
+														{rank <= 3 ? (
+															<RankBadge $rank={rank}>
+																{rank === 1 ? "🥇" : rank === 2 ? "🥈" : "🥉"}
+															</RankBadge>
+														) : (
+															<div
+																style={{
+																	width: "24px",
+																	height: "24px",
+																	display: "flex",
+																	alignItems: "center",
+																	justifyContent: "center",
+																	fontSize: "14px",
+																	fontWeight: 600,
+																	color: "#6b7280",
+																}}
+															>
+																{rank}
+															</div>
+														)}
+														<LanguageIcon
+															src={iconSrc}
+															alt={languageName}
+															onError={(e) => {
+																(e.target as HTMLImageElement).src =
+																	`https://via.placeholder.com/40?text=${encodeURIComponent(iconFallbackText)}`;
+															}}
+														/>
+														<LanguageInfo>
+															<LanguageName>{languageName}</LanguageName>
+															<LanguageProficiency $level={level}>
+																{level}
+															</LanguageProficiency>
+														</LanguageInfo>
+													</LanguageItem>
+												);
+											})}
+										</LanguagesList>
+									) : (
+										<LanguagesEmptyState>
+											{isYou
+												? "You haven't added any programming languages yet. Add them from Settings → Account to showcase your stack."
+												: `${fullName} hasn't shared any programming languages yet.`}
+										</LanguagesEmptyState>
+									)}
+								</LanguagesSection>
+							</div>
+						</div>{" "}
+						{/* Show Edit Profile if isYou, otherwise Unfriend/Add Friend */}
+						{isYou ? (
+							<InfoButton
+								leftIcon={<Edit size={18} />}
+								onClick={handleEditProfile}
+								children={"Edit Profile"}
+								style={{ marginTop: "12px", width: "100%" }}
+							/>
+						) : isFriend ? (
+							<DeleteButton
+								onClick={handleUnfriend}
+								leftIcon={<UserMinus size={18} />}
+								children={"Unfriend"}
+								style={{ marginTop: "12px", width: "100%" }}
+							/>
+						) : (
+							<SaveButton
+								onClick={handleAddFriend}
+								leftIcon={<UserPlus size={18} />}
+								children={addingFriend ? "Sending..." : "Add Friend"}
+								style={{ marginTop: "12px", width: "100%" }}
+								disabled={addingFriend}
+							/>
+						)}
+					</ModalBody>
+				</>
 			</ModalContainer>
 		</ModalOverlay>
 	);

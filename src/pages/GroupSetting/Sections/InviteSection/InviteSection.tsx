@@ -24,7 +24,7 @@ import {
 import { useParams } from "@tanstack/react-router";
 
 import { detailGroup } from "@/services/groupAPI";
-import { listFriends } from "@/services/friendAPI";
+import { listFriends, type FriendUser } from "@/services/friendAPI";
 import {
 	GroupInvitation,
 	inviteToGroup,
@@ -41,15 +41,6 @@ type AddGroupFormValues = {
 	avatar?: File | null;
 };
 
-type Friend = {
-	user_id: string;
-	username: string;
-	first_name: string;
-	last_name: string;
-	email: string;
-	avatar_url?: string;
-};
-
 export default function InviteSection() {
 	const { handleSubmit, reset } = useForm<AddGroupFormValues>({
 		defaultValues: {
@@ -63,7 +54,7 @@ export default function InviteSection() {
 
 	const [search, setSearch] = useState("");
 	const [addingMap, setAddingMap] = useState<Record<string, boolean>>({});
-	const [friends, setFriends] = useState<Friend[]>([]);
+	const [friends, setFriends] = useState<FriendUser[]>([]);
 	const [loadingFriends, setLoadingFriends] = useState(false);
 	const [groupMembers, setGroupMembers] = useState<string[]>([]);
 	const [pendingInvitations, setPendingInvitations] = useState<
@@ -165,26 +156,18 @@ export default function InviteSection() {
 		let mounted = true;
 		setLoadingFriends(true);
 		listFriends(1, 100)
-			.then((res: any) => {
+			.then((res) => {
 				if (!mounted) return;
 
-				const body = res?.data ?? res;
-				const arr =
-					Array.isArray(body?.data) && body.data.length
-						? body.data
-						: Array.isArray(body)
-							? body
-							: Array.isArray(res?.data)
-								? res.data
-								: [];
-
-				const mapped: Friend[] = arr.map((it: any) => ({
-					user_id: it.id ?? it.user_id ?? "",
-					username: it.username ?? it.userName ?? "",
-					first_name: it.firstName ?? it.first_name ?? "",
-					last_name: it.lastName ?? it.last_name ?? "",
-					email: it.email ?? "",
-					avatar_url: it.avatarUrl ?? it.avatar_url ?? it.avatar ?? undefined,
+				const arr = res?.data ?? [];
+				const mapped: FriendUser[] = arr.map((it) => ({
+					...it,
+					avatar: it.avatar ?? it.avatarUrl ?? null,
+					name:
+						it.name ||
+						`${it.firstName ?? ""} ${it.lastName ?? ""}`.trim() ||
+						it.username ||
+						it.email,
 				}));
 
 				setFriends(mapped);
@@ -218,14 +201,14 @@ export default function InviteSection() {
 	const filtered = useMemo(() => {
 		const q = search.trim().toLowerCase();
 
-		let result = friends.filter((f) => !groupMembers.includes(f.user_id));
+		let result = friends.filter((f) => !groupMembers.includes(f.id));
 
 		if (q) {
 			result = result.filter((u) => {
 				return (
 					(u.username ?? "").toLowerCase().includes(q) ||
-					(u.first_name ?? "").toLowerCase().includes(q) ||
-					(u.last_name ?? "").toLowerCase().includes(q) ||
+					(u.firstName ?? "").toLowerCase().includes(q) ||
+					(u.lastName ?? "").toLowerCase().includes(q) ||
 					(u.email ?? "").toLowerCase().includes(q)
 				);
 			});
@@ -294,7 +277,7 @@ export default function InviteSection() {
 	const [emailInput, setEmailInput] = useState<string>("");
 	const [emailError, setEmailError] = useState<string | null>(null);
 	const [lookupLoading, setLookupLoading] = useState(false);
-	const [lookupResult, setLookupResult] = useState<Friend | null>(null);
+	const [lookupResult, setLookupResult] = useState<FriendUser | null>(null);
 	const [sendingEmail, setSendingEmail] = useState(false);
 
 	const validateEmail = (e?: string) => {
@@ -463,13 +446,16 @@ export default function InviteSection() {
 									<Left>
 										<AvatarCircle
 											src={
-												lookupResult.avatar_url ??
-												`https://ui-avatars.com/api/?name=${encodeURIComponent(lookupResult.first_name)}`
+												lookupResult.avatar ??
+												lookupResult.avatarUrl ??
+												`https://ui-avatars.com/api/?name=${encodeURIComponent(lookupResult.firstName ?? lookupResult.username ?? "F")}`
 											}
 											alt={lookupResult.username}
 										/>
 										<NameContainer>
-											<NameText>{`${lookupResult.first_name} ${lookupResult.last_name}`}</NameText>
+											<NameText>
+												{`${lookupResult.firstName ?? ""} ${lookupResult.lastName ?? ""}`.trim()}
+											</NameText>
 											<EmailText>{lookupResult.email}</EmailText>
 										</NameContainer>
 									</Left>
@@ -521,21 +507,24 @@ export default function InviteSection() {
 							</div>
 						) : (
 							filtered.map((u) => {
-								const hasPendingInvite = pendingInvitations.has(u.user_id);
-								const adding = Boolean(addingMap[u.user_id]);
+								const hasPendingInvite = pendingInvitations.has(u.id);
+								const adding = Boolean(addingMap[u.id]);
 
 								return (
-									<FriendItem key={u.user_id}>
+									<FriendItem key={u.id}>
 										<Left>
 											<AvatarCircle
 												src={
-													u.avatar_url ??
-													`https://ui-avatars.com/api/?name=${encodeURIComponent(u.first_name)}`
+													u.avatar ??
+													u.avatarUrl ??
+													`https://ui-avatars.com/api/?name=${encodeURIComponent(u.firstName ?? u.username ?? "F")}`
 												}
 												alt={u.username}
 											/>
 											<NameContainer>
-												<NameText>{`${u.first_name} ${u.last_name}`}</NameText>
+												<NameText>
+													{`${u.firstName ?? ""} ${u.lastName ?? ""}`.trim()}
+												</NameText>
 												<EmailText>{u.email}</EmailText>
 											</NameContainer>
 										</Left>
@@ -543,7 +532,7 @@ export default function InviteSection() {
 										<div>
 											<AddButton
 												$added={hasPendingInvite}
-												onClick={() => handleAddSingle(u.user_id)}
+												onClick={() => handleAddSingle(u.id)}
 												disabled={hasPendingInvite || adding}
 												style={
 													hasPendingInvite

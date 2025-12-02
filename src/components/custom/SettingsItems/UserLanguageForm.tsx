@@ -4,7 +4,7 @@ import styled from "styled-components";
 import { X } from "lucide-react";
 import { Label } from "./SettingsItems.styled";
 import { ProgrammingLanguageResponse } from "@/services/programmingLanguagesAPI";
-import CustomSelect from "../CustomSelect/CustomSelect";
+import StyledSelect from "../CustomSelect/StyledSelect";
 
 const FormWrapper = styled.div`
 	background: #f9fafb;
@@ -213,9 +213,9 @@ const UserLanguageForm: React.FC<UserLanguageFormProps> = ({
 			<FormGrid>
 				<FormGroup>
 					<Label>Programming Language *</Label>
-					<CustomSelect
+					<StyledSelect
 						value={formData.languageId}
-						onChange={(value) => {
+						onValueChange={(value) => {
 							setFormData((prev) => ({ ...prev, languageId: value }));
 							if (value) {
 								setErrors((prev) => ({ ...prev, languageId: "" }));
@@ -232,9 +232,9 @@ const UserLanguageForm: React.FC<UserLanguageFormProps> = ({
 
 				<FormGroup>
 					<Label>Proficiency Level *</Label>
-					<CustomSelect
+					<StyledSelect
 						value={formData.proficiencyLevel}
-						onChange={(value) => {
+						onValueChange={(value) => {
 							setFormData((prev) => ({ ...prev, proficiencyLevel: value }));
 						}}
 						options={PROFICIENCY_LEVELS}
@@ -244,9 +244,9 @@ const UserLanguageForm: React.FC<UserLanguageFormProps> = ({
 
 				<FormGroup>
 					<Label>Order Index *</Label>
-					<CustomSelect
+					<StyledSelect
 						value={formData.orderIndex.toString()}
-						onChange={(value) => {
+						onValueChange={(value) => {
 							const numValue = parseInt(value);
 							setFormData((prev) => ({ ...prev, orderIndex: numValue }));
 							if (numValue) {
@@ -262,6 +262,7 @@ const UserLanguageForm: React.FC<UserLanguageFormProps> = ({
 									}))
 						}
 						placeholder="Select order"
+						disabled={availableOrderIndexes.length === 0}
 					/>
 					{errors.orderIndex && <ErrorText>{errors.orderIndex}</ErrorText>}
 				</FormGroup>

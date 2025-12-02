@@ -335,6 +335,13 @@ export const LanguagesList = styled.div`
 	gap: 12px;
 `;
 
+export const LanguagesEmptyState = styled.p`
+	margin: 0;
+	padding: 8px 0 4px;
+	font-size: 13px;
+	color: #6b7280;
+`;
+
 export const LanguageItem = styled.div<{ $rank: number }>`
 	display: flex;
 	align-items: center;

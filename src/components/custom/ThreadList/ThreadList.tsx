@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { X, Search, Layers, Trash2, Edit } from "lucide-react";
 import {
@@ -86,11 +86,62 @@ const ThreadList: React.FC<ThreadListProps> = ({
 		name: string;
 	} | null>(null);
 
+	const fetchThreads = useCallback(
+		async (options?: { silent?: boolean }) => {
+			if (!groupId || !channelId) return;
+			const silent = options?.silent ?? false;
+
+			if (!silent) {
+				dispatch(setThreadsLoading({ channelKey, isLoading: true }));
+			}
+
+			try {
+				const response = await listThreads(groupId, channelId);
+				const threadData = response?.data?.data || response?.data || [];
+
+				const creatorsMap: { [key: string]: UserResponse } = {};
+				const fetchPromises = threadData.map(async (thread: ThreadResponse) => {
+					if (thread.createdBy && typeof thread.createdBy === "string") {
+						try {
+							const userResponse = await detailUser(thread.createdBy);
+							const userData = userResponse?.data || userResponse;
+							if (userData) {
+								creatorsMap[thread.createdBy] = userData;
+							}
+						} catch (error) {
+							console.error(`Failed to fetch user ${thread.createdBy}:`, error);
+						}
+					}
+				});
+
+				await Promise.all(fetchPromises);
+
+				dispatch(
+					setThreads({
+						channelKey,
+						threads: threadData,
+						creators: creatorsMap,
+					}),
+				);
+			} catch (error) {
+				console.error("Failed to fetch threads:", error);
+				dispatch(
+					setThreads({
+						channelKey,
+						threads: [],
+						creators: {},
+					}),
+				);
+			}
+		},
+		[groupId, channelId, channelKey, dispatch],
+	);
+
 	useEffect(() => {
 		if (groupId && channelId && lastFetched === 0) {
 			fetchThreads();
 		}
-	}, [groupId, channelId]);
+	}, [groupId, channelId, lastFetched, fetchThreads]);
 
 	useEffect(() => {
 		const handleThreadCreated = (event: CustomEvent) => {
@@ -110,52 +161,15 @@ const ThreadList: React.FC<ThreadListProps> = ({
 				"app:threadCreated",
 				handleThreadCreated as EventListener,
 			);
-	}, [groupId, channelId]);
+	}, [groupId, channelId, fetchThreads]);
 
-	const fetchThreads = async () => {
+	useEffect(() => {
 		if (!groupId || !channelId) return;
-
-		dispatch(setThreadsLoading({ channelKey, isLoading: true }));
-
-		try {
-			const response = await listThreads(groupId, channelId);
-			const threadData = response?.data?.data || response?.data || [];
-
-			const creatorsMap: { [key: string]: UserResponse } = {};
-			const fetchPromises = threadData.map(async (thread: ThreadResponse) => {
-				if (thread.createdBy && typeof thread.createdBy === "string") {
-					try {
-						const userResponse = await detailUser(thread.createdBy);
-						const userData = userResponse?.data || userResponse;
-						if (userData) {
-							creatorsMap[thread.createdBy] = userData;
-						}
-					} catch (error) {
-						console.error(`Failed to fetch user ${thread.createdBy}:`, error);
-					}
-				}
-			});
-
-			await Promise.all(fetchPromises);
-
-			dispatch(
-				setThreads({
-					channelKey,
-					threads: threadData,
-					creators: creatorsMap,
-				}),
-			);
-		} catch (error) {
-			console.error("Failed to fetch threads:", error);
-			dispatch(
-				setThreads({
-					channelKey,
-					threads: [],
-					creators: {},
-				}),
-			);
-		}
-	};
+		const intervalId = window.setInterval(() => {
+			fetchThreads({ silent: true });
+		}, 5000);
+		return () => window.clearInterval(intervalId);
+	}, [groupId, channelId, fetchThreads]);
 
 	const handleDeleteClick = (e: React.MouseEvent, threadId: string) => {
 		e.stopPropagation();

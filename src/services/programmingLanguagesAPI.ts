@@ -53,6 +53,7 @@ export const listProgrammingLanguages = (
 	name?: string,
 	version?: string,
 	search?: string,
+	isActive?: boolean,
 ) => {
 	let url = `/api/programming-language?page=${page}&take=${take}`;
 
@@ -60,14 +61,21 @@ export const listProgrammingLanguages = (
 	if (name) url += `&name=${encodeURIComponent(name)}`;
 	if (version) url += `&version=${encodeURIComponent(version)}`;
 	if (search) url += `&search=${encodeURIComponent(search)}`;
+	if (typeof isActive === "boolean") url += `&isActive=${isActive}`;
 
 	return get<PaginationResponse<ProgrammingLanguageResponse[]>>(url);
 };
 
-export const getAllProgrammingLanguages = () => {
-	return get<PaginationResponse<ProgrammingLanguageResponse[]>>(
-		`/api/programming-language`,
-	);
+export const getAllProgrammingLanguages = (params?: { isActive?: boolean }) => {
+	const searchParams = new URLSearchParams();
+	if (typeof params?.isActive === "boolean") {
+		searchParams.append("isActive", String(params.isActive));
+	}
+	const queryString = searchParams.toString();
+	const url = queryString
+		? `/api/programming-language?${queryString}`
+		: `/api/programming-language`;
+	return get<PaginationResponse<ProgrammingLanguageResponse[]>>(url);
 };
 
 export const detailProgrammingLanguage = (id: string) => {
