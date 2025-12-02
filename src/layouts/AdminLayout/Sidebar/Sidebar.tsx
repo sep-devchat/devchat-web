@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from "@tanstack/react-router";
 import {
 	LayoutDashboard,
 	Users,
-	Settings,
+	// Settings,
 	LogOut,
 	LucideIcon,
 	Flag,
@@ -101,7 +101,7 @@ const Sidebar: React.FC = () => {
 	];
 
 	const bottomItems: MenuItem[] = [
-		{ id: "setting", icon: Settings, label: "Setting", path: "/admin/setting" },
+		// { id: "setting", icon: Settings, label: "Setting", path: "/admin/setting" },
 		{
 			id: "logout",
 			icon: LogOut,
