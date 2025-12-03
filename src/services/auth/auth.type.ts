@@ -68,13 +68,13 @@ export interface UserLanguage {
 		id: string;
 		languageCode: string;
 		languageName: string;
-		languageVersion: string;
-		languageIcon: string;
-		syntaxHighlighting: string;
-		codeExecutions: number;
+		languageVersion?: string | null;
+		languageIcon?: string | null;
+		preset?: string | null;
 		createdAt: string;
 		updatedAt: string;
-		isExecutable: true;
+		isExecutable: boolean;
+		isActive: boolean;
 	};
 }
 

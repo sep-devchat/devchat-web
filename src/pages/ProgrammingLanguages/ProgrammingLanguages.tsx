@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
+import { Trash2, RefreshCw } from "lucide-react";
 import * as S from "./ProgrammingLanguages.styled";
-import { StatCard } from "@/components/custom/StatCard/StatCard";
 import {
 	TablePermission,
 	RolePermission,
@@ -12,9 +12,10 @@ import {
 	listProgrammingLanguages,
 	createProgrammingLanguage,
 	updateProgrammingLanguage,
-	deleteProgrammingLanguage,
+	toggleProgrammingLanguageIsActive,
 	ProgrammingLanguageResponse,
 	ProgrammingLanguageRequest,
+	ProgrammingLanguageUpdateRequest,
 } from "@/services/programmingLanguagesAPI";
 import { toast } from "sonner";
 
@@ -25,37 +26,35 @@ export const ProgrammingLanguages: React.FC = () => {
 	const [selectedLanguage, setSelectedLanguage] =
 		useState<ProgrammingLanguageResponse | null>(null);
 	const [isLoading, setIsLoading] = useState(false);
-	const [currentPage, setCurrentPage] = useState(1);
+	const [currentPage] = useState(1);
 	const [pageSize] = useState(20);
-	const [totalRecords, setTotalRecords] = useState(0);
+	const [pagination, setPagination] = useState<{
+		page: number;
+		take: number;
+		totalRecord: number;
+		totalPage: number;
+		nextPage?: number;
+		prevPage?: number;
+	} | null>(null);
 
 	const fetchLanguages = async () => {
-		console.log(totalRecords);
-		setCurrentPage;
 		setIsLoading(true);
 		try {
 			const response = await listProgrammingLanguages(currentPage, pageSize);
-			console.log("API Response:", response);
 
 			if (response && response.data) {
 				const languagesData = Array.isArray(response.data) ? response.data : [];
 
-				const activeLanguages = languagesData.filter(
-					(lang) => lang.isActive === true,
-				);
-
-				setLanguages(activeLanguages);
-				setTotalRecords(
-					response.pagination?.totalRecord || activeLanguages.length,
-				);
+				setLanguages(languagesData);
+				setPagination(response.pagination ?? null);
 			} else {
 				setLanguages([]);
-				setTotalRecords(0);
+				setPagination(null);
 			}
 		} catch (error) {
 			console.error("Error fetching languages:", error);
 			setLanguages([]);
-			setTotalRecords(0);
+			setPagination(null);
 			toast.error("Failed to load programming languages");
 		} finally {
 			setIsLoading(false);
@@ -66,18 +65,14 @@ export const ProgrammingLanguages: React.FC = () => {
 		fetchLanguages();
 	}, [currentPage, pageSize]);
 
-	const totalLanguages = languages?.length || 0;
-	const executableCount =
-		languages?.filter((lang) => lang.isExecutable).length || 0;
-
 	const tableData: RolePermission[] = (languages || []).map((lang) => ({
 		id: lang.id,
 		languageIcon: lang.languageIcon,
 		languageName: lang.languageName,
 		languageCode: lang.languageCode,
-		languageVersion: lang.languageVersion,
-		syntaxHighlighting: lang.syntaxHighlighting,
-		isExecutable: lang.isExecutable ? "Enabled" : "Disabled",
+		languageVersion: lang.languageVersion ?? "",
+		isExecutable: lang.isExecutable,
+		isActive: lang.isActive,
 	}));
 
 	const handleAddLanguage = () => {
@@ -92,17 +87,19 @@ export const ProgrammingLanguages: React.FC = () => {
 		setIsModalOpen(true);
 	};
 
-	const handleDeleteLanguage = async (index: number) => {
-		const languageToDelete = languages[index];
+	const handleToggleLanguage = async (index: number) => {
+		const language = languages[index];
+		if (!language) return;
+		const actionLabel = language.isActive ? "deactivate" : "activate";
 
 		setIsLoading(true);
 		try {
-			await deleteProgrammingLanguage(languageToDelete.id);
+			await toggleProgrammingLanguageIsActive(language.id);
 			await fetchLanguages();
-			toast.success("Language deleted successfully");
+			toast.success(`Language ${actionLabel}d successfully`);
 		} catch (error) {
-			console.error("Error deleting language:", error);
-			toast.error("Failed to delete language");
+			console.error("Error toggling language:", error);
+			toast.error(`Failed to ${actionLabel} language`);
 		} finally {
 			setIsLoading(false);
 		}
@@ -120,9 +117,14 @@ export const ProgrammingLanguages: React.FC = () => {
 				const requestData: ProgrammingLanguageRequest = {
 					languageCode: String(data.languageCode),
 					languageName: String(data.languageName),
-					languageVersion: String(data.languageVersion || ""),
-					languageIcon: String(data.languageIcon || ""),
-					syntaxHighlighting: String(data.syntaxHighlighting || ""),
+					languageVersion: data.languageVersion
+						? String(data.languageVersion)
+						: undefined,
+					languageIcon:
+						typeof data.languageIcon === "string"
+							? data.languageIcon
+							: undefined,
+					preset: typeof data.preset === "string" ? data.preset : undefined,
 					isExecutable:
 						data.isExecutable === true || data.isExecutable === "Enabled",
 				};
@@ -130,12 +132,17 @@ export const ProgrammingLanguages: React.FC = () => {
 				await createProgrammingLanguage(requestData);
 				toast.success("Language created successfully");
 			} else if (modalMode === "edit" && selectedLanguage) {
-				const requestData = {
+				const requestData: ProgrammingLanguageUpdateRequest = {
 					languageCode: String(data.languageCode),
 					languageName: String(data.languageName),
-					languageVersion: String(data.languageVersion || ""),
-					languageIcon: String(data.languageIcon || ""),
-					syntaxHighlighting: String(data.syntaxHighlighting || ""),
+					languageVersion: data.languageVersion
+						? String(data.languageVersion)
+						: undefined,
+					languageIcon:
+						typeof data.languageIcon === "string"
+							? data.languageIcon
+							: undefined,
+					preset: typeof data.preset === "string" ? data.preset : undefined,
 					isExecutable:
 						data.isExecutable === true || data.isExecutable === "Enabled",
 				};
@@ -197,17 +204,26 @@ export const ProgrammingLanguages: React.FC = () => {
 		}
 
 		if (column.key === "languageVersion") {
-			return <S.VersionText>{value || "1.0.0"}</S.VersionText>;
-		}
-
-		if (column.key === "syntaxHighlighting") {
-			return <span>{value || "none"}</span>;
+			return value && <S.VersionText>{value}</S.VersionText>;
 		}
 
 		if (column.key === "isExecutable") {
-			const status = String(value);
+			const isEnabled =
+				value === true ||
+				value === "Enabled" ||
+				value === "true" ||
+				value === 1;
+			const label = isEnabled ? "Enabled" : "Disabled";
+			return <S.StatusBadge $isEnabled={isEnabled}>{label}</S.StatusBadge>;
+		}
+
+		if (column.key === "isActive") {
+			const active =
+				value === true || value === "Active" || value === "true" || value === 1;
 			return (
-				<S.StatusBadge $isEnabled={status === "Enabled"}>{value}</S.StatusBadge>
+				<S.StatusBadge $isEnabled={active}>
+					{active ? "Active" : "Inactive"}
+				</S.StatusBadge>
 			);
 		}
 
@@ -223,65 +239,61 @@ export const ProgrammingLanguages: React.FC = () => {
 			languageName: selectedLanguage.languageName,
 			languageVersion: selectedLanguage.languageVersion,
 			languageIcon: selectedLanguage.languageIcon,
-			syntaxHighlighting: selectedLanguage.syntaxHighlighting,
+			preset: selectedLanguage.preset ?? "",
 			isExecutable: selectedLanguage.isExecutable,
 		};
 	};
 
+	const baseSubtitle =
+		"Manage supported programming languages and their configurations";
+	const tableSubtitle = pagination?.totalRecord
+		? `${baseSubtitle} • Total: ${pagination.totalRecord}`
+		: baseSubtitle;
+
 	return (
 		<S.Container>
-			<S.StatsGrid>
-				<StatCard
-					value={totalLanguages}
-					label="Total Languages"
-					trend={76.8}
-					trendDirection="up"
-					color="blue"
-				/>
-				<StatCard
-					value={executableCount}
-					label="Executable"
-					trend={12.5}
-					trendDirection="up"
-					color="green"
-				/>
-				{/* <StatCard
-                    value={totalExecutions.toLocaleString()}
-                    label="Total Executions"
-                    trend={18.3}
-                    trendDirection="up"
-                    color="yellow"
-                />
-                <StatCard
-                    value={avgExecutions.toLocaleString()}
-                    label="Avg Executions"
-                    trend={5.2}
-                    trendDirection="down"
-                    color="red"
-                /> */}
-			</S.StatsGrid>
-
 			<TablePermission
 				title="Programming Languages"
-				subtitle="Manage supported programming languages and their configurations"
+				subtitle={tableSubtitle}
 				columns={PROGRAMMING_LANGUAGES_COLUMNS}
 				data={tableData}
 				actionButtonText="Add Language"
 				onActionButtonClick={handleAddLanguage}
 				onEdit={handleEditLanguage}
-				onDelete={handleDeleteLanguage}
+				onDelete={handleToggleLanguage}
 				renderCell={renderCell}
 				pageSize={6}
 				showSearch={true}
 				showPagination={true}
 				showCellBackground={false}
-				deleteConfirmTitle="Delete Language"
-				deleteConfirmMessage={(rowData) =>
-					`Are you sure you want to delete ${rowData.languageName}? This action cannot be undone.`
-				}
-				deleteConfirmText="Delete"
+				deleteConfirmTitle="Toggle Active Status"
+				deleteConfirmMessage={(rowData) => {
+					const currentlyActive =
+						rowData?.isActive === true ||
+						rowData?.isActive === "Active" ||
+						rowData?.isActive === "true";
+					return `Are you sure you want to ${currentlyActive ? "deactivate" : "activate"} ${rowData.languageName}?`;
+				}}
+				deleteConfirmText="Confirm"
 				deleteCancelText="Cancel"
 				isLoading={isLoading}
+				deleteActionConfig={(rowData) => {
+					const currentlyActive =
+						rowData?.isActive === true ||
+						rowData?.isActive === "Active" ||
+						rowData?.isActive === "true";
+					return {
+						icon: currentlyActive ? (
+							<Trash2 size={16} />
+						) : (
+							<RefreshCw size={16} />
+						),
+						variant: currentlyActive ? "danger" : "default",
+						title: currentlyActive
+							? "Deactivate language"
+							: "Activate language",
+					};
+				}}
 			/>
 
 			<LanguageModal

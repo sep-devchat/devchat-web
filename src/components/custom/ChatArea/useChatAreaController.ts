@@ -56,6 +56,44 @@ const isAiUsername = (username?: string | null) =>
 const isAiBotSender = (sender?: { username?: string | null }) =>
 	isAiUsername(sender?.username ?? "");
 
+const MESSAGE_PAGE_SIZE = 50;
+const SCROLL_TOP_THRESHOLD_PX = 120;
+const SCROLL_BOTTOM_THRESHOLD_PX = 80;
+
+const sortChronologically = <T extends { createdAt: string | Date }>(
+	items: T[],
+): T[] =>
+	items
+		.slice()
+		.sort(
+			(a, b) =>
+				new Date(a.createdAt as any).getTime() -
+				new Date(b.createdAt as any).getTime(),
+		);
+
+const extractSocketArray = (resp: any) =>
+	Array.isArray(resp)
+		? resp
+		: Array.isArray(resp?.data)
+			? resp.data
+			: Array.isArray(resp?.messages)
+				? resp.messages
+				: [];
+
+const normalizeChannelMessages = (resp: any): MessageResponse[] =>
+	sortChronologically(extractSocketArray(resp) as MessageResponse[]);
+
+const normalizeDirectMessages = (resp: any): MessageResponse[] =>
+	sortChronologically(
+		extractSocketArray(resp).map((dm: any) => ({
+			id: dm.id,
+			content: dm.content ?? "",
+			createdAt: dm.createdAt,
+			sender: dm.from ?? dm.sender ?? null,
+			codeBlockId: dm.codeBlockId,
+		})) as MessageResponse[],
+	);
+
 export interface ChatAreaControllerResult {
 	shouldShowDirectHeader: boolean;
 	directHeaderProps: DirectMessageHeaderProps | null;
@@ -99,6 +137,16 @@ export const useChatAreaController = (): ChatAreaControllerResult => {
 	const viewportVariant = inboxTypeSelected ?? undefined;
 	const [emitQueue, setEmitQueue] = useState<any[]>([]);
 	const [socketLoading, setSocketLoading] = useState<boolean>(false);
+	const messagePageRef = useRef(1);
+	const [hasMoreMessages, setHasMoreMessages] = useState(true);
+	const hasMoreMessagesRef = useRef(true);
+	const [fetchingOlderMessages, setFetchingOlderMessages] = useState(false);
+	const fetchingOlderRef = useRef(false);
+	const pendingPrependScrollRef = useRef<{
+		prevScrollHeight: number;
+		prevScrollTop: number;
+	} | null>(null);
+	const shouldStickToBottomRef = useRef(true);
 	// track the last room we attempted to join to avoid redundant joins
 	const lastJoinKeyRef = useRef<string | null>(null);
 	// moved hovered state to per-row component to avoid whole list re-renders on hover
@@ -141,6 +189,140 @@ export const useChatAreaController = (): ChatAreaControllerResult => {
 	});
 
 	const thread: ThreadResponse | null = threadDataResp ?? null;
+
+	const applyPaginationResult = useCallback((page: number, batch: number) => {
+		messagePageRef.current = page;
+		const hasMore = batch === MESSAGE_PAGE_SIZE;
+		hasMoreMessagesRef.current = hasMore;
+		setHasMoreMessages(hasMore);
+	}, []);
+
+	const upsertChannelMessages = useCallback(
+		(incoming: MessageResponse[], replace = false) => {
+			if (!groupId || !channelIdParam) return;
+			queryClient.setQueryData(
+				["messages", groupId, channelIdParam],
+				(old: any) => {
+					const toArray = (o: any) =>
+						Array.isArray(o?.data) ? o.data : Array.isArray(o) ? o : [];
+					const current = toArray(old);
+					let next: MessageResponse[];
+					if (replace) next = incoming.slice();
+					else {
+						const map = new Map<string, MessageResponse>();
+						for (const msg of current) {
+							if (msg?.id) map.set(msg.id, msg as MessageResponse);
+						}
+						for (const msg of incoming) {
+							if (msg?.id) map.set(msg.id, msg as MessageResponse);
+						}
+						next = Array.from(map.values());
+					}
+					next.sort(
+						(a: any, b: any) =>
+							new Date(a.createdAt as any).getTime() -
+							new Date(b.createdAt as any).getTime(),
+					);
+					if (Array.isArray(old)) return next;
+					return { ...old, data: next };
+				},
+			);
+		},
+		[groupId, channelIdParam, queryClient],
+	);
+
+	const upsertDirectMessages = useCallback(
+		(targetUserId: string, incoming: MessageResponse[], replace = false) => {
+			if (!targetUserId) return;
+			queryClient.setQueryData(
+				["direct_messages", targetUserId],
+				(old: any) => {
+					const toArray = (o: any) =>
+						Array.isArray(o?.data) ? o.data : Array.isArray(o) ? o : [];
+					const current = toArray(old);
+					let next: MessageResponse[];
+					if (replace) next = incoming.slice();
+					else {
+						const map = new Map<string, MessageResponse>();
+						for (const msg of current) {
+							if (msg?.id) map.set(msg.id, msg as MessageResponse);
+						}
+						for (const msg of incoming) {
+							if (msg?.id) map.set(msg.id, msg as MessageResponse);
+						}
+						next = Array.from(map.values());
+					}
+					next.sort(
+						(a: any, b: any) =>
+							new Date(a.createdAt as any).getTime() -
+							new Date(b.createdAt as any).getTime(),
+					);
+					if (Array.isArray(old)) return next;
+					return { ...old, data: next };
+				},
+			);
+		},
+		[queryClient],
+	);
+
+	const schedulePrependScrollRestore = useCallback(() => {
+		if (!pendingPrependScrollRef.current) return;
+		requestAnimationFrame(() => {
+			requestAnimationFrame(() => {
+				const pending = pendingPrependScrollRef.current;
+				const container = listRef.current;
+				if (!pending || !container) return;
+				const newHeight = container.scrollHeight;
+				const delta = newHeight - pending.prevScrollHeight;
+				container.scrollTop = pending.prevScrollTop + delta;
+				pendingPrependScrollRef.current = null;
+			});
+		});
+	}, []);
+
+	const handleChannelMessagesPage = useCallback(
+		(resp: any, options: { page: number; replace?: boolean }) => {
+			const normalized = normalizeChannelMessages(resp);
+			upsertChannelMessages(normalized, options?.replace ?? false);
+			if (!isDirectMode) {
+				applyPaginationResult(options.page, normalized.length);
+			}
+			if (options.page > 1) schedulePrependScrollRestore();
+			else shouldStickToBottomRef.current = true;
+		},
+		[
+			upsertChannelMessages,
+			isDirectMode,
+			applyPaginationResult,
+			schedulePrependScrollRestore,
+		],
+	);
+
+	const handleDirectMessagesPage = useCallback(
+		(
+			resp: any,
+			options: { page: number; replace?: boolean; targetUserId: string },
+		) => {
+			const normalized = normalizeDirectMessages(resp);
+			upsertDirectMessages(
+				options.targetUserId,
+				normalized,
+				options?.replace ?? false,
+			);
+			if (isDirectMode && directUserIdParam === options.targetUserId) {
+				applyPaginationResult(options.page, normalized.length);
+				if (options.page > 1) schedulePrependScrollRestore();
+				else shouldStickToBottomRef.current = true;
+			}
+		},
+		[
+			upsertDirectMessages,
+			isDirectMode,
+			directUserIdParam,
+			applyPaginationResult,
+			schedulePrependScrollRestore,
+		],
+	);
 
 	// List all threads for current group/channel to detect existing thread per root message
 	const { data: threadsResp } = useQuery<ThreadListResponse | null>({
@@ -619,7 +801,12 @@ export const useChatAreaController = (): ChatAreaControllerResult => {
 				socket.emit(SocketEvents.JOIN_ROOM, payload);
 				console.debug("[ChatArea] emitted JOIN_ROOM", payload);
 				// Fallback: request messages immediately as well (in case JOINED_ROOM isn't fired)
-				const req = { groupId, channelId: channelIdParam };
+				const req = {
+					groupId,
+					channelId: channelIdParam,
+					page: 1,
+					take: MESSAGE_PAGE_SIZE,
+				};
 				socket.emit(SocketEvents.FETCH_MESSAGES, req, (resp: any) => {
 					if (cancelled) return;
 					try {
@@ -631,27 +818,10 @@ export const useChatAreaController = (): ChatAreaControllerResult => {
 							setSocketLoading(false);
 							return;
 						}
-						const itemsRaw = Array.isArray(resp)
-							? resp
-							: Array.isArray(resp?.data)
-								? resp.data
-								: Array.isArray(resp?.messages)
-									? resp.messages
-									: [];
-						const items = itemsRaw
-							.slice()
-							.sort(
-								(a: any, b: any) =>
-									new Date(a.createdAt).getTime() -
-									new Date(b.createdAt).getTime(),
-							);
-						queryClient.setQueryData(
-							["messages", groupId, channelIdParam],
-							items,
-						);
+						handleChannelMessagesPage(resp, { page: 1, replace: true });
 						console.debug(
 							"[ChatArea] FETCH_MESSAGES fallback -> set messages",
-							items.length,
+							extractSocketArray(resp).length,
 						);
 						setSocketLoading(false);
 					} catch (e) {
@@ -670,7 +840,12 @@ export const useChatAreaController = (): ChatAreaControllerResult => {
 					{ event: SocketEvents.JOIN_ROOM, payload },
 					{
 						event: SocketEvents.FETCH_MESSAGES,
-						payload: { groupId, channelId: channelIdParam },
+						payload: {
+							groupId,
+							channelId: channelIdParam,
+							page: 1,
+							take: MESSAGE_PAGE_SIZE,
+						},
 					},
 				]);
 				setSocketLoading(true);
@@ -743,10 +918,25 @@ export const useChatAreaController = (): ChatAreaControllerResult => {
 		setRealtimeMessages([]);
 	}, [groupId, channelIdParam, directUserIdParam, isDirectMode]);
 
+	useEffect(() => {
+		messagePageRef.current = 1;
+		hasMoreMessagesRef.current = true;
+		setHasMoreMessages(true);
+		setFetchingOlderMessages(false);
+		fetchingOlderRef.current = false;
+		pendingPrependScrollRef.current = null;
+		shouldStickToBottomRef.current = true;
+	}, [groupId, channelIdParam, directUserIdParam, isDirectMode]);
+
 	// After JOINED_ROOM, ask server for messages via FETCH_MESSAGES (ack)
 	const onJoinedRoom = useCallback(() => {
 		if (!groupId || !channelIdParam) return;
-		const req = { groupId, channelId: channelIdParam };
+		const req = {
+			groupId,
+			channelId: channelIdParam,
+			page: 1,
+			take: MESSAGE_PAGE_SIZE,
+		};
 		try {
 			if (!socket) throw new Error("socket-not-ready");
 			setSocketLoading(true);
@@ -757,29 +947,10 @@ export const useChatAreaController = (): ChatAreaControllerResult => {
 						setSocketLoading(false);
 						return;
 					}
-
-					const itemsRaw = Array.isArray(resp)
-						? resp
-						: Array.isArray(resp?.data)
-							? resp.data
-							: Array.isArray(resp?.messages)
-								? resp.messages
-								: [];
-
-					// sort chronologically (oldest -> newest), matching existing logic
-					const items = itemsRaw.slice().sort((a: any, b: any) => {
-						const ta = new Date(a.createdAt).getTime();
-						const tb = new Date(b.createdAt).getTime();
-						return ta - tb;
-					});
-
-					queryClient.setQueryData(
-						["messages", groupId, channelIdParam],
-						items,
-					);
+					handleChannelMessagesPage(resp, { page: 1, replace: true });
 					console.debug(
 						"[ChatArea] FETCH_MESSAGES ack -> set messages in cache",
-						items.length,
+						extractSocketArray(resp).length,
 					);
 					setSocketLoading(false);
 				} catch (innerErr) {
@@ -807,6 +978,11 @@ export const useChatAreaController = (): ChatAreaControllerResult => {
 		if (!isDirectMode || !directUserIdParam) return;
 
 		let cancelled = false;
+		const payload = {
+			targetUserId: directUserIdParam,
+			page: 1,
+			take: MESSAGE_PAGE_SIZE,
+		};
 
 		const fetchDirectMessages = async () => {
 			await waitUntilReady();
@@ -815,7 +991,7 @@ export const useChatAreaController = (): ChatAreaControllerResult => {
 			try {
 				socket.emit(
 					SocketEvents.FETCH_DIRECT_MESSAGES,
-					{ targetUserId: directUserIdParam },
+					payload,
 					(resp: any) => {
 						if (cancelled) return;
 						try {
@@ -827,29 +1003,11 @@ export const useChatAreaController = (): ChatAreaControllerResult => {
 								setSocketLoading(false);
 								return;
 							}
-							const itemsRaw = Array.isArray(resp)
-								? resp
-								: Array.isArray(resp?.data)
-									? resp.data
-									: Array.isArray(resp?.messages)
-										? resp.messages
-										: [];
-							const mapped = itemsRaw.map((dm: any) => ({
-								id: dm.id,
-								content: dm.content ?? "",
-								createdAt: dm.createdAt,
-								sender: dm.from ?? null,
-								codeBlockId: dm.codeBlockId,
-							}));
-							const items = mapped.slice().sort((a: any, b: any) => {
-								const ta = new Date(a.createdAt).getTime();
-								const tb = new Date(b.createdAt).getTime();
-								return ta - tb;
+							handleDirectMessagesPage(resp, {
+								page: 1,
+								replace: true,
+								targetUserId: directUserIdParam,
 							});
-							queryClient.setQueryData(
-								["direct_messages", directUserIdParam],
-								items,
-							);
 							setSocketLoading(false);
 						} catch (e) {
 							console.error(
@@ -867,7 +1025,7 @@ export const useChatAreaController = (): ChatAreaControllerResult => {
 					...q,
 					{
 						event: SocketEvents.FETCH_DIRECT_MESSAGES,
-						payload: { targetUserId: directUserIdParam },
+						payload,
 					},
 				]);
 				setSocketLoading(true);
@@ -879,7 +1037,13 @@ export const useChatAreaController = (): ChatAreaControllerResult => {
 		return () => {
 			cancelled = true;
 		};
-	}, [isDirectMode, directUserIdParam, socket, queryClient, waitUntilReady]);
+	}, [
+		isDirectMode,
+		directUserIdParam,
+		socket,
+		waitUntilReady,
+		handleDirectMessagesPage,
+	]);
 
 	// Queue flush & connect handling
 	useEffect(() => {
@@ -917,27 +1081,14 @@ export const useChatAreaController = (): ChatAreaControllerResult => {
 									setSocketLoading(false);
 									return;
 								}
-								const itemsRaw = Array.isArray(ack)
-									? ack
-									: Array.isArray(ack?.data)
-										? ack.data
-										: Array.isArray(ack?.messages)
-											? ack.messages
-											: [];
-								const items = itemsRaw.slice().sort((a: any, b: any) => {
-									const ta = new Date(a.createdAt).getTime();
-									const tb = new Date(b.createdAt).getTime();
-									return ta - tb;
+								const page = (item.payload as any)?.page ?? 1;
+								handleChannelMessagesPage(ack, {
+									page,
+									replace: page === 1,
 								});
-								if (groupId && channelIdParam) {
-									queryClient.setQueryData(
-										["messages", groupId, channelIdParam],
-										items,
-									);
-								}
 								console.debug(
 									"[ChatArea] flush FETCH_MESSAGES -> set messages",
-									items.length,
+									extractSocketArray(ack).length,
 								);
 								setSocketLoading(false);
 							} catch (e) {
@@ -959,30 +1110,14 @@ export const useChatAreaController = (): ChatAreaControllerResult => {
 									setSocketLoading(false);
 									return;
 								}
-								const itemsRaw = Array.isArray(ack)
-									? ack
-									: Array.isArray(ack?.data)
-										? ack.data
-										: Array.isArray(ack?.messages)
-											? ack.messages
-											: [];
-								const mapped = itemsRaw.map((dm: any) => ({
-									id: dm.id,
-									content: dm.content ?? "",
-									createdAt: dm.createdAt,
-									sender: dm.from ?? null,
-								}));
-								const items = mapped.slice().sort((a: any, b: any) => {
-									const ta = new Date(a.createdAt).getTime();
-									const tb = new Date(b.createdAt).getTime();
-									return ta - tb;
-								});
 								const targetUserId = (item.payload as any)?.targetUserId;
+								const page = (item.payload as any)?.page ?? 1;
 								if (targetUserId) {
-									queryClient.setQueryData(
-										["direct_messages", targetUserId],
-										items,
-									);
+									handleDirectMessagesPage(ack, {
+										page,
+										replace: page === 1,
+										targetUserId,
+									});
 								}
 								setSocketLoading(false);
 							} catch (e) {
@@ -1040,7 +1175,7 @@ export const useChatAreaController = (): ChatAreaControllerResult => {
 						lastJoinKeyRef.current = `${groupId}:${channelIdParam}`;
 						// Proactively fetch messages in case server doesn't emit JOINED_ROOM
 						setSocketLoading(true);
-						const req = { groupId, channelId: channelIdParam };
+						const req = { groupId, channelId: channelIdParam, page: 1 };
 						socket.emit(SocketEvents.FETCH_MESSAGES, req, (resp: any) => {
 							try {
 								if (resp && (resp.error || resp.code)) {
@@ -1051,25 +1186,10 @@ export const useChatAreaController = (): ChatAreaControllerResult => {
 									setSocketLoading(false);
 									return;
 								}
-								const itemsRaw = Array.isArray(resp)
-									? resp
-									: Array.isArray(resp?.data)
-										? resp.data
-										: Array.isArray(resp?.messages)
-											? resp.messages
-											: [];
-								const items = itemsRaw.slice().sort((a: any, b: any) => {
-									const ta = new Date(a.createdAt).getTime();
-									const tb = new Date(b.createdAt).getTime();
-									return ta - tb;
-								});
-								queryClient.setQueryData(
-									["messages", groupId, channelIdParam],
-									items,
-								);
+								handleChannelMessagesPage(resp, { page: 1, replace: true });
 								console.debug(
 									"[ChatArea] FETCH_MESSAGES (onConnect) -> set messages",
-									items.length,
+									extractSocketArray(resp).length,
 								);
 								setSocketLoading(false);
 							} catch (e) {
@@ -1499,7 +1619,8 @@ export const useChatAreaController = (): ChatAreaControllerResult => {
 		? `dm:${directUserIdParam}`
 		: `${groupId ?? ""}:${channelIdParam ?? ""}:${threadIdParam ?? ""}`;
 
-	const scrollToBottomInstant = useCallback(() => {
+	const scrollToBottomInstant = useCallback((force = false) => {
+		if (!force && !shouldStickToBottomRef.current) return;
 		const container = listRef.current;
 		try {
 			if (container) {
@@ -1507,6 +1628,7 @@ export const useChatAreaController = (): ChatAreaControllerResult => {
 			}
 			// Anchor-based fallback for cases where direct scrollTop is ignored due to layout timing
 			bottomRef.current?.scrollIntoView({ behavior: "auto", block: "end" });
+			if (force) shouldStickToBottomRef.current = true;
 		} catch {
 			/* noop */
 		}
@@ -1515,8 +1637,8 @@ export const useChatAreaController = (): ChatAreaControllerResult => {
 	// Ensure we start at the bottom immediately on room change (avoid top flash)
 	useLayoutEffect(() => {
 		// Run across frames in case content height changes after first paint
-		scrollToBottomInstant();
-		const id = requestAnimationFrame(scrollToBottomInstant);
+		scrollToBottomInstant(true);
+		const id = requestAnimationFrame(() => scrollToBottomInstant(true));
 		return () => cancelAnimationFrame(id);
 	}, [roomKey, scrollToBottomInstant]);
 
@@ -1528,8 +1650,8 @@ export const useChatAreaController = (): ChatAreaControllerResult => {
 	// Also scroll after data loads finish for this room
 	useEffect(() => {
 		if (!messagesLoading && !threadLoading && !socketLoading) {
-			const id1 = requestAnimationFrame(scrollToBottomInstant);
-			const id2 = requestAnimationFrame(scrollToBottomInstant);
+			const id1 = requestAnimationFrame(() => scrollToBottomInstant(true));
+			const id2 = requestAnimationFrame(() => scrollToBottomInstant(true));
 			return () => {
 				cancelAnimationFrame(id1);
 				cancelAnimationFrame(id2);
@@ -1542,6 +1664,113 @@ export const useChatAreaController = (): ChatAreaControllerResult => {
 		roomKey,
 		scrollToBottomInstant,
 	]);
+
+	const loadOlderMessages = useCallback(() => {
+		if (fetchingOlderRef.current || !hasMoreMessagesRef.current) return;
+		if (isDirectMode) {
+			if (!directUserIdParam) return;
+		} else if (!groupId || !channelIdParam) {
+			return;
+		}
+		if (!socket || !socket.connected) return;
+
+		const nextPage = messagePageRef.current + 1;
+		const payload = isDirectMode
+			? {
+					targetUserId: directUserIdParam,
+					page: nextPage,
+					take: MESSAGE_PAGE_SIZE,
+				}
+			: {
+					groupId,
+					channelId: channelIdParam,
+					page: nextPage,
+					take: MESSAGE_PAGE_SIZE,
+				};
+
+		if (listRef.current) {
+			pendingPrependScrollRef.current = {
+				prevScrollHeight: listRef.current.scrollHeight,
+				prevScrollTop: listRef.current.scrollTop ?? 0,
+			};
+		} else {
+			pendingPrependScrollRef.current = null;
+		}
+
+		fetchingOlderRef.current = true;
+		setFetchingOlderMessages(true);
+		const event = isDirectMode
+			? SocketEvents.FETCH_DIRECT_MESSAGES
+			: SocketEvents.FETCH_MESSAGES;
+
+		try {
+			socket.emit(event, payload, (resp: any) => {
+				try {
+					if (resp && (resp.error || resp.code)) {
+						console.error(`[ChatArea] ${event} ack error (older)`, resp);
+						pendingPrependScrollRef.current = null;
+						return;
+					}
+					if (isDirectMode && directUserIdParam) {
+						handleDirectMessagesPage(resp, {
+							page: nextPage,
+							replace: false,
+							targetUserId: directUserIdParam,
+						});
+					} else {
+						handleChannelMessagesPage(resp, {
+							page: nextPage,
+							replace: false,
+						});
+					}
+				} finally {
+					fetchingOlderRef.current = false;
+					setFetchingOlderMessages(false);
+				}
+			});
+		} catch (err) {
+			console.error("[ChatArea] loadOlderMessages failed", err);
+			fetchingOlderRef.current = false;
+			setFetchingOlderMessages(false);
+			pendingPrependScrollRef.current = null;
+		}
+	}, [
+		channelIdParam,
+		directUserIdParam,
+		groupId,
+		handleChannelMessagesPage,
+		handleDirectMessagesPage,
+		isDirectMode,
+		socket,
+	]);
+
+	useEffect(() => {
+		const container = listRef.current;
+		if (!container) return;
+		let rafId: number | null = null;
+		const onScroll = () => {
+			if (rafId) cancelAnimationFrame(rafId);
+			rafId = requestAnimationFrame(() => {
+				const { scrollTop, scrollHeight, clientHeight } = container;
+				const nearBottom =
+					scrollHeight - (scrollTop + clientHeight) <
+					SCROLL_BOTTOM_THRESHOLD_PX;
+				shouldStickToBottomRef.current = nearBottom;
+				if (
+					scrollTop < SCROLL_TOP_THRESHOLD_PX &&
+					hasMoreMessagesRef.current &&
+					!fetchingOlderRef.current
+				) {
+					loadOlderMessages();
+				}
+			});
+		};
+		container.addEventListener("scroll", onScroll);
+		return () => {
+			if (rafId) cancelAnimationFrame(rafId);
+			container.removeEventListener("scroll", onScroll);
+		};
+	}, [loadOlderMessages, roomKey]);
 
 	const handleCopy = useCallback((m: MessageResponse) => {
 		if (!m.content) return;
@@ -1862,6 +2091,8 @@ export const useChatAreaController = (): ChatAreaControllerResult => {
 		latestMessagePerThread,
 		threadDetailsMap,
 		threadsByMessageId,
+		hasMoreMessages,
+		isFetchingOlderMessages: fetchingOlderMessages,
 		reactionPickerFor,
 		onSetReactionPickerFor: setReactionPickerFor,
 		onEdit: handleEdit,

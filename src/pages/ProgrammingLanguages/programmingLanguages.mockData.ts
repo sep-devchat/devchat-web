@@ -4,11 +4,10 @@ export interface ProgrammingLanguages {
 	id: string;
 	languageCode: string;
 	languageName: string;
-	languageVersion: string;
-	languageIcon: string;
-	syntaxHighlighting: string;
-	codeExecutions: number;
+	languageVersion?: string | null;
+	languageIcon?: string | null;
 	isExecutable: boolean;
+	isActive: boolean;
 	createdAt: string;
 	updatedAt: string;
 }
@@ -23,7 +22,11 @@ export const PROGRAMMING_LANGUAGES_COLUMNS: Column[] = [
 	},
 	{ key: "languageCode", label: "Code", width: "250px", align: "center" },
 	{ key: "languageVersion", label: "Version", width: "250px", align: "center" },
-	// { key: "syntaxHighlighting", label: "Syntax", width: "150px" },
-	// { key: "codeExecutions", label: "Executions", width: "200px", align: "center" },
-	{ key: "isExecutable", label: "Status", width: "250px", align: "center" },
+	{
+		key: "isExecutable",
+		label: "Code Execution",
+		width: "250px",
+		align: "center",
+	},
+	{ key: "isActive", label: "Is Active", width: "250px", align: "center" },
 ];

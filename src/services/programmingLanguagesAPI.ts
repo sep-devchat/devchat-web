@@ -5,33 +5,30 @@ export interface ProgrammingLanguageResponse {
 	id: string;
 	languageCode: string;
 	languageName: string;
-	languageIcon: string;
-	languageVersion: string;
-	syntaxHighlighting: string;
-	codeExecutions: number;
+	languageIcon?: string | null;
+	languageVersion?: string | null;
+	preset?: string | null;
 	isExecutable: boolean;
-	createdAt: string;
-	createdBy: string;
-	updatedAt: string;
-	updatedBy: string;
 	isActive: boolean;
+	createdAt: string;
+	updatedAt: string;
 }
 
 export interface ProgrammingLanguageRequest {
 	languageCode: string;
 	languageName: string;
-	languageIcon: string;
-	languageVersion: string;
-	syntaxHighlighting: string;
-	isExecutable: boolean;
+	languageIcon?: string | null;
+	languageVersion?: string | null;
+	preset?: string | null;
+	isExecutable?: boolean;
 }
 
 export interface ProgrammingLanguageUpdateRequest {
 	languageCode?: string;
 	languageName?: string;
-	languageIcon?: string;
-	languageVersion?: string;
-	syntaxHighlighting?: string;
+	languageIcon?: string | null;
+	languageVersion?: string | null;
+	preset?: string | null;
 	isExecutable?: boolean;
 }
 
@@ -48,14 +45,14 @@ export interface PaginationResponse<T> {
 
 export const listProgrammingLanguages = (
 	page: number = 1,
-	take: number = 20,
+	limit: number = 20,
 	code?: string,
 	name?: string,
 	version?: string,
 	search?: string,
 	isActive?: boolean,
 ) => {
-	let url = `/api/programming-language?page=${page}&take=${take}`;
+	let url = `/api/programming-language?page=${page}&limit=${limit}`;
 
 	if (code) url += `&code=${encodeURIComponent(code)}`;
 	if (name) url += `&name=${encodeURIComponent(name)}`;
@@ -66,15 +63,18 @@ export const listProgrammingLanguages = (
 	return get<PaginationResponse<ProgrammingLanguageResponse[]>>(url);
 };
 
-export const getAllProgrammingLanguages = (params?: { isActive?: boolean }) => {
+export const getAllProgrammingLanguages = (params?: {
+	isActive?: boolean;
+	limit?: number;
+	page?: number;
+}) => {
 	const searchParams = new URLSearchParams();
+	searchParams.append("page", String(params?.page ?? 1));
+	searchParams.append("limit", String(params?.limit ?? 100));
 	if (typeof params?.isActive === "boolean") {
 		searchParams.append("isActive", String(params.isActive));
 	}
-	const queryString = searchParams.toString();
-	const url = queryString
-		? `/api/programming-language?${queryString}`
-		: `/api/programming-language`;
+	const url = `/api/programming-language?${searchParams.toString()}`;
 	return get<PaginationResponse<ProgrammingLanguageResponse[]>>(url);
 };
 
@@ -104,5 +104,11 @@ export const updateProgrammingLanguage = (
 export const deleteProgrammingLanguage = (id: string) => {
 	return remove<PaginationResponse<ProgrammingLanguageResponse>>(
 		`/api/programming-language/${id}`,
+	);
+};
+
+export const toggleProgrammingLanguageIsActive = (id: string) => {
+	return get<PaginationResponse<ProgrammingLanguageResponse>>(
+		`/api/programming-language/toggle-is-active/${id}`,
 	);
 };

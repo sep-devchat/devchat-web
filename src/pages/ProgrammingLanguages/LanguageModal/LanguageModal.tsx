@@ -44,9 +44,9 @@ export const LanguageModal: React.FC<LanguageModalProps> = ({
 				const defaultData: RolePermission = {
 					languageCode: "",
 					languageName: "",
-					languageVersion: "1.0.0",
+					languageVersion: "",
 					languageIcon: "",
-					syntaxHighlighting: "none",
+					preset: "",
 					isExecutable: true,
 				};
 				setFormData(defaultData);
@@ -121,7 +121,7 @@ export const LanguageModal: React.FC<LanguageModalProps> = ({
 		columns.forEach((column) => {
 			const value = formData[column.key];
 
-			if (column.key === "codeExecutions" || column.key === "actions") {
+			if (column.key === "actions") {
 				return;
 			}
 
@@ -142,8 +142,8 @@ export const LanguageModal: React.FC<LanguageModalProps> = ({
 		if (validateForm()) {
 			const submittedData = {
 				...formData,
-				languageVersion: formData.languageVersion?.toString() || "1.0.0",
-				syntaxHighlighting: formData.syntaxHighlighting?.toString() || "none",
+				languageVersion: formData.languageVersion?.toString() || "",
+				preset: formData.preset?.toString() || "",
 				languageIcon: formData.languageIcon || "",
 			};
 
@@ -157,6 +157,11 @@ export const LanguageModal: React.FC<LanguageModalProps> = ({
 	const modalTitle =
 		title || (mode === "create" ? "Add Language" : "Update Language");
 
+	const filteredColumns = columns.filter(
+		(col) => col.key !== "actions" && col.key !== "isActive",
+	);
+	const hasPresetColumn = filteredColumns.some((col) => col.key === "preset");
+
 	return (
 		<S.Overlay>
 			<S.ModalContainer onClick={(e) => e.stopPropagation()}>
@@ -169,115 +174,122 @@ export const LanguageModal: React.FC<LanguageModalProps> = ({
 
 				<S.ModalBody>
 					<S.Form onSubmit={handleSubmit}>
-						{columns
-							.filter(
-								(col) => col.key !== "codeExecutions" && col.key !== "actions",
-							)
-							.map((column) => {
-								const value = formData[column.key];
-								const isRequired = isRequiredField(column.key);
+						{filteredColumns.map((column) => {
+							const value = formData[column.key];
+							const isRequired = isRequiredField(column.key);
 
-								if (column.key === "isExecutable") {
-									return (
-										<S.FormGroup key={column.key}>
-											<S.CheckboxContainer>
-												<S.Checkbox
-													type="checkbox"
-													id="isExecutable"
-													checked={Boolean(value)}
-													onChange={(e) =>
-														handleChange(column.key, e.target.checked)
-													}
-												/>
-												<S.CheckboxLabel htmlFor="isExecutable">
-													Enable code execution for this language
-												</S.CheckboxLabel>
-											</S.CheckboxContainer>
-										</S.FormGroup>
-									);
-								}
+							if (column.key === "isExecutable") {
+								return (
+									<S.FormGroup key={column.key}>
+										<S.CheckboxContainer>
+											<S.Checkbox
+												type="checkbox"
+												id="isExecutable"
+												checked={Boolean(value)}
+												onChange={(e) =>
+													handleChange(column.key, e.target.checked)
+												}
+											/>
+											<S.CheckboxLabel htmlFor="isExecutable">
+												Code execution
+											</S.CheckboxLabel>
+										</S.CheckboxContainer>
+									</S.FormGroup>
+								);
+							}
 
-								if (column.key === "languageIcon") {
-									return (
-										<S.FormGroup key={column.key}>
-											<S.Label>
-												{column.label}
-												{isRequired && <S.Required>*</S.Required>}
-											</S.Label>
-
-											<S.IconUploadContainer>
-												{iconPreview ? (
-													<S.IconPreviewContainer>
-														<S.IconPreview
-															src={iconPreview}
-															alt="Language icon"
-														/>
-														<S.RemoveIconButton
-															type="button"
-															onClick={handleRemoveIcon}
-														>
-															<X size={16} />
-														</S.RemoveIconButton>
-													</S.IconPreviewContainer>
-												) : (
-													<S.UploadButton
-														type="button"
-														onClick={() => fileInputRef.current?.click()}
-													>
-														<Upload size={20} />
-														<span>Upload Icon (Optional)</span>
-													</S.UploadButton>
-												)}
-
-												<S.HiddenFileInput
-													ref={fileInputRef}
-													type="file"
-													accept=".png,.svg,.jpg,.jpeg"
-													onChange={handleFileUpload}
-												/>
-
-												<S.UploadHint>
-													Supported formats: PNG, SVG, JPG (max 2MB)
-												</S.UploadHint>
-											</S.IconUploadContainer>
-
-											{errors[column.key] && (
-												<S.ErrorText>{errors[column.key]}</S.ErrorText>
-											)}
-										</S.FormGroup>
-									);
-								}
-
-								const getPlaceholder = (key: string, label: string) => {
-									if (key === "languageVersion") {
-										return "Enter version (default: 1.0.0)";
-									}
-									if (key === "syntaxHighlighting") {
-										return "Enter syntax type (default: none)";
-									}
-									return `Enter ${label.toLowerCase()}`;
-								};
-
+							if (column.key === "languageIcon") {
 								return (
 									<S.FormGroup key={column.key}>
 										<S.Label>
 											{column.label}
 											{isRequired && <S.Required>*</S.Required>}
 										</S.Label>
-										<S.Input
-											type="text"
-											value={String(value || "")}
-											onChange={(e) => handleChange(column.key, e.target.value)}
-											placeholder={getPlaceholder(column.key, column.label)}
-											error={!!errors[column.key]}
-										/>
+
+										<S.IconUploadContainer>
+											{iconPreview ? (
+												<S.IconPreviewContainer>
+													<S.IconPreview
+														src={iconPreview}
+														alt="Language icon"
+													/>
+													<S.RemoveIconButton
+														type="button"
+														onClick={handleRemoveIcon}
+													>
+														<X size={16} />
+													</S.RemoveIconButton>
+												</S.IconPreviewContainer>
+											) : (
+												<S.UploadButton
+													type="button"
+													onClick={() => fileInputRef.current?.click()}
+												>
+													<Upload size={20} />
+													<span>Upload Icon (Optional)</span>
+												</S.UploadButton>
+											)}
+
+											<S.HiddenFileInput
+												ref={fileInputRef}
+												type="file"
+												accept=".png,.svg,.jpg,.jpeg"
+												onChange={handleFileUpload}
+											/>
+
+											<S.UploadHint>
+												Supported formats: PNG, SVG, JPG (max 2MB)
+											</S.UploadHint>
+										</S.IconUploadContainer>
 
 										{errors[column.key] && (
 											<S.ErrorText>{errors[column.key]}</S.ErrorText>
 										)}
 									</S.FormGroup>
 								);
-							})}
+							}
+
+							const getPlaceholder = (key: string, label: string) => {
+								if (key === "languageVersion") {
+									return "Enter version";
+								}
+								return `Enter ${label.toLowerCase()}`;
+							};
+
+							return (
+								<S.FormGroup key={column.key}>
+									<S.Label>
+										{column.label}
+										{isRequired && <S.Required>*</S.Required>}
+									</S.Label>
+									<S.Input
+										type="text"
+										value={String(value || "")}
+										onChange={(e) => handleChange(column.key, e.target.value)}
+										placeholder={getPlaceholder(column.key, column.label)}
+										error={!!errors[column.key]}
+									/>
+
+									{errors[column.key] && (
+										<S.ErrorText>{errors[column.key]}</S.ErrorText>
+									)}
+								</S.FormGroup>
+							);
+						})}
+
+						{!hasPresetColumn && (
+							<S.FormGroup key="preset">
+								<S.Label>Preset</S.Label>
+								<S.Textarea
+									value={String(formData.preset || "")}
+									onChange={(e) => handleChange("preset", e.target.value)}
+									placeholder="Enter preset configuration (optional)"
+									error={!!errors.preset}
+								/>
+
+								{errors.preset && <S.ErrorText>{errors.preset}</S.ErrorText>}
+							</S.FormGroup>
+						)}
 
 						<S.ModalFooter>
 							<S.CancelButton type="button" onClick={onClose}>

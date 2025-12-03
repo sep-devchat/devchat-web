@@ -7,6 +7,9 @@ import { ProgrammingLanguageResponse } from "@/services/programmingLanguagesAPI"
 import StyledSelect from "../CustomSelect/StyledSelect";
 import { theme } from "@/themes";
 
+const FALLBACK_LANGUAGE_ICON =
+	"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40'%3E%3Crect fill='%23ddd' width='40' height='40'/%3E%3C/svg%3E";
+
 const LanguageItemWrapper = styled.div<{ $isTopThree: boolean }>`
 	display: flex;
 	align-items: center;
@@ -240,7 +243,12 @@ interface UserLanguageItemProps {
 		id: string;
 		languageId?: string;
 		languageName: string;
-		languageIcon: string;
+		languageIcon?: string | null;
+		languageCode?: string;
+		languageVersion?: string | null;
+		preset?: string | null;
+		isExecutable?: boolean;
+		isActive?: boolean;
 		proficiencyLevel: string;
 		orderIndex: number;
 	};
@@ -349,14 +357,11 @@ const UserLanguageItem: React.FC<UserLanguageItemProps> = ({
 				languageCode: "",
 				languageIcon: language.languageIcon,
 				languageVersion: "",
-				syntaxHighlighting: "",
-				codeExecutions: 0,
+				preset: language.preset ?? null,
 				isExecutable: false,
 				isActive: true,
 				createdAt: "",
-				createdBy: "",
 				updatedAt: "",
-				updatedBy: "",
 			} as ProgrammingLanguageResponse,
 		];
 	}, [
@@ -393,6 +398,18 @@ const UserLanguageItem: React.FC<UserLanguageItemProps> = ({
 		resolvedLanguageName,
 	]);
 
+	const editingIconSrc =
+		typeof editingLanguageDetails.icon === "string" &&
+		editingLanguageDetails.icon.length > 0
+			? editingLanguageDetails.icon
+			: FALLBACK_LANGUAGE_ICON;
+
+	const readonlyIconSrc =
+		typeof language.languageIcon === "string" &&
+		language.languageIcon.length > 0
+			? language.languageIcon
+			: FALLBACK_LANGUAGE_ICON;
+
 	const handleFieldChange = (patch: Partial<LanguageEditData>) => {
 		setEditData((prev) => {
 			const next = { ...prev, ...patch } as LanguageEditData;
@@ -421,11 +438,10 @@ const UserLanguageItem: React.FC<UserLanguageItemProps> = ({
 				<LanguageInfo>
 					{isTopThree && <RankBadge>#{language.orderIndex}</RankBadge>}
 					<LanguageIcon
-						src={editingLanguageDetails.icon}
+						src={editingIconSrc}
 						alt={editingLanguageDetails.name}
 						onError={(e: any) => {
-							e.target.src =
-								"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40'%3E%3Crect fill='%23ddd' width='40' height='40'/%3E%3C/svg%3E";
+							e.target.src = FALLBACK_LANGUAGE_ICON;
 						}}
 					/>
 					<LanguageDetails style={{ flex: 1 }}>
@@ -515,11 +531,10 @@ const UserLanguageItem: React.FC<UserLanguageItemProps> = ({
 			<LanguageInfo>
 				{isTopThree && <RankBadge>#{language.orderIndex}</RankBadge>}
 				<LanguageIcon
-					src={language.languageIcon}
+					src={readonlyIconSrc}
 					alt={resolvedLanguageName}
 					onError={(e: any) => {
-						e.target.src =
-							"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40'%3E%3Crect fill='%23ddd' width='40' height='40'/%3E%3C/svg%3E";
+						e.target.src = FALLBACK_LANGUAGE_ICON;
 					}}
 				/>
 				<LanguageDetails>

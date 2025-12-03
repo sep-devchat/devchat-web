@@ -117,6 +117,30 @@ export const Input = styled.input<{ error?: boolean }>`
 	}
 `;
 
+export const Textarea = styled.textarea<{ error?: boolean }>`
+	width: 100%;
+	min-height: 120px;
+	padding: 0.625rem 0.875rem;
+	border: 1px solid ${(props) => (props.error ? "#dc2626" : "#d1d5db")};
+	border-radius: 0.5rem;
+	font-size: 0.875rem;
+	color: #1f2937;
+	transition: all 0.2s;
+	resize: vertical;
+
+	&:focus {
+		outline: none;
+		border-color: ${(props) => (props.error ? "#dc2626" : "#3b82f6")};
+		box-shadow: 0 0 0 3px
+			${(props) =>
+				props.error ? "rgba(220, 38, 38, 0.1)" : "rgba(59, 130, 246, 0.1)"};
+	}
+
+	&::placeholder {
+		color: #9ca3af;
+	}
+`;
+
 export const Select = styled.select`
 	width: 100%;
 	padding: 0.625rem 0.875rem;

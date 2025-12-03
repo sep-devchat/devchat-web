@@ -62,6 +62,14 @@ export interface TablePermissionProps {
 	deleteConfirmText?: string;
 	deleteCancelText?: string;
 	isLoading?: boolean;
+	deleteActionConfig?: (
+		rowData: RolePermission,
+		rowIndex: number,
+	) => {
+		icon?: React.ReactNode;
+		variant?: "danger" | "default";
+		title?: string;
+	};
 }
 
 export const TablePermission: React.FC<TablePermissionProps> = ({
@@ -83,6 +91,7 @@ export const TablePermission: React.FC<TablePermissionProps> = ({
 	deleteConfirmText = "Delete",
 	deleteCancelText = "Cancel",
 	isLoading: isTableLoading = false,
+	deleteActionConfig,
 }) => {
 	const [searchTerm, setSearchTerm] = useState("");
 	const [currentPage, setCurrentPage] = useState(1);
@@ -316,15 +325,23 @@ export const TablePermission: React.FC<TablePermissionProps> = ({
 														<Edit3 size={16} />
 													</IconButton>
 												)}
-												{onDelete && (
-													<IconButton
-														onClick={() => handleDeleteClick(rowIndex)}
-														title="Delete"
-														variant="danger"
-													>
-														<Trash2 size={16} />
-													</IconButton>
-												)}
+												{onDelete &&
+													(() => {
+														const absoluteIndex =
+															(currentPage - 1) * pageSize + rowIndex;
+														const deleteConfig = deleteActionConfig
+															? deleteActionConfig(row, absoluteIndex)
+															: undefined;
+														return (
+															<IconButton
+																onClick={() => handleDeleteClick(rowIndex)}
+																title={deleteConfig?.title ?? "Delete"}
+																variant={deleteConfig?.variant ?? "danger"}
+															>
+																{deleteConfig?.icon ?? <Trash2 size={16} />}
+															</IconButton>
+														);
+													})()}
 											</ActionGroup>
 										</Td>
 									)}
