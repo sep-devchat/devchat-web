@@ -633,7 +633,14 @@ export const useChatAreaController = (): ChatAreaControllerResult => {
 			const involvesMe = !!myId && (fromId === myId || toId === myId);
 			if (!involvesMe) return; // ignore messages not involving current user
 
+			const resolvedCodeBlockId =
+				payload.codeBlockId ??
+				payload.codeBlock?.id ??
+				payload.codeBlock?.codeBlockId ??
+				null;
+
 			const serverMsg: any = {
+				...payload,
 				id:
 					payload.id ??
 					payload._id ??
@@ -641,9 +648,12 @@ export const useChatAreaController = (): ChatAreaControllerResult => {
 					payload.clientTempId ??
 					`dm-${Date.now()}`,
 				createdAt: payload.createdAt ?? new Date().toISOString(),
-				content: payload.content ?? "",
+				content: payload.content ?? payload.message ?? "",
 				sender: payload.from ?? payload.sender ?? null,
 			};
+			if (resolvedCodeBlockId) {
+				serverMsg.codeBlockId = resolvedCodeBlockId;
+			}
 
 			// If currently viewing this DM, update realtime optimistic list
 			if (isDirectMode && directUserIdParam === otherUserId) {

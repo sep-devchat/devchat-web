@@ -43,5 +43,7 @@ export interface ThreadMessagesProps {
 	messagesContainerRef: (node: HTMLDivElement | null) => void;
 	onMessagesScroll: () => void;
 	bottomRef: (node: HTMLDivElement | null) => void;
+	hasMoreMessages: boolean;
+	isFetchingOlderMessages: boolean;
 	threadId?: string;
 }

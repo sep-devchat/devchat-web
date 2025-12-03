@@ -38,6 +38,8 @@ const ThreadMessages: React.FC<ThreadMessagesProps> = ({
 	messagesContainerRef,
 	onMessagesScroll,
 	bottomRef,
+	hasMoreMessages,
+	isFetchingOlderMessages,
 	threadId,
 }) => {
 	const getSenderLabel = (sender?: ThreadMessageResponse["sender"] | null) => {
@@ -52,12 +54,36 @@ const ThreadMessages: React.FC<ThreadMessagesProps> = ({
 
 	let previousSenderId: string | null = null;
 
+	const renderHistoryNotice = () => {
+		if (!groupedMessages.length) return null;
+		if (isFetchingOlderMessages) {
+			return (
+				<div className="flex justify-center py-2 text-xs text-muted-foreground">
+					Loading earlier messages...
+				</div>
+			);
+		}
+		if (hasMoreMessages) {
+			return (
+				<div className="flex justify-center py-2 text-[11px] uppercase tracking-wide text-muted-foreground opacity-80">
+					Scroll up for earlier messages
+				</div>
+			);
+		}
+		return (
+			<div className="flex justify-center py-2 text-[11px] uppercase tracking-wide text-muted-foreground opacity-70">
+				You're all caught up
+			</div>
+		);
+	};
+
 	return (
 		<div
 			ref={messagesContainerRef}
 			onScroll={onMessagesScroll}
 			className="flex flex-col gap-6 overflow-y-auto behave-scroll px-5"
 		>
+			{renderHistoryNotice()}
 			{groupedMessages.map(([date, dateMessages]) => (
 				<div key={date}>
 					<DividerWrapper>

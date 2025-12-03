@@ -44,6 +44,8 @@ interface ThreadPanelControllerResult {
 }
 
 const defaultMessageGroups: Array<[string, UIMessage[]]> = [];
+const THREAD_PAGE_SIZE = 50;
+const THREAD_SCROLL_TOP_THRESHOLD_PX = 120;
 
 export const useThreadPanelController = ({
 	groupId,
@@ -71,6 +73,20 @@ export const useThreadPanelController = ({
 	const attachBottomRef = useCallback((node: HTMLDivElement | null) => {
 		bottomRef.current = node;
 	}, []);
+	const schedulePrependScrollRestore = useCallback(() => {
+		if (!pendingPrependScrollRef.current) return;
+		requestAnimationFrame(() => {
+			requestAnimationFrame(() => {
+				const pending = pendingPrependScrollRef.current;
+				const container = messagesContainerRef.current;
+				if (!pending || !container) return;
+				const newHeight = container.scrollHeight;
+				const delta = newHeight - pending.prevScrollHeight;
+				container.scrollTop = pending.prevScrollTop + delta;
+				pendingPrependScrollRef.current = null;
+			});
+		});
+	}, []);
 	const [editingMessage, setEditingMessage] =
 		useState<ThreadMessageResponse | null>(null);
 	const [replyToMessage, setReplyToMessage] =
@@ -88,6 +104,15 @@ export const useThreadPanelController = ({
 		avatarUrl?: string;
 	} | null>(null);
 	const [emitQueue, setEmitQueue] = useState<QueuedEmit[]>([]);
+	const threadPageRef = useRef(1);
+	const hasMoreMessagesRef = useRef(true);
+	const fetchingOlderRef = useRef(false);
+	const [hasMoreMessages, setHasMoreMessages] = useState(true);
+	const [isFetchingOlderMessages, setIsFetchingOlderMessages] = useState(false);
+	const pendingPrependScrollRef = useRef<{
+		prevScrollHeight: number;
+		prevScrollTop: number;
+	} | null>(null);
 
 	useEffect(() => {
 		if (threadCreatorInfo) {
@@ -152,7 +177,7 @@ export const useThreadPanelController = ({
 	);
 
 	const handleFetchThreadMessagesAck = useCallback(
-		(resp: any) => {
+		(resp: any, options: { page: number; replace: boolean }): void => {
 			try {
 				if (resp && (resp.error || resp.code)) {
 					console.warn("[ThreadPanel] FETCH_THREAD_MESSAGES ack error", resp);
@@ -162,27 +187,58 @@ export const useThreadPanelController = ({
 				if (!Array.isArray(raw)) {
 					setBaseMessages([]);
 					setRealtimeMessages([]);
+					hasMoreMessagesRef.current = false;
+					setHasMoreMessages(false);
 					return;
 				}
-				const sorted = raw
+				const sorted = (raw
 					.slice()
 					.sort(
 						(a, b) =>
 							new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+					) ?? []) as ThreadMessageResponse[];
+				let nextBase: ThreadMessageResponse[] = sorted;
+				setBaseMessages((prev) => {
+					if (options.replace) {
+						nextBase = sorted;
+						return sorted;
+					}
+					const map = new Map(prev.map((m) => [m.id, m] as const));
+					for (const item of sorted) {
+						if (!map.has(item.id)) {
+							map.set(item.id, item);
+						}
+					}
+					nextBase = Array.from(map.values()).sort(
+						(a, b) =>
+							new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
 					);
-				setBaseMessages(sorted as MessageResponse[]);
+					return nextBase;
+				});
 				queryClient.setQueryData(
 					["thread_messages", groupId, channelId, threadId],
-					() => sorted,
+					() => nextBase,
 				);
+				threadPageRef.current = options.page;
+				const hasMore = sorted.length === THREAD_PAGE_SIZE;
+				hasMoreMessagesRef.current = hasMore;
+				setHasMoreMessages(hasMore);
+				if (!options.replace && options.page > 1) {
+					schedulePrependScrollRestore();
+				} else {
+					pendingPrependScrollRef.current = null;
+				}
 			} catch (e) {
 				console.error(
 					"[ThreadPanel] error handling FETCH_THREAD_MESSAGES response",
 					e,
 				);
+			} finally {
+				fetchingOlderRef.current = false;
+				setIsFetchingOlderMessages(false);
 			}
 		},
-		[queryClient, groupId, channelId, threadId],
+		[queryClient, groupId, channelId, threadId, schedulePrependScrollRestore],
 	);
 
 	const joinRoomForThread = useCallback(async () => {
@@ -203,52 +259,64 @@ export const useThreadPanelController = ({
 		}
 	}, [groupId, channelId, safeEmit]);
 
-	const fetchThreadMessages = useCallback(async () => {
-		await waitUntilReady();
-		if (!threadId || !groupId || !channelId) {
-			setBaseMessages([]);
-			setRealtimeMessages([]);
-			return;
-		}
-		const run = async (allowRetry: boolean) => {
-			const ack = await safeEmit(
-				SocketEvents.FETCH_THREAD_MESSAGES,
-				{ groupId, channelId, threadId },
-				{ onAck: handleFetchThreadMessagesAck },
-			);
-			const needsJoin = Boolean(
-				allowRetry &&
-					ack &&
-					typeof ack === "object" &&
-					(ack.error === "channel_not_selected_err" ||
-						ack.code === "channel_not_selected_err"),
-			);
-			if (needsJoin) {
-				console.warn(
-					"[ThreadPanel] server rejected FETCH_THREAD_MESSAGES, retrying after JOIN_ROOM",
+	const fetchThreadMessages = useCallback(
+		async (options: { page?: number; replace?: boolean } = {}) => {
+			const { page = 1, replace = true } = options;
+			await waitUntilReady();
+			if (!threadId || !groupId || !channelId) {
+				setBaseMessages([]);
+				setRealtimeMessages([]);
+				hasMoreMessagesRef.current = false;
+				setHasMoreMessages(false);
+				return;
+			}
+			const run = async (allowRetry: boolean) => {
+				const ack = await safeEmit(
+					SocketEvents.FETCH_THREAD_MESSAGES,
+					{ groupId, channelId, threadId, page, take: THREAD_PAGE_SIZE },
+					{
+						onAck: (resp) =>
+							handleFetchThreadMessagesAck(resp, { page, replace }),
+					},
 				);
-				const joined = await joinRoomForThread();
-				if (joined) {
-					await run(false);
+				const needsJoin = Boolean(
+					allowRetry &&
+						ack &&
+						typeof ack === "object" &&
+						(ack.error === "channel_not_selected_err" ||
+							ack.code === "channel_not_selected_err"),
+				);
+				if (needsJoin) {
+					console.warn(
+						"[ThreadPanel] server rejected FETCH_THREAD_MESSAGES, retrying after JOIN_ROOM",
+					);
+					const joined = await joinRoomForThread();
+					if (joined) {
+						await run(false);
+					}
+				}
+			};
+			if (page === 1 && replace) {
+				setIsLoading(true);
+			}
+			try {
+				await run(true);
+			} finally {
+				if (page === 1 && replace) {
+					setIsLoading(false);
 				}
 			}
-		};
-		setIsLoading(true);
-		try {
-			await run(true);
-		} finally {
-			setIsLoading(false);
-		}
-	}, [
-		threadId,
-		groupId,
-		channelId,
-		safeEmit,
-		handleFetchThreadMessagesAck,
-		joinRoomForThread,
-		waitUntilReady,
-		emitQueue,
-	]);
+		},
+		[
+			threadId,
+			groupId,
+			channelId,
+			safeEmit,
+			handleFetchThreadMessagesAck,
+			joinRoomForThread,
+			waitUntilReady,
+		],
+	);
 
 	const onServerThreadMessage = useCallback(
 		(payload: any) => {
@@ -381,7 +449,7 @@ export const useThreadPanelController = ({
 				if (cancelled) return;
 				tryFlushNow();
 				if (threadId && groupId && channelId) {
-					void fetchThreadMessages();
+					void fetchThreadMessages({ page: 1, replace: true });
 				}
 			};
 			handleConnect().catch((err) =>
@@ -461,6 +529,34 @@ export const useThreadPanelController = ({
 		}
 	}, [threadId, groupId, channelId, loadThreadDetails]);
 
+	const loadOlderThreadMessages = useCallback(() => {
+		if (!threadId || !groupId || !channelId) return;
+		if (fetchingOlderRef.current || !hasMoreMessagesRef.current) return;
+		const container = messagesContainerRef.current;
+		if (container) {
+			pendingPrependScrollRef.current = {
+				prevScrollHeight: container.scrollHeight,
+				prevScrollTop: container.scrollTop ?? 0,
+			};
+		} else {
+			pendingPrependScrollRef.current = null;
+		}
+		const nextPage = threadPageRef.current + 1;
+		fetchingOlderRef.current = true;
+		setIsFetchingOlderMessages(true);
+		void fetchThreadMessages({ page: nextPage, replace: false }).catch(
+			(err) => {
+				console.error(
+					"[ThreadPanel] failed to load older thread messages",
+					err,
+				);
+				fetchingOlderRef.current = false;
+				setIsFetchingOlderMessages(false);
+				pendingPrependScrollRef.current = null;
+			},
+		);
+	}, [threadId, groupId, channelId, fetchThreadMessages]);
+
 	useEffect(() => {
 		setEditingMessage(null);
 		setReplyToMessage(null);
@@ -469,8 +565,14 @@ export const useThreadPanelController = ({
 	useEffect(() => {
 		setRealtimeMessages([]);
 		setBaseMessages([]);
+		threadPageRef.current = 1;
+		hasMoreMessagesRef.current = true;
+		fetchingOlderRef.current = false;
+		setHasMoreMessages(true);
+		setIsFetchingOlderMessages(false);
+		pendingPrependScrollRef.current = null;
 		if (!threadId || !groupId || !channelId) return;
-		void fetchThreadMessages();
+		void fetchThreadMessages({ page: 1, replace: true });
 	}, [threadId, groupId, channelId, fetchThreadMessages]);
 
 	const onJoinedRoom = useCallback(
@@ -480,7 +582,7 @@ export const useThreadPanelController = ({
 			if (!groupId || !channelId) return;
 			if (joinedGroupId !== groupId || joinedChannelId !== channelId) return;
 			if (!threadId) return;
-			void fetchThreadMessages();
+			void fetchThreadMessages({ page: 1, replace: true });
 		},
 		[groupId, channelId, threadId, fetchThreadMessages],
 	);
@@ -546,7 +648,14 @@ export const useThreadPanelController = ({
 		if (!el) return;
 		const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
 		setUserScrolledUp(distanceFromBottom > 200);
-	}, []);
+		if (
+			el.scrollTop < THREAD_SCROLL_TOP_THRESHOLD_PX &&
+			hasMoreMessagesRef.current &&
+			!fetchingOlderRef.current
+		) {
+			loadOlderThreadMessages();
+		}
+	}, [loadOlderThreadMessages]);
 
 	const scrollToBottomInstant = useCallback(() => {
 		const container = messagesContainerRef.current;
@@ -561,8 +670,11 @@ export const useThreadPanelController = ({
 	}, []);
 
 	useLayoutEffect(() => {
-		scrollToBottomInstant();
-	}, [baseMessages, mergedMessages, scrollToBottomInstant]);
+		if (pendingPrependScrollRef.current) return;
+		if (!userScrolledUp) {
+			scrollToBottomInstant();
+		}
+	}, [baseMessages, mergedMessages, scrollToBottomInstant, userScrolledUp]);
 
 	const uiMessages: UIMessage[] = useMemo(() => {
 		return mergedMessages.map((m) => {
@@ -1021,6 +1133,8 @@ export const useThreadPanelController = ({
 		messagesContainerRef: attachMessagesContainerRef,
 		onMessagesScroll: handleMessagesScroll,
 		bottomRef: attachBottomRef,
+		hasMoreMessages,
+		isFetchingOlderMessages,
 		threadId,
 	};
 
