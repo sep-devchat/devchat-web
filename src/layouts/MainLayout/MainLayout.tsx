@@ -21,7 +21,7 @@ import TitleBar from "./TitleBar/TitleBar";
 import { User } from "lucide-react";
 import GroupSidebar from "./GroupSidebar";
 import AuthLayout from "../AuthLayout";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import ThreadPanel from "@/components/custom/RightPanel/ThreadPanel/ThreadPanel";
 import CodeList from "@/components/custom/RightPanel/CodeList/CodeList";
 import MemberList from "@/components/custom/RightPanel/MemberList/MemberList";
@@ -121,6 +121,9 @@ const MainLayout = () => {
 	} | null>(null);
 	const [isUnfriendModalOpen, setIsUnfriendModalOpen] = useState(false);
 	const [isUnfriendLoading, setIsUnfriendLoading] = useState(false);
+	const previousGroupIdRef = useRef<string | undefined>();
+	const previousChannelIdRef = useRef<string | undefined>();
+	const previousDirectUserIdRef = useRef<string | undefined>();
 
 	const hasOpenPanel =
 		!isCodeCollabRoute && isHalf && (showThreadPanel || Boolean(panelTab));
@@ -221,6 +224,28 @@ const MainLayout = () => {
 		setShowThreadPanel(true);
 		setPanelTab(undefined);
 	}, [groupId, channelId, threadQuery, setPanelTab]);
+
+	useEffect(() => {
+		const groupChanged = Boolean(
+			previousGroupIdRef.current && previousGroupIdRef.current !== groupId,
+		);
+		const channelChanged = Boolean(
+			previousChannelIdRef.current &&
+				previousChannelIdRef.current !== channelId,
+		);
+		const directChanged = Boolean(
+			previousDirectUserIdRef.current &&
+				previousDirectUserIdRef.current !== directUserId,
+		);
+		if (showThreadPanel && (groupChanged || channelChanged || directChanged)) {
+			setShowThreadPanel(false);
+			setSelectedThreadId("");
+			setThreadSearch(undefined);
+		}
+		previousGroupIdRef.current = groupId;
+		previousChannelIdRef.current = channelId;
+		previousDirectUserIdRef.current = directUserId;
+	}, [groupId, channelId, directUserId, showThreadPanel, setThreadSearch]);
 
 	// Listen for thread selection requests coming from ChatArea (message thread button)
 	useEffect(() => {

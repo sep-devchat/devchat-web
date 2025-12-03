@@ -103,6 +103,16 @@ export const useThreadPanelController = ({
 		name: string;
 		avatarUrl?: string;
 	} | null>(null);
+	const activeDetailRequestKeyRef = useRef<string | null>(null);
+	const isMountedRef = useRef(true);
+
+	useEffect(() => {
+		isMountedRef.current = true;
+		return () => {
+			isMountedRef.current = false;
+			activeDetailRequestKeyRef.current = null;
+		};
+	}, []);
 	const [emitQueue, setEmitQueue] = useState<QueuedEmit[]>([]);
 	const threadPageRef = useRef(1);
 	const hasMoreMessagesRef = useRef(true);
@@ -475,11 +485,18 @@ export const useThreadPanelController = ({
 	]);
 
 	const loadThreadDetails = useCallback(async () => {
-		if (!threadId || !groupId || !channelId) return;
-
+		if (!threadId || !groupId || !channelId) {
+			activeDetailRequestKeyRef.current = null;
+			return;
+		}
+		const contextKey = `${groupId}:${channelId}:${threadId}`;
+		activeDetailRequestKeyRef.current = contextKey;
 		setIsLoading(true);
 		try {
 			const response = await detailThread(groupId, channelId, threadId);
+			if (activeDetailRequestKeyRef.current !== contextKey) {
+				return;
+			}
 			const threadData: any = response?.data || response;
 
 			if (threadData) {
@@ -496,6 +513,9 @@ export const useThreadPanelController = ({
 						try {
 							const userRes = await detailUser(threadData.createdBy);
 							const userData = userRes?.data || userRes;
+							if (activeDetailRequestKeyRef.current !== contextKey) {
+								return;
+							}
 							if (userData) {
 								creatorName = getDisplayName(userData);
 								creatorAvatar = userData.avatarUrl || creatorAvatar;
@@ -509,17 +529,29 @@ export const useThreadPanelController = ({
 					}
 				}
 
-				setThreadCreatorInfo({
-					name: creatorName,
-					avatarUrl: creatorAvatar,
-				});
+				if (isMountedRef.current) {
+					setThreadCreatorInfo({
+						name: creatorName,
+						avatarUrl: creatorAvatar,
+					});
+				}
 			}
 		} catch (error) {
+			if (activeDetailRequestKeyRef.current !== contextKey) {
+				return;
+			}
 			console.error("Failed to load thread details:", error);
-			alert("Failed to load thread. Please try again.");
-			if (onClose) onClose();
+			if (isMountedRef.current) {
+				alert("Failed to load thread. Please try again.");
+				if (onClose) onClose();
+			}
 		} finally {
-			setIsLoading(false);
+			if (
+				activeDetailRequestKeyRef.current === contextKey &&
+				isMountedRef.current
+			) {
+				setIsLoading(false);
+			}
 		}
 	}, [threadId, groupId, channelId, onClose]);
 
