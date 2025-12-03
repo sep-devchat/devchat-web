@@ -6,7 +6,7 @@ import { fetchProfile } from "@/services/auth/authAPI";
 import { Profile } from "@/services/auth/auth.type";
 import { deleteUser, updateUser } from "@/services/userAPI";
 import {
-	getAllProgrammingLanguages,
+	getActiveProgrammingLanguages,
 	ProgrammingLanguageResponse,
 } from "@/services/programmingLanguagesAPI";
 import { toast } from "sonner";
@@ -116,7 +116,7 @@ export const useAccountSettings = () => {
 	useEffect(() => {
 		const fetchLanguages = async () => {
 			try {
-				const response = await getAllProgrammingLanguages({ isActive: true });
+				const response = await getActiveProgrammingLanguages();
 				if (response && response.data && Array.isArray(response.data)) {
 					setAvailableLanguages(response.data);
 				} else {

@@ -17,6 +17,7 @@ import {
 	SelectTrigger,
 } from "@/components/ui/select";
 import { ProgrammingLanguageEnum } from "@/utils/enum";
+import { getActiveProgrammingLanguages } from "@/services/programmingLanguagesAPI";
 
 export type CodeEditorRef = {
 	/** Get current editor text value */
@@ -136,11 +137,52 @@ const CodeEditor = React.forwardRef<CodeEditorRef, CodeEditorProps>(
 		const [isFocused, setIsFocused] = useState(false);
 		const [dynHeight, setDynHeight] = useState<number | string>(height);
 		const hasAppliedInitialPresetRef = useRef(false);
-
-		const fallbackLanguages = useMemo<LanguageOption[]>(
-			() => (languages && languages.length > 0 ? languages : DEFAULT_LANGUAGES),
-			[languages],
+		const [dynamicLanguages, setDynamicLanguages] = useState<LanguageOption[]>(
+			[],
 		);
+
+		useEffect(() => {
+			if (languages && languages.length > 0) return;
+			let isMounted = true;
+			const fetchLanguages = async () => {
+				try {
+					const response = await getActiveProgrammingLanguages();
+					const data = Array.isArray(response?.data) ? response.data : [];
+					const executableLanguages = data
+						.filter((lang) => lang.isExecutable)
+						.map<LanguageOption>((lang) => ({
+							label: lang.languageName,
+							value: lang.languageCode || lang.id,
+							icon: lang.languageIcon ?? undefined,
+							preset: lang.preset ?? "",
+						}));
+					if (isMounted) {
+						setDynamicLanguages(executableLanguages);
+					}
+				} catch (error) {
+					console.error("Failed to load programming languages", error);
+					if (isMounted) {
+						setDynamicLanguages([]);
+					}
+				}
+			};
+
+			void fetchLanguages();
+
+			return () => {
+				isMounted = false;
+			};
+		}, [languages]);
+
+		const fallbackLanguages = useMemo<LanguageOption[]>(() => {
+			if (languages && languages.length > 0) {
+				return languages;
+			}
+			if (dynamicLanguages.length > 0) {
+				return dynamicLanguages;
+			}
+			return DEFAULT_LANGUAGES;
+		}, [languages, dynamicLanguages]);
 
 		const availableLanguages = fallbackLanguages;
 

@@ -78,6 +78,12 @@ export const getAllProgrammingLanguages = (params?: {
 	return get<PaginationResponse<ProgrammingLanguageResponse[]>>(url);
 };
 
+export const getActiveProgrammingLanguages = () => {
+	return get<ProgrammingLanguageResponse[]>(
+		"/api/programming-language/active-only",
+	);
+};
+
 export const detailProgrammingLanguage = (id: string) => {
 	return get<PaginationResponse<ProgrammingLanguageResponse>>(
 		`/api/programming-language/${id}`,
