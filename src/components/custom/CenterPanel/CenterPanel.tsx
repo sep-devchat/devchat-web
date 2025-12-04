@@ -74,6 +74,7 @@ export default function CenterPanel({
 	const [replyInputs, setReplyInputs] = useState<Record<string, string>>({});
 	const [hoveredIcon, setHoveredIcon] = useState<string | null>(null);
 	const [reactions, setReactions] = useState<ReactionsStore>({});
+	const [isHalf, setIsHalf] = useState(window.innerWidth < 1440);
 
 	const emojis = ["👍", "❤️", "😂", "🎉", "😮"];
 	const compact = iconSelected === "spool" || iconSelected === "code";
@@ -271,12 +272,27 @@ export default function CenterPanel({
 		}
 	};
 
+	useEffect(() => {
+		const handleResize = () => {
+			const newIsHalf = window.innerWidth < 1440;
+			console.log("Window width:", window.innerWidth, "isHalf:", newIsHalf);
+			setIsHalf(newIsHalf);
+		};
+		handleResize(); // Call immediately on mount
+		window.addEventListener("resize", handleResize);
+		return () => window.removeEventListener("resize", handleResize);
+	}, []);
+
 	return (
 		<CenterPanelRoot>
 			<CPContainer>
 				<CPHeader
 					style={{
-						borderTopRightRadius: compact ? "10px" : "0",
+						borderTopRightRadius: compact
+							? "10px"
+							: iconSelected === "users" && isHalf
+								? "0px"
+								: "10px",
 					}}
 				>
 					<CPHeaderLeft>

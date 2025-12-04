@@ -77,36 +77,41 @@ const Header = ({
 	// Responsive size functions
 	const getIconSize = () => {
 		if (windowWidth >= 1920) return 26;
-		if (windowWidth <= 1220) return 18;
 		if (windowWidth >= 1440) return 20;
+		if (windowWidth < 1440 && windowWidth > 1220) return 20;
+		if (windowWidth <= 1220) return 18;
 		return 20;
 	};
 
 	const getSpinnerSize = () => {
 		if (windowWidth >= 1920) return "h-4.4 w-4.4";
-		if (windowWidth <= 1220) return "h-2.8 w-2.8";
 		if (windowWidth >= 1440) return "h-3.2 w-3.2";
+		if (windowWidth < 1440 && windowWidth > 1220) return "h-3.2 w-3.2";
+		if (windowWidth <= 1220) return "h-2.8 w-2.8";
 		return "h-4 w-4";
 	};
 
 	const getLoadingBarSize = () => {
 		if (windowWidth >= 1920) return "h-5.5 w-35.2";
-		if (windowWidth <= 1220) return "h-3.5 w-22.4";
 		if (windowWidth >= 1440) return "h-4 w-25.6";
+		if (windowWidth < 1440 && windowWidth > 1220) return "h-4 w-25.6";
+		if (windowWidth <= 1220) return "h-3.5 w-22.4";
 		return "h-5 w-32";
 	};
 
 	const getTitleFontSize = () => {
 		if (windowWidth >= 1920) return "text-xl";
-		if (windowWidth <= 1220) return "text-base";
 		if (windowWidth >= 1440) return "text-base";
+		if (windowWidth < 1440 && windowWidth > 1220) return "text-base";
+		if (windowWidth <= 1220) return "text-base";
 		return "text-lg";
 	};
 
 	const getGapSize = () => {
 		if (windowWidth >= 1920) return "gap-3";
-		if (windowWidth <= 1220) return "gap-3";
 		if (windowWidth >= 1440) return "gap-2.4";
+		if (windowWidth < 1440 && windowWidth > 1220) return "gap-2.4";
+		if (windowWidth <= 1220) return "gap-3";
 		return "gap-2";
 	};
 
@@ -149,7 +154,7 @@ const Header = ({
 	const compact =
 		iconSelected === "spool" ||
 		iconSelected === "code" ||
-		iconSelected === "info" ||
+		// iconSelected === "info" ||
 		iconSelected === "tasks";
 
 	const handleThreadIconClick = () => {
@@ -207,9 +212,13 @@ const Header = ({
 
 	return (
 		<HeaderContainer
-			className="rounded-tr-lg"
+			// className="rounded-tr-lg"
 			style={{
-				borderTopRightRadius: compact ? "10px" : "0",
+				borderTopRightRadius: compact
+					? "10px"
+					: iconSelected === "users"
+						? "0px"
+						: "10px",
 			}}
 		>
 			<TitleSection>
