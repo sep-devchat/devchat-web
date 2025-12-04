@@ -10,7 +10,7 @@ export const PageWrapper = styled.div<{ backgroundImage: string }>`
 	overflow: hidden;
 	display: flex;
 	flex-direction: column;
-	position: absolute;
+	position: fixed;
 	top: 0px;
 	left: 0px;
 	z-index: -1;
