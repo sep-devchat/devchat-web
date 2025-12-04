@@ -4,10 +4,7 @@ import styled from "styled-components";
 export const PageWrapper = styled.div`
 	height: 100%;
 	width: 100%;
-<<<<<<< Updated upstream
-=======
-	// max-width: 480px;
->>>>>>> Stashed changes
+	// max-width: 420px;
 	position: relative;
 	display: flex;
 	flex-direction: column;
@@ -16,39 +13,46 @@ export const PageWrapper = styled.div`
 	border-radius: 0px 10px 10px 0px;
 
 	@media (max-width: 1220px) {
-		width: 100%;
+		width: 100% !important;
+		// max-width: 420px;
 		border-radius: 0px 10px 10px 0px;
 	}
 
 	@media (min-width: 1440px) and (max-width: 1919px) {
-		border-radius: 8px;
+		// border-radius: 8px;
+		// width: 100%;
+		min-width: 420px;
+		max-width: 420px;
 	}
 
 	@media (min-width: 1920px) {
-		border-radius: 11px;
+		// border-radius: 11px;
+		// width: 100%;
+		min-width: 420px;
+		max-width: 420px;
 	}
 `;
 
 export const InfoContent = styled.div`
 	flex: 1;
-	padding: 16px;
+	padding: 16px 0px;
 	overflow: visible;
 	@media (max-width: 1220px) {
 		padding: 11.2px;
 	}
 
 	@media (min-width: 1440px) and (max-width: 1919px) {
-		padding: 12.8px;
+		padding: 12.8px 0px;
 	}
 
 	@media (min-width: 1920px) {
-		padding: 17.6px;
+		padding: 17.6px 0px;
 	}
 `;
 
 export const Header = styled.div`
 	border-bottom: 1px solid #e5e7eb;
-	padding: 12px 16px;
+	padding: 48px 16px 12px 16px;
 	display: flex;
 	flex-direction: column;
 	gap: 12px;
@@ -624,18 +628,18 @@ export const Tab = styled.button<{ $active: boolean }>`
 `;
 
 export const TabContent = styled.div`
-	padding: 16px;
+	padding: 16px 0px;
 
 	@media (max-width: 1220px) {
-		padding: 11.2px;
+		padding: 11.2px 0px;
 	}
 
 	@media (min-width: 1440px) and (max-width: 1919px) {
-		padding: 12.8px;
+		padding: 12.8px 0px;
 	}
 
 	@media (min-width: 1920px) {
-		padding: 17.6px;
+		padding: 17.6px 0px;
 	}
 `;
 
@@ -683,7 +687,7 @@ export const SectionTitle = styled.h3`
 
 export const ImageGrid = styled.div`
 	display: grid;
-	grid-template-columns: repeat(3, minmax(120px, 1fr));
+	grid-template-columns: repeat(3, minmax(103px, 1fr));
 	gap: 8px;
 
 	@media (max-width: 1220px) {

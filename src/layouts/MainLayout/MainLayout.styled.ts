@@ -112,7 +112,7 @@ export const OutletContainer = styled.div<{
 	background: ${(props) => (props.$fullBleed ? "transparent" : "white")};
 	display: ${(props) => (props.$hidden ? "none" : "block")};
 	border-bottom-right-radius: ${(props) =>
-		props.$type !== "users" ? "10px" : "0px"};
+		props.$type !== "users" && props.$type !== "info" ? "10px" : "0px"};
 `;
 
 export const BottomSpacer = styled.div`

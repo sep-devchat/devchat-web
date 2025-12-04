@@ -379,7 +379,7 @@ export default function ProfileSection({
 									handleAvatarChange(file ?? null);
 								}}
 							/>
-							<Note>Image formats: jpg, png. Maximum size 5MB.</Note>
+							<Note>Maximum size 5MB.</Note>
 						</FileInputWrapper>
 
 						{avatarPreview && canEdit && (

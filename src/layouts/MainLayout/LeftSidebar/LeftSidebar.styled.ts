@@ -12,7 +12,7 @@ export const LeftSidebarContainer = styled.div`
 	overflow: hidden;
 	gap: 12px;
 
-	@media (max-width: 1220px) {
+	@media (max-width: 1439px) {
 		gap: 8px;
 		border-radius: 8px 0 0 8px;
 	}
@@ -27,31 +27,36 @@ export const HeaderContainer = styled.div`
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	padding: 0.75rem;
+	padding: 0 0.75rem;
 	border-bottom: 1px solid white;
 	flex-shrink: 0;
 
-	@media (max-width: 1220px) {
-		padding: 0.375rem;
+	@media (min-width: 1440px) {
+		height: 50px;
 	}
 
-	@media (min-width: 1440px) {
-		padding: 0.35rem;
+	@media (max-width: 1439px) {
+		height: 50px;
+	}
+
+	@media (max-width: 1220px) {
+		height: 47.5px;
 	}
 `;
 
 export const GroupHeader = styled.div`
 	width: 100%;
-	padding: 0.25rem 0.25rem;
-	padding-top: 0.375rem;
-	padding-bottom: 0.375rem;
+	// padding: 0.25rem 0.25rem;
+	// padding-top: 0.375rem;
+	// padding-bottom: 0.375rem;
 	display: flex;
 	justify-content: space-between;
 	align-items: center;
 	gap: 12px;
 	min-width: 0;
+	height: 47.5px;
 
-	@media (max-width: 1220px) {
+	@media (max-width: 1439px) {
 		padding: 0.2rem 0.2rem;
 		gap: 8px;
 	}
@@ -80,7 +85,7 @@ export const GroupTitle = styled.h3`
 	min-width: 0;
 	width: 100%;
 
-	@media (max-width: 1220px) {
+	@media (max-width: 1439px) {
 		font-size: 0.875rem;
 	}
 
@@ -94,7 +99,7 @@ export const IconButtonGroup = styled.div`
 	gap: 0.5rem;
 	flex-shrink: 0;
 
-	@media (max-width: 1220px) {
+	@media (max-width: 1439px) {
 		gap: 0.25rem;
 	}
 
@@ -120,7 +125,7 @@ export const IconButton = styled.div`
 		color: #3b82f6;
 	}
 
-	@media (max-width: 1220px) {
+	@media (max-width: 1439px) {
 		width: 28px;
 		height: 28px;
 		border-radius: 4px;
@@ -172,7 +177,7 @@ export const Tooltip = styled.div`
 
 	//chua
 
-	@media (max-width: 1220px) {
+	@media (max-width: 1439px) {
 		padding: 6px 10px;
 		font-size: 12px;
 		max-width: 250px;
@@ -190,7 +195,7 @@ export const Tooltip = styled.div`
 export const SettingsIconStyled = styled(SettingsIcon)`
 	width: 20px;
 
-	@media (max-width: 1220px) {
+	@media (max-width: 1439px) {
 		width: 18px;
 	}
 
@@ -227,7 +232,7 @@ export const SearchIcon = styled(Search)`
 	color: #9ca3af;
 	z-index: 1;
 
-	@media (max-width: 1220px) {
+	@media (max-width: 1439px) {
 		left: 0.625rem;
 		height: 0.875rem;
 		width: 0.875rem;
@@ -266,7 +271,7 @@ export const SearchInput = styled(Input)<{ prefix?: React.ReactNode }>`
 		border-color: rgba(25, 82, 179, 0.3);
 	}
 
-	@media (max-width: 1220px) {
+	@media (max-width: 1439px) {
 		padding: 0.375rem 0.625rem 0.375rem 2rem;
 		font-size: 0.8125rem;
 		border-radius: 0.25rem;
@@ -294,7 +299,7 @@ export const SectionHeader = styled.div`
 	align-items: center;
 	flex-shrink: 0;
 
-	@media (max-width: 1220px) {
+	@media (max-width: 1439px) {
 		padding: 0.375rem;
 	}
 
@@ -307,7 +312,7 @@ export const SectionTitle = styled.h3`
 	font-size: 1.125rem;
 	font-weight: 600;
 
-	@media (max-width: 1220px) {
+	@media (max-width: 1439px) {
 		font-size: 1rem;
 	}
 
@@ -331,7 +336,7 @@ export const AddButton = styled.button`
 		background: #e5e7eb;
 	}
 
-	@media (max-width: 1220px) {
+	@media (max-width: 1439px) {
 		width: 1.25rem;
 		height: 1.25rem;
 		border-radius: 0.2rem;
@@ -375,7 +380,7 @@ export const FriendList = styled.ul`
 		background: rgba(0, 0, 0, 0.3);
 	}
 
-	@media (max-width: 1220px) {
+	@media (max-width: 1439px) {
 		padding: 6px;
 		gap: 4px;
 
@@ -418,7 +423,7 @@ export const ModalContent = styled.div`
 		0 20px 25px -5px rgba(0, 0, 0, 0.1),
 		0 10px 10px -5px rgba(0, 0, 0, 0.04);
 
-	@media (max-width: 1220px) {
+	@media (max-width: 1439px) {
 		border-radius: 10px;
 		padding: 20px;
 		max-width: 450px;
@@ -437,7 +442,7 @@ export const ModalHeader = styled.div`
 	justify-content: space-between;
 	margin-bottom: 24px;
 
-	@media (max-width: 1220px) {
+	@media (max-width: 1439px) {
 		margin-bottom: 20px;
 	}
 
@@ -452,7 +457,7 @@ export const ModalTitle = styled.h3`
 	color: #1a1a1a;
 	margin: 0;
 
-	@media (max-width: 1220px) {
+	@media (max-width: 1439px) {
 		font-size: 16px;
 	}
 
@@ -478,7 +483,7 @@ export const CloseButton = styled.button`
 		outline: none;
 	}
 
-	@media (max-width: 1220px) {
+	@media (max-width: 1439px) {
 		padding: 3px;
 	}
 
@@ -502,7 +507,7 @@ export const Divider = styled.div`
 		border-bottom: 1px solid #e5e7eb;
 	}
 
-	@media (max-width: 1220px) {
+	@media (max-width: 1439px) {
 		margin-bottom: 16px;
 	}
 
@@ -514,7 +519,7 @@ export const Divider = styled.div`
 export const FormSection = styled.div`
 	margin-bottom: 20px;
 
-	@media (max-width: 1220px) {
+	@media (max-width: 1439px) {
 		margin-bottom: 16px;
 	}
 
@@ -530,7 +535,7 @@ export const Label = styled.label`
 	color: #374151;
 	margin-bottom: 8px;
 
-	@media (max-width: 1220px) {
+	@media (max-width: 1439px) {
 		font-size: 13px;
 		margin-bottom: 6px;
 	}
@@ -549,7 +554,7 @@ export const ChannelTypeCard = styled.div`
 	align-items: center;
 	gap: 12px;
 
-	@media (max-width: 1220px) {
+	@media (max-width: 1439px) {
 		border-radius: 6px;
 		padding: 12px;
 		gap: 10px;
@@ -567,7 +572,7 @@ export const ChannelTypeIcon = styled.div`
 	height: 20px;
 	color: #6b7280;
 
-	@media (max-width: 1220px) {
+	@media (max-width: 1439px) {
 		width: 18px;
 		height: 18px;
 	}
@@ -587,7 +592,7 @@ export const ChannelTypeName = styled.div`
 	color: #1a1a1a;
 	margin-bottom: 4px;
 
-	@media (max-width: 1220px) {
+	@media (max-width: 1439px) {
 		font-size: 14px;
 	}
 
@@ -601,7 +606,7 @@ export const ChannelTypeDescription = styled.div`
 	color: #6b7280;
 	line-height: 1.4;
 
-	@media (max-width: 1220px) {
+	@media (max-width: 1439px) {
 		font-size: 12px;
 		line-height: 1.3;
 	}
@@ -630,7 +635,7 @@ export const InputModal = styled.input`
 		color: #6b7280;
 	}
 
-	@media (max-width: 1220px) {
+	@media (max-width: 1439px) {
 		padding: 10px;
 		border-radius: 6px;
 		font-size: 13px;
@@ -650,7 +655,7 @@ export const PrivateSection = styled.div`
 	padding: 16px;
 	border-radius: 8px;
 
-	@media (max-width: 1220px) {
+	@media (max-width: 1439px) {
 		gap: 10px;
 		padding: 12px;
 		border-radius: 6px;
@@ -669,7 +674,7 @@ export const PrivateIcon = styled.div`
 	color: #6b7280;
 	margin-top: 2px;
 
-	@media (max-width: 1220px) {
+	@media (max-width: 1439px) {
 		width: 18px;
 		height: 18px;
 	}
@@ -689,7 +694,7 @@ export const PrivateTitle = styled.div`
 	color: #1a1a1a;
 	margin-bottom: 4px;
 
-	@media (max-width: 1220px) {
+	@media (max-width: 1439px) {
 		font-size: 14px;
 		margin-bottom: 3px;
 	}
@@ -705,7 +710,7 @@ export const PrivateDescription = styled.div`
 	color: #6b7280;
 	line-height: 1.4;
 
-	@media (max-width: 1220px) {
+	@media (max-width: 1439px) {
 		font-size: 12px;
 		line-height: 1.3;
 	}
@@ -723,7 +728,7 @@ export const Toggle = styled.label`
 	height: 24px;
 	margin-top: 2px;
 
-	@media (max-width: 1220px) {
+	@media (max-width: 1439px) {
 		width: 40px;
 		height: 22px;
 	}
@@ -763,7 +768,7 @@ export const ToggleSlider = styled.span<{ checked: boolean }>`
 		border-radius: 50%;
 	}
 
-	@media (max-width: 1220px) {
+	@media (max-width: 1439px) {
 		border-radius: 22px;
 
 		&:before {
@@ -790,7 +795,7 @@ export const ModalFooter = styled.div`
 	justify-content: space-between;
 	margin-top: 24px;
 
-	@media (max-width: 1220px) {
+	@media (max-width: 1439px) {
 		gap: 10px;
 		margin-top: 20px;
 	}
@@ -836,7 +841,7 @@ export const ButtonModal = styled.button<{
 		outline: none;
 	}
 
-	@media (max-width: 1220px) {
+	@media (max-width: 1439px) {
 		padding: 8px 14px;
 		border-radius: 6px;
 		font-size: 13px;
@@ -855,7 +860,7 @@ export const ProfileWrapper = styled.div`
 	flex-shrink: 0;
 	padding: 16px;
 
-	@media (max-width: 1220px) {
+	@media (max-width: 1439px) {
 		padding-top: 10px;
 		padding: 8px;
 	}
