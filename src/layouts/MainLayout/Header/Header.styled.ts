@@ -13,7 +13,12 @@ export const HeaderContainer = styled.header`
 		padding: 0 17.6px;
 	}
 
-	@media (min-width: 1440px) and (max-width: 1919px) {
+	@media (min-width: 1441px) and (max-width: 1919px) {
+		height: 50px;
+		padding: 0 12.8px;
+	}
+
+	@media (max-width: 1440px) and (min-width: 1221px) {
 		height: 50px;
 		padding: 0 12.8px;
 	}
@@ -21,6 +26,7 @@ export const HeaderContainer = styled.header`
 	@media (max-width: 1220px) {
 		height: 47.5px;
 		padding: 0 11.2px;
+	}
 `;
 
 export const TitleSection = styled.div`

@@ -503,15 +503,17 @@ export default function UserTab() {
 				<DialogContent className="max-w-md w-full">
 					<DialogHeader>
 						<DialogTitle>
-							{confirmState.mode === "ban" ? "Confirm ban" : "Confirm unban"}
+							{confirmState.mode === "ban"
+								? "Confirm deactivate"
+								: "Confirm activate"}
 						</DialogTitle>
 					</DialogHeader>
 
 					<div className="py-2">
 						<p className="text-sm text-gray-700">
 							{confirmState.mode === "ban"
-								? "Bạn có chắc chắn muốn khóa (xóa) user này? Hành động không thể hoàn tác."
-								: "Bạn có chắc chắn muốn mở khóa user này?"}
+								? "Are you sure you want to deactivate (ban) this user? This action cannot be undone."
+								: "Are you sure you want to activate this user?"}
 						</p>
 					</div>
 

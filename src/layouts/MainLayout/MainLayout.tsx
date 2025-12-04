@@ -113,7 +113,7 @@ const MainLayout = () => {
 		(state: RootState) => state.user.profile,
 	);
 	const currentUserId = currentUserProfile?.id || "";
-	const [isHalf, setIsHalf] = useState(window.innerWidth < 1220);
+	const [isHalf, setIsHalf] = useState(window.innerWidth < 1440);
 	const [activeMenu, setActiveMenu] = useState<string | null>(null);
 	const [unfriendTarget, setUnfriendTarget] = useState<{
 		id: string;
@@ -126,16 +126,21 @@ const MainLayout = () => {
 	const previousDirectUserIdRef = useRef<string | undefined>();
 
 	const hasOpenPanel =
-		!isCodeCollabRoute && isHalf && (showThreadPanel || Boolean(panelTab));
+		!isCodeCollabRoute &&
+		isHalf &&
+		(showThreadPanel || Boolean(panelTab)) &&
+		panelTab === "info";
 
 	const shouldShowBorderRadius =
 		!isCodeCollabRoute &&
 		(showThreadPanel || Boolean(panelTab)) &&
-		panelTab !== "users";
+		panelTab !== "users" &&
+		panelTab !== "info" &&
+		!isHalf;
 
 	// Handle resize
 	useEffect(() => {
-		const handleResize = () => setIsHalf(window.innerWidth < 1220);
+		const handleResize = () => setIsHalf(window.innerWidth < 1440);
 		window.addEventListener("resize", handleResize);
 		return () => window.removeEventListener("resize", handleResize);
 	}, []);
