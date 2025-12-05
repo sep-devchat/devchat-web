@@ -207,7 +207,7 @@ const FriendProfileModal: React.FC<FriendProfileModalProps> = ({
 
 		try {
 			await inviteToGroup({
-				toUserId: friend.id,
+				toUserIdOrEmail: friend.id,
 				groupId: groupId,
 				message: `Invitation to join ${groupName}`,
 			});

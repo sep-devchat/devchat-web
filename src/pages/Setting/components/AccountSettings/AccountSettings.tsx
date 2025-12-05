@@ -1,6 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React from "react";
-import { KeyIcon, Lock, Save, Trash } from "lucide-react";
+import {
+	KeyIcon,
+	// Lock,
+	Save,
+	Trash,
+} from "lucide-react";
 import AccountForm from "@/components/custom/SettingsItems/AccountForm";
 import SettingItemButton from "@/components/custom/SettingsItems/SettingItemButton";
 import {
@@ -225,7 +230,7 @@ export const AccountSettings: React.FC = () => {
 						getMaxOrderIndex={getMaxOrderIndex}
 					/>
 
-					<SettingItemButton
+					{/* <SettingItemButton
 						icon={<Lock />}
 						title="Account Removal"
 						description="Disable your account."
@@ -236,7 +241,7 @@ export const AccountSettings: React.FC = () => {
 								onClick: () => setIsDeleteOpen(true),
 							},
 						]}
-					/>
+					/> */}
 				</CardContent>
 			</Card>
 

@@ -148,14 +148,12 @@ const CodeEditor = React.forwardRef<CodeEditorRef, CodeEditorProps>(
 				try {
 					const response = await getActiveProgrammingLanguages();
 					const data = Array.isArray(response?.data) ? response.data : [];
-					const executableLanguages = data
-						.filter((lang) => lang.isExecutable)
-						.map<LanguageOption>((lang) => ({
-							label: lang.languageName,
-							value: lang.languageCode || lang.id,
-							icon: lang.languageIcon ?? undefined,
-							preset: lang.preset ?? "",
-						}));
+					const executableLanguages = data.map<LanguageOption>((lang) => ({
+						label: lang.languageName,
+						value: lang.languageCode || lang.id,
+						icon: lang.languageIcon ?? undefined,
+						preset: lang.preset ?? "",
+					}));
 					if (isMounted) {
 						setDynamicLanguages(executableLanguages);
 					}

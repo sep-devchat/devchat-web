@@ -289,17 +289,17 @@ export const SearchInput = styled(Input)<{ prefix?: React.ReactNode }>`
 
 export const SectionHeader = styled.div`
 	display: flex;
-	padding: 0.5rem;
+	padding: 0.75rem;
 	justify-content: space-between;
 	align-items: center;
 	flex-shrink: 0;
 
 	@media (max-width: 1220px) {
-		padding: 0.375rem;
+		padding: 0.75rem;
 	}
 
 	@media (min-width: 1440px) {
-		padding: 0.5rem;
+		padding: 0.75rem;
 	}
 `;
 

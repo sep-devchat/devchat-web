@@ -62,9 +62,8 @@ export const GroupSetting: React.FC<GroupSettingProps> = ({
 
 	const menuItems: MenuItemType[] = [
 		{ id: "profile", label: "Group Profile", icon: SettingsIcon },
-		{ id: "invite", label: "Invites", icon: Palette },
+		{ id: "invite", label: "Invite", icon: Palette },
 		{ id: "member", label: "Member", icon: Bell },
-		// { id: "activity", label: "Activity", icon: User },
 		{
 			id: "delete",
 			label: isAdmin ? "Delete Group" : "Out group",

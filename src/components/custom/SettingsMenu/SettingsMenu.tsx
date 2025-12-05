@@ -1,7 +1,12 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import bgImage from "@/assets/image/loginBackground.png";
 import { useNavigate } from "@tanstack/react-router";
-import { CircleX, LogOut, Search, User } from "lucide-react";
+import {
+	CircleX,
+	LogOut,
+	// Search,
+	User,
+} from "lucide-react";
 import React, { useEffect, useRef } from "react";
 import {
 	ContentWrapper,
@@ -12,9 +17,9 @@ import {
 	MenuItem,
 	MenuNav,
 	NotificationButton,
-	SearchContainer,
-	SearchIcon,
-	SearchInput,
+	// SearchContainer,
+	// SearchIcon,
+	// SearchInput,
 	SettingRows,
 	SettingsContainer,
 	Sidebar,
@@ -112,12 +117,12 @@ export const SettingsMenu: React.FC<SettingsMenuProps> = ({
 				</NavigatorIcon> */}
 				<Sidebar>
 					<SidebarContent>
-						<SearchContainer>
+						{/* <SearchContainer>
 							<SearchIcon>
 								<Search size={16} />
 							</SearchIcon>
 							<SearchInput placeholder="Search" />
-						</SearchContainer>
+						</SearchContainer> */}
 
 						<MenuNav>
 							{menuItems.map((item) => {
