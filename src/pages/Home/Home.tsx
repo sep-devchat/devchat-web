@@ -84,7 +84,7 @@ const Home = () => {
 	const currentYear = new Date().getFullYear();
 
 	const redirectToApp = () => {
-		navigate({ to: "/auth/login" });
+		navigate({ to: "/chat/friend" });
 	};
 
 	const downloadDesktopApp = () => {
