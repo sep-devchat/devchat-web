@@ -18,7 +18,7 @@ import {
 	DialogDescription,
 } from "@/components/ui/dialog";
 import { Spinner } from "@/components/ui/spinner";
-import { runCode } from "@/services/code/code.api";
+import { runCode, runCodeBlock, runCodeCollab } from "@/services/code/code.api";
 import { mapLanguageToEnum } from "@/utils/code-runner";
 import * as S from "./DiffViewer.styled";
 import { cn } from "@/lib/utils";
@@ -30,6 +30,8 @@ interface DiffViewerProps {
 	userName: string;
 	onLoadVersion?: () => void;
 	language?: string;
+	codeBlockId?: string;
+	modifiedCollabId?: string;
 }
 
 export const DiffViewer: React.FC<DiffViewerProps> = ({
@@ -38,6 +40,8 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({
 	onClose,
 	userName,
 	language,
+	codeBlockId,
+	modifiedCollabId,
 }) => {
 	const diffEditorRef = useRef<editor.IStandaloneDiffEditor | null>(null);
 	const [isHalf, setIsHalf] = useState(window.innerWidth <= 1220);
@@ -115,25 +119,32 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({
 	}, [original, modified]);
 
 	const handleRunCode = async (code: string, type: "original" | "modified") => {
-		const enumLang = mapLanguageToEnum(language);
+		const shouldUseCollabEndpoint =
+			type === "modified" && Boolean(modifiedCollabId);
+		const shouldUseBlockEndpoint = type === "original" && Boolean(codeBlockId);
+		let enumLang: ReturnType<typeof mapLanguageToEnum> = null;
 
-		if (!enumLang) {
-			setRunError(
-				`Running not supported for language: ${language || "Unknown"}`,
-			);
-			setRunOutput("");
-			setActiveRunType(type);
-			setExecutionTime(0);
-			setIsResultOpen(true);
-			return;
-		}
-		if (!code?.trim()) {
-			setRunError("No code to run");
-			setRunOutput("");
-			setActiveRunType(type);
-			setExecutionTime(0);
-			setIsResultOpen(true);
-			return;
+		if (!shouldUseCollabEndpoint && !shouldUseBlockEndpoint) {
+			enumLang = mapLanguageToEnum(language);
+
+			if (!enumLang) {
+				setRunError(
+					`Running not supported for language: ${language || "Unknown"}`,
+				);
+				setRunOutput("");
+				setActiveRunType(type);
+				setExecutionTime(0);
+				setIsResultOpen(true);
+				return;
+			}
+			if (!code?.trim()) {
+				setRunError("No code to run");
+				setRunOutput("");
+				setActiveRunType(type);
+				setExecutionTime(0);
+				setIsResultOpen(true);
+				return;
+			}
 		}
 
 		const setRunning =
@@ -145,7 +156,16 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({
 		const startTime = performance.now();
 
 		try {
-			const res = await runCode({ code, language: enumLang });
+			let res;
+			if (shouldUseCollabEndpoint && modifiedCollabId) {
+				res = await runCodeCollab({ codeCollabId: modifiedCollabId });
+			} else if (shouldUseBlockEndpoint && codeBlockId) {
+				res = await runCodeBlock({ codeBlockId });
+			} else if (enumLang) {
+				res = await runCode({ code, language: enumLang });
+			} else {
+				throw new Error("Unable to determine run mode");
+			}
 
 			const endTime = performance.now();
 			setExecutionTime(endTime - startTime);

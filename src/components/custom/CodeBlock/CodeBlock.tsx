@@ -198,7 +198,7 @@ const CodeBlock = ({
 
 	const handleRun = async () => {
 		if (!codeText?.trim()) return;
-		await runSnippet({ code: codeText, language });
+		await runSnippet({ code: codeText, language, codeBlockId });
 		setIsResultOpen(true);
 	};
 

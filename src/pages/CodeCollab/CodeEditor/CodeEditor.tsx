@@ -18,7 +18,7 @@ import {
 	DialogTitle,
 	DialogDescription,
 } from "@/components/ui/dialog";
-import { runCode } from "@/services/code/code.api";
+import { runCode, runCodeBlock, runCodeCollab } from "@/services/code/code.api";
 import { mapLanguageToEnum } from "@/utils/code-runner";
 import * as S from "./CodeEditor.styled";
 import { cn } from "@/lib/utils";
@@ -36,6 +36,9 @@ interface CodeEditorProps {
 	userRevisionCount?: number;
 	language?: string;
 	onRun?: () => void;
+	codeBlockId?: string;
+	codeCollabId?: string;
+	allowRun?: boolean;
 }
 
 export const CodeEditor: React.FC<CodeEditorProps> = ({
@@ -50,6 +53,9 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
 	onReset,
 	language = "",
 	onRun,
+	codeBlockId,
+	codeCollabId,
+	allowRun = true,
 }) => {
 	const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
 	const [isRunning, setIsRunning] = useState(false);
@@ -89,23 +95,38 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
 	};
 
 	const handleRun = async () => {
-		const enumLang = mapLanguageToEnum(language);
-
-		if (!enumLang) {
-			setRunError(
-				`Running not supported for language: ${language || "Unknown"}`,
-			);
+		if (!allowRun) {
+			setRunError("Save this revision before running the code.");
 			setRunOutput("");
 			setExecutionTime(0);
 			setIsResultOpen(true);
 			return;
 		}
-		if (!code?.trim()) {
-			setRunError("No code to run");
-			setRunOutput("");
-			setExecutionTime(0);
-			setIsResultOpen(true);
-			return;
+
+		const requiresManualRun = !codeCollabId && !codeBlockId;
+		let enumLang: ReturnType<typeof mapLanguageToEnum> = null;
+		let safeCode = code;
+
+		if (requiresManualRun) {
+			enumLang = mapLanguageToEnum(language);
+
+			if (!enumLang) {
+				setRunError(
+					`Running not supported for language: ${language || "Unknown"}`,
+				);
+				setRunOutput("");
+				setExecutionTime(0);
+				setIsResultOpen(true);
+				return;
+			}
+			if (!code?.trim()) {
+				setRunError("No code to run");
+				setRunOutput("");
+				setExecutionTime(0);
+				setIsResultOpen(true);
+				return;
+			}
+			safeCode = code;
 		}
 
 		setIsRunning(true);
@@ -113,7 +134,16 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
 		const startTime = performance.now();
 
 		try {
-			const res = await runCode({ code, language: enumLang });
+			let res;
+			if (codeCollabId) {
+				res = await runCodeCollab({ codeCollabId });
+			} else if (codeBlockId) {
+				res = await runCodeBlock({ codeBlockId });
+			} else if (enumLang && safeCode) {
+				res = await runCode({ code: safeCode, language: enumLang });
+			} else {
+				throw new Error("Unable to determine run mode");
+			}
 
 			const endTime = performance.now();
 			setExecutionTime(endTime - startTime);
