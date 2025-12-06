@@ -6,6 +6,16 @@ import {
 } from "@/components/custom/TablePermission/TablePermission";
 import * as S from "./LanguageModal.styled";
 
+const blankFormData: RolePermission = {
+	languageCode: "",
+	languageName: "",
+	languageVersion: "",
+	languageIcon: "",
+	preset: "",
+	isExecutable: true,
+	useAiCheck: true,
+};
+
 export interface LanguageModalProps {
 	isOpen: boolean;
 	onClose: () => void;
@@ -33,7 +43,7 @@ export const LanguageModal: React.FC<LanguageModalProps> = ({
 	useEffect(() => {
 		if (isOpen) {
 			if (mode === "edit" && initialData) {
-				setFormData({ ...initialData });
+				setFormData({ ...blankFormData, ...initialData });
 				if (
 					initialData.languageIcon &&
 					typeof initialData.languageIcon === "string"
@@ -41,15 +51,7 @@ export const LanguageModal: React.FC<LanguageModalProps> = ({
 					setIconPreview(initialData.languageIcon);
 				}
 			} else {
-				const defaultData: RolePermission = {
-					languageCode: "",
-					languageName: "",
-					languageVersion: "",
-					languageIcon: "",
-					preset: "",
-					isExecutable: true,
-				};
-				setFormData(defaultData);
+				setFormData(blankFormData);
 				setIconPreview("");
 			}
 			setErrors({});
@@ -178,20 +180,28 @@ export const LanguageModal: React.FC<LanguageModalProps> = ({
 							const value = formData[column.key];
 							const isRequired = isRequiredField(column.key);
 
-							if (column.key === "isExecutable") {
+							if (
+								column.key === "isExecutable" ||
+								column.key === "useAiCheck"
+							) {
+								const checkboxId = column.key;
+								const checkboxLabel =
+									column.key === "useAiCheck"
+										? "Enable AI code check"
+										: "Enable code execution";
 								return (
 									<S.FormGroup key={column.key}>
 										<S.CheckboxContainer>
 											<S.Checkbox
 												type="checkbox"
-												id="isExecutable"
+												id={checkboxId}
 												checked={Boolean(value)}
 												onChange={(e) =>
 													handleChange(column.key, e.target.checked)
 												}
 											/>
-											<S.CheckboxLabel htmlFor="isExecutable">
-												Code execution
+											<S.CheckboxLabel htmlFor={checkboxId}>
+												{checkboxLabel}
 											</S.CheckboxLabel>
 										</S.CheckboxContainer>
 									</S.FormGroup>

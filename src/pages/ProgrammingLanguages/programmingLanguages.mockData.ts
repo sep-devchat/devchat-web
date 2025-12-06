@@ -28,5 +28,11 @@ export const PROGRAMMING_LANGUAGES_COLUMNS: Column[] = [
 		width: "250px",
 		align: "center",
 	},
+	{
+		key: "useAiCheck",
+		label: "AI Code Check",
+		width: "250px",
+		align: "center",
+	},
 	{ key: "isActive", label: "Is Active", width: "250px", align: "center" },
 ];

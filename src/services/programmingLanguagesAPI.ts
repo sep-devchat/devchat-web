@@ -9,6 +9,7 @@ export interface ProgrammingLanguageResponse {
 	languageVersion?: string | null;
 	preset?: string | null;
 	isExecutable: boolean;
+	useAiCheck: boolean;
 	isActive: boolean;
 	createdAt: string;
 	updatedAt: string;
@@ -21,6 +22,7 @@ export interface ProgrammingLanguageRequest {
 	languageVersion?: string | null;
 	preset?: string | null;
 	isExecutable?: boolean;
+	useAiCheck?: boolean;
 }
 
 export interface ProgrammingLanguageUpdateRequest {
@@ -30,6 +32,7 @@ export interface ProgrammingLanguageUpdateRequest {
 	languageVersion?: string | null;
 	preset?: string | null;
 	isExecutable?: boolean;
+	useAiCheck?: boolean;
 }
 
 export interface PaginationResponse<T> {
