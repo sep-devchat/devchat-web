@@ -14,7 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Trash } from "lucide-react";
 import { detailGroup, deleteGroup } from "@/services/groupAPI";
-import { useParams } from "@tanstack/react-router";
+import { useNavigate, useParams } from "@tanstack/react-router";
 
 type AlertType = "success" | "warning" | "error";
 const fireAlert = (type: AlertType, message: string, duration = 4000) => {
@@ -31,6 +31,7 @@ interface GroupSettingProps {
 export const DeleteSection: React.FC<GroupSettingProps> = ({
 	setSettingSelect,
 }) => {
+	const navigate = useNavigate();
 	const params = useParams({ strict: false }) as { groupId?: string };
 	const groupId = params.groupId;
 	const [open, setOpen] = useState(false);
@@ -75,6 +76,7 @@ export const DeleteSection: React.FC<GroupSettingProps> = ({
 			fireAlert("success", "Delete successful");
 			setOpen(false);
 			setSettingSelect(false);
+			navigate({ to: "/chat/friend" });
 		} catch (err: any) {
 			console.error("Delete failed:", err);
 			const message =

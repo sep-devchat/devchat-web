@@ -14,7 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Trash, AlertTriangle, Loader2 } from "lucide-react";
 import { detailGroup } from "@/services/groupAPI";
-import { useParams } from "@tanstack/react-router";
+import { useNavigate, useParams } from "@tanstack/react-router";
 import { leaveGroup } from "@/services/userGroupAPI";
 
 type AlertType = "success" | "warning" | "error";
@@ -32,6 +32,7 @@ interface GroupSettingProps {
 export const OutGroupSection: React.FC<GroupSettingProps> = ({
 	setSettingSelect,
 }) => {
+	const navigate = useNavigate();
 	const params = useParams({ strict: false }) as { groupId?: string };
 	const groupId = params.groupId;
 	const [open, setOpen] = useState(false);
@@ -76,6 +77,7 @@ export const OutGroupSection: React.FC<GroupSettingProps> = ({
 			fireAlert("success", "You have left the group");
 			setOpen(false);
 			setSettingSelect(false);
+			navigate({ to: "/chat/friend" });
 		} catch (err: any) {
 			console.error("Leave group failed:", err);
 			const message =
