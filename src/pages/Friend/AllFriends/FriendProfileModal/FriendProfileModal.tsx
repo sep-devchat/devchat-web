@@ -63,6 +63,7 @@ import { useSelector } from "react-redux";
 import { RootState } from "@/store";
 import { SaveButton } from "@/components/custom/ActionButton/SaveButton";
 import { UserLanguage } from "@/services/auth/auth.type";
+import { fetchProfile } from "@/services/auth/authAPI";
 
 interface Group {
 	id: string;
@@ -96,14 +97,19 @@ const FriendProfileModal: React.FC<FriendProfileModalProps> = ({
 	);
 	const currentUserId = currentUserProfile?.id || "";
 	const [isYou, setIsYou] = useState(false);
+	const [selfProfile, setSelfProfile] = useState<any | null>(null);
 	const resolvedLanguages = useMemo(() => {
 		if (!friend) return [] as UserLanguage[];
-		if (isYou && currentUserProfile?.userLanguages) {
-			return [...currentUserProfile.userLanguages].sort(
-				(a, b) =>
-					(a.orderIndex ?? Number.MAX_SAFE_INTEGER) -
-					(b.orderIndex ?? Number.MAX_SAFE_INTEGER),
-			);
+		if (isYou) {
+			const langs =
+				selfProfile?.userLanguages ?? currentUserProfile?.userLanguages;
+			if (langs) {
+				return [...langs].sort(
+					(a, b) =>
+						(a.orderIndex ?? Number.MAX_SAFE_INTEGER) -
+						(b.orderIndex ?? Number.MAX_SAFE_INTEGER),
+				);
+			}
 		}
 		if (friend.userLanguages) {
 			return [...friend.userLanguages].sort(
@@ -167,14 +173,25 @@ const FriendProfileModal: React.FC<FriendProfileModalProps> = ({
 	const checkIsYou = async () => {
 		if (!friend) {
 			setIsYou(false);
+			setSelfProfile(null);
 			return;
 		}
 		try {
 			if (friend.id === currentUserId) {
 				setIsYou(true);
+				// fetch fresh profile for languages when viewing your own profile
+				try {
+					const resp = await fetchProfile();
+					const data = resp?.data ?? resp;
+					setSelfProfile(data);
+				} catch (err) {
+					console.error("Failed to fetch self profile:", err);
+					setSelfProfile(null);
+				}
 				return;
 			}
 			setIsYou(false);
+			setSelfProfile(null);
 		} catch (err) {
 			console.error("Failed to check isYou:", err);
 			// default to false on error
@@ -447,9 +464,18 @@ const FriendProfileModal: React.FC<FriendProfileModalProps> = ({
 														<LanguageIcon
 															src={iconSrc}
 															alt={languageName}
+															loading="lazy"
+															decoding="async"
 															onError={(e) => {
-																(e.target as HTMLImageElement).src =
-																	`https://via.placeholder.com/40?text=${encodeURIComponent(iconFallbackText)}`;
+																const img = e.target as HTMLImageElement;
+																// prevent infinite loop: if we've already attempted a fallback, do nothing
+																if (img.dataset.fallback === "1") return;
+																img.dataset.fallback = "1";
+																// remove onerror to avoid recursive calls in some browsers
+																img.onerror = null;
+																img.src = `https://via.placeholder.com/40?text=${encodeURIComponent(
+																	iconFallbackText,
+																)}`;
 															}}
 														/>
 														<LanguageInfo>
