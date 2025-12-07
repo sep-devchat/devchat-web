@@ -22,6 +22,7 @@ import { runCode, runCodeBlock, runCodeCollab } from "@/services/code/code.api";
 import { mapLanguageToEnum } from "@/utils/code-runner";
 import * as S from "./DiffViewer.styled";
 import { cn } from "@/lib/utils";
+import useExecutableLanguages from "@/hooks/useExecutableLanguages";
 
 interface DiffViewerProps {
 	original: string;
@@ -56,6 +57,11 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({
 	const [runOutput, setRunOutput] = useState("");
 	const [runError, setRunError] = useState("");
 	const [executionTime, setExecutionTime] = useState<number>(0);
+	const { isExecutableLanguage } = useExecutableLanguages();
+	const isLanguageExecutable = isExecutableLanguage(language);
+	const executionDisabledReason = isLanguageExecutable
+		? undefined
+		: "Code execution disabled for this language";
 
 	useEffect(() => {
 		document.body.style.overflow = "hidden";
@@ -123,6 +129,14 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({
 			type === "modified" && Boolean(modifiedCollabId);
 		const shouldUseBlockEndpoint = type === "original" && Boolean(codeBlockId);
 		let enumLang: ReturnType<typeof mapLanguageToEnum> = null;
+		if (!isLanguageExecutable) {
+			setRunError(executionDisabledReason ?? "Execution disabled");
+			setRunOutput("");
+			setActiveRunType(type);
+			setExecutionTime(0);
+			setIsResultOpen(true);
+			return;
+		}
 
 		if (!shouldUseCollabEndpoint && !shouldUseBlockEndpoint) {
 			enumLang = mapLanguageToEnum(language);
@@ -238,7 +252,7 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({
 										</span>
 										<S.RunButton
 											onClick={() => handleRunCode(original, "original")}
-											disabled={isRunningOriginal}
+											disabled={isRunningOriginal || !isLanguageExecutable}
 										>
 											{isRunningOriginal ? (
 												<Spinner className="h-3.5 w-3.5" />
@@ -273,7 +287,7 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({
 										</span>
 										<S.RunButton
 											onClick={() => handleRunCode(modified, "modified")}
-											disabled={isRunningModified}
+											disabled={isRunningModified || !isLanguageExecutable}
 										>
 											{isRunningModified ? (
 												<Spinner className="h-3.5 w-3.5" />
@@ -319,7 +333,7 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({
 										</span>
 										<S.RunButton
 											onClick={() => handleRunCode(original, "original")}
-											disabled={isRunningOriginal}
+											disabled={isRunningOriginal || !isLanguageExecutable}
 										>
 											{isRunningOriginal ? (
 												<Spinner className="h-3.5 w-3.5" />
@@ -337,7 +351,7 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({
 										</span>
 										<S.RunButton
 											onClick={() => handleRunCode(modified, "modified")}
-											disabled={isRunningModified}
+											disabled={isRunningModified || !isLanguageExecutable}
 										>
 											{isRunningModified ? (
 												<Spinner className="h-3.5 w-3.5" />

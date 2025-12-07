@@ -1953,16 +1953,27 @@ export const useChatAreaController = (): ChatAreaControllerResult => {
 		if (!messagePendingDelete) return;
 		setDeleteSubmitting(true);
 		try {
+			if (isDirectMode) {
+				if (!directUserIdParam) {
+					throw new Error("missing-direct-user-id");
+				}
+				socket?.emit(
+					SocketEvents.DELETE_DIRECT_MESSAGE,
+					messagePendingDelete.id,
+				);
+				return;
+			}
 			// Emit DELETE_MESSAGE with the messageId as payload
 			socket?.emit(SocketEvents.DELETE_MESSAGE, messagePendingDelete.id);
 		} catch (err) {
 			console.error("Delete message emit failed", err);
+			toast.error("Unable to delete message. Please try again.");
 		} finally {
 			setDeleteSubmitting(false);
 			setDeleteDialogOpen(false);
 			setMessagePendingDelete(null);
 		}
-	}, [socket, messagePendingDelete]);
+	}, [socket, messagePendingDelete, isDirectMode, directUserIdParam]);
 
 	// Apply server confirmation for DELETE_MESSAGE to remove from state and cache
 	const onServerDeleteMessage = useCallback(
@@ -1995,6 +2006,42 @@ export const useChatAreaController = (): ChatAreaControllerResult => {
 	);
 
 	useSocketEvent(SocketEvents.DELETE_MESSAGE, onServerDeleteMessage);
+
+	const onServerDeleteDirectMessage = useCallback(
+		(payload: any) => {
+			const deletedId: string | undefined =
+				payload?.messageId ??
+				payload?.id ??
+				(typeof payload === "string" ? payload : undefined);
+			if (!deletedId) return;
+
+			setRealtimeMessages((prev) => prev.filter((m) => m.id !== deletedId));
+
+			const pruneList = (old: any) => {
+				if (!old) return old;
+				const toArray = (o: any) =>
+					Array.isArray(o?.data) ? o.data : Array.isArray(o) ? o : [];
+				const arr = toArray(old);
+				const filtered = arr.filter((msg: any) => msg?.id !== deletedId);
+				if (filtered.length === arr.length) return old;
+				if (Array.isArray(old)) return filtered;
+				return { ...old, data: filtered };
+			};
+
+			const directQueries = queryClient.getQueriesData({
+				queryKey: ["direct_messages"],
+			});
+			directQueries.forEach(([key]) => {
+				queryClient.setQueryData(key, pruneList);
+			});
+		},
+		[queryClient],
+	);
+
+	useSocketEvent(
+		SocketEvents.DELETE_DIRECT_MESSAGE,
+		onServerDeleteDirectMessage,
+	);
 
 	const handleDeleteDialogOpenChange = useCallback((open: boolean) => {
 		setDeleteDialogOpen(open);

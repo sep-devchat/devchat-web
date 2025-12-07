@@ -19,6 +19,7 @@ import { Pencil, Play } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import CodeRunResultDialog from "@/components/custom/CodeRunResultDialog";
 import useCodeRunner from "@/hooks/useCodeRunner";
+import useExecutableLanguages from "@/hooks/useExecutableLanguages";
 import { useNavigate } from "@tanstack/react-router";
 import {
 	buildCodeBlockSubtitleFromBlock,
@@ -63,6 +64,7 @@ const CodeBlock = ({
 	const [isResultOpen, setIsResultOpen] = useState<boolean>(false);
 	const { isRunning, runOutput, runError, lastRunAt, runSnippet } =
 		useCodeRunner();
+	const { isExecutableLanguage } = useExecutableLanguages();
 	const navigate = useNavigate();
 
 	const [fetchedCodeBlock, setFetchedCodeBlock] =
@@ -202,8 +204,14 @@ const CodeBlock = ({
 		}
 	}, [props.children]);
 
+	const executionLanguage = fetchedCodeBlock?.language || language;
+	const isExecutable = isExecutableLanguage(executionLanguage);
+	const runDisabledReason = !isExecutable
+		? "Code execution disabled for this language"
+		: undefined;
+
 	const handleRun = async () => {
-		if (!codeText?.trim()) return;
+		if (!codeText?.trim() || !isExecutable) return;
 		await runSnippet({ code: codeText, language, codeBlockId });
 		setIsResultOpen(true);
 	};
@@ -336,8 +344,12 @@ const CodeBlock = ({
 													width: `${getResponsiveSize(28)}px`,
 													height: `${getResponsiveSize(28)}px`,
 												}}
-												aria-label="Run code"
-												disabled={isRunning || !codeText.trim()}
+												aria-label={
+													!isExecutable ? "Execution disabled" : "Run code"
+												}
+												disabled={
+													isRunning || !codeText.trim() || !isExecutable
+												}
 												onClick={async () => {
 													if (onRun) onRun(codeText, language || "");
 													await handleRun();
@@ -361,7 +373,9 @@ const CodeBlock = ({
 												<span className="sr-only">Run code</span>
 											</Button>
 										</TooltipTrigger>
-										<TooltipContent side="bottom">Run code</TooltipContent>
+										<TooltipContent side="bottom">
+											{runDisabledReason ?? "Run code"}
+										</TooltipContent>
 									</Tooltip>
 								)}
 							</TooltipProvider>
