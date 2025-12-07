@@ -370,7 +370,7 @@ const MarkdownPreview = ({
 										<img
 											src={src}
 											alt={alt}
-											className="h-auto w-full object-contain transition-transform duration-200 group-hover:scale-[1.02]"
+											className="h-auto w-full object-contain transition-transform duration-200 group-hover:scale-[1.02] aspect-square"
 											style={{ maxWidth: "250px", maxHeight: "250px" }}
 											loading="lazy"
 											{...p}
@@ -418,7 +418,7 @@ const MarkdownPreview = ({
 				</Suspense>
 
 				{hasImageGrid && (
-					<div className="mt-3 flex flex-wrap gap-3">
+					<div className="mt-3 flex flex-wrap gap-10">
 						{parsedImages.map((img, idx) => (
 							<button
 								key={`${img.src}-${idx}`}
