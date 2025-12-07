@@ -193,7 +193,7 @@ const MainLayout = () => {
 		return () => {
 			mounted = false;
 		};
-	}, []);
+	}, [localGroups]);
 
 	// Fetch group detail để check admin
 	useEffect(() => {
