@@ -291,6 +291,15 @@ export const RunButton = styled.button`
 		font-size: 0.8rem;
 	}
 
+	&:disabled {
+		cursor: not-allowed;
+		background: linear-gradient(135deg, #cbd5f5 0%, #94a3b8 100%);
+		color: rgba(255, 255, 255, 0.8);
+		box-shadow: none;
+		filter: grayscale(0.15);
+		opacity: 0.85;
+	}
+
 	&:active {
 		transform: translateY(0);
 	}

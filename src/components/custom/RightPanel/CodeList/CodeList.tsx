@@ -23,6 +23,7 @@ import {
 	listDirectCodeBlocks,
 } from "@/services/codeCollabAPI";
 import useCodeRunner from "@/hooks/useCodeRunner";
+import useExecutableLanguages from "@/hooks/useExecutableLanguages";
 import { useNavigate } from "@tanstack/react-router";
 import {
 	buildCodeBlockSubtitleFromBlock,
@@ -118,6 +119,7 @@ const CodeList = ({
 		runSnippet,
 		reset: resetRunner,
 	} = useCodeRunner();
+	const { isExecutableLanguage } = useExecutableLanguages();
 
 	const isChannelMode = Boolean(groupId && channelId);
 	const isDirectMode = Boolean(directUserId) && !isChannelMode;
@@ -219,6 +221,7 @@ const CodeList = ({
 
 	const handleRunCode = async (block: CodeBlock) => {
 		if (runningBlockId) return;
+		if (!isExecutableLanguage(block.language)) return;
 		setModalMeta({
 			title: buildCodeBlockTitle(block.language),
 			language: block.language,
@@ -317,25 +320,35 @@ const CodeList = ({
 				{canFetch ? (
 					<>
 						<CodeListScroller>
-							{codeBlocks.map((block) => (
-								<ResponsiveCodeWrapper key={block.id}>
-									<CodeItem
-										title={buildCodeBlockTitle(block.language)}
-										subtitle={buildCodeBlockSubtitleFromBlock(block)}
-										language={block.language}
-										code={block.content}
-										onRun={() => handleRunCode(block)}
-										isRunning={runningBlockId === block.id}
-										disabled={Boolean(runningBlockId)}
-										onCollaborate={
-											canCollaborate
-												? () => handleCollaborate(block)
-												: undefined
-										}
-										collaborateDisabled={Boolean(runningBlockId)}
-									/>
-								</ResponsiveCodeWrapper>
-							))}
+							{codeBlocks.map((block) => {
+								const canExecute = isExecutableLanguage(block.language);
+								const executionDisabledReason = canExecute
+									? undefined
+									: "Code execution disabled for this language";
+								const isRunningThisBlock = runningBlockId === block.id;
+								const globalLock = Boolean(runningBlockId);
+								const disableRun = globalLock || !canExecute;
+								return (
+									<ResponsiveCodeWrapper key={block.id}>
+										<CodeItem
+											title={buildCodeBlockTitle(block.language)}
+											subtitle={buildCodeBlockSubtitleFromBlock(block)}
+											language={block.language}
+											code={block.content}
+											onRun={() => handleRunCode(block)}
+											isRunning={isRunningThisBlock}
+											disabled={disableRun}
+											runDisabledReason={executionDisabledReason}
+											onCollaborate={
+												canCollaborate
+													? () => handleCollaborate(block)
+													: undefined
+											}
+											collaborateDisabled={globalLock}
+										/>
+									</ResponsiveCodeWrapper>
+								);
+							})}
 
 							{initialLoaded && !isLoading && !codeBlocks.length && !error && (
 								<Empty

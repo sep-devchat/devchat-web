@@ -22,6 +22,7 @@ import { runCode, runCodeBlock, runCodeCollab } from "@/services/code/code.api";
 import { mapLanguageToEnum } from "@/utils/code-runner";
 import * as S from "./CodeEditor.styled";
 import { cn } from "@/lib/utils";
+import useExecutableLanguages from "@/hooks/useExecutableLanguages";
 
 interface CodeEditorProps {
 	code: string;
@@ -63,6 +64,10 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
 	const [runOutput, setRunOutput] = useState("");
 	const [runError, setRunError] = useState("");
 	const [executionTime, setExecutionTime] = useState<number>(0);
+	const { isExecutableLanguage } = useExecutableLanguages();
+	const isLanguageExecutable = isExecutableLanguage(language);
+	const executionDisabledMessage =
+		"Code execution is disabled for this language.";
 
 	const handleEditorMount = (editor: editor.IStandaloneCodeEditor) => {
 		editorRef.current = editor;
@@ -97,6 +102,14 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
 	const handleRun = async () => {
 		if (!allowRun) {
 			setRunError("Save this revision before running the code.");
+			setRunOutput("");
+			setExecutionTime(0);
+			setIsResultOpen(true);
+			return;
+		}
+
+		if (!isLanguageExecutable) {
+			setRunError(executionDisabledMessage);
 			setRunOutput("");
 			setExecutionTime(0);
 			setIsResultOpen(true);
@@ -235,7 +248,7 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
 
 						<S.RunButton
 							onClick={handleRun}
-							disabled={isRunning || !code.trim()}
+							disabled={isRunning || !code.trim() || !isLanguageExecutable}
 						>
 							<S.PlayIcon>
 								<Play style={{ width: "100%", height: "100%" }} />
