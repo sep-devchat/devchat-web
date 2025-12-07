@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { X, MessageCircle, PlusIcon } from "lucide-react";
 import {
-	SearchInput,
+	// SearchInput,
 	FriendList,
 	ModalOverlay,
 	ModalContent,
@@ -34,8 +34,8 @@ import {
 	IconButtonGroup,
 	IconButton,
 	SettingsIconStyled,
-	SearchContainer,
-	SearchIcon,
+	// SearchContainer,
+	// SearchIcon,
 	SectionHeader,
 	SectionTitle,
 	ProfileWrapper,
@@ -395,8 +395,8 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
 
 	return (
 		<LeftSidebarContainer>
-			<HeaderContainer>
-				{isGroupPage ? (
+			{isGroupPage && (
+				<HeaderContainer>
 					<GroupHeader>
 						<GroupTitleWithTooltip title={currentGroup?.name ?? "Group"} />
 						<IconButtonGroup>
@@ -408,13 +408,8 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
 							</IconButton>
 						</IconButtonGroup>
 					</GroupHeader>
-				) : (
-					<SearchContainer>
-						<SearchIcon />
-						<SearchInput placeholder="Find conversation" />
-					</SearchContainer>
-				)}
-			</HeaderContainer>
+				</HeaderContainer>
+			)}
 
 			{isGroupPage ? (
 				<SectionHeader>

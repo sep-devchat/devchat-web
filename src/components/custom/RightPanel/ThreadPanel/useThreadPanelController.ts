@@ -394,8 +394,13 @@ export const useThreadPanelController = ({
 		(payload: any) => {
 			if (!payload) return;
 			const incoming: MessageResponse = payload.message || payload;
-			if (!incoming || !incoming.thread || incoming.thread.id !== threadId)
-				return;
+			if (!incoming) return;
+			const incomingThreadId =
+				(incoming as any).threadId ??
+				incoming.thread?.id ??
+				payload.threadId ??
+				payload.thread?.id;
+			if (!incomingThreadId || incomingThreadId !== threadId) return;
 			setRealtimeMessages((prev) =>
 				prev.map((m) => (m.id === incoming.id ? incoming : m)),
 			);
@@ -751,6 +756,7 @@ export const useThreadPanelController = ({
 					hour: "2-digit",
 					minute: "2-digit",
 				}),
+				updatedAt: (m as any).updatedAt ?? m.updatedAt ?? m.createdAt,
 				avatarUrl:
 					sender?.avatarUrl ||
 					"https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face",
@@ -981,9 +987,10 @@ export const useThreadPanelController = ({
 						prev.map((m) => (m.id === editingMessage.id ? updated : m)),
 					);
 					await safeEmit(SocketEvents.EDIT_THREAD_MESSAGE, {
-						messageId: editingMessage.id,
+						threadMessageId: editingMessage.id,
 						content: text,
 						codeBlock: payload.codeBlock,
+						attachmentIds: payload.attachmentIds,
 						threadId,
 						channelId,
 						groupId,

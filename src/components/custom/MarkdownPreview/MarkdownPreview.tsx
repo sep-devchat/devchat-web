@@ -29,6 +29,7 @@ export interface MarkdownPreviewProps {
 	channelId?: string;
 	groupId?: string;
 	directUserId?: string;
+	codeBlockUpdatedAt?: string | number | Date;
 }
 
 const MarkdownPreview = ({
@@ -38,6 +39,7 @@ const MarkdownPreview = ({
 	channelId,
 	groupId,
 	directUserId,
+	codeBlockUpdatedAt,
 }: MarkdownPreviewProps) => {
 	const [remarkPlugins, setRemarkPlugins] = useState<any[]>([]);
 
@@ -183,10 +185,11 @@ const MarkdownPreview = ({
 					channelId={channelId}
 					groupId={groupId}
 					directUserId={directUserId}
+					refreshKey={codeBlockUpdatedAt}
 				/>
 			);
 		};
-	}, [extractedId, channelId, groupId, directUserId]);
+	}, [extractedId, channelId, groupId, directUserId, codeBlockUpdatedAt]);
 
 	const parsedImages = useMemo(() => {
 		const regex = /!\[([^\]]*)\]\(([^)]+)\)/g;

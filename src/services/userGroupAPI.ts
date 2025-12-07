@@ -2,7 +2,7 @@
 import { get, post, put, remove, patch } from "./apiCaller";
 import { ApiResponse } from "./friendAPI";
 export interface GroupInvitationRequest {
-	toUserId: string;
+	toUserIdOrEmail: string;
 	groupId: string;
 	message: string;
 }

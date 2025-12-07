@@ -22,7 +22,7 @@ import AppInit from "./components/AppInit.tsx";
 // Create a new router instance
 let history: RouterHistory | undefined;
 if (publicRuntimeConfig.ELECTRON) {
-	history = createMemoryHistory();
+	history = createMemoryHistory({ initialEntries: ["/chat/friend"] });
 }
 
 const router = createRouter({ routeTree, history });

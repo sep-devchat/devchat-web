@@ -12,6 +12,8 @@ export const SocketEvents = {
 	FETCH_MESSAGES: "fetch_messages",
 	FETCH_DIRECT_MESSAGES: "fetch_direct_messages",
 	SEND_DIRECT_MESSAGE: "send_direct_message",
+	EDIT_DIRECT_MESSAGE: "edit_direct_message",
+	DELETE_DIRECT_MESSAGE: "delete_direct_message",
 	EDIT_MESSAGE: "edit_message",
 	DELETE_MESSAGE: "delete_message",
 	MESSAGE_NOTIFICATION: "message_notification",

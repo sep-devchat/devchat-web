@@ -94,6 +94,35 @@ const normalizeDirectMessages = (resp: any): MessageResponse[] =>
 		})) as MessageResponse[],
 	);
 
+const toRealtimeDirectMessage = (payload: any) => {
+	const resolvedCodeBlockId =
+		payload?.codeBlockId ??
+		payload?.codeBlock?.id ??
+		payload?.codeBlock?.codeBlockId ??
+		null;
+
+	const serverMsg: any = {
+		...payload,
+		id:
+			payload?.id ??
+			payload?._id ??
+			payload?.messageId ??
+			payload?.clientTempId ??
+			`dm-${Date.now()}`,
+		createdAt: payload?.createdAt ?? new Date().toISOString(),
+		updatedAt:
+			payload?.updatedAt ?? payload?.createdAt ?? new Date().toISOString(),
+		content: payload?.content ?? payload?.message ?? "",
+		sender: payload?.from ?? payload?.sender ?? null,
+	};
+
+	if (resolvedCodeBlockId) {
+		serverMsg.codeBlockId = resolvedCodeBlockId;
+	}
+
+	return serverMsg;
+};
+
 export interface ChatAreaControllerResult {
 	shouldShowDirectHeader: boolean;
 	directHeaderProps: DirectMessageHeaderProps | null;
@@ -633,27 +662,7 @@ export const useChatAreaController = (): ChatAreaControllerResult => {
 			const involvesMe = !!myId && (fromId === myId || toId === myId);
 			if (!involvesMe) return; // ignore messages not involving current user
 
-			const resolvedCodeBlockId =
-				payload.codeBlockId ??
-				payload.codeBlock?.id ??
-				payload.codeBlock?.codeBlockId ??
-				null;
-
-			const serverMsg: any = {
-				...payload,
-				id:
-					payload.id ??
-					payload._id ??
-					payload.messageId ??
-					payload.clientTempId ??
-					`dm-${Date.now()}`,
-				createdAt: payload.createdAt ?? new Date().toISOString(),
-				content: payload.content ?? payload.message ?? "",
-				sender: payload.from ?? payload.sender ?? null,
-			};
-			if (resolvedCodeBlockId) {
-				serverMsg.codeBlockId = resolvedCodeBlockId;
-			}
+			const serverMsg = toRealtimeDirectMessage(payload);
 
 			// If currently viewing this DM, update realtime optimistic list
 			if (isDirectMode && directUserIdParam === otherUserId) {
@@ -739,6 +748,60 @@ export const useChatAreaController = (): ChatAreaControllerResult => {
 	);
 
 	useSocketEvent(SocketEvents.EDIT_MESSAGE, onServerEditMessage);
+
+	const onServerEditDirectMessage = useCallback(
+		(payload: any) => {
+			const editedId: string | undefined =
+				payload?.messageId ??
+				payload?.id ??
+				payload?._id ??
+				payload?.clientTempId;
+			if (!editedId) return;
+
+			const serverMsg = { ...toRealtimeDirectMessage(payload), id: editedId };
+			const fromId = payload?.from?.id ?? payload?.sender?.id ?? null;
+			const toId = payload?.to?.id ?? payload?.recipient?.id ?? null;
+			const myId = profile?.id ?? null;
+			let otherUserId: string | undefined;
+			if (myId) {
+				if (fromId === myId) otherUserId = toId ?? undefined;
+				else if (toId === myId) otherUserId = fromId ?? undefined;
+			}
+			const targetUserId =
+				otherUserId ?? (isDirectMode ? directUserIdParam : undefined);
+
+			if (
+				isDirectMode &&
+				directUserIdParam &&
+				targetUserId === directUserIdParam
+			) {
+				setRealtimeMessages((prev) =>
+					prev.map((m) => (m?.id === editedId ? { ...m, ...serverMsg } : m)),
+				);
+			}
+
+			if (targetUserId) {
+				queryClient.setQueryData(
+					["direct_messages", targetUserId],
+					(old: any) => {
+						if (!old) return old;
+						const toArray = (o: any) =>
+							Array.isArray(o?.data) ? o.data : Array.isArray(o) ? o : [];
+						const current = toArray(old);
+						if (!current.length) return old;
+						const next = current.map((msg: any) =>
+							msg?.id === editedId ? { ...msg, ...serverMsg } : msg,
+						);
+						if (Array.isArray(old)) return next;
+						return { ...old, data: next };
+					},
+				);
+			}
+		},
+		[profile?.id, isDirectMode, directUserIdParam, queryClient],
+	);
+
+	useSocketEvent(SocketEvents.EDIT_DIRECT_MESSAGE, onServerEditDirectMessage);
 
 	const messagesFromCache: MessageResponse[] = useMemo(() => {
 		return Array.isArray(messagesData) ? (messagesData as any) : [];
@@ -1386,9 +1449,11 @@ export const useChatAreaController = (): ChatAreaControllerResult => {
 
 				// edit flow
 				if (editingMessage) {
-					const ev = SocketEvents.EDIT_MESSAGE;
-					// Per DTO, server expects messageId and content
+					const ev = isDirectMode
+						? SocketEvents.EDIT_DIRECT_MESSAGE
+						: SocketEvents.EDIT_MESSAGE;
 					const p = {
+						...baseEmit,
 						messageId: editingMessage.id,
 						content: text,
 					};

@@ -7,7 +7,6 @@ import {
 	ContentCard,
 	LoginButton,
 	PageWrapper,
-	SubmitButton,
 	Text,
 	TitleCard,
 	TitleGr,
@@ -41,7 +40,7 @@ export const ConfirmMail = () => {
 					</TitleGr>
 					<ButtonActionGr>
 						<LoginButton onClick={goToLogin}>Back to Login</LoginButton>
-						<SubmitButton variant="default">Send</SubmitButton>
+						{/* <SubmitButton variant="default">Send</SubmitButton> */}
 					</ButtonActionGr>
 				</ContentCard>
 			</PageWrapper>

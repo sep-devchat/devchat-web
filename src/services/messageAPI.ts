@@ -7,6 +7,7 @@ import { ThreadResponse } from "./threadAPI";
 export interface MessageResponse {
 	id: string;
 	channelId: string;
+	threadId?: string;
 	channel?: ChannelResponse;
 	thread?: ThreadResponse;
 	senderId: string;

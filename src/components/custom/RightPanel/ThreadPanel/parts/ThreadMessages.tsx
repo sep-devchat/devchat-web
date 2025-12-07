@@ -204,6 +204,7 @@ const ThreadMessages: React.FC<ThreadMessagesProps> = ({
 											<MarkdownPreview
 												content={msg.content}
 												className={markdownPreviewClassName}
+												codeBlockUpdatedAt={msg.updatedAt}
 											/>
 											{uploadPreviews.length > 0 && (
 												<div className="mt-3 flex w-full min-w-[200px] max-w-[320px] flex-col gap-2">

@@ -11,9 +11,9 @@ import {
 	EmailText,
 	AddButton,
 	SearchBox,
-	InviteBox,
+	// InviteBox,
 	InviteInput,
-	CopyButton,
+	// CopyButton,
 	Left,
 	SectionWrapper,
 	TitleArea,
@@ -31,7 +31,7 @@ import {
 	listSentInvitationGr,
 	membersGroup,
 } from "@/services/userGroupAPI";
-import { theme } from "@/themes";
+// import { theme } from "@/themes";
 
 type AddGroupFormValues = {
 	name: string;
@@ -73,15 +73,7 @@ export default function InviteSection({
 	const groupId = params.groupId ?? "unknown-group";
 	const [groupName, setGroupName] = useState<string>(groupId);
 
-	const inviteStorageKey = `devchat_invite_copied_${groupId}`;
-
-	const [copiedInvite, setCopiedInvite] = useState<boolean>(() => {
-		try {
-			return sessionStorage.getItem(inviteStorageKey) === "1";
-		} catch {
-			return false;
-		}
-	});
+	// const inviteStorageKey = `devchat_invite_copied_${groupId}`;
 
 	const fetchDetailGroup = async (groupId: string) => {
 		if (!groupId) return;
@@ -240,7 +232,7 @@ export default function InviteSection({
 
 		try {
 			await inviteToGroup({
-				toUserId: userId,
+				toUserIdOrEmail: userId,
 				groupId,
 				message: "Hi, would you like to join our group?",
 			});
@@ -259,28 +251,27 @@ export default function InviteSection({
 		}
 	};
 
-	const inviteLink = `https://devchat-hihihehe/${groupId}`;
-	const handleCopy = async () => {
-		if (!canInvite) return;
-		try {
-			await navigator.clipboard.writeText(inviteLink);
-			try {
-				sessionStorage.setItem(inviteStorageKey, "1");
-			} catch {
-				/* ignore */
-			}
-			setCopiedInvite(true);
-			if (copyTimeoutRef.current) {
-				clearTimeout(copyTimeoutRef.current);
-			}
-			copyTimeoutRef.current = window.setTimeout(() => {
-				setCopiedInvite(false);
-				copyTimeoutRef.current = null;
-			}, 3000);
-		} catch (err) {
-			console.error(err);
-		}
-	};
+	// const handleCopy = async () => {
+	// 	if (!canInvite) return;
+	// 	try {
+	// 		await navigator.clipboard.writeText(inviteLink);
+	// 		try {
+	// 			sessionStorage.setItem(inviteStorageKey, "1");
+	// 		} catch {
+	// 			/* ignore */
+	// 		}
+	// 		setCopiedInvite(true);
+	// 		if (copyTimeoutRef.current) {
+	// 			clearTimeout(copyTimeoutRef.current);
+	// 		}
+	// 		copyTimeoutRef.current = window.setTimeout(() => {
+	// 			setCopiedInvite(false);
+	// 			copyTimeoutRef.current = null;
+	// 		}, 3000);
+	// 	} catch (err) {
+	// 		console.error(err);
+	// 	}
+	// };
 
 	const [emailInput, setEmailInput] = useState<string>("");
 	const [emailError, setEmailError] = useState<string | null>(null);
@@ -339,7 +330,7 @@ export default function InviteSection({
 
 		try {
 			await inviteToGroup({
-				toUserId: email,
+				toUserIdOrEmail: email,
 				groupId,
 				message: "Hi, would you like to join our group?",
 			});
@@ -396,33 +387,6 @@ export default function InviteSection({
 			</TitleArea>
 
 			<Form onSubmit={handleSubmit(onSubmit)}>
-				<div style={{ marginTop: 8 }}>
-					<div style={{ fontSize: 13, marginBottom: 8 }}>
-						Share an invite link to your friend!
-					</div>
-					<InviteBox>
-						<InviteInput readOnly value={inviteLink} />
-						<CopyButton
-							type="button"
-							onClick={handleCopy}
-							disabled={!canInvite}
-							style={
-								copiedInvite
-									? {
-											backgroundColor: theme.color.successBackground,
-											color: theme.color.success,
-											border: `1px solid ${theme.color.successBackground}`,
-										}
-									: undefined
-							}
-						>
-							{copiedInvite ? "Copied" : "Copy"}
-						</CopyButton>
-					</InviteBox>
-				</div>
-
-				<Divider />
-
 				<div style={{ marginBottom: 12 }}>
 					<div style={{ fontSize: 13, marginBottom: 8 }}>Invite by email</div>
 
@@ -436,6 +400,7 @@ export default function InviteSection({
 							type="button"
 							onClick={handleSendEmailInvite}
 							disabled={
+								!lookupResult ||
 								sendingEmail ||
 								!!emailError ||
 								emailInput.trim() === "" ||
@@ -487,8 +452,7 @@ export default function InviteSection({
 									fontSize: 13,
 								}}
 							>
-								No account found for this email. An invitation will be sent to
-								the email address.
+								No account found for this email.
 							</div>
 						) : null}
 					</div>

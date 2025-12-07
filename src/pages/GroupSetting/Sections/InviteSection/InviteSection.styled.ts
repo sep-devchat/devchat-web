@@ -239,6 +239,20 @@ export const AddButton = styled.button<{ $added?: boolean }>`
 	font-weight: 600;
 	min-width: 4rem;
 	font-size: 0.8125rem;
+	transition:
+		background 0.2s ease,
+		color 0.2s ease,
+		opacity 0.2s ease;
+
+	&:disabled {
+		opacity: 0.7;
+		cursor: not-allowed;
+		background: ${(p) =>
+			p.$added ? `${theme.color.successBackground}` : `${theme.color.grey200}`};
+		color: ${(p) =>
+			p.$added ? `${theme.color.success}` : `${theme.color.grey600}`};
+		box-shadow: none;
+	}
 
 	@media (min-width: 1440px) {
 		padding: 0.5625rem 0.875rem;

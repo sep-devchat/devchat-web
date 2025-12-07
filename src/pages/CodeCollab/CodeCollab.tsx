@@ -245,6 +245,7 @@ export default function CodeCollab({
 
 		try {
 			setIsSaving(true);
+			let nextEditingId: string | null = editingRevisionId ?? null;
 
 			if (editingRevisionId) {
 				const response = await updateCodeCollaboration(
@@ -252,7 +253,8 @@ export default function CodeCollab({
 					editableCode,
 				);
 
-				console.log("✏️ Update response:", response);
+				const resolvedId = response?.data?.id || editingRevisionId;
+				nextEditingId = resolvedId ?? null;
 
 				setChanges((prev) =>
 					prev.map((change) =>
@@ -272,8 +274,11 @@ export default function CodeCollab({
 			} else {
 				const response = await saveCodeCollaboration(codeBlockId, editableCode);
 
+				const newId = response?.data?.id || `change-${Date.now()}`;
+				nextEditingId = newId;
+
 				const newChange: Change = {
-					id: response?.data?.id || `change-${Date.now()}`,
+					id: newId,
 					userName: currentUserName,
 					userId: currentUserId,
 					avatarUrl: currentUserProfile?.avatarUrl,
@@ -283,31 +288,14 @@ export default function CodeCollab({
 
 				setChanges((prev) => [newChange, ...prev]);
 				setLastSavedCode(editableCode);
-				setEditingRevisionId(newChange.id);
 
 				toast.success("Changes saved successfully");
 			}
 
+			setEditingRevisionId(nextEditingId);
 			setSelectedDiff(null);
 
-			try {
-				const historyResponse = await getCodeCollaborationHistory(codeBlockId);
-				if (historyResponse?.data && Array.isArray(historyResponse.data)) {
-					const historyChanges: Change[] = historyResponse.data
-						.map((item) => ({
-							id: item.id,
-							userName: `${item.createdBy.firstName} ${item.createdBy.lastName}`,
-							userId: item.createdBy.id,
-							avatarUrl: item.createdBy.avatarUrl,
-							timestamp: new Date(item.createdAt),
-							code: item.content,
-						}))
-						.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
-					setChanges(historyChanges);
-				}
-			} catch (refreshErr) {
-				console.warn("Failed to refresh history:", refreshErr);
-			}
+			await fetchCollaboration({ silent: true });
 		} catch (err: any) {
 			console.error("💥 Save failed:", err);
 			toast.error(err?.message || "Failed to save changes");
@@ -491,6 +479,7 @@ export default function CodeCollab({
 										readOnly={true}
 										title="Original Code (Read-only)"
 										language={codeLanguage}
+										codeBlockId={codeBlockId}
 									/>
 								</S.CodeEditorWrapper>
 							</ResizablePanel>
@@ -512,6 +501,8 @@ export default function CodeCollab({
 										onReset={handleResetConfirm}
 										userRevisionCount={userRevisionCount}
 										language={codeLanguage}
+										codeCollabId={editingRevisionId || undefined}
+										allowRun={Boolean(editingRevisionId)}
 									/>
 								</S.CodeEditorWrapperBottom>
 							</ResizablePanel>
@@ -548,6 +539,8 @@ export default function CodeCollab({
 					onClose={() => setSelectedDiff(null)}
 					onLoadVersion={() => handleLoadVersion(selectedDiff.code)}
 					language={codeLanguage}
+					codeBlockId={codeBlockId}
+					modifiedCollabId={selectedDiff.id}
 				/>
 			)}
 

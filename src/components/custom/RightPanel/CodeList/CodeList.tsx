@@ -219,7 +219,6 @@ const CodeList = ({
 
 	const handleRunCode = async (block: CodeBlock) => {
 		if (runningBlockId) return;
-		const code = block.content || "";
 		setModalMeta({
 			title: buildCodeBlockTitle(block.language),
 			language: block.language,
@@ -229,7 +228,11 @@ const CodeList = ({
 		setRunningBlockId(block.id);
 
 		try {
-			await runSnippet({ code, language: block.language });
+			await runSnippet({
+				code: block.content,
+				language: block.language,
+				codeBlockId: block.id,
+			});
 		} finally {
 			setRunningBlockId(null);
 			setIsResultOpen(true);

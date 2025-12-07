@@ -72,6 +72,7 @@ export const ProgrammingLanguages: React.FC = () => {
 		languageCode: lang.languageCode,
 		languageVersion: lang.languageVersion ?? "",
 		isExecutable: lang.isExecutable,
+		useAiCheck: lang.useAiCheck,
 		isActive: lang.isActive,
 	}));
 
@@ -127,6 +128,7 @@ export const ProgrammingLanguages: React.FC = () => {
 					preset: typeof data.preset === "string" ? data.preset : undefined,
 					isExecutable:
 						data.isExecutable === true || data.isExecutable === "Enabled",
+					useAiCheck: data.useAiCheck === true || data.useAiCheck === "Enabled",
 				};
 
 				await createProgrammingLanguage(requestData);
@@ -145,6 +147,7 @@ export const ProgrammingLanguages: React.FC = () => {
 					preset: typeof data.preset === "string" ? data.preset : undefined,
 					isExecutable:
 						data.isExecutable === true || data.isExecutable === "Enabled",
+					useAiCheck: data.useAiCheck === true || data.useAiCheck === "Enabled",
 				};
 
 				await updateProgrammingLanguage(selectedLanguage.id, requestData);
@@ -217,6 +220,19 @@ export const ProgrammingLanguages: React.FC = () => {
 			return <S.StatusBadge $isEnabled={isEnabled}>{label}</S.StatusBadge>;
 		}
 
+		if (column.key === "useAiCheck") {
+			const isEnabled =
+				value === true ||
+				value === "Enabled" ||
+				value === "true" ||
+				value === 1;
+			return (
+				<S.StatusBadge $isEnabled={isEnabled}>
+					{isEnabled ? "Enabled" : "Disabled"}
+				</S.StatusBadge>
+			);
+		}
+
 		if (column.key === "isActive") {
 			const active =
 				value === true || value === "Active" || value === "true" || value === 1;
@@ -241,6 +257,7 @@ export const ProgrammingLanguages: React.FC = () => {
 			languageIcon: selectedLanguage.languageIcon,
 			preset: selectedLanguage.preset ?? "",
 			isExecutable: selectedLanguage.isExecutable,
+			useAiCheck: selectedLanguage.useAiCheck,
 		};
 	};
 

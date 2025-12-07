@@ -1,10 +1,11 @@
 import { useCallback, useState } from "react";
-import { runCode } from "@/services/code/code.api";
+import { runCode, runCodeBlock } from "@/services/code/code.api";
 import { mapLanguageToEnum } from "@/utils/code-runner";
 
 interface RunSnippetPayload {
-	code: string;
+	code?: string;
 	language?: string;
+	codeBlockId?: string;
 }
 
 const getTimestamp = () => new Date().toLocaleString();
@@ -22,7 +23,30 @@ const useCodeRunner = () => {
 	}, []);
 
 	const runSnippet = useCallback(
-		async ({ code, language }: RunSnippetPayload) => {
+		async ({ code, language, codeBlockId }: RunSnippetPayload) => {
+			if (codeBlockId) {
+				setIsRunning(true);
+				setRunError("");
+				setRunOutput("");
+				try {
+					const response = await runCodeBlock({ codeBlockId });
+					setRunOutput(response?.data?.output ?? "");
+					setLastRunAt(getTimestamp());
+					return true;
+				} catch (error: any) {
+					const message =
+						error?.response?.data?.message ||
+						error?.message ||
+						"Error running code block.";
+					setRunError(message);
+					setRunOutput("");
+					setLastRunAt(getTimestamp());
+					return false;
+				} finally {
+					setIsRunning(false);
+				}
+			}
+
 			const enumLanguage = mapLanguageToEnum(language);
 			if (!enumLanguage) {
 				setRunError(
