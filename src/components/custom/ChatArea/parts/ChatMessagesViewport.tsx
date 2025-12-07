@@ -6,7 +6,6 @@ import {
 	MessagesViewport,
 	MessagesViewportVariant,
 } from "../ChatArea.styled";
-import ThreadPreview from "../ThreadPreview";
 import { MessageRow } from "./MessageRow";
 import { MessageResponse } from "@/services/messageAPI";
 import { ThreadResponse } from "@/services/threadAPI";
@@ -17,15 +16,7 @@ import {
 } from "../ChatArea.helpers";
 import ChatAreaLoading from "../ChatAreaLoading";
 
-interface ThreadPreviewPayload {
-	threadId: string;
-	latestMessage: MessageResponse;
-	threadMeta: ThreadResponse | null | undefined;
-}
-
-type ChatDisplayItem =
-	| { type: "thread"; payload: ThreadPreviewPayload }
-	| { type: "msg"; payload: MessageResponse };
+type ChatDisplayItem = MessageResponse;
 
 export interface ChatMessagesViewportProps {
 	listRef: React.RefObject<HTMLDivElement>;
@@ -74,8 +65,6 @@ const ChatMessagesViewport: React.FC<ChatMessagesViewportProps> = ({
 	isDirectMode,
 	threadId,
 	messages,
-	latestMessagePerThread,
-	threadDetailsMap,
 	threadsByMessageId,
 	hasMoreMessages,
 	isFetchingOlderMessages,
@@ -95,53 +84,8 @@ const ChatMessagesViewport: React.FC<ChatMessagesViewportProps> = ({
 	currentUserId,
 }) => {
 	const displayItems = useMemo<ChatDisplayItem[]>(() => {
-		if (threadId) {
-			return messages.map((msg) => ({ type: "msg", payload: msg }));
-		}
-
-		const items: ChatDisplayItem[] = [];
-		const threadsAdded = new Set<string>();
-
-		const threadPreviews: ThreadPreviewPayload[] = Array.from(
-			latestMessagePerThread.entries(),
-		).map(([threadIdValue, latestMessage]) => ({
-			threadId: threadIdValue,
-			latestMessage,
-			threadMeta: threadDetailsMap[threadIdValue] ?? null,
-		}));
-
-		threadPreviews.sort((a, b) => {
-			const ta = new Date(a.latestMessage.createdAt).getTime();
-			const tb = new Date(b.latestMessage.createdAt).getTime();
-			return ta - tb;
-		});
-
-		for (const preview of threadPreviews) {
-			items.push({ type: "thread", payload: preview });
-			threadsAdded.add(preview.threadId);
-		}
-
-		for (const msg of messages) {
-			const tid = msg.thread?.id;
-			if (!tid || !threadsAdded.has(tid)) {
-				items.push({ type: "msg", payload: msg });
-			}
-		}
-
-		items.sort((a, b) => {
-			const ta =
-				a.type === "msg"
-					? new Date(a.payload.createdAt).getTime()
-					: new Date(a.payload.latestMessage.createdAt).getTime();
-			const tb =
-				b.type === "msg"
-					? new Date(b.payload.createdAt).getTime()
-					: new Date(b.payload.latestMessage.createdAt).getTime();
-			return ta - tb;
-		});
-
-		return items;
-	}, [messages, latestMessagePerThread, threadDetailsMap, threadId]);
+		return messages;
+	}, [messages]);
 
 	const renderHistoryNotice = () => {
 		if (!displayItems.length) return null;
@@ -186,57 +130,13 @@ const ChatMessagesViewport: React.FC<ChatMessagesViewportProps> = ({
 		return (
 			<>
 				{renderHistoryNotice()}
-				{displayItems.map((item, idx) => {
-					if (item.type === "thread") {
-						const {
-							threadId: threadIdentifier,
-							latestMessage,
-							threadMeta,
-						} = item.payload;
-						const prevItem = displayItems[idx - 1];
-						const prevDate = prevItem
-							? prevItem.type === "msg"
-								? prevItem.payload.createdAt
-								: prevItem.payload.latestMessage.createdAt
-							: undefined;
-						const showDateHeader =
-							!prevDate || !isSameDay(prevDate, latestMessage.createdAt);
-
-						return (
-							<div
-								key={`thread-${threadIdentifier}-${latestMessage.id}`}
-								className="w-full"
-							>
-								{showDateHeader && (
-									<DividerWrapper>
-										<Line />
-										<DateText>
-											{formatDateHeader(latestMessage.createdAt)}
-										</DateText>
-										<Line />
-									</DividerWrapper>
-								)}
-								<ThreadPreview
-									threadId={threadIdentifier}
-									latestMessage={latestMessage}
-									threadMeta={threadMeta}
-								/>
-							</div>
-						);
-					}
-
-					const m: MessageResponse = item.payload;
-					const prevItem = displayItems[idx - 1];
-					const prevDate = prevItem
-						? prevItem.type === "msg"
-							? prevItem.payload.createdAt
-							: prevItem.payload.latestMessage.createdAt
-						: undefined;
+				{displayItems.map((m, idx) => {
+					const prevMessage = displayItems[idx - 1];
+					const prevDate = prevMessage?.createdAt;
 					const showDateHeader = !prevDate || !isSameDay(prevDate, m.createdAt);
 					const isSameSenderAsPrev =
 						!showDateHeader &&
-						prevItem?.type === "msg" &&
-						(prevItem.payload?.sender?.id ?? null) === (m.sender?.id ?? null);
+						(prevMessage?.sender?.id ?? null) === (m.sender?.id ?? null);
 					const showAvatarAndHeader = !isSameSenderAsPrev;
 
 					const name =
@@ -285,6 +185,7 @@ const ChatMessagesViewport: React.FC<ChatMessagesViewportProps> = ({
 								channelId={channelId || ""}
 								groupId={groupId || ""}
 								directUserId={directUserId}
+								isThreadMode={!!threadId}
 							/>
 						</div>
 					);

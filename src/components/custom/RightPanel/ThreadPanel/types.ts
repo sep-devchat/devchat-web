@@ -6,6 +6,7 @@ export interface UIMessage {
 	author: string;
 	content: string;
 	time: string;
+	updatedAt: string | Date;
 	avatarUrl?: string;
 	date: string;
 	optimistic?: boolean;

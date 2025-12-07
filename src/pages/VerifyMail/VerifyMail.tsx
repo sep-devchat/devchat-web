@@ -5,7 +5,6 @@ import {
 	ContentCard,
 	LoginButton,
 	PageWrapper,
-	SubmitButton,
 	Text,
 	TitleCard,
 	TitleGr,
@@ -46,7 +45,7 @@ export const VerifyMail: React.FC<Props> = ({
 					</TitleGr>
 					<ButtonActionGr>
 						<LoginButton onClick={goToLogin}>Back to Login</LoginButton>
-						<SubmitButton variant="default">Resend</SubmitButton>
+						{/* <SubmitButton variant="default">Resend</SubmitButton> */}
 					</ButtonActionGr>
 				</ContentCard>
 			</PageWrapper>

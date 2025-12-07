@@ -33,6 +33,7 @@ export type MessageRowProps = {
 	channelId: string;
 	groupId: string;
 	directUserId?: string;
+	isThreadMode: boolean;
 };
 
 export const MessageRow: React.FC<MessageRowProps> = React.memo(
@@ -59,6 +60,7 @@ export const MessageRow: React.FC<MessageRowProps> = React.memo(
 		channelId,
 		groupId,
 		directUserId,
+		isThreadMode,
 	}) => {
 		const [hovered, setHovered] = useState(false);
 		const [windowWidth, setWindowWidth] = React.useState(
@@ -229,6 +231,7 @@ export const MessageRow: React.FC<MessageRowProps> = React.memo(
 									channelId={channelId}
 									groupId={groupId}
 									directUserId={directUserId}
+									codeBlockUpdatedAt={m.updatedAt}
 								/>
 
 								{previewUploads.length > 0 && (
@@ -260,7 +263,7 @@ export const MessageRow: React.FC<MessageRowProps> = React.memo(
 									</div>
 								)}
 
-								{existingThreadId && !m.thread?.id && (
+								{existingThreadId && !isThreadMode && (
 									<button
 										onClick={(e) => {
 											e.stopPropagation();

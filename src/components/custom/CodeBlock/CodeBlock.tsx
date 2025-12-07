@@ -41,6 +41,7 @@ export interface CodeBlockProps
 	channelId?: string;
 	groupId?: string;
 	directUserId?: string;
+	refreshKey?: string | number | Date;
 }
 
 const CodeBlock = ({
@@ -53,6 +54,7 @@ const CodeBlock = ({
 	channelId,
 	groupId,
 	directUserId,
+	refreshKey,
 	...props
 }: CodeBlockProps) => {
 	const preRef = useRef<HTMLPreElement>(null);
@@ -99,7 +101,11 @@ const CodeBlock = ({
 
 	useEffect(() => {
 		const fetchBlock = async () => {
-			if (!codeBlockId) return;
+			if (!codeBlockId) {
+				setFetchedCodeBlock(null);
+				setIsLoadingCodeBlock(false);
+				return;
+			}
 			const hasChannelContext = Boolean(channelId && groupId);
 			const hasDirectContext = Boolean(directUserId);
 			if (!hasChannelContext && !hasDirectContext) return;
@@ -124,7 +130,7 @@ const CodeBlock = ({
 		};
 
 		fetchBlock();
-	}, [codeBlockId, channelId, groupId, directUserId]);
+	}, [codeBlockId, channelId, groupId, directUserId, refreshKey]);
 
 	const normalizeLang = (raw?: string) => {
 		const v = (raw || "").toLowerCase();

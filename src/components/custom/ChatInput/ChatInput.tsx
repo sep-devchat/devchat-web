@@ -12,7 +12,7 @@ import {
 	Input,
 	InputContainer,
 } from "./ChatInput.styled"; // adjust path
-import { Plus, Send, Smile, CornerUpLeft, Code2 } from "lucide-react";
+import { Plus, Send, Smile, Code2 } from "lucide-react";
 import Editor, { EditorHandle } from "../ChatInputComponent/Editor/Editor";
 import {
 	ChatInputProps,
@@ -25,6 +25,7 @@ import {
 	saveDirectUpload,
 } from "@/services/upload/upload.api";
 import ReplyPreview from "../ChatInputComponent/ReplyPreview/ReplyPreview";
+import EditPreview from "../ChatInputComponent/EditPreview/EditPreview";
 import ChatTypeDropdown from "../ChatInputComponent/ChatTypeModal/ChatTypeModal";
 import Toolbar, {
 	ToolbarAction,
@@ -257,17 +258,36 @@ export default function ChatInput({
 	useEffect(() => {
 		if (editingMessage) {
 			const md = editingMessage.content ?? "";
-			const htmlFromMd = md
+			const fenceMatch = /```([a-zA-Z0-9_+-]*)?\n([\s\S]*?)```/m.exec(md);
+			let cleanMd = md;
+			if (fenceMatch) {
+				const [, rawLang = "", codeBody = ""] = fenceMatch;
+				const before = md.slice(0, fenceMatch.index).trimEnd();
+				const after = md
+					.slice(fenceMatch.index + fenceMatch[0].length)
+					.trimStart();
+				cleanMd = [before, after].filter(Boolean).join("\n\n");
+				setCodeLang(rawLang || "plaintext");
+				setCodeValue(codeBody);
+				setShowCodeEditor(true);
+			} else {
+				setShowCodeEditor(false);
+				setCodeValue("");
+			}
+			const htmlFromMd = cleanMd
 				.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
 				.replace(/\*(.+?)\*/g, "<em>$1</em>")
 				.replace(/~~(.+?)~~/g, "<s>$1</s>")
 				.replace(/\+\+(.+?)\+\+/g, "<u>$1</u>")
 				.replace(/\n/g, "<br/>");
 			setHtml(htmlFromMd);
-			setMdText(md);
+			setMdText(cleanMd);
 			editorRef.current?.setHtml(htmlFromMd);
 			editorRef.current?.focus();
 			setInboxType("normal");
+		} else {
+			setShowCodeEditor(false);
+			setCodeValue("");
 		}
 	}, [editingMessage]);
 
@@ -1165,6 +1185,10 @@ export default function ChatInput({
 			}}
 		>
 			<ReplyPreview replyTo={replyTo} onCancelReply={onCancelReply} />
+			<EditPreview
+				editingMessage={editingMessage}
+				onCancelEdit={handleCancelEditClick}
+			/>
 
 			<InputContainer
 				style={{
@@ -1454,19 +1478,7 @@ export default function ChatInput({
 									onClose={handleEmojiClose}
 								/>
 							</div>
-							{editingMode && onCancelEdit && (
-								<IconButton
-									type="button"
-									title="Cancel edit"
-									onClick={handleCancelEditClick}
-									style={{
-										padding: `${getResponsiveSize(4)}px`,
-										borderRadius: `${getResponsiveSize(4)}px`,
-									}}
-								>
-									<CornerUpLeft size={getResponsiveSize(18)} />
-								</IconButton>
-							)}
+							{/* Edit cancel handled in EditPreview indicator */}
 						</div>
 						<IconButton
 							type="submit"

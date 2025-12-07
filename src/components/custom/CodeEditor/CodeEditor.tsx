@@ -76,6 +76,8 @@ export type CodeEditorProps = {
 	closeOnEmptyBackspace?: boolean;
 	/** Called when user presses Ctrl/Cmd + Enter inside the editor (e.g., to send). */
 	onCtrlEnter?: () => void;
+	/** If true, automatically insert the language preset whenever the editor has no content. */
+	autoPresetWhenEmpty?: boolean;
 };
 
 const DEFAULT_LANGUAGES: LanguageOption[] = [
@@ -129,6 +131,7 @@ const CodeEditor = React.forwardRef<CodeEditorRef, CodeEditorProps>(
 			maxLines,
 			closeOnEmptyBackspace = true,
 			onCtrlEnter,
+			autoPresetWhenEmpty = true,
 		},
 		ref,
 	) => {
@@ -249,24 +252,38 @@ const CodeEditor = React.forwardRef<CodeEditorRef, CodeEditorProps>(
 		}, []);
 
 		const applyPresetForLanguage = useCallback(
-			(langValue: string) => {
+			(langValue: string, options?: { force?: boolean }) => {
 				const presetText =
 					availableLanguages.find((item) => item.value === langValue)?.preset ??
 					"";
 				const isControlled = typeof value !== "undefined";
-				if (!isControlled && editorRef.current) {
-					editorRef.current.setValue(presetText);
+				const force = options?.force ?? false;
+				if (!force) {
+					if (isControlled) {
+						const hasContent =
+							typeof value === "string" && value.trim().length > 0;
+						if (!autoPresetWhenEmpty || hasContent) {
+							return;
+						}
+					}
+				}
+				if (!isControlled) {
+					if (editorRef.current) {
+						editorRef.current.setValue(presetText);
+					}
+					onChange?.(presetText);
+					return;
 				}
 				onChange?.(presetText);
 			},
-			[availableLanguages, onChange, value],
+			[availableLanguages, autoPresetWhenEmpty, onChange, value],
 		);
 
 		const handleLangChange = useCallback(
 			(next: string) => {
 				setInternalLang(next);
 				if (onLanguageChange) onLanguageChange(next);
-				applyPresetForLanguage(next);
+				applyPresetForLanguage(next, { force: true });
 			},
 			[applyPresetForLanguage, onLanguageChange],
 		);
