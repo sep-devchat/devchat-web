@@ -83,6 +83,17 @@ const getErrorMessage = (error: unknown) => {
 	return maybeResponse?.response?.data?.message ?? "Something went wrong";
 };
 
+const getTargetSenderProfile = (report: ReportResponse): ProfileLike => {
+	switch (report.messageType) {
+		case MessageReportType.DIRECT_MESSAGE:
+			return report.directMessage?.from ?? null;
+		case MessageReportType.THREAD_MESSAGE:
+			return report.threadMessage?.sender ?? null;
+		default:
+			return report.message?.sender ?? null;
+	}
+};
+
 const getReporterDisplayName = (report: ReportResponse) =>
 	getProfileDisplayName(report.createdBy);
 
@@ -97,46 +108,46 @@ const getTargetContent = (report: ReportResponse) => {
 	}
 };
 
-const getTargetSender = (report: ReportResponse) => {
-	switch (report.messageType) {
-		case MessageReportType.DIRECT_MESSAGE:
-			return getProfileDisplayName(report.directMessage?.from);
-		case MessageReportType.THREAD_MESSAGE:
-			return getProfileDisplayName(report.threadMessage?.sender);
-		default:
-			return getProfileDisplayName(report.message?.sender);
-	}
-};
+// const getTargetSender = (report: ReportResponse) => {
+// 	switch (report.messageType) {
+// 		case MessageReportType.DIRECT_MESSAGE:
+// 			return getProfileDisplayName(report.directMessage?.from);
+// 		case MessageReportType.THREAD_MESSAGE:
+// 			return getProfileDisplayName(report.threadMessage?.sender);
+// 		default:
+// 			return getProfileDisplayName(report.message?.sender);
+// 	}
+// };
 
-const getLocationSummary = (report: ReportResponse) => {
-	switch (report.messageType) {
-		case MessageReportType.DIRECT_MESSAGE: {
-			const recipient = getProfileDisplayName(report.directMessage?.to);
-			return `Direct message to ${recipient}`;
-		}
-		case MessageReportType.THREAD_MESSAGE: {
-			const channelName =
-				report.message?.channel?.name ??
-				report.message?.channelId ??
-				report.threadMessage?.channelId;
-			const threadReference =
-				report.threadMessage?.id ?? report.message?.thread?.id ?? undefined;
-			if (channelName && threadReference) {
-				return `Thread ${threadReference.slice(0, 8)} in #${channelName}`;
-			}
-			if (channelName) {
-				return `Reply in #${channelName}`;
-			}
-			return threadReference
-				? `Thread ${threadReference.slice(0, 8)}`
-				: "Thread reply";
-		}
-		default: {
-			const channel = report.message?.channel?.name;
-			return channel ? `#${channel}` : "Channel message";
-		}
-	}
-};
+// const getLocationSummary = (report: ReportResponse) => {
+// 	switch (report.messageType) {
+// 		case MessageReportType.DIRECT_MESSAGE: {
+// 			const recipient = getProfileDisplayName(report.directMessage?.to);
+// 			return `Direct message to ${recipient}`;
+// 		}
+// 		case MessageReportType.THREAD_MESSAGE: {
+// 			const channelName =
+// 				report.message?.channel?.name ??
+// 				report.message?.channelId ??
+// 				report.threadMessage?.channelId;
+// 			const threadReference =
+// 				report.threadMessage?.id ?? report.message?.thread?.id ?? undefined;
+// 			if (channelName && threadReference) {
+// 				return `Thread ${threadReference.slice(0, 8)} in #${channelName}`;
+// 			}
+// 			if (channelName) {
+// 				return `Reply in #${channelName}`;
+// 			}
+// 			return threadReference
+// 				? `Thread ${threadReference.slice(0, 8)}`
+// 				: "Thread reply";
+// 		}
+// 		default: {
+// 			const channel = report.message?.channel?.name;
+// 			return channel ? `#${channel}` : "Channel message";
+// 		}
+// 	}
+// };
 
 const formatShortId = (id: string) => {
 	if (id.length <= 12) return id;
@@ -536,8 +547,9 @@ const AdminReports = () => {
 							<S.Table>
 								<S.TableHead>
 									<tr>
-										<S.Th style={{ width: "50%" }}>Reported content</S.Th>
+										<S.Th style={{ width: "30%" }}>Reported content</S.Th>
 										<S.Th>Categories</S.Th>
+										<S.Th>Reported User</S.Th>
 										<S.Th>Reporter</S.Th>
 										<S.Th>Created</S.Th>
 										<S.Th $align="right">Actions</S.Th>
@@ -554,6 +566,16 @@ const AdminReports = () => {
 										const reporterAvatar = getProfileAvatarUrl(
 											report.createdBy,
 										);
+
+										const targetSenderProfile = getTargetSenderProfile(report);
+										const targetSenderDisplayName =
+											getProfileDisplayName(targetSenderProfile);
+										const targetSenderContact =
+											targetSenderProfile?.email ??
+											targetSenderProfile?.username ??
+											"—";
+										const targetSenderAvatar =
+											getProfileAvatarUrl(targetSenderProfile);
 										return (
 											<S.Row key={report.id}>
 												<S.Td>
@@ -569,10 +591,6 @@ const AdminReports = () => {
 																content={getTargetContent(report)}
 															/>
 														</S.ContentText>
-														<S.LocationText>
-															By {getTargetSender(report)} ·{" "}
-															{getLocationSummary(report)}
-														</S.LocationText>
 														{tableReporterNote && (
 															<S.ReporterNote>
 																<span>Reporter note:</span>
@@ -593,6 +611,23 @@ const AdminReports = () => {
 													) : (
 														<S.ReporterMeta>No categories</S.ReporterMeta>
 													)}
+												</S.Td>
+												<S.Td>
+													<S.ReporterInfo>
+														<S.ReporterAvatar
+															src={targetSenderAvatar}
+															alt={`Avatar of ${targetSenderDisplayName}`}
+															loading="lazy"
+														/>
+														<S.ReporterDetails>
+															<S.ReporterName>
+																{targetSenderDisplayName}
+															</S.ReporterName>
+															<S.ReporterMeta>
+																{targetSenderContact}
+															</S.ReporterMeta>
+														</S.ReporterDetails>
+													</S.ReporterInfo>
 												</S.Td>
 												<S.Td>
 													<S.ReporterInfo>
@@ -709,9 +744,20 @@ const ReportDetailDialog = ({
 	const reporterContact =
 		report?.createdBy?.email ?? report?.createdBy?.username ?? "—";
 	const reporterAvatar = getProfileAvatarUrl(report?.createdBy);
+
+	const targetSenderProfile = report ? getTargetSenderProfile(report) : null;
+	const targetSenderDisplayName = getProfileDisplayName(targetSenderProfile);
+	const targetSenderContact =
+		targetSenderProfile?.email ?? targetSenderProfile?.username ?? "—";
+	const targetSenderAvatar = getProfileAvatarUrl(targetSenderProfile);
+	const targetSenderId = targetSenderProfile?.id;
 	return (
 		<Dialog open={Boolean(report)} onOpenChange={(open) => !open && onClose()}>
-			<DialogContent className="sm:max-w-3xl border-none bg-transparent p-0">
+			<DialogContent
+				className="sm:max-w-2xl max-h-[90vh] overflow-y-auto border-none bg-transparent p-0"
+				onInteractOutside={(e) => e.preventDefault()}
+				onEscapeKeyDown={(e) => e.preventDefault()}
+			>
 				{report ? (
 					<S.DetailCard>
 						<DialogHeader>
@@ -736,29 +782,6 @@ const ReportDetailDialog = ({
 							</DialogDescription>
 						</DialogHeader>
 						<S.DetailStack>
-							<S.DetailSection>
-								<S.DetailHeading>Target message</S.DetailHeading>
-								<S.DetailText>
-									<MarkdownPreview content={getTargetContent(report)} />
-								</S.DetailText>
-								<S.DetailMeta>
-									Sent by {getTargetSender(report)} ·{" "}
-									{getLocationSummary(report)}
-								</S.DetailMeta>
-								{canViewMessageReports && messageId && messageType && (
-									<S.DetailActions>
-										<S.DetailActionButton
-											type="button"
-											onClick={() =>
-												onViewMessageReports(messageId, messageType)
-											}
-										>
-											<ExternalLink size={14} />
-											View all reports about this message
-										</S.DetailActionButton>
-									</S.DetailActions>
-								)}
-							</S.DetailSection>
 							<S.DetailSection>
 								<S.DetailHeading>Reporter</S.DetailHeading>
 								<S.ReporterInfo>
@@ -799,6 +822,64 @@ const ReportDetailDialog = ({
 										>
 											<ExternalLink size={14} />
 											View all reports from this user
+										</S.DetailActionButton>
+									</S.DetailActions>
+								)}
+							</S.DetailSection>
+
+							{/* PHẦN MỚI: Target Message Sender */}
+							<S.DetailSection>
+								<S.DetailHeading>Message Sender</S.DetailHeading>
+								<S.ReporterInfo>
+									<S.ReporterAvatar
+										$size={56}
+										src={targetSenderAvatar}
+										alt={`Avatar of ${targetSenderDisplayName}`}
+										loading="lazy"
+									/>
+									<S.ReporterDetails>
+										<S.ReporterName>{targetSenderDisplayName}</S.ReporterName>
+										<S.ReporterMeta>{targetSenderContact}</S.ReporterMeta>
+									</S.ReporterDetails>
+								</S.ReporterInfo>
+								<S.DetailList>
+									<S.DetailItem>
+										<S.DetailLabel>Name</S.DetailLabel>
+										<S.DetailValue>{targetSenderDisplayName}</S.DetailValue>
+									</S.DetailItem>
+									<S.DetailItem>
+										<S.DetailLabel>Email</S.DetailLabel>
+										<S.DetailValue>
+											{targetSenderProfile?.email ?? "—"}
+										</S.DetailValue>
+									</S.DetailItem>
+									<S.DetailItem>
+										<S.DetailLabel>User ID</S.DetailLabel>
+										<S.DetailValue>{targetSenderId ?? "—"}</S.DetailValue>
+									</S.DetailItem>
+								</S.DetailList>
+
+								<div style={{ marginTop: "16px" }}>
+									<S.DetailLabel
+										style={{ marginBottom: "8px", display: "block" }}
+									>
+										Message Content
+									</S.DetailLabel>
+									<S.DetailText>
+										<MarkdownPreview content={getTargetContent(report)} />
+									</S.DetailText>
+								</div>
+
+								{canViewMessageReports && messageId && messageType && (
+									<S.DetailActions>
+										<S.DetailActionButton
+											type="button"
+											onClick={() =>
+												onViewMessageReports(messageId, messageType)
+											}
+										>
+											<ExternalLink size={14} />
+											View all reports about this message
 										</S.DetailActionButton>
 									</S.DetailActions>
 								)}
