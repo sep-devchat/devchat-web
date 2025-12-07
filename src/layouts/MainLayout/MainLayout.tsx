@@ -33,8 +33,10 @@ import { detailGroup, GroupResponse, listGroups } from "@/services/groupAPI";
 import { theme } from "@/themes";
 import TaskGroup from "@/components/custom/RightPanel/TaskGroup/TaskGroup";
 import FriendList from "@/components/custom/RightPanel/FriendList/FriendList";
-import { useSelector } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
 import { RootState } from "@/store";
+import { setProfile } from "@/store/user.slice";
+import { fetchProfile } from "@/services/auth/authAPI";
 import { unfriendUser } from "@/services/friendAPI";
 import { showGlobalAlert } from "@/components/custom/AlertCustom/Alert";
 import ConfirmModal from "@/components/custom/ConfirmModal/ConfirmModal";
@@ -70,6 +72,13 @@ const MainLayout = () => {
 	const isConversationRoute =
 		!isCodeCollabRoute && Boolean(groupId || directUserId);
 	const panelTab = isConversationRoute ? activeTab : "";
+
+	const dispatch = useDispatch();
+	const currentUserProfile = useSelector(
+		(state: RootState) => state.user.profile,
+	);
+	const currentUserId = currentUserProfile?.id || "";
+
 	const setPanelTab = useCallback(
 		(nextTab?: string) => {
 			navigate({
@@ -109,10 +118,6 @@ const MainLayout = () => {
 	);
 	const [localGroups, setLocalGroups] = useState<any[]>([]);
 	const [isAdmin, setIsAdmin] = useState<boolean>(false);
-	const currentUserProfile = useSelector(
-		(state: RootState) => state.user.profile,
-	);
-	const currentUserId = currentUserProfile?.id || "";
 	const [isHalf, setIsHalf] = useState(window.innerWidth < 1220);
 	const [activeMenu, setActiveMenu] = useState<string | null>(null);
 	const [unfriendTarget, setUnfriendTarget] = useState<{
@@ -139,6 +144,25 @@ const MainLayout = () => {
 		window.addEventListener("resize", handleResize);
 		return () => window.removeEventListener("resize", handleResize);
 	}, []);
+
+	// Listen for profile updates from Settings page
+	useEffect(() => {
+		const handleProfileUpdate = async () => {
+			try {
+				const res = await fetchProfile();
+				const data = res?.data ?? res;
+				dispatch(setProfile(data));
+				console.log("Profile refreshed in MainLayout:", data);
+			} catch (err) {
+				console.error("Failed to refresh profile in MainLayout:", err);
+			}
+		};
+
+		window.addEventListener("app:profileUpdated", handleProfileUpdate);
+		return () => {
+			window.removeEventListener("app:profileUpdated", handleProfileUpdate);
+		};
+	}, [dispatch]);
 
 	useEffect(() => {
 		if (isHalf && groupId) {

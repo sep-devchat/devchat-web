@@ -1,7 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useSelector } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
 import { RootState } from "@/store";
+import { setProfile } from "@/store/user.slice";
 import { fetchProfile } from "@/services/auth/authAPI";
 import { Profile } from "@/services/auth/auth.type";
 import { deleteUser, updateUser } from "@/services/userAPI";
@@ -46,6 +47,11 @@ export const useAccountSettings = () => {
 
 	const [original, setOriginal] = useState<Profile | null>(null);
 	const [form, setForm] = useState<any>(null);
+	const [formErrors, setFormErrors] = useState<{
+		firstName?: string;
+		lastName?: string;
+	}>({});
+	const [isFormValid, setIsFormValid] = useState(true);
 	const [isDirty, setIsDirty] = useState(false);
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [resetKey, setResetKey] = useState(0);
@@ -77,6 +83,7 @@ export const useAccountSettings = () => {
 	>(null);
 
 	const profile = useSelector((state: RootState) => state.user.profile);
+	const dispatch = useDispatch();
 
 	useEffect(() => {
 		const init = async () => {
@@ -149,6 +156,28 @@ export const useAccountSettings = () => {
 				}
 				return prev;
 			});
+
+			// validate names
+			const errors: { firstName?: string; lastName?: string } = {};
+			const namePattern = /^[a-zA-ZÀ-ỹà-ỹ'\-\s]{1,50}$/u;
+			if (!newForm?.firstName || String(newForm.firstName).trim() === "") {
+				errors.firstName = "First name is required";
+			} else if (!namePattern.test(String(newForm.firstName))) {
+				errors.firstName = "Invalid first name (letters, spaces, - and ' only)";
+			} else if (String(newForm.firstName).trim().length > 50) {
+				errors.firstName = "First name must be 50 characters or less";
+			}
+
+			if (!newForm?.lastName || String(newForm.lastName).trim() === "") {
+				errors.lastName = "Last name is required";
+			} else if (!namePattern.test(String(newForm.lastName))) {
+				errors.lastName = "Invalid last name (letters, spaces, - and ' only)";
+			} else if (String(newForm.lastName).trim().length > 50) {
+				errors.lastName = "Last name must be 50 characters or less";
+			}
+
+			setFormErrors(errors);
+			setIsFormValid(Object.keys(errors).length === 0);
 
 			if (!original) {
 				setIsDirty(true);
@@ -331,6 +360,12 @@ export const useAccountSettings = () => {
 				setUserLanguages(sortedLanguages);
 				setOriginalLanguages(JSON.parse(JSON.stringify(sortedLanguages)));
 			}
+
+			// Update Redux store and notify other components
+			dispatch(setProfile(data));
+			window.dispatchEvent(
+				new CustomEvent("app:profileUpdated", { detail: data }),
+			);
 		} catch (err: any) {
 			console.error("save failed", err);
 			const statusCode = err?.response?.status;
@@ -579,6 +614,10 @@ export const useAccountSettings = () => {
 
 		// Avatar upload states
 		avatarUploadProgress,
+
+		// Validation
+		formErrors,
+		isFormValid,
 
 		// Handlers
 		handleFormChange,

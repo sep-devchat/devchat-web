@@ -31,6 +31,7 @@ interface AccountFormProps {
 	onEditEmail?: () => void;
 	onEditPassword?: () => void;
 	onAvatarChange?: (file: File) => void;
+	errors?: { firstName?: string; lastName?: string };
 }
 
 const AccountForm: React.FC<AccountFormProps> = ({
@@ -38,6 +39,7 @@ const AccountForm: React.FC<AccountFormProps> = ({
 	resetKey = 0,
 	onChange,
 	onAvatarChange,
+	errors = {},
 }) => {
 	const [local, setLocal] = useState<any>({ ...initialData });
 	const [isSendingVerify, setIsSendingVerify] = useState(false);
@@ -188,6 +190,11 @@ const AccountForm: React.FC<AccountFormProps> = ({
 							}
 							placeholder="Enter first name"
 						/>
+						{errors.firstName ? (
+							<div style={{ color: "#ef4444", fontSize: 12, marginTop: 6 }}>
+								{errors.firstName}
+							</div>
+						) : null}
 					</FormGroup>
 
 					<FormGroup>
@@ -200,6 +207,11 @@ const AccountForm: React.FC<AccountFormProps> = ({
 							}
 							placeholder="Enter last name"
 						/>
+						{errors.lastName ? (
+							<div style={{ color: "#ef4444", fontSize: 12, marginTop: 6 }}>
+								{errors.lastName}
+							</div>
+						) : null}
 					</FormGroup>
 				</FormRow>
 
