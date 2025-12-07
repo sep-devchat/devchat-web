@@ -8,7 +8,7 @@ import React, {
 } from "react";
 import Editor, { type Monaco, type OnMount } from "@monaco-editor/react";
 import type { editor as MonacoEditorNS } from "monaco-editor";
-import { X } from "lucide-react";
+import { Play, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
 	Select,
@@ -35,6 +35,7 @@ export type LanguageOption = {
 	value: string;
 	icon?: string;
 	preset: string;
+	isExecutable?: boolean;
 };
 
 export type CodeEditorProps = {
@@ -85,26 +86,31 @@ const DEFAULT_LANGUAGES: LanguageOption[] = [
 		label: "JavaScript",
 		value: ProgrammingLanguageEnum.JAVASCRIPT,
 		preset: `console.log("Hello, World!");`,
+		isExecutable: true,
 	},
 	{
 		label: "Python",
 		value: ProgrammingLanguageEnum.PYTHON,
 		preset: `print("Hello, World!")`,
+		isExecutable: true,
 	},
 	{
 		label: "Java",
 		value: ProgrammingLanguageEnum.JAVA,
 		preset: `// Please do not remove the Main class\npublic class Main {\n\tpublic static void main(String[] args) {\n\t\tSystem.out.println("Hello, World!");\n\t}\n}`,
+		isExecutable: true,
 	},
 	{
 		label: "C",
 		value: ProgrammingLanguageEnum.C,
 		preset: `#include <stdio.h>\n\nint main() {\n\tprintf("Hello, World!\\n");\n\treturn 0;\n}`,
+		isExecutable: true,
 	},
 	{
 		label: "C++",
 		value: ProgrammingLanguageEnum.CPP,
 		preset: `#include <iostream>\n\nint main() {\n\tstd::cout << "Hello, World!" << std::endl;\n\treturn 0;\n}`,
+		isExecutable: true,
 	},
 ];
 
@@ -156,6 +162,7 @@ const CodeEditor = React.forwardRef<CodeEditorRef, CodeEditorProps>(
 						value: lang.languageCode || lang.id,
 						icon: lang.languageIcon ?? undefined,
 						preset: lang.preset ?? "",
+						isExecutable: Boolean(lang.isExecutable),
 					}));
 					if (isMounted) {
 						setDynamicLanguages(executableLanguages);
@@ -526,14 +533,30 @@ const CodeEditor = React.forwardRef<CodeEditorRef, CodeEditorProps>(
 									)}
 									aria-label="Select a programming language"
 								>
-									<span className="truncate">
-										{selectedLanguage?.label ?? "Select language"}
+									<span className="flex items-center gap-1.5 truncate">
+										{selectedLanguage?.isExecutable ? (
+											<Play
+												className="h-3.5 w-3.5 text-emerald-500"
+												aria-hidden="true"
+											/>
+										) : null}
+										<span className="truncate">
+											{selectedLanguage?.label ?? "Select language"}
+										</span>
 									</span>
 								</SelectTrigger>
 								<SelectContent align="end" className="min-w-[220px]">
 									{availableLanguages.map((langOption) => (
 										<SelectItem key={langOption.value} value={langOption.value}>
-											{langOption.label}
+											<span className="flex items-center gap-2">
+												{langOption.isExecutable ? (
+													<Play
+														className="h-3.5 w-3.5 text-emerald-500"
+														aria-hidden="true"
+													/>
+												) : null}
+												<span>{langOption.label}</span>
+											</span>
 										</SelectItem>
 									))}
 								</SelectContent>

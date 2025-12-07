@@ -71,6 +71,7 @@ interface CodeItemProps {
 	onCollaborate?: () => void;
 	collaborateDisabled?: boolean;
 	codeFontSize?: number;
+	runDisabledReason?: string;
 }
 
 const CodeItem: React.FC<CodeItemProps> = ({
@@ -83,6 +84,7 @@ const CodeItem: React.FC<CodeItemProps> = ({
 	disabled = false,
 	onCollaborate,
 	collaborateDisabled = false,
+	runDisabledReason,
 }) => {
 	const highlightLanguage = language
 		? normalizeLanguage(language)
@@ -134,8 +136,10 @@ const CodeItem: React.FC<CodeItemProps> = ({
 								onRun();
 							}
 						}}
-						title="Run"
-						aria-label="Run code"
+						title={disabled && runDisabledReason ? runDisabledReason : "Run"}
+						aria-label={
+							disabled && runDisabledReason ? runDisabledReason : "Run code"
+						}
 						disabled={disabled}
 					>
 						{isRunning ? <Spinner className="h-4 w-4" /> : <Play size={18} />}

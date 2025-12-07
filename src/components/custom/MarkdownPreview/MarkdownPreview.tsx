@@ -39,7 +39,7 @@ const MarkdownPreview = ({
 	channelId,
 	groupId,
 	directUserId,
- 	codeBlockUpdatedAt,
+	codeBlockUpdatedAt,
 }: MarkdownPreviewProps) => {
 	const [remarkPlugins, setRemarkPlugins] = useState<any[]>([]);
 

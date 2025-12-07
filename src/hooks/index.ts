@@ -6,6 +6,7 @@ import useTheme from "./useTheme";
 import useAuth from "./useAuth";
 import useSocket from "./useSocket";
 import useCodeRunner from "./useCodeRunner";
+import useExecutableLanguages from "./useExecutableLanguages";
 
 export {
 	useDocumentTitle,
@@ -17,4 +18,5 @@ export {
 	useAuth,
 	useSocket,
 	useCodeRunner,
+	useExecutableLanguages,
 };

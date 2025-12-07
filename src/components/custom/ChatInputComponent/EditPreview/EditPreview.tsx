@@ -30,7 +30,8 @@ export default function EditPreview({ editingMessage, onCancelEdit }: Props) {
 		>
 			<div style={{ display: "flex", gap: 8, alignItems: "center" }}>
 				<div style={{ fontSize: 12, fontWeight: 600 }}>
-					Editing {authorName === "your" ? "your message" : `${authorName}'s message`}
+					Editing{" "}
+					{authorName === "your" ? "your message" : `${authorName}'s message`}
 				</div>
 				<div style={{ fontSize: 12, color: "#4b5563" }}>{previewText}</div>
 			</div>
