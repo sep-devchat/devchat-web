@@ -15,6 +15,7 @@ export const PageWrapper = styled.div`
 	@media (max-width: 1220px) {
 		width: 100%;
 		border-radius: 0px 10px 10px 0px;
+		max-width: none;
 	}
 
 	@media (min-width: 1440px) and (max-width: 1919px) {
