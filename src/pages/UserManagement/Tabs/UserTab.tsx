@@ -13,9 +13,9 @@ import {
 	DialogHeader,
 	DialogTitle,
 	DialogFooter,
-} from "@/components/ui/dialog"; // đường import giả định shadcn dialog
+} from "@/components/ui/dialog";
 import { listUsers, setUserActive } from "@/services/userAPI";
-import { LockKeyhole, LockKeyholeOpen } from "lucide-react";
+import { LockKeyhole, LockKeyholeOpen, Search, X } from "lucide-react";
 import { toast } from "sonner";
 import ReportDetailModal from "./ReportDetailModal";
 import { CancelButton } from "@/components/custom/ActionButton/CancelButton";
@@ -27,7 +27,7 @@ type Reporter = {
 	id: string | number;
 	name: string;
 	avatar?: string;
-	contact?: string; // email or username
+	contact?: string;
 };
 
 type Report = {
@@ -51,8 +51,8 @@ type Row = {
 	userCode: string;
 	userName: string;
 	memQuanity: string | number;
-	reports?: Report[]; // nhiều report
-	banned?: boolean; // deprecated - keep for compatibility
+	reports?: Report[];
+	banned?: boolean;
 	isActive?: boolean;
 	email?: string | null;
 	[k: string]: any;
@@ -88,10 +88,12 @@ export default function UserTab() {
 		null,
 	);
 	const [loading, setLoading] = useState(false);
-	const [page, setPage] = useState(1); // 1-based
+	const [page, setPage] = useState(1);
 	const [limit, setLimit] = useState(10);
 	const [total, setTotal] = useState(0);
 	const [totalRow, setTotalRow] = useState(0);
+	const [searchTerm, setSearchTerm] = useState("");
+	const [searchInput, setSearchInput] = useState("");
 
 	const [confirmState, setConfirmState] = useState<{
 		open: boolean;
@@ -99,13 +101,18 @@ export default function UserTab() {
 		targetId: string | number | null;
 	}>({ open: false, mode: null, targetId: null });
 
-	const fetchData = async (pageParam?: number, limitParam?: number) => {
+	const fetchData = async (
+		pageParam?: number,
+		limitParam?: number,
+		searchParam?: string,
+	) => {
 		const p = pageParam ?? page;
 		const l = limitParam ?? limit;
+		const s = searchParam ?? searchTerm;
 
 		setLoading(true);
 		try {
-			const res = await listUsers(p, l);
+			const res = await listUsers(p, l, s);
 			const users = Array.isArray(res) ? res : (res?.data ?? []);
 			const mapped: Row[] = users.map((u: any) => {
 				const userName =
@@ -114,7 +121,6 @@ export default function UserTab() {
 						: u.username;
 				return {
 					id: u.id,
-					// keep avatar undefined when not provided so we can render initials
 					avatar: u.avatarUrl ?? null,
 					userCode: u.username ?? String(u.id).slice(0, 8),
 					userName,
@@ -137,18 +143,27 @@ export default function UserTab() {
 		}
 	};
 
-	// fetch users on mount
 	useEffect(() => {
-		fetchData(page, limit);
-	}, [page, limit]);
+		fetchData(page, limit, searchTerm);
+	}, [page, limit, searchTerm]);
 
 	const handleLimitItem = (size: number) => {
 		setLimit(size);
-		setPage(1); // navigate to first page when pageSize changes
-		fetchData(1, size);
+		setPage(1);
+		fetchData(1, size, searchTerm);
 	};
 
-	// Called by CTable when an editable cell is saved
+	const handleSearch = () => {
+		setSearchTerm(searchInput);
+		setPage(1);
+	};
+
+	const handleClearSearch = () => {
+		setSearchInput("");
+		setSearchTerm("");
+		setPage(1);
+	};
+
 	const handleEdit = (rowIndex: number, field: string, newValue: any) => {
 		setRowData((prev) => {
 			const next = [...prev];
@@ -156,25 +171,6 @@ export default function UserTab() {
 			return next;
 		});
 	};
-
-	// const handleOpenReports = (rowId: string | number) => {
-	// 	setRowData((prev) =>
-	// 		prev.map((r) =>
-	// 			r.id === rowId
-	// 				? {
-	// 						...r,
-	// 						reports: r.reports?.map((rep) => ({ ...rep, read: true })) ?? [],
-	// 					}
-	// 				: r,
-	// 		),
-	// 	);
-	// 	setActiveRowId(rowId);
-	// 	const row = rowData.find((r) => r.id === rowId) ?? null;
-	// 	setActiveReportId(
-	// 		row?.reports && row.reports.length > 0 ? row.reports[0].id : null,
-	// 	);
-	// 	setReportModalVisible(true);
-	// };
 
 	const handleCloseReportModal = () => {
 		setReportModalVisible(false);
@@ -234,7 +230,6 @@ export default function UserTab() {
 
 	const openConfirm = (mode: "ban" | "unban", id: string | number) => {
 		const target = rowData.find((r) => String(r.id) === String(id));
-		// Prevent any admin deactivation
 		if (mode === "ban" && target?.originalApi?.isAdmin) {
 			toast.warning("Admin accounts cannot be deactivated");
 			return;
@@ -252,7 +247,6 @@ export default function UserTab() {
 			closeConfirm();
 			return;
 		}
-		// Deactivate user (soft ban)
 		const previous = rowData;
 		setRowData((prev) =>
 			prev.map((r) =>
@@ -266,14 +260,13 @@ export default function UserTab() {
 		} catch (err) {
 			console.error("Failed to deactivate user", err);
 			toast.error("Failed to deactivate user");
-			setRowData(previous); // rollback
+			setRowData(previous);
 		} finally {
 			closeConfirm();
 		}
 	};
 
 	const performUnban = async (id: string | number) => {
-		// Reactivate user
 		const previous = rowData;
 		setRowData((prev) =>
 			prev.map((r) =>
@@ -287,7 +280,7 @@ export default function UserTab() {
 		} catch (err) {
 			console.error("Failed to activate user", err);
 			toast.error("Failed to activate user");
-			setRowData(previous); // rollback
+			setRowData(previous);
 		} finally {
 			closeConfirm();
 		}
@@ -296,7 +289,6 @@ export default function UserTab() {
 	const handleBanClick = (id: string | number) => openConfirm("ban", id);
 	const handleUnbanClick = (id: string | number) => openConfirm("unban", id);
 
-	// helper to compute initials
 	const computeInitials = (name?: string | null) => {
 		if (!name) return "--";
 		const pieces = name.trim().split(/\s+/).filter(Boolean);
@@ -315,7 +307,6 @@ export default function UserTab() {
 	}) => {
 		const [failed, setFailed] = useState(false);
 		const initials = computeInitials(name ?? "");
-		// if we have a valid src and it hasn't failed yet, try to render image
 		if (src && !failed) {
 			return (
 				<img
@@ -327,7 +318,6 @@ export default function UserTab() {
 			);
 		}
 
-		// fallback: colored circle with initials
 		return (
 			<span
 				className="inline-flex items-center justify-center w-8 h-8 rounded-full font-semibold text-white"
@@ -381,7 +371,6 @@ export default function UserTab() {
 				if (!row) return null;
 				const isActive = row.isActive ?? true;
 				const isAdminRow = !!row.originalApi?.isAdmin;
-				// Admin rows: never show deactivate; if inactive allow activation
 				if (isAdminRow) {
 					if (isActive) {
 						return (
@@ -446,6 +435,127 @@ export default function UserTab() {
 		<ContentArea>
 			<ContentHeader>User List</ContentHeader>
 			<Divider />
+
+			<div
+				style={{
+					background: "#fff",
+					padding: "0",
+					borderRadius: "8px 8px 0 0",
+				}}
+			>
+				<div style={{ display: "flex", gap: "8px" }}>
+					<div style={{ position: "relative", flex: 1 }}>
+						<input
+							type="text"
+							value={searchInput}
+							onChange={(e) => setSearchInput(e.target.value)}
+							onKeyDown={(e) => {
+								if (e.key === "Enter") {
+									handleSearch();
+								}
+							}}
+							placeholder="Search by username, email, first or last name..."
+							style={{
+								width: "100%",
+								padding: "10px 12px 10px 12px",
+								border: "1px solid #e5e7eb",
+								borderRadius: "6px",
+								outline: "none",
+								transition: "all 0.2s",
+								fontSize: "14px",
+							}}
+							onBlur={(e) => {
+								e.target.style.boxShadow = "none";
+							}}
+						/>
+						{searchInput && (
+							<button
+								onClick={handleClearSearch}
+								style={{
+									position: "absolute",
+									right: "12px",
+									top: "50%",
+									transform: "translateY(-50%)",
+									color: "#6b7280",
+									background: "none",
+									border: "none",
+									cursor: "pointer",
+									padding: "4px",
+									display: "flex",
+									alignItems: "center",
+									outline: "none",
+								}}
+								title="Clear search"
+								onMouseEnter={(e) => {
+									e.currentTarget.style.color = "#133e87";
+								}}
+								onMouseLeave={(e) => {
+									e.currentTarget.style.color = "#6b7280";
+								}}
+							>
+								<X size={18} />
+							</button>
+						)}
+					</div>
+					<button
+						onClick={handleSearch}
+						disabled={loading}
+						style={{
+							padding: "8px 24px",
+							background: "#133e87",
+							color: "white",
+							border: "1px solid #133e87",
+							borderRadius: "8px",
+							cursor: loading ? "not-allowed" : "pointer",
+							display: "flex",
+							alignItems: "center",
+							gap: "8px",
+							transition: "all 0.2s",
+							opacity: loading ? 0.6 : 1,
+							whiteSpace: "nowrap",
+							fontSize: "14px",
+							outline: "none",
+						}}
+						onMouseEnter={(e) => {
+							if (!loading) {
+								e.currentTarget.style.background = "#1952b3";
+								e.currentTarget.style.color = "#fff";
+								e.currentTarget.style.border = "1px solid #1952b3";
+							}
+						}}
+						onMouseLeave={(e) => {
+							if (!loading) {
+								e.currentTarget.style.background = "#133e87";
+								e.currentTarget.style.color = "white";
+								e.currentTarget.style.border = "1px solid #133e87";
+							}
+						}}
+					>
+						<Search size={18} />
+						Search
+					</button>
+				</div>
+
+				{searchTerm && (
+					<div
+						style={{
+							paddingBottom: "16px",
+							fontSize: "14px",
+							color: "#4b5563",
+						}}
+					>
+						Searching for:{" "}
+						<span style={{ fontWeight: 600 }}>"{searchTerm}"</span>
+						{totalRow > 0 && (
+							<span>
+								{" "}
+								- Found {totalRow} result{totalRow !== 1 ? "s" : ""}
+							</span>
+						)}
+					</div>
+				)}
+			</div>
+
 			<CTable
 				columns={columnDefs}
 				data={rowData}
@@ -457,7 +567,7 @@ export default function UserTab() {
 				page={page}
 				onPageChange={(p) => {
 					setPage(p);
-					fetchData(p, limit);
+					fetchData(p, limit, searchTerm);
 				}}
 				totalRows={totalRow}
 				totalPages={total}
@@ -492,7 +602,7 @@ export default function UserTab() {
 				}}
 			/>
 
-			{/* Confirm dialog (replaces window.confirm) */}
+			{/* Confirm dialog */}
 			<Dialog
 				open={confirmState.open}
 				onOpenChange={(open) => {
@@ -510,8 +620,8 @@ export default function UserTab() {
 					<div className="py-2">
 						<p className="text-sm text-gray-700">
 							{confirmState.mode === "ban"
-								? "Bạn có chắc chắn muốn khóa (xóa) user này? Hành động không thể hoàn tác."
-								: "Bạn có chắc chắn muốn mở khóa user này?"}
+								? "Are you sure you want to deactivate this user? This action cannot be undone."
+								: "Are you sure you want to activate this user?"}
 						</p>
 					</div>
 

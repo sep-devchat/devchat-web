@@ -35,7 +35,7 @@ export const ContentArea = styled.div`
 	display: flex;
 	flex-direction: column;
 	gap: 16px;
-	height: 100%;
+	padding-bottom: 0;
 `;
 
 export const ContentTitle = styled.h2`
