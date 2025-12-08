@@ -85,6 +85,8 @@ export const AccountSettings: React.FC = () => {
 		editingLanguageId,
 		// Handlers
 		handleFormChange,
+		formErrors,
+		isFormValid,
 		handleSave,
 		handleChangeEmail,
 		handleChangePassword,
@@ -124,7 +126,7 @@ export const AccountSettings: React.FC = () => {
 			label: isSubmitting ? "Saving..." : "Save Changes",
 			variant: "primary" as const,
 			onClick: handleSave,
-			disabled: !isDirty || isSubmitting,
+			disabled: !isDirty || isSubmitting || !isFormValid,
 		},
 	];
 
@@ -147,6 +149,7 @@ export const AccountSettings: React.FC = () => {
 						resetKey={resetKey}
 						onChange={handleFormChange}
 						onAvatarChange={handleAvatarChange}
+						errors={formErrors}
 					/>
 
 					{avatarUploadProgress !== null && (

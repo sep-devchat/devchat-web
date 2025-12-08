@@ -57,6 +57,10 @@ import { ChannelItem } from "@/components/custom/ChannelItem/ChannelItem";
 import { listDirectMessagePeers } from "@/services/messageAPI";
 import { Profile } from "@/services/auth/auth.type";
 import ProfileSection from "../Profile";
+import { useSelector, useDispatch } from "react-redux";
+import { fetchProfile } from "@/services/auth/authAPI";
+import { setProfile } from "@/store/user.slice";
+import { RootState } from "@/store";
 
 interface LeftSidebarProps {
 	setSettingSelect: (value: boolean) => void;
@@ -133,6 +137,55 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
 	const [channelDescription, setChannelDescription] = useState<string>("");
 	const [isPrivate, setIsPrivate] = useState<boolean>(false);
 	const [isCreating, setIsCreating] = useState<boolean>(false);
+
+	// Get profile from Redux to use as key for ProfileSection
+	const profile = useSelector((state: RootState) => state.user.profile);
+	const dispatch = useDispatch();
+
+	// Ensure LeftSidebar refreshes the global profile when Settings saves
+	// Prefer using the event payload (dispatched from Settings) to avoid
+	// immediate stale reads — fall back to fetchProfile() when no payload.
+	useEffect(() => {
+		const handleProfileUpdate = async (ev: Event) => {
+			try {
+				const ce = ev as CustomEvent;
+				const payload = ce?.detail;
+				if (payload) {
+					console.log(
+						"LeftSidebar: app:profileUpdated received with payload",
+						payload,
+					);
+					dispatch(setProfile(payload));
+					return;
+				}
+
+				console.log(
+					"LeftSidebar: app:profileUpdated received without payload — fetching profile",
+				);
+				const res = await fetchProfile();
+				const data = res?.data ?? res;
+				dispatch(setProfile(data));
+				console.log("LeftSidebar: Profile refreshed from fetch", data);
+			} catch (err) {
+				console.error("LeftSidebar: Failed to refresh profile:", err);
+			}
+		};
+
+		window.addEventListener(
+			"app:profileUpdated",
+			handleProfileUpdate as EventListener,
+		);
+		return () =>
+			window.removeEventListener(
+				"app:profileUpdated",
+				handleProfileUpdate as EventListener,
+			);
+	}, [dispatch]);
+
+	// Use a small key combining id + serialized updatedAt (or fallback counter idea)
+	const profileKey = profile
+		? `${profile.id || "default"}-${profile.updatedAt || ""}`
+		: "default";
 
 	const isGroupPage = Boolean(params.groupId);
 	const currentGroup = isGroupPage
@@ -498,7 +551,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
 			)}
 
 			<ProfileWrapper>
-				<ProfileSection />
+				<ProfileSection key={profileKey} />
 			</ProfileWrapper>
 
 			{isModalOpen && (
