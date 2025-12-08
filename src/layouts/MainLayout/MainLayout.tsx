@@ -176,6 +176,8 @@ const MainLayout = () => {
 	// Load groups
 	useEffect(() => {
 		let mounted = true;
+		let intervalId: NodeJS.Timeout;
+
 		const fetch = async () => {
 			try {
 				const res = await listGroups();
@@ -209,8 +211,11 @@ const MainLayout = () => {
 		};
 
 		fetch();
+		intervalId = setInterval(fetch, 5000);
+
 		return () => {
 			mounted = false;
+			clearInterval(intervalId);
 		};
 	}, []);
 
