@@ -230,6 +230,7 @@ const MarkdownPreview = ({
 					"prose-blockquote:border-l-2 prose-blockquote:pl-4 prose-blockquote:not-italic",
 					"prose-img:rounded-md",
 					"prose-hr:my-4",
+					"flex flex-col gap-2",
 					className,
 				)}
 			>
@@ -304,13 +305,7 @@ const MarkdownPreview = ({
 								</h5>
 							),
 							p: ({ children, ...p }) => (
-								<p
-									className={cn(
-										"leading-6 [&:not(:first-child)]:mt-3",
-										(p as any).className,
-									)}
-									{...p}
-								>
+								<p className={cn("leading-6", (p as any).className)} {...p}>
 									{children}
 								</p>
 							),
@@ -327,12 +322,24 @@ const MarkdownPreview = ({
 								</a>
 							),
 							ul: ({ children, ...p }) => (
-								<ul className={cn("ml-5 list-disc", p.className)} {...p}>
+								<ul
+									className={cn(
+										"ml-5 list-disc flex flex-col gap-2",
+										p.className,
+									)}
+									{...p}
+								>
 									{children}
 								</ul>
 							),
 							ol: ({ children, ...p }) => (
-								<ol className={cn("ml-5 list-decimal", p.className)} {...p}>
+								<ol
+									className={cn(
+										"ml-5 list-decimal flex flex-col gap-2",
+										p.className,
+									)}
+									{...p}
+								>
 									{children}
 								</ol>
 							),
