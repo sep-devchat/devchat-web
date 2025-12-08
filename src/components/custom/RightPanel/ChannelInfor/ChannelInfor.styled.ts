@@ -4,10 +4,7 @@ import styled from "styled-components";
 export const PageWrapper = styled.div`
 	height: 100%;
 	width: 100%;
-<<<<<<< Updated upstream
-=======
-	// max-width: 480px;
->>>>>>> Stashed changes
+	max-width: 480px;
 	position: relative;
 	display: flex;
 	flex-direction: column;
