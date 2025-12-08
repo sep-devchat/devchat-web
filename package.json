@@ -7,6 +7,7 @@
 		"dev": "vite",
 		"build": "tsr generate & tsc -b && vite build",
 		"build:electron": "tsr generate & tsc -b && vite --config vite-electron.config.ts --mode electron build",
+		"build:aws": "tsr generate & tsc -b && vite --config vite-electron.config.ts --mode aws build",
 		"lint": "eslint .",
 		"preview": "vite preview",
 		"prepare": "husky",

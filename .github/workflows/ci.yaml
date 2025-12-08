@@ -48,7 +48,9 @@ jobs:
         run: yarn install --frozen-lockfile
 
       - name: Build React app
-        run: yarn build
+        run: |
+          set NODE_ENV aws
+          yarn build:aws
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
