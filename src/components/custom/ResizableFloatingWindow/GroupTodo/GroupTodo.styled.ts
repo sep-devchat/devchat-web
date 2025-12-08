@@ -1,6 +1,15 @@
 import styled from "styled-components";
 
-export const Root = styled.div``;
+export const Root = styled.div`
+	@keyframes spin {
+		from {
+			transform: rotate(0deg);
+		}
+		to {
+			transform: rotate(360deg);
+		}
+	}
+`;
 
 export const Header = styled.div`
 	margin-bottom: 12px;

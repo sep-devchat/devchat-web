@@ -1,7 +1,13 @@
 import { useRef, useState } from "react";
 import { useSelector } from "react-redux";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlertCircle, Calendar, Flag, GripVertical } from "lucide-react";
+import {
+	AlertCircle,
+	Calendar,
+	Flag,
+	GripVertical,
+	RefreshCw,
+} from "lucide-react";
 import {
 	BadgeRow,
 	DeadlineCard,
@@ -151,8 +157,6 @@ export default function GroupTodo({ groupId, groupName }: Props) {
 			return payload.map(convertApiTaskToLocalTask);
 		},
 		enabled: hasValidGroup,
-		refetchInterval: hasValidGroup ? 5000 : false,
-		refetchIntervalInBackground: true,
 		staleTime: 1000,
 	});
 
@@ -179,6 +183,13 @@ export default function GroupTodo({ groupId, groupName }: Props) {
 	const isRefreshing = !usingSampleData && isFetching && !isLoading;
 	const statusControlDisabled =
 		!usingSampleData && updateTaskStatusMutation.isPending;
+
+	const handleRefresh = () => {
+		if (groupId) {
+			queryClient.invalidateQueries({ queryKey });
+		}
+		window.dispatchEvent(new CustomEvent("app:refreshTodoGroups"));
+	};
 
 	const handleStatusChange = (taskId: string, status: TaskStatus) => {
 		const targetTask = tasksToRender.find((task) => task.id === taskId);
@@ -397,17 +408,28 @@ export default function GroupTodo({ groupId, groupName }: Props) {
 						<Note>"Select a group to load your assigned tasks."</Note>
 					)}
 				</div>
-				<TaskBoardButton
-					onClick={() => setShowDoneTasks((prev) => !prev)}
-					title="Toggle showing completed tasks"
-					disabled={isRefreshing}
-				>
-					{isRefreshing
-						? "Syncing…"
-						: showDoneTasks
-							? "Hide done"
-							: "Show done"}
-				</TaskBoardButton>
+				<div style={{ display: "flex", gap: "0.5rem" }}>
+					<TaskBoardButton
+						onClick={handleRefresh}
+						title="Refresh tasks and groups"
+						disabled={isRefreshing}
+						style={{ padding: "0.5rem" }}
+					>
+						<RefreshCw
+							size={16}
+							style={{
+								animation: isRefreshing ? "spin 1s linear infinite" : "none",
+							}}
+						/>
+					</TaskBoardButton>
+					<TaskBoardButton
+						onClick={() => setShowDoneTasks((prev) => !prev)}
+						title="Toggle showing completed tasks"
+						disabled={isRefreshing}
+					>
+						{showDoneTasks ? "Hide done" : "Show done"}
+					</TaskBoardButton>
+				</div>
 			</Header>
 
 			{isError && (

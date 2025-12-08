@@ -176,7 +176,6 @@ const MainLayout = () => {
 	// Load groups
 	useEffect(() => {
 		let mounted = true;
-		let intervalId: NodeJS.Timeout;
 
 		const fetch = async () => {
 			try {
@@ -211,11 +210,14 @@ const MainLayout = () => {
 		};
 
 		fetch();
-		intervalId = setInterval(fetch, 5000);
+
+		// Listen for refresh event
+		const handleRefresh = () => fetch();
+		window.addEventListener("app:refreshTodoGroups", handleRefresh);
 
 		return () => {
 			mounted = false;
-			clearInterval(intervalId);
+			window.removeEventListener("app:refreshTodoGroups", handleRefresh);
 		};
 	}, []);
 
