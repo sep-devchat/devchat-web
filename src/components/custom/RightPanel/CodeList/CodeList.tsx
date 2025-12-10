@@ -30,7 +30,7 @@ import {
 	buildCodeBlockTitle,
 } from "@/utils/codeCollabHelpers";
 import Empty from "../../Empty";
-import ineffaLoading from "@/assets/emoji/ineffa_loading.png";
+import empty_box from "@/assets/emoji/empty_box.png";
 
 // Styled wrapper with responsive code font-size
 const ResponsiveCodeWrapper = styled.div`
@@ -354,7 +354,7 @@ const CodeList = ({
 								<Empty
 									image={
 										<img
-											src={ineffaLoading}
+											src={empty_box}
 											alt="No code blocks"
 											className="h-50 w-50 object-cover"
 										/>

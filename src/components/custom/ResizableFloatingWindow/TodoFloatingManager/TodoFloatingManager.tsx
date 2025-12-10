@@ -28,6 +28,9 @@ export default function TodoFloatingManager({ groups = [] }: Props) {
 			setActiveTabId(fallback);
 			setVisible(true);
 			setMinimized(false);
+
+			// Dispatch event to notify GroupTodo to refresh
+			window.dispatchEvent(new CustomEvent("app:todoWindowOpened"));
 		}
 		window.addEventListener("app:openTodoWindow", onOpen as any);
 		return () =>
@@ -73,6 +76,9 @@ export default function TodoFloatingManager({ groups = [] }: Props) {
 		setVisible(true);
 		setMinimized(false);
 		setActiveTabId((current) => current ?? firstGroupTabId);
+
+		// Dispatch event to notify GroupTodo to refresh
+		window.dispatchEvent(new CustomEvent("app:todoWindowOpened"));
 	}
 
 	return (

@@ -568,7 +568,7 @@ export const useChatAreaController = (): ChatAreaControllerResult => {
 				const resolvedParentIds: Record<string, string> = {};
 				for (const message of prev) {
 					let skip = false;
-					let current = message;
+					const current = message;
 					let resolvedTempId: string | null = null;
 					if (payload.clientTempId && message.id === payload.clientTempId) {
 						skip = true;
@@ -1522,6 +1522,7 @@ export const useChatAreaController = (): ChatAreaControllerResult => {
 				const p = isDirectMode
 					? {
 							...baseEmit,
+							parentMessageId: replyToMessage?.id || null,
 							content: text,
 							clientTempId: payload.clientTempId || tempId,
 							codeBlock: payload.codeBlock,
@@ -1626,6 +1627,7 @@ export const useChatAreaController = (): ChatAreaControllerResult => {
 						const pMd = isDirectMode
 							? {
 									...baseEmit,
+									parentMessageId: replyToMessage?.id || null,
 									content,
 									clientTempId: mdTempId,
 									senderId: senderPayload.id,
@@ -1639,7 +1641,6 @@ export const useChatAreaController = (): ChatAreaControllerResult => {
 									senderId: senderPayload.id,
 									sender: senderPayload,
 								};
-
 						console.debug(
 							"[ChatArea] about to emit markdown message",
 							evMd,
@@ -1683,6 +1684,7 @@ export const useChatAreaController = (): ChatAreaControllerResult => {
 					const p = isDirectMode
 						? {
 								...baseEmit,
+								parentMessageId: replyToMessage?.id || null,
 								content: "",
 								attachments: attachmentsMeta,
 								clientTempId: tempId,

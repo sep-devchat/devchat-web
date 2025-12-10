@@ -3,7 +3,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { MoreHorizontal, Search, Star, UserMinus } from "lucide-react";
 import Empty from "@/components/custom/Empty";
-import columbina from "@/assets/emoji/columbina.png";
+import empty_box from "@/assets/emoji/empty_box.png";
 import {
 	Title,
 	Subtitle,
@@ -255,7 +255,7 @@ const AllFriends: React.FC<Props> = ({
 					<Empty
 						image={
 							<img
-								src={columbina}
+								src={empty_box}
 								alt="No friends"
 								className="h-50 w-50 object-cover"
 							/>
