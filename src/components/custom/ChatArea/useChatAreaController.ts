@@ -505,12 +505,28 @@ export const useChatAreaController = (): ChatAreaControllerResult => {
 		enabled: isDirectMode ? !!directUserIdParam : !!(groupId && channelIdParam),
 	});
 
+	const processedMessageIds = useRef<Set<string>>(new Set());
+
 	// Handle server echo for MESSAGE to replace optimistics and update cache
 	const onServerMessage = useCallback(
 		(payload: any) => {
 			if (!payload) return;
 
-			// filter only current room
+			const messageId = payload.id ?? payload._id ?? payload.messageId ?? null;
+
+			if (messageId && processedMessageIds.current.has(messageId)) {
+				return;
+			}
+
+			const threadId = payload.threadId || payload.thread?.id;
+			if (threadId) {
+				return;
+			}
+
+			if (threadIdParam) {
+				return;
+			}
+
 			if (groupId && payload.groupId && payload.groupId !== groupId) return;
 			if (
 				channelIdParam &&
@@ -519,7 +535,17 @@ export const useChatAreaController = (): ChatAreaControllerResult => {
 			)
 				return;
 
-			const serverMsg: any = {
+			if (messageId) {
+				processedMessageIds.current.add(messageId);
+				if (processedMessageIds.current.size > 1000) {
+					const arr = Array.from(processedMessageIds.current);
+					arr
+						.slice(0, 500)
+						.forEach((id) => processedMessageIds.current.delete(id));
+				}
+			}
+
+			const serverMsg: MessageResponse = {
 				...payload,
 				id:
 					payload.id ??
@@ -529,6 +555,7 @@ export const useChatAreaController = (): ChatAreaControllerResult => {
 					`srv-${Date.now()}`,
 				createdAt: payload.createdAt ?? new Date().toISOString(),
 			};
+
 			// Normalize thread shape into MessageResponse.thread
 			if (!serverMsg.thread && (payload.threadId || payload.thread?.id)) {
 				const tid = payload.threadId || payload.thread?.id;
@@ -642,6 +669,10 @@ export const useChatAreaController = (): ChatAreaControllerResult => {
 		},
 		[groupId, channelIdParam, queryClient],
 	);
+
+	useEffect(() => {
+		processedMessageIds.current.clear();
+	}, [groupId, channelIdParam, directUserIdParam, isDirectMode]);
 
 	useSocketEvent(SocketEvents.MESSAGE, onServerMessage);
 	// mark socket as authenticated/ready before DM fetches

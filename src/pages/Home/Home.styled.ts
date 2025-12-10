@@ -220,4 +220,38 @@ export const HomeWrapper = styled.div`
 		gap: 1rem;
 		flex-wrap: wrap;
 	}
+
+	.contact-email-wrapper {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.5rem;
+		margin-top: 1rem;
+		padding: 0.5rem 0;
+		font-size: 0.9rem;
+		color: hsl(var(--muted-foreground));
+
+		svg {
+			color: hsl(var(--primary));
+			flex-shrink: 0;
+		}
+
+		a {
+			color: hsl(var(--primary));
+			text-decoration: none;
+			font-weight: 600;
+			transition: opacity 0.2s ease;
+
+			&:hover {
+				opacity: 0.8;
+				text-decoration: underline;
+			}
+		}
+	}
+
+	@media (max-width: 768px) {
+		.contact-email-wrapper {
+			flex-wrap: wrap;
+			justify-content: center;
+		}
+	}
 `;

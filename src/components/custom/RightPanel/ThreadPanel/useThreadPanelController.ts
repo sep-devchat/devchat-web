@@ -21,6 +21,7 @@ import useSocket from "@/hooks/useSocket";
 import useSocketEvent from "@/hooks/useSocketEvent";
 import { RootState } from "@/store";
 import { ThreadMessagesProps, ThreadPanelProps, UIMessage } from "./types";
+import { MessageReportType } from "@/services/reportAPI";
 
 interface QueuedEmit {
 	event: string;
@@ -40,6 +41,12 @@ interface ThreadPanelControllerResult {
 		messageContent: string | null;
 		onOpenChange: (open: boolean) => void;
 		onConfirm: () => void;
+	};
+	reportDialogProps: {
+		open: boolean;
+		message: MessageResponse | null;
+		messageType: MessageReportType | null;
+		onOpenChange: (open: boolean) => void;
 	};
 }
 
@@ -105,6 +112,11 @@ export const useThreadPanelController = ({
 	} | null>(null);
 	const activeDetailRequestKeyRef = useRef<string | null>(null);
 	const isMountedRef = useRef(true);
+	const [reportMessageDialogOpen, setReportMessageDialogOpen] = useState(false);
+	const [messagePendingReport, setMessagePendingReport] =
+		useState<MessageResponse | null>(null);
+	const [reportMessageType, setReportMessageType] =
+		useState<MessageReportType | null>(null);
 
 	useEffect(() => {
 		isMountedRef.current = true;
@@ -328,16 +340,63 @@ export const useThreadPanelController = ({
 		],
 	);
 
+	const processedThreadMessageIds = useRef<Set<string>>(new Set());
+
 	const onServerThreadMessage = useCallback(
 		(payload: any) => {
 			if (!payload) return;
 			const raw: any = payload.message || payload;
 			if (!raw) return;
+
+			const messageId = raw.id ?? raw._id ?? raw.messageId;
+
+			if (messageId && processedThreadMessageIds.current.has(messageId)) {
+				console.debug(
+					"[ThreadPanel] Skip already processed message",
+					messageId,
+				);
+				return;
+			}
+
 			const resolvedThreadId =
 				raw.thread?.id || raw.threadId || raw.thread_id || null;
-			if (!resolvedThreadId || resolvedThreadId !== threadId) return;
+
+			if (!resolvedThreadId) {
+				console.debug("[ThreadPanel] Skip non-thread message", messageId);
+				return;
+			}
+
+			if (resolvedThreadId !== threadId) {
+				console.debug(
+					"[ThreadPanel] Skip wrong thread",
+					messageId,
+					resolvedThreadId,
+					threadId,
+				);
+				return;
+			}
+
+			if (raw.groupId && groupId && raw.groupId !== groupId) {
+				console.debug("[ThreadPanel] Skip wrong group", messageId);
+				return;
+			}
+			if (raw.channelId && channelId && raw.channelId !== channelId) {
+				console.debug("[ThreadPanel] Skip wrong channel", messageId);
+				return;
+			}
+
+			if (messageId) {
+				processedThreadMessageIds.current.add(messageId);
+				if (processedThreadMessageIds.current.size > 1000) {
+					const entries = Array.from(processedThreadMessageIds.current);
+					entries
+						.slice(0, 500)
+						.forEach((id) => processedThreadMessageIds.current.delete(id));
+				}
+			}
+
 			const incoming: MessageResponse = {
-				id: raw.id,
+				id: messageId,
 				channelId: raw.channelId || channelId,
 				thread: raw.thread || ({ id: resolvedThreadId } as any),
 				senderId: raw.senderId || raw.sender?.id || raw.sender_id || "unknown",
@@ -352,7 +411,9 @@ export const useThreadPanelController = ({
 						username: raw.username || "Unknown User",
 					},
 			};
+
 			if (!incoming.id) return;
+
 			setRealtimeMessages((prev) => {
 				const filtered = prev.filter((m) => {
 					if (m.id === incoming.id) return false;
@@ -370,11 +431,13 @@ export const useThreadPanelController = ({
 				});
 				return [...filtered, incoming];
 			});
+
 			setBaseMessages((prev) => {
 				const map = new Map(prev.map((m) => [m.id, m]));
 				map.set(incoming.id, incoming);
 				return Array.from(map.values());
 			});
+
 			queryClient.setQueryData(
 				["thread_messages", groupId, channelId, threadId],
 				(old: any) => {
@@ -389,6 +452,10 @@ export const useThreadPanelController = ({
 		},
 		[threadId, groupId, channelId, queryClient],
 	);
+
+	useEffect(() => {
+		processedThreadMessageIds.current.clear();
+	}, [threadId, groupId, channelId]);
 
 	const onServerEditThreadMessage = useCallback(
 		(payload: any) => {
@@ -807,8 +874,18 @@ export const useThreadPanelController = ({
 		setReplyToMessage(message);
 	}, []);
 
-	const handleReportMessage = useCallback((_message: MessageResponse) => {
-		toast.info("Reporting thread messages from this view will arrive soon.");
+	const handleReportMessage = useCallback((message: MessageResponse) => {
+		setMessagePendingReport(message);
+		setReportMessageType(MessageReportType.THREAD_MESSAGE);
+		setReportMessageDialogOpen(true);
+	}, []);
+
+	const handleReportMessageDialogOpenChange = useCallback((open: boolean) => {
+		setReportMessageDialogOpen(open);
+		if (!open) {
+			setMessagePendingReport(null);
+			setReportMessageType(null);
+		}
 	}, []);
 
 	const handleDeleteMessage = useCallback((message: MessageResponse) => {
@@ -1165,13 +1242,13 @@ export const useThreadPanelController = ({
 		handleCopyMessage,
 		handleEditMessage,
 		handleReplyMessage,
-		handleReportMessage,
 		handleDeleteMessage,
 		handleReact,
 		handleCreateThreadFromThreadView,
 		messagesContainerRef: attachMessagesContainerRef,
 		onMessagesScroll: handleMessagesScroll,
 		bottomRef: attachBottomRef,
+		handleReportMessage,
 		hasMoreMessages,
 		isFetchingOlderMessages,
 		threadId,
@@ -1189,6 +1266,12 @@ export const useThreadPanelController = ({
 			messageContent: messagePendingDelete?.content ?? null,
 			onOpenChange: handleDeleteDialogOpenChange,
 			onConfirm: confirmDelete,
+		},
+		reportDialogProps: {
+			open: reportMessageDialogOpen,
+			message: messagePendingReport,
+			messageType: reportMessageType,
+			onOpenChange: handleReportMessageDialogOpenChange,
 		},
 	};
 };

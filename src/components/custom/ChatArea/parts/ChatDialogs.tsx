@@ -40,7 +40,7 @@ const ChatDialogs: React.FC<ChatDialogsProps> = ({
 			<ReportMessageDialog
 				open={reportMessageDialogOpen}
 				message={messagePendingReport}
-				messageType={reportMessageType ?? undefined}
+				messageType={reportMessageType ?? null}
 				onOpenChange={onReportMessageDialogOpenChange}
 			/>
 		</>
