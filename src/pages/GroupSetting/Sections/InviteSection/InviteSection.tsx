@@ -1,6 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
+import { useSelector } from "react-redux";
+import type { RootState } from "@/store";
 import {
 	Form,
 	FriendList,
@@ -25,6 +27,7 @@ import { useParams } from "@tanstack/react-router";
 
 import { detailGroup } from "@/services/groupAPI";
 import { listFriends, type FriendUser } from "@/services/friendAPI";
+import { listUsers, type UserResponse } from "@/services/userAPI";
 import {
 	GroupInvitation,
 	inviteToGroup,
@@ -72,6 +75,7 @@ export default function InviteSection({
 	const params = useParams({ strict: false }) as { groupId?: string };
 	const groupId = params.groupId ?? "unknown-group";
 	const [groupName, setGroupName] = useState<string>(groupId);
+	const profile = useSelector((state: RootState) => state.user.profile);
 
 	// const inviteStorageKey = `devchat_invite_copied_${groupId}`;
 
@@ -276,7 +280,7 @@ export default function InviteSection({
 	const [emailInput, setEmailInput] = useState<string>("");
 	const [emailError, setEmailError] = useState<string | null>(null);
 	const [lookupLoading, setLookupLoading] = useState(false);
-	const [lookupResult, setLookupResult] = useState<FriendUser | null>(null);
+	const [lookupResult, setLookupResult] = useState<UserResponse | null>(null);
 	const [sendingEmail, setSendingEmail] = useState(false);
 
 	const validateEmail = (e?: string) => {
@@ -302,16 +306,29 @@ export default function InviteSection({
 		setEmailError(null);
 		setLookupLoading(true);
 
-		const found =
-			friends.find((f) => (f.email ?? "").toLowerCase() === val) ?? null;
+		const searchTimeout = window.setTimeout(async () => {
+			try {
+				// Search in system users by email
+				const response = await listUsers(1, 100, val);
+				const users = response?.data ?? [];
 
-		const t = window.setTimeout(() => {
-			setLookupResult(found);
-			setLookupLoading(false);
-		}, 150);
+				// Find user with matching email
+				const found =
+					users.find(
+						(user: UserResponse) => (user.email ?? "").toLowerCase() === val,
+					) ?? null;
 
-		return () => clearTimeout(t);
-	}, [emailInput, friends]);
+				setLookupResult(found);
+			} catch (error) {
+				console.error("Failed to search users:", error);
+				setLookupResult(null);
+			} finally {
+				setLookupLoading(false);
+			}
+		}, 300);
+
+		return () => clearTimeout(searchTimeout);
+	}, [emailInput]);
 
 	const handleSendEmailInvite = async () => {
 		if (!canInvite) return;
@@ -404,7 +421,8 @@ export default function InviteSection({
 								sendingEmail ||
 								!!emailError ||
 								emailInput.trim() === "" ||
-								!canInvite
+								!canInvite ||
+								lookupResult?.id === profile?.id
 							}
 							style={{ minWidth: 80 }}
 						>
@@ -425,26 +443,36 @@ export default function InviteSection({
 								Looking up account…
 							</div>
 						) : lookupResult ? (
-							<div style={{ marginTop: 8 }}>
-								<FriendItem>
-									<Left>
-										<AvatarCircle
-											src={
-												lookupResult.avatar ??
-												lookupResult.avatarUrl ??
-												`https://ui-avatars.com/api/?name=${encodeURIComponent(lookupResult.firstName ?? lookupResult.username ?? "F")}`
-											}
-											alt={lookupResult.username}
-										/>
-										<NameContainer>
-											<NameText>
-												{`${lookupResult.firstName ?? ""} ${lookupResult.lastName ?? ""}`.trim()}
-											</NameText>
-											<EmailText>{lookupResult.email}</EmailText>
-										</NameContainer>
-									</Left>
-								</FriendItem>
-							</div>
+							lookupResult.id === profile?.id ? (
+								<div
+									style={{
+										color: "var(--muted-foreground, #6b7280)",
+										fontSize: 13,
+									}}
+								>
+									You cannot invite yourself.
+								</div>
+							) : (
+								<div style={{ marginTop: 8 }}>
+									<FriendItem>
+										<Left>
+											<AvatarCircle
+												src={
+													lookupResult.avatarUrl ??
+													`https://ui-avatars.com/api/?name=${encodeURIComponent(lookupResult.firstName ?? lookupResult.username ?? "F")}`
+												}
+												alt={lookupResult.username}
+											/>
+											<NameContainer>
+												<NameText>
+													{`${lookupResult.firstName ?? ""} ${lookupResult.lastName ?? ""}`.trim()}
+												</NameText>
+												<EmailText>{lookupResult.email}</EmailText>
+											</NameContainer>
+										</Left>
+									</FriendItem>
+								</div>
+							)
 						) : emailInput.trim() !== "" ? (
 							<div
 								style={{

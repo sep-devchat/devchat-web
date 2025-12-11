@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSelector } from "react-redux";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -146,6 +146,7 @@ export default function GroupTodo({ groupId, groupName }: Props) {
 		isLoading,
 		isFetching,
 		isError,
+		refetch,
 	} = useQuery<DisplayTask[]>({
 		queryKey,
 		queryFn: async () => {
@@ -157,6 +158,9 @@ export default function GroupTodo({ groupId, groupName }: Props) {
 			return payload.map(convertApiTaskToLocalTask);
 		},
 		enabled: hasValidGroup,
+		refetchInterval: hasValidGroup ? 5000 : false,
+		refetchIntervalInBackground: true,
+		refetchOnWindowFocus: true,
 		staleTime: 1000,
 	});
 
@@ -174,9 +178,57 @@ export default function GroupTodo({ groupId, groupName }: Props) {
 		onSuccess: () => {
 			if (groupId) {
 				queryClient.invalidateQueries({ queryKey });
+				// Force immediate refetch
+				refetch();
 			}
 		},
 	});
+
+	// Force refetch when window/app becomes visible again
+	useEffect(() => {
+		const handleVisibilityChange = () => {
+			if (!document.hidden && hasValidGroup) {
+				console.log("GroupTodo: App became visible, refreshing tasks");
+				refetch();
+			}
+		};
+
+		const handleAppResume = () => {
+			if (hasValidGroup) {
+				console.log("GroupTodo: App resumed, refreshing tasks");
+				refetch();
+			}
+		};
+
+		const handleTodoWindowOpened = () => {
+			if (hasValidGroup) {
+				console.log("GroupTodo: Todo window opened, refreshing tasks");
+				refetch();
+			}
+		};
+
+		// Listen for visibility changes (works on web and mobile)
+		document.addEventListener("visibilitychange", handleVisibilityChange);
+
+		// Listen for custom app resume events (for mobile apps)
+		window.addEventListener("app:resume", handleAppResume);
+
+		// Listen for todo window opened event
+		window.addEventListener("app:todoWindowOpened", handleTodoWindowOpened);
+
+		// Also listen for window focus (backup for desktop)
+		window.addEventListener("focus", handleAppResume);
+
+		return () => {
+			document.removeEventListener("visibilitychange", handleVisibilityChange);
+			window.removeEventListener("app:resume", handleAppResume);
+			window.removeEventListener(
+				"app:todoWindowOpened",
+				handleTodoWindowOpened,
+			);
+			window.removeEventListener("focus", handleAppResume);
+		};
+	}, [hasValidGroup, refetch]);
 
 	const usingSampleData = !hasValidGroup;
 	const tasksToRender = apiTasks;

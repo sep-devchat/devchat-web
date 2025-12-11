@@ -18,6 +18,7 @@ import {
 	getStatusColor,
 	getStatusIcon,
 } from "./TaskGroup.helpers";
+import empty_box from "@/assets/emoji/empty_box.png";
 
 export type TaskListProps = {
 	groupId?: string;
@@ -87,8 +88,25 @@ const TaskList: React.FC<TaskListProps> = ({
 	if (groupId && tasks.length === 0) {
 		return (
 			<S.TaskCard>
-				<div style={{ textAlign: "center", padding: "40px", color: "#6b7280" }}>
-					<div style={{ fontSize: "18px", marginBottom: "8px" }}>
+				<div
+					style={{
+						display: "flex",
+						flexDirection: "column",
+						alignItems: "center",
+						padding: "40px",
+						color: "#6b7280",
+					}}
+				>
+					{/* image={ */}
+					<img
+						src={empty_box}
+						alt="No tasks"
+						className="h-50 w-50 object-cover"
+					/>
+					{/* } */}
+					<div
+						style={{ fontSize: "18px", marginBottom: "8px", fontWeight: "500" }}
+					>
 						No tasks yet
 					</div>
 					<div style={{ fontSize: "14px" }}>
