@@ -32,7 +32,7 @@ jobs:
   deploy-to-aws:
     runs-on: ubuntu-latest
     env:
-      BUILD_DIR: ./dist
+      BUILD_DIR: dist
       CLOUDFRONT_DISTRIBUTION_ID: ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }}
     steps:
       - name: Checkout repository
