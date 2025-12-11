@@ -11,7 +11,6 @@ const desktopDownloadUrl =
 
 const Home = () => {
 	useDocumentTitle("DevChat — AI workspace for product engineers");
-
 	const navigate = useNavigate();
 
 	const redirectToApp = () => {
@@ -22,26 +21,28 @@ const Home = () => {
 		window.open(desktopDownloadUrl, "_blank");
 	};
 
+	const contactEmail = "devchat.online@gmail.com";
+
 	return (
 		<>
 			<MainBg />
-
 			<HomeWrapper>
-				<section className="hero">
+				<div className="hero">
 					<div className="hero-content">
-						<span className="hero-badge">
-							<Sparkles className="badge-icon" />
-							Built for Developers
-						</span>
-						<h1 className="uppercase font-bold">
-							Chat application for developers
-						</h1>
+						<div className="hero-badge">
+							<Sparkles size={16} />
+							<span>Built for Developers</span>
+						</div>
+
+						<h1>Chat application for developers</h1>
+
 						<p>
 							DevChat is the collaboration hub where PMs, engineers, and AI work
 							in lockstep. Keep customer threads, code experiments, and
 							deployment updates in one secure canvas.
 						</p>
-						<div className="cta-group flex gap-4">
+
+						<div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap" }}>
 							<Button size="lg" onClick={redirectToApp}>
 								Open DevChat in browser
 							</Button>
@@ -49,12 +50,35 @@ const Home = () => {
 								Download desktop app
 							</Button>
 						</div>
+
+						{/* Contact Email - Clean version */}
+						<p
+							style={{
+								marginTop: "1.5rem",
+								fontSize: "0.875rem",
+								color: "hsl(var(--muted-foreground))",
+								opacity: 0.8,
+							}}
+						>
+							Need help or have feedback?{" "}
+							<a
+								href={`mailto:${contactEmail}`}
+								style={{
+									color: "hsl(var(--primary))",
+									textDecoration: "none",
+									fontWeight: 600,
+								}}
+							>
+								{contactEmail}
+							</a>
+						</p>
 					</div>
-					<div className="hero-visual" aria-hidden="true">
-						<div className="visual-blob" />
-						<img src={heroVisual} alt="DevChat laptop preview" />
+
+					<div className="hero-visual">
+						<div className="visual-blob"></div>
+						<img src={heroVisual} alt="DevChat Interface" />
 					</div>
-				</section>
+				</div>
 			</HomeWrapper>
 		</>
 	);

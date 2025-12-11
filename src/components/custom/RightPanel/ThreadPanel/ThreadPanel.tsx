@@ -1,6 +1,7 @@
 import React from "react";
 import ChatInput from "@/components/custom/ChatInput/ChatInput";
 import { DeleteMessageDialog } from "@/components/custom/ChatArea/parts/DeleteMessageDialog";
+import { ReportMessageDialog } from "@/components/custom/ChatArea/parts/ReportMessageDialog";
 import {
 	MessageInput,
 	MessagesArea,
@@ -22,12 +23,13 @@ const ThreadPanel: React.FC<ThreadPanelProps> = (props) => {
 		hasThreadSelected,
 		threadName,
 		deleteDialogProps,
+		reportDialogProps,
 	} = useThreadPanelController(props);
 
 	if (isLoading) {
 		return (
 			<PageWrapper>
-				<div dangerouslySetInnerHTML={{ __html: responsiveStyles }}></div>
+				<div dangerouslySetInnerHTML={{ __html: responsiveStyles }} />
 				<ThreadPanelHeader onClose={props.onClose} />
 				<ThreadEmptyState message="Loading thread..." />
 			</PageWrapper>
@@ -45,15 +47,19 @@ const ThreadPanel: React.FC<ThreadPanelProps> = (props) => {
 
 	return (
 		<PageWrapper>
-			<div dangerouslySetInnerHTML={{ __html: responsiveStyles }}></div>
+			<div dangerouslySetInnerHTML={{ __html: responsiveStyles }} />
 			<ThreadPanelHeader onClose={props.onClose} />
+
 			<MessagesArea>
 				<ThreadSummary threadName={threadName} />
 				<ThreadMessages {...messagesProps} />
+				<ReportMessageDialog {...reportDialogProps} />
 			</MessagesArea>
+
 			<MessageInput className="relative">
 				<ChatInput {...chatInputProps} />
 			</MessageInput>
+
 			<DeleteMessageDialog {...deleteDialogProps} />
 		</PageWrapper>
 	);

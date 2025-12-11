@@ -25,7 +25,7 @@ import MarkdownPreview from "@/components/custom/MarkdownPreview";
 interface ReportMessageDialogProps {
 	open: boolean;
 	message: MessageResponse | null;
-	messageType?: MessageReportType;
+	messageType: MessageReportType | null;
 	onOpenChange: (open: boolean) => void;
 }
 
