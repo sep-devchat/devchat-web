@@ -1,4 +1,4 @@
-import { AlertCircle, CheckCircle2, Circle, Clock, Loader } from "lucide-react";
+import { AlertCircle, CheckCircle2, Circle, Clock } from "lucide-react";
 import { Task, AlertType, TaskFormData } from "./TaskGroup.types";
 import { CreateTaskRequest, UpdateTaskRequest } from "@/services/taskAPI";
 import { Task as ApiTask, TaskStatus, TaskPriority } from "@/types/task";
@@ -57,7 +57,6 @@ export const convertLocalToApiCreate = (
 	localTask: Omit<Task, "id">,
 ): CreateTaskRequest => {
 	const statusMap: Record<Task["status"], TaskStatus> = {
-		Open: TaskStatus.TODO,
 		"To Do": TaskStatus.TODO,
 		"In Progress": TaskStatus.IN_PROGRESS,
 		Done: TaskStatus.DONE,
@@ -91,7 +90,6 @@ export const convertLocalToApiUpdate = (
 	localTask: Partial<Task>,
 ): UpdateTaskRequest => {
 	const statusMap: Record<Task["status"], TaskStatus> = {
-		Open: TaskStatus.TODO,
 		"To Do": TaskStatus.TODO,
 		"In Progress": TaskStatus.IN_PROGRESS,
 		Done: TaskStatus.DONE,
@@ -144,8 +142,6 @@ export const getPriorityColor = (priority: Task["priority"]) => {
 
 export const getStatusColor = (status: Task["status"]) => {
 	switch (status) {
-		case "Open":
-			return { text: "#6b7280", bg: "#f3f4f6" };
 		case "To Do":
 			return { text: "#EFB008", bg: "#EFB00833" };
 		case "In Progress":
@@ -159,8 +155,6 @@ export const getStatusColor = (status: Task["status"]) => {
 
 export const getStatusIcon = (status: Task["status"]) => {
 	switch (status) {
-		case "Open":
-			return <Loader size={14} />;
 		case "To Do":
 			return <Circle size={14} />;
 		case "In Progress":

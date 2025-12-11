@@ -176,6 +176,7 @@ const MainLayout = () => {
 	// Load groups
 	useEffect(() => {
 		let mounted = true;
+
 		const fetch = async () => {
 			try {
 				const res = await listGroups();
@@ -209,8 +210,14 @@ const MainLayout = () => {
 		};
 
 		fetch();
+
+		// Listen for refresh event
+		const handleRefresh = () => fetch();
+		window.addEventListener("app:refreshTodoGroups", handleRefresh);
+
 		return () => {
 			mounted = false;
+			window.removeEventListener("app:refreshTodoGroups", handleRefresh);
 		};
 	}, []);
 

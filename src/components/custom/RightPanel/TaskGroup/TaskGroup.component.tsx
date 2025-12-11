@@ -39,8 +39,7 @@ import {
 	DeleteTaskDialog,
 } from "./TaskDialogs";
 
-const STATUS_OPTIONS: SelectOption[] = [
-	{ value: "Open", label: "Open" },
+const UPDATE_STATUS_OPTIONS: SelectOption[] = [
 	{ value: "To Do", label: "To Do" },
 	{ value: "In Progress", label: "In Progress" },
 	{ value: "Done", label: "Done" },
@@ -55,7 +54,7 @@ const PRIORITY_OPTIONS: SelectOption[] = [
 const createEmptyFormState = (): TaskFormData => ({
 	name: "",
 	description: "",
-	status: "Open",
+	status: "To Do",
 	priority: "Medium",
 	startDate: "",
 	dueDate: "",
@@ -226,7 +225,7 @@ export default function TaskGroup({ onClose, groupId }: TaskGroupProps) {
 		updateFieldError("dueDate");
 	};
 
-	const statusOptions = STATUS_OPTIONS;
+	const updateStatusOptions = UPDATE_STATUS_OPTIONS;
 	const priorityOptions = PRIORITY_OPTIONS;
 
 	const assigneeOptions: SelectOption[] = groupMembers.map(
@@ -612,7 +611,7 @@ export default function TaskGroup({ onClose, groupId }: TaskGroupProps) {
 				membersLoading={membersLoading}
 				assigneeOptions={assigneeOptions}
 				priorityOptions={priorityOptions}
-				statusOptions={statusOptions}
+				statusOptions={updateStatusOptions}
 				editPermissions={editPermissions}
 				isLockedTask={!!selectedTask?.isLocked}
 				lockedAt={selectedTask?.lockedAt}
