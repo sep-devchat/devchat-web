@@ -4,6 +4,7 @@ import {
 	Palette,
 	Search,
 	Bell,
+	CreditCard,
 	Settings as SettingsIcon,
 	CircleX,
 	Trash,
@@ -34,8 +35,15 @@ import InviteSection from "./Sections/InviteSection/InviteSection";
 import ActivitySection from "./Sections/ActivitySection/ActivitySection";
 import MemberSection from "./MemberSection/MemberSection";
 import { OutGroupSection } from "./Sections/OutGroupSection";
+import SubscriptionSection from "./Sections/SubscriptionSection";
 
-type SettingsSection = "profile" | "invite" | "member" | "activity" | "delete";
+type SettingsSection =
+	| "profile"
+	| "invite"
+	| "member"
+	| "subscription"
+	| "activity"
+	| "delete";
 
 interface MenuItemType {
 	id: SettingsSection;
@@ -46,11 +54,13 @@ interface MenuItemType {
 interface GroupSettingProps {
 	setSettingSelect: (value: boolean) => void;
 	isAdmin: boolean;
+	groupId: string;
 }
 
 export const GroupSetting: React.FC<GroupSettingProps> = ({
 	setSettingSelect,
 	isAdmin,
+	groupId,
 }) => {
 	const [activeSection, setActiveSection] =
 		useState<SettingsSection>("profile");
@@ -64,6 +74,7 @@ export const GroupSetting: React.FC<GroupSettingProps> = ({
 		{ id: "profile", label: "Group Profile", icon: SettingsIcon },
 		{ id: "invite", label: "Invite", icon: Palette },
 		{ id: "member", label: "Member", icon: Bell },
+		{ id: "subscription", label: "Subscription", icon: CreditCard },
 		{
 			id: "delete",
 			label: isAdmin ? "Delete Group" : "Out group",
@@ -79,6 +90,8 @@ export const GroupSetting: React.FC<GroupSettingProps> = ({
 				return <InviteSection canInvite={isAdmin} />;
 			case "member":
 				return <MemberSection canManageMembers={isAdmin} />;
+			case "subscription":
+				return <SubscriptionSection canBuy={isAdmin} groupId={groupId} />;
 			case "activity":
 				return <ActivitySection />;
 			case "delete":
