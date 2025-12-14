@@ -9,6 +9,8 @@ import {
 	Flag,
 	FileWarning,
 	Code,
+	CreditCard,
+	ReceiptText,
 } from "lucide-react";
 import { logout } from "@/services/auth/authAPI";
 import cookieUtils from "@/services/cookieUtils";
@@ -85,6 +87,18 @@ const Sidebar: React.FC = () => {
 			icon: Code,
 			label: "Programming Languages",
 			path: "/admin/programming-languages",
+		},
+		{
+			id: "subscriptions",
+			icon: CreditCard,
+			label: "Subscriptions",
+			path: "/admin/subscriptions",
+		},
+		{
+			id: "transactions",
+			icon: ReceiptText,
+			label: "Transactions",
+			path: "/admin/transactions",
 		},
 		{
 			id: "report-category",
