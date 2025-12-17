@@ -8,6 +8,7 @@ import {
 	CircleX,
 	Trash,
 	ExternalLink,
+	CheckSquare,
 } from "lucide-react";
 import {
 	Header,
@@ -34,8 +35,15 @@ import InviteSection from "./Sections/InviteSection/InviteSection";
 import ActivitySection from "./Sections/ActivitySection/ActivitySection";
 import MemberSection from "./MemberSection/MemberSection";
 import { OutGroupSection } from "./Sections/OutGroupSection";
+import TaskOverviewSection from "./Sections/TaskOverviewSection/TaskOverviewSection";
 
-type SettingsSection = "profile" | "invite" | "member" | "activity" | "delete";
+type SettingsSection =
+	| "profile"
+	| "invite"
+	| "member"
+	| "activity"
+	| "task-overview"
+	| "delete";
 
 interface MenuItemType {
 	id: SettingsSection;
@@ -64,6 +72,7 @@ export const GroupSetting: React.FC<GroupSettingProps> = ({
 		{ id: "profile", label: "Group Profile", icon: SettingsIcon },
 		{ id: "invite", label: "Invite", icon: Palette },
 		{ id: "member", label: "Member", icon: Bell },
+		{ id: "task-overview", label: "Task Overview", icon: CheckSquare },
 		{
 			id: "delete",
 			label: isAdmin ? "Delete Group" : "Out group",
@@ -81,6 +90,8 @@ export const GroupSetting: React.FC<GroupSettingProps> = ({
 				return <MemberSection canManageMembers={isAdmin} />;
 			case "activity":
 				return <ActivitySection />;
+			case "task-overview":
+				return <TaskOverviewSection />;
 			case "delete":
 				// Nếu là admin thì show DeleteSection, không thì fallback về ActivitySection
 				return isAdmin ? (
