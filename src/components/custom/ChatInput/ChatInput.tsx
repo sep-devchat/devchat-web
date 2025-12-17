@@ -385,21 +385,22 @@ export default function ChatInput({
 			) {
 				// Create a clientTempId for preview and final message linkage
 				const clientTempId = `temp-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
-				const imageFiles = snapshotFiles.filter((f) =>
-					f.type.startsWith("image/"),
+
+				// Create progress tracking for ALL files (images and non-images)
+				const previewUploads: UploadPreview[] = snapshotFiles.map(
+					(file, idx) => ({
+						id: `${clientTempId}-file-${idx}`,
+						name: file.name,
+						size: file.size,
+						type: file.type || "application/octet-stream",
+						progress: 0,
+						status: "pending",
+					}),
 				);
-				const previewUploads: UploadPreview[] = imageFiles.map((file, idx) => ({
-					id: `${clientTempId}-img-${idx}`,
-					name: file.name,
-					size: file.size,
-					type: file.type || "image/*",
-					progress: 0,
-					status: "pending",
-				}));
 				previewUploadsRef.current = previewUploads;
 				const previewEntryMap = new Map<File, string>();
-				imageFiles.forEach((file, idx) => {
-					previewEntryMap.set(file, `${clientTempId}-img-${idx}`);
+				snapshotFiles.forEach((file, idx) => {
+					previewEntryMap.set(file, `${clientTempId}-file-${idx}`);
 				});
 
 				const emitPreviewUpdate = () => {
@@ -431,7 +432,12 @@ export default function ChatInput({
 					text: typedMd,
 					clientTempId,
 					meta: {
-						uploadingImages: imageFiles.length,
+						uploadingImages: snapshotFiles.filter((f) =>
+							f.type.startsWith("image/"),
+						).length,
+						uploadingFiles: snapshotFiles.filter(
+							(f) => !f.type.startsWith("image/"),
+						).length,
 						previewUploads: previewUploads.length
 							? previewUploads.map((entry) => ({ ...entry }))
 							: undefined,
@@ -511,7 +517,9 @@ export default function ChatInput({
 							);
 						}
 					}
-				} catch {}
+				} catch {
+					// ignore
+				}
 				previewUploadsRef.current = [];
 				return;
 			}
@@ -539,7 +547,9 @@ export default function ChatInput({
 						);
 					}
 				}
-			} catch {}
+			} catch {
+				// ignore
+			}
 		},
 		[
 			disabled,
