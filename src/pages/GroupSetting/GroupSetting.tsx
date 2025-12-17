@@ -9,6 +9,7 @@ import {
 	CircleX,
 	Trash,
 	ExternalLink,
+	CheckSquare,
 } from "lucide-react";
 import {
 	Header,
@@ -36,6 +37,7 @@ import ActivitySection from "./Sections/ActivitySection/ActivitySection";
 import MemberSection from "./MemberSection/MemberSection";
 import { OutGroupSection } from "./Sections/OutGroupSection";
 import SubscriptionSection from "./Sections/SubscriptionSection";
+import TaskOverviewSection from "./Sections/TaskOverviewSection/TaskOverviewSection";
 
 type SettingsSection =
 	| "profile"
@@ -43,6 +45,7 @@ type SettingsSection =
 	| "member"
 	| "subscription"
 	| "activity"
+	| "task-overview"
 	| "delete";
 
 interface MenuItemType {
@@ -75,6 +78,7 @@ export const GroupSetting: React.FC<GroupSettingProps> = ({
 		{ id: "invite", label: "Invite", icon: Palette },
 		{ id: "member", label: "Member", icon: Bell },
 		{ id: "subscription", label: "Subscription", icon: CreditCard },
+		{ id: "task-overview", label: "Task Overview", icon: CheckSquare },
 		{
 			id: "delete",
 			label: isAdmin ? "Delete Group" : "Out group",
@@ -94,6 +98,8 @@ export const GroupSetting: React.FC<GroupSettingProps> = ({
 				return <SubscriptionSection canBuy={isAdmin} groupId={groupId} />;
 			case "activity":
 				return <ActivitySection />;
+			case "task-overview":
+				return <TaskOverviewSection />;
 			case "delete":
 				// Nếu là admin thì show DeleteSection, không thì fallback về ActivitySection
 				return isAdmin ? (
