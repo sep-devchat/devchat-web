@@ -1,5 +1,5 @@
 import React from "react";
-import { Clock, User, GitCompare, Trash2, Edit2 } from "lucide-react";
+import { Clock, User, Share2, Trash2, Edit2 } from "lucide-react";
 import { Change } from "../types";
 import { formatTime } from "../utils";
 import * as S from "./ChangeHistory.styled";
@@ -70,7 +70,7 @@ const ChangeHistoryItem: React.FC<ChangeHistoryItemProps> = ({
 					) : (
 						!canEdit && (
 							<S.CompareIcon>
-								<GitCompare style={{ width: "1rem", height: "1rem" }} />
+								<Share2 style={{ width: "1rem", height: "1rem" }} />
 							</S.CompareIcon>
 						)
 					)}
@@ -95,11 +95,14 @@ export const ChangeHistory: React.FC<ChangeHistoryProps> = ({
 	onEditChange,
 	currentUserId,
 }) => {
+	const draftsLabel = changes.length === 1 ? "saved draft" : "saved drafts";
 	return (
 		<S.Container>
 			<S.Header>
-				<S.HeaderTitle>Change History</S.HeaderTitle>
-				<S.HeaderSubtitle>{changes.length} revision(s)</S.HeaderSubtitle>
+				<S.HeaderTitle>Collaboration Drafts</S.HeaderTitle>
+				<S.HeaderSubtitle>
+					{changes.length} {draftsLabel} - not a full history
+				</S.HeaderSubtitle>
 			</S.Header>
 			<S.ListContainer>
 				{changes.map((change) => {
