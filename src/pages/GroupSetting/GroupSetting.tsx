@@ -46,6 +46,7 @@ type SettingsSection =
 	| "subscription"
 	| "activity"
 	| "task-overview"
+	| "subscription"
 	| "delete";
 
 interface MenuItemType {
