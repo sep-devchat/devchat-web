@@ -225,11 +225,7 @@ export default function TaskHistoryDialog({
 											</ValueBadge>
 											<ArrowRight size={14} color="#9ca3af" />
 										</>
-									) : (
-										<span style={{ color: "#9ca3af", fontSize: "12px" }}>
-											None
-										</span>
-									)}
+									) : null}
 									<ValueBadge type={key === "status" ? "status" : undefined}>
 										{String(newValue)}
 									</ValueBadge>

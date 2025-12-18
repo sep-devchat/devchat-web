@@ -43,15 +43,9 @@ type SettingsSection =
 	| "profile"
 	| "invite"
 	| "member"
-	| "subscription"
-	| "activity"
-	| "delete";
-type SettingsSection =
-	| "profile"
-	| "invite"
-	| "member"
 	| "activity"
 	| "task-overview"
+	| "subscription"
 	| "delete";
 
 interface MenuItemType {
