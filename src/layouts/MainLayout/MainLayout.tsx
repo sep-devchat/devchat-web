@@ -558,7 +558,11 @@ const MainLayout = () => {
 					)}
 				</MainLayoutContainer>
 			) : (
-				<GroupSetting setSettingSelect={setSettingSelect} isAdmin={isAdmin} />
+				<GroupSetting
+					setSettingSelect={setSettingSelect}
+					isAdmin={isAdmin}
+					groupId={groupId || ""}
+				/>
 			)}
 		</AuthLayout>
 	);

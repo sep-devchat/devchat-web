@@ -4,6 +4,7 @@ import {
 	Palette,
 	Search,
 	Bell,
+	CreditCard,
 	Settings as SettingsIcon,
 	CircleX,
 	Trash,
@@ -35,8 +36,16 @@ import InviteSection from "./Sections/InviteSection/InviteSection";
 import ActivitySection from "./Sections/ActivitySection/ActivitySection";
 import MemberSection from "./MemberSection/MemberSection";
 import { OutGroupSection } from "./Sections/OutGroupSection";
+import SubscriptionSection from "./Sections/SubscriptionSection";
 import TaskOverviewSection from "./Sections/TaskOverviewSection/TaskOverviewSection";
 
+type SettingsSection =
+	| "profile"
+	| "invite"
+	| "member"
+	| "subscription"
+	| "activity"
+	| "delete";
 type SettingsSection =
 	| "profile"
 	| "invite"
@@ -54,11 +63,13 @@ interface MenuItemType {
 interface GroupSettingProps {
 	setSettingSelect: (value: boolean) => void;
 	isAdmin: boolean;
+	groupId: string;
 }
 
 export const GroupSetting: React.FC<GroupSettingProps> = ({
 	setSettingSelect,
 	isAdmin,
+	groupId,
 }) => {
 	const [activeSection, setActiveSection] =
 		useState<SettingsSection>("profile");
@@ -72,6 +83,7 @@ export const GroupSetting: React.FC<GroupSettingProps> = ({
 		{ id: "profile", label: "Group Profile", icon: SettingsIcon },
 		{ id: "invite", label: "Invite", icon: Palette },
 		{ id: "member", label: "Member", icon: Bell },
+		{ id: "subscription", label: "Subscription", icon: CreditCard },
 		{ id: "task-overview", label: "Task Overview", icon: CheckSquare },
 		{
 			id: "delete",
@@ -88,6 +100,8 @@ export const GroupSetting: React.FC<GroupSettingProps> = ({
 				return <InviteSection canInvite={isAdmin} />;
 			case "member":
 				return <MemberSection canManageMembers={isAdmin} />;
+			case "subscription":
+				return <SubscriptionSection canBuy={isAdmin} groupId={groupId} />;
 			case "activity":
 				return <ActivitySection />;
 			case "task-overview":

@@ -5,6 +5,7 @@ import Header from "./Header";
 import * as S from "./AdminLayout.styled";
 import { useSelector } from "react-redux";
 import { RootState } from "@/store";
+import { Toaster } from "@/components/ui/sonner";
 
 // Admin guard centralized: checks redux profile for isAdmin
 // Redirects non-admin users away from /admin while showing minimal fallback.
@@ -45,15 +46,18 @@ const AdminLayout: React.FC = () => {
 	}
 
 	return (
-		<S.LayoutContainer>
-			<Sidebar />
-			<S.MainContent>
-				<Header />
-				<S.ContentArea>
-					<Outlet />
-				</S.ContentArea>
-			</S.MainContent>
-		</S.LayoutContainer>
+		<>
+			<Toaster richColors />
+			<S.LayoutContainer>
+				<Sidebar />
+				<S.MainContent>
+					<Header />
+					<S.ContentArea>
+						<Outlet />
+					</S.ContentArea>
+				</S.MainContent>
+			</S.LayoutContainer>
+		</>
 	);
 };
 
