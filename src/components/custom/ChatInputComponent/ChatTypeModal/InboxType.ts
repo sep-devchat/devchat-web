@@ -14,6 +14,7 @@ export type UploadPreview = {
 
 type PreviewMeta = {
 	uploadingImages?: number;
+	uploadingFiles?: number;
 	previewUploads?: UploadPreview[];
 };
 
