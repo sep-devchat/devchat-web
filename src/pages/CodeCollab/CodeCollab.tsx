@@ -65,7 +65,6 @@ export default function CodeCollab({
 	const [editingRevisionId, setEditingRevisionId] = useState<string | null>(
 		null,
 	);
-	const [pendingEditId, setPendingEditId] = useState<string | null>(null);
 	const [showResetConfirm, setShowResetConfirm] = useState(false);
 	const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -205,33 +204,6 @@ export default function CodeCollab({
 		fetchCollaboration({ silent: true });
 	};
 
-	const handleEditRevision = (changeId: string) => {
-		const change = changes.find((c) => c.id === changeId);
-		if (!change) return;
-
-		if (change.userId !== currentUserId) {
-			return;
-		}
-
-		if (hasChanges) {
-			setPendingEditId(changeId);
-			setShowLoadConfirm(true);
-			return;
-		}
-
-		loadRevisionForEdit(changeId);
-	};
-
-	const loadRevisionForEdit = (changeId: string) => {
-		const change = changes.find((c) => c.id === changeId);
-		if (!change) return;
-
-		setEditableCode(change.code);
-		setLastSavedCode(change.code);
-		setEditingRevisionId(changeId);
-		setSelectedDiff(null);
-	};
-
 	const handleSave = async () => {
 		if (!hasChanges || isSaving) return;
 
@@ -332,10 +304,7 @@ export default function CodeCollab({
 	const saveAndLoadVersion = async () => {
 		await handleSave();
 
-		if (pendingEditId) {
-			loadRevisionForEdit(pendingEditId);
-			setPendingEditId(null);
-		} else if (pendingLoadCode) {
+		if (pendingLoadCode) {
 			setEditableCode(pendingLoadCode);
 			setLastSavedCode(pendingLoadCode);
 			setPendingLoadCode(null);
@@ -346,10 +315,7 @@ export default function CodeCollab({
 	};
 
 	const discardAndLoadVersion = () => {
-		if (pendingEditId) {
-			loadRevisionForEdit(pendingEditId);
-			setPendingEditId(null);
-		} else if (pendingLoadCode) {
+		if (pendingLoadCode) {
 			setEditableCode(pendingLoadCode);
 			setLastSavedCode(pendingLoadCode);
 			setPendingLoadCode(null);
@@ -361,7 +327,6 @@ export default function CodeCollab({
 
 	const cancelLoadVersion = () => {
 		setPendingLoadCode(null);
-		setPendingEditId(null);
 		setShowLoadConfirm(false);
 	};
 
@@ -506,7 +471,6 @@ export default function CodeCollab({
 									setShowDeleteConfirm(true);
 								}
 							}}
-							onEditChange={handleEditRevision}
 							currentUserId={currentUserId}
 						/>
 					</ResizablePanel>

@@ -1,5 +1,5 @@
 import React from "react";
-import { Clock, User, Share2, Trash2, Edit2 } from "lucide-react";
+import { Clock, User, Share2, Trash2 } from "lucide-react";
 import { Change } from "../types";
 import { formatTime } from "../utils";
 import * as S from "./ChangeHistory.styled";
@@ -8,30 +8,19 @@ interface ChangeHistoryItemProps {
 	change: Change;
 	onClick: () => void;
 	onDelete?: () => void;
-	onEdit?: () => void;
 	canDelete: boolean;
-	canEdit: boolean;
 }
 
 const ChangeHistoryItem: React.FC<ChangeHistoryItemProps> = ({
 	change,
 	onClick,
 	onDelete,
-	onEdit,
 	canDelete,
-	canEdit,
 }) => {
 	const handleDelete = (e: React.MouseEvent) => {
 		e.stopPropagation();
 		if (onDelete) {
 			onDelete();
-		}
-	};
-
-	const handleEdit = (e: React.MouseEvent) => {
-		e.stopPropagation();
-		if (onEdit) {
-			onEdit();
 		}
 	};
 
@@ -58,21 +47,14 @@ const ChangeHistoryItem: React.FC<ChangeHistoryItemProps> = ({
 				</S.UserInfo>
 
 				<div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
-					{canEdit && onEdit && (
-						<S.EditButton onClick={handleEdit}>
-							<Edit2 style={{ width: "1rem", height: "1rem" }} />
-						</S.EditButton>
-					)}
 					{canDelete && onDelete ? (
 						<S.DeleteButton onClick={handleDelete}>
 							<Trash2 style={{ width: "1rem", height: "1rem" }} />
 						</S.DeleteButton>
 					) : (
-						!canEdit && (
-							<S.CompareIcon>
-								<Share2 style={{ width: "1rem", height: "1rem" }} />
-							</S.CompareIcon>
-						)
+						<S.CompareIcon>
+							<Share2 style={{ width: "1rem", height: "1rem" }} />
+						</S.CompareIcon>
 					)}
 				</div>
 			</S.ChangeContent>
@@ -84,7 +66,6 @@ interface ChangeHistoryProps {
 	changes: Change[];
 	onChangeClick: (change: Change) => void;
 	onDeleteChange?: (changeId: string) => void;
-	onEditChange?: (changeId: string) => void;
 	currentUserId?: string;
 }
 
@@ -92,7 +73,6 @@ export const ChangeHistory: React.FC<ChangeHistoryProps> = ({
 	changes,
 	onChangeClick,
 	onDeleteChange,
-	onEditChange,
 	currentUserId,
 }) => {
 	return (
@@ -105,7 +85,6 @@ export const ChangeHistory: React.FC<ChangeHistoryProps> = ({
 					const isOwner =
 						currentUserId !== undefined && change.userId === currentUserId;
 					const canDelete = isOwner;
-					const canEdit = isOwner;
 
 					return (
 						<ChangeHistoryItem
@@ -117,13 +96,7 @@ export const ChangeHistory: React.FC<ChangeHistoryProps> = ({
 									? () => onDeleteChange(change.id)
 									: undefined
 							}
-							onEdit={
-								onEditChange && canEdit
-									? () => onEditChange(change.id)
-									: undefined
-							}
 							canDelete={canDelete}
-							canEdit={canEdit}
 						/>
 					);
 				})}
