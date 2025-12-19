@@ -22,7 +22,6 @@ import {
 	deleteCodeCollaboration,
 	updateCodeCollaboration,
 } from "@/services/codeCollabAPI";
-import { toast } from "sonner";
 const normalizeLanguage = (lang?: string): string => {
 	if (!lang) return "java";
 	const normalized = lang.toLowerCase();
@@ -85,7 +84,6 @@ export default function CodeCollab({
 		setEditableCode(resetTarget);
 		setSelectedDiff(null);
 		setShowResetConfirm(false);
-		toast.info("Code reverted to last saved version");
 	};
 
 	const hasChanges = editableCode !== lastSavedCode;
@@ -155,9 +153,6 @@ export default function CodeCollab({
 						setLastSavedCode(latestOwnRevision.code);
 						setEditingRevisionId(latestOwnRevision.id);
 						setSelectedDiff(null);
-						if (!silent) {
-							toast.info("Resuming your last collaboration revision");
-						}
 					} else {
 						setEditableCode(originalContent);
 						setLastSavedCode(originalContent);
@@ -215,7 +210,6 @@ export default function CodeCollab({
 		if (!change) return;
 
 		if (change.userId !== currentUserId) {
-			toast.error("You can only edit your own revisions");
 			return;
 		}
 
@@ -236,8 +230,6 @@ export default function CodeCollab({
 		setLastSavedCode(change.code);
 		setEditingRevisionId(changeId);
 		setSelectedDiff(null);
-
-		toast.info("Editing revision - changes will update this version");
 	};
 
 	const handleSave = async () => {
@@ -269,8 +261,6 @@ export default function CodeCollab({
 				);
 
 				setLastSavedCode(editableCode);
-
-				toast.success("Revision updated successfully");
 			} else {
 				const response = await saveCodeCollaboration(codeBlockId, editableCode);
 
@@ -288,8 +278,6 @@ export default function CodeCollab({
 
 				setChanges((prev) => [newChange, ...prev]);
 				setLastSavedCode(editableCode);
-
-				toast.success("Changes saved successfully");
 			}
 
 			setEditingRevisionId(nextEditingId);
@@ -298,7 +286,6 @@ export default function CodeCollab({
 			await fetchCollaboration({ silent: true });
 		} catch (err: any) {
 			console.error("💥 Save failed:", err);
-			toast.error(err?.message || "Failed to save changes");
 		} finally {
 			setIsSaving(false);
 		}
@@ -322,11 +309,8 @@ export default function CodeCollab({
 			if (selectedDiff && selectedDiff.id === pendingDeleteId) {
 				setSelectedDiff(null);
 			}
-
-			toast.success("Revision deleted successfully");
 		} catch (err: any) {
 			console.error("💥 Delete failed:", err);
-			toast.error(err?.message || "Failed to delete revision");
 		} finally {
 			setIsDeleting(false);
 			setShowDeleteConfirm(false);
@@ -520,8 +504,6 @@ export default function CodeCollab({
 								if (change && change.userId === currentUserId) {
 									setPendingDeleteId(changeId);
 									setShowDeleteConfirm(true);
-								} else {
-									toast.error("You can only delete your own revisions");
 								}
 							}}
 							onEditChange={handleEditRevision}

@@ -95,14 +95,10 @@ export const ChangeHistory: React.FC<ChangeHistoryProps> = ({
 	onEditChange,
 	currentUserId,
 }) => {
-	const draftsLabel = changes.length === 1 ? "saved draft" : "saved drafts";
 	return (
 		<S.Container>
 			<S.Header>
-				<S.HeaderTitle>Collaboration Drafts</S.HeaderTitle>
-				<S.HeaderSubtitle>
-					{changes.length} {draftsLabel} - not a full history
-				</S.HeaderSubtitle>
+				<S.HeaderTitle>Collaboration</S.HeaderTitle>
 			</S.Header>
 			<S.ListContainer>
 				{changes.map((change) => {
