@@ -1,9 +1,10 @@
 FROM node:22 AS builder
+RUN npm i -g bun
 WORKDIR /app
-COPY package.json yarn.lock ./
-RUN yarn
+COPY package.json bun.lockb ./
+RUN bun install
 COPY . .
-RUN NODE_ENV=production yarn build
+RUN NODE_ENV=production bun run build
 
 FROM nginx:1.25.2-alpine
 COPY --from=builder /app/dist /usr/share/nginx/html
