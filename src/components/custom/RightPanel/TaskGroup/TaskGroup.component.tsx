@@ -38,6 +38,7 @@ import {
 	UpdateTaskDialog,
 	DeleteTaskDialog,
 } from "./TaskDialogs";
+import TaskHistoryDialog from "./TaskHistoryDialog";
 
 const UPDATE_STATUS_OPTIONS: SelectOption[] = [
 	{ value: "To Do", label: "To Do" },
@@ -131,6 +132,20 @@ export default function TaskGroup({ onClose, groupId }: TaskGroupProps) {
 			params.unassigned = true;
 		}
 
+		// Add date filters if present
+		if (appliedFilters.startDateFrom) {
+			params.startDateFrom = appliedFilters.startDateFrom;
+		}
+		if (appliedFilters.startDateTo) {
+			params.startDateTo = appliedFilters.startDateTo;
+		}
+		if (appliedFilters.dueDateFrom) {
+			params.dueDateFrom = appliedFilters.dueDateFrom;
+		}
+		if (appliedFilters.dueDateTo) {
+			params.dueDateTo = appliedFilters.dueDateTo;
+		}
+
 		return params;
 	}, [debouncedSearch, appliedFilters]);
 
@@ -163,6 +178,7 @@ export default function TaskGroup({ onClose, groupId }: TaskGroupProps) {
 	const [isCreateOpen, setIsCreateOpen] = useState(false);
 	const [isUpdateOpen, setIsUpdateOpen] = useState(false);
 	const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+	const [isHistoryOpen, setIsHistoryOpen] = useState(false);
 	const [selectedTask, setSelectedTask] = useState<Task | null>(null);
 	const [editPermissions, setEditPermissions] = useState<EditPermissions>({
 		canEdit: false,
@@ -490,6 +506,11 @@ export default function TaskGroup({ onClose, groupId }: TaskGroupProps) {
 		setIsDeleteOpen(true);
 	};
 
+	const openHistoryDialog = (task: Task) => {
+		setSelectedTask(task);
+		setIsHistoryOpen(true);
+	};
+
 	const isUpdateProcessing = editPermissions.fullAccess
 		? updateTaskMutation.isPending
 		: updateTaskStatusMutation.isPending;
@@ -576,6 +597,7 @@ export default function TaskGroup({ onClose, groupId }: TaskGroupProps) {
 					isGroupCreator={isGroupCreator}
 					onOpenTask={openTaskDialog}
 					onDeleteTask={openDeleteDialog}
+					onViewHistory={openHistoryDialog}
 				/>
 			</S.ContentArea>
 
@@ -627,6 +649,13 @@ export default function TaskGroup({ onClose, groupId }: TaskGroupProps) {
 				onConfirm={handleDelete}
 				isDeleting={deleteTaskMutation.isPending}
 				taskName={selectedTask?.name}
+			/>
+
+			<TaskHistoryDialog
+				isOpen={isHistoryOpen}
+				onClose={() => setIsHistoryOpen(false)}
+				task={selectedTask}
+				groupId={groupId || ""}
 			/>
 		</S.PageWrapper>
 	);

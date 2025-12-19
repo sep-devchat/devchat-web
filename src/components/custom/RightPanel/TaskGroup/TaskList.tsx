@@ -7,6 +7,7 @@ import {
 	Eye,
 	Trash2,
 	Lock,
+	History,
 } from "lucide-react";
 import { Task, GroupMember } from "./TaskGroup.types";
 import * as S from "./TaskGroup.styled";
@@ -32,6 +33,7 @@ export type TaskListProps = {
 	isGroupCreator: boolean;
 	onOpenTask: (task: Task) => void;
 	onDeleteTask: (task: Task) => void;
+	onViewHistory: (task: Task) => void;
 };
 
 const LOCKED_TOOLTIP =
@@ -48,6 +50,7 @@ const TaskList: React.FC<TaskListProps> = ({
 	isGroupCreator,
 	onOpenTask,
 	onDeleteTask,
+	onViewHistory,
 }) => {
 	if (isLoading) {
 		return (
@@ -145,6 +148,13 @@ const TaskList: React.FC<TaskListProps> = ({
 										/>
 									</span>
 								)}
+								<span title="View task history">
+									<History
+										size={18}
+										style={{ cursor: "pointer", color: "#3b82f6" }}
+										onClick={() => onViewHistory(task)}
+									/>
+								</span>
 								{task.isLocked && (
 									<span title={LOCKED_TOOLTIP}>
 										<Lock size={18} style={{ color: "#b45309" }} />

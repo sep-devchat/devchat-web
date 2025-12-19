@@ -444,6 +444,9 @@ export const DialogContent = styled.div<{ maxWidth?: string }>`
 export const DialogHeader = styled.div`
 	padding: 24px 24px 16px 24px;
 	border-bottom: 1px solid #e5e7eb;
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
 
 	@media (min-width: 1440px) {
 		padding: 16px;

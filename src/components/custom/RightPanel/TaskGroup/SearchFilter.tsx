@@ -7,6 +7,7 @@ import {
 	FILTER_PRIORITY_OPTIONS,
 } from "./filterOptions";
 import CustomSelect from "../../CustomSelect/CustomSelect";
+import CustomDateTimePicker from "../../CustomDateTimePicker/CustomDateTimePicker";
 import SearchInput from "../../SearchInput/SearchInput";
 import IconButton from "../../ActionButton/IconButton";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -89,8 +90,28 @@ const SearchFilter: React.FC<Props> = ({
 				: (appliedFilters.assigneeId ?? ""),
 			unassigned: !!appliedFilters.unassigned,
 			priority: appliedFilters.priority ? [...appliedFilters.priority] : [],
+			startDateFrom: appliedFilters.startDateFrom || "",
+			startDateTo: appliedFilters.startDateTo || "",
+			dueDateFrom: appliedFilters.dueDateFrom || "",
+			dueDateTo: appliedFilters.dueDateTo || "",
 		});
 		setIsOpen(true);
+	};
+
+	const formatDateRange = (from?: string, to?: string) => {
+		if (!from && !to) return "";
+		const formatDate = (dateStr: string) => {
+			const date = new Date(dateStr);
+			return date.toLocaleDateString("en-US", {
+				month: "short",
+				day: "numeric",
+				year: "numeric",
+			});
+		};
+		if (from && to) return `${formatDate(from)} - ${formatDate(to)}`;
+		if (from) return `From ${formatDate(from)}`;
+		if (to) return `Until ${formatDate(to)}`;
+		return "";
 	};
 
 	const removeFilter = (key: keyof TaskFilters) => {
@@ -202,6 +223,50 @@ const SearchFilter: React.FC<Props> = ({
 							</S.ChipClose>
 						</S.FilterChip>
 					)}
+					{formatDateRange(
+						appliedFilters.startDateFrom,
+						appliedFilters.startDateTo,
+					) && (
+						<S.FilterChip bg="#eef2ff" color="#4338ca">
+							<span>
+								<strong>Start:</strong>{" "}
+								{formatDateRange(
+									appliedFilters.startDateFrom,
+									appliedFilters.startDateTo,
+								)}
+							</span>
+							<S.ChipClose
+								onClick={() => {
+									removeFilter("startDateFrom");
+									removeFilter("startDateTo");
+								}}
+							>
+								×
+							</S.ChipClose>
+						</S.FilterChip>
+					)}
+					{formatDateRange(
+						appliedFilters.dueDateFrom,
+						appliedFilters.dueDateTo,
+					) && (
+						<S.FilterChip bg="#eef2ff" color="#4338ca">
+							<span>
+								<strong>Due:</strong>{" "}
+								{formatDateRange(
+									appliedFilters.dueDateFrom,
+									appliedFilters.dueDateTo,
+								)}
+							</span>
+							<S.ChipClose
+								onClick={() => {
+									removeFilter("dueDateFrom");
+									removeFilter("dueDateTo");
+								}}
+							>
+								×
+							</S.ChipClose>
+						</S.FilterChip>
+					)}
 				</S.FilterTags>
 			</S.FilterRow>
 
@@ -309,6 +374,78 @@ const SearchFilter: React.FC<Props> = ({
 										</div>
 									</S.FormGroup>
 								</S.FormColumn>
+
+								<S.FormColumn>
+									<S.FormGroup>
+										<S.Label>Start Date Range</S.Label>
+										<S.FormGroup>
+											<S.Label
+												style={{ fontSize: "0.875rem", color: "#6b7280" }}
+											>
+												From
+											</S.Label>
+											<CustomDateTimePicker
+												value={tempFilters.startDateFrom || ""}
+												onChange={(val) =>
+													setTempFilters((t) => ({ ...t, startDateFrom: val }))
+												}
+												allowClear
+												showTime
+											/>
+										</S.FormGroup>
+										<S.FormGroup>
+											<S.Label
+												style={{ fontSize: "0.875rem", color: "#6b7280" }}
+											>
+												To
+											</S.Label>
+											<CustomDateTimePicker
+												value={tempFilters.startDateTo || ""}
+												onChange={(val) =>
+													setTempFilters((t) => ({ ...t, startDateTo: val }))
+												}
+												allowClear
+												showTime
+											/>
+										</S.FormGroup>
+									</S.FormGroup>
+								</S.FormColumn>
+
+								<S.FormColumn>
+									<S.FormGroup>
+										<S.Label>Due Date Range</S.Label>
+										<S.FormGroup>
+											<S.Label
+												style={{ fontSize: "0.875rem", color: "#6b7280" }}
+											>
+												From
+											</S.Label>
+											<CustomDateTimePicker
+												value={tempFilters.dueDateFrom || ""}
+												onChange={(val) =>
+													setTempFilters((t) => ({ ...t, dueDateFrom: val }))
+												}
+												allowClear
+												showTime
+											/>
+										</S.FormGroup>
+										<S.FormGroup>
+											<S.Label
+												style={{ fontSize: "0.875rem", color: "#6b7280" }}
+											>
+												To
+											</S.Label>
+											<CustomDateTimePicker
+												value={tempFilters.dueDateTo || ""}
+												onChange={(val) =>
+													setTempFilters((t) => ({ ...t, dueDateTo: val }))
+												}
+												allowClear
+												showTime
+											/>
+										</S.FormGroup>
+									</S.FormGroup>
+								</S.FormColumn>
 							</S.DialogBody>
 
 							<S.DialogFooter>
@@ -334,6 +471,10 @@ const SearchFilter: React.FC<Props> = ({
 												tempFilters.priority && tempFilters.priority.length
 													? [...tempFilters.priority]
 													: undefined,
+											startDateFrom: tempFilters.startDateFrom || undefined,
+											startDateTo: tempFilters.startDateTo || undefined,
+											dueDateFrom: tempFilters.dueDateFrom || undefined,
+											dueDateTo: tempFilters.dueDateTo || undefined,
 										});
 										setIsOpen(false);
 									}}

@@ -1,7 +1,7 @@
 import React from "react";
 import { Trash } from "lucide-react";
 import CustomSelect from "../../CustomSelect/CustomSelect";
-import CustomDatePicker from "../../CustomDatePicker/CustomDatePicker";
+import CustomDateTimePicker from "../../CustomDateTimePicker/CustomDateTimePicker";
 import * as S from "./TaskGroup.styled";
 import {
 	TaskFormData,
@@ -111,11 +111,12 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
 					</S.FormRow>
 
 					<S.FormGroup>
-						<S.Label>Start Date</S.Label>
-						<CustomDatePicker
+						<S.Label>Start Date & Time</S.Label>
+						<CustomDateTimePicker
 							value={formData.startDate}
 							onChange={onStartDateChange}
 							allowClear
+							showTime
 						/>
 						{formErrors.startDate && (
 							<S.FieldError role="alert">{formErrors.startDate}</S.FieldError>
@@ -123,11 +124,12 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
 					</S.FormGroup>
 
 					<S.FormGroup>
-						<S.Label>Due Date</S.Label>
-						<CustomDatePicker
+						<S.Label>Due Date & Time</S.Label>
+						<CustomDateTimePicker
 							value={formData.dueDate}
 							onChange={onDueDateChange}
 							allowClear
+							showTime
 						/>
 						{formErrors.dueDate && (
 							<S.FieldError role="alert">{formErrors.dueDate}</S.FieldError>
@@ -305,12 +307,13 @@ export const UpdateTaskDialog: React.FC<UpdateTaskDialogProps> = ({
 					</S.FormRow>
 
 					<S.FormGroup>
-						<S.Label>Start Date</S.Label>
-						<CustomDatePicker
+						<S.Label>Start Date & Time</S.Label>
+						<CustomDateTimePicker
 							value={formData.startDate}
 							onChange={onStartDateChange}
 							allowClear
 							disabled={!editPermissions.fullAccess}
+							showTime
 						/>
 						{formErrors.startDate && (
 							<S.FieldError role="alert">{formErrors.startDate}</S.FieldError>
@@ -318,12 +321,13 @@ export const UpdateTaskDialog: React.FC<UpdateTaskDialogProps> = ({
 					</S.FormGroup>
 
 					<S.FormGroup>
-						<S.Label>Due Date</S.Label>
-						<CustomDatePicker
+						<S.Label>Due Date & Time</S.Label>
+						<CustomDateTimePicker
 							value={formData.dueDate}
 							onChange={onDueDateChange}
 							disabled={!editPermissions.fullAccess}
 							allowClear
+							showTime
 						/>
 						{formErrors.dueDate && (
 							<S.FieldError role="alert">{formErrors.dueDate}</S.FieldError>
