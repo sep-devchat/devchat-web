@@ -61,6 +61,7 @@ import { useSelector, useDispatch } from "react-redux";
 import { fetchProfile } from "@/services/auth/authAPI";
 import { setProfile } from "@/store/user.slice";
 import { RootState } from "@/store";
+import ShareFundProgress from "@/components/custom/ShareFundProgress";
 
 interface LeftSidebarProps {
 	setSettingSelect: (value: boolean) => void;
@@ -462,6 +463,10 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
 						</IconButtonGroup>
 					</GroupHeader>
 				</HeaderContainer>
+			)}
+
+			{isGroupPage && params.groupId && (
+				<ShareFundProgress groupId={params.groupId} />
 			)}
 
 			{isGroupPage ? (

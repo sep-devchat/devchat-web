@@ -24,6 +24,7 @@ import {
 	Divider,
 } from "./InviteSection.styled";
 import { useParams } from "@tanstack/react-router";
+import { toast } from "sonner";
 
 import { detailGroup } from "@/services/groupAPI";
 import { listFriends, type FriendUser } from "@/services/friendAPI";
@@ -78,6 +79,17 @@ export default function InviteSection({
 	const profile = useSelector((state: RootState) => state.user.profile);
 
 	// const inviteStorageKey = `devchat_invite_copied_${groupId}`;
+
+	const getErrorMessage = (err: any, fallback: string) => {
+		const data = err?.response?.data;
+		return (
+			data?.message ||
+			data?.error?.message ||
+			data?.error ||
+			err?.message ||
+			fallback
+		);
+	};
 
 	const fetchDetailGroup = async (groupId: string) => {
 		if (!groupId) return;
@@ -222,13 +234,13 @@ export default function InviteSection({
 	const handleAddSingle = async (userId: string) => {
 		if (!canInvite) return;
 		if (!groupId) {
-			alert("No group id provided.");
+			toast.error("No group id provided.");
 			return;
 		}
 		if (addingMap[userId]) return;
 
 		if (pendingInvitations.has(userId)) {
-			alert("This user has already been invited to the group.");
+			toast("This user has already been invited to the group.");
 			return;
 		}
 
@@ -241,11 +253,14 @@ export default function InviteSection({
 				message: "Hi, would you like to join our group?",
 			});
 
+			toast.success("Invitation sent");
+
 			setTimeout(() => {
 				refreshInvitationStatus();
 			}, 1000);
-		} catch (err) {
+		} catch (err: any) {
 			console.error("Failed to invite friend:", err);
+			toast.error(getErrorMessage(err, "Failed to send invitation"));
 		} finally {
 			setAddingMap((m) => {
 				const copy = { ...m };
@@ -335,11 +350,12 @@ export default function InviteSection({
 		const email = emailInput.trim().toLowerCase();
 		if (!validateEmail(email)) {
 			setEmailError("Invalid email format");
+			toast.error("Invalid email format");
 			return;
 		}
 
 		if (!groupId) {
-			alert("No group id provided.");
+			toast.error("No group id provided.");
 			return;
 		}
 
@@ -352,14 +368,17 @@ export default function InviteSection({
 				message: "Hi, would you like to join our group?",
 			});
 
+			toast.success("Invitation sent");
+
 			setEmailInput("");
 			setLookupResult(null);
 
 			setTimeout(() => {
 				refreshInvitationStatus();
 			}, 1000);
-		} catch (err) {
+		} catch (err: any) {
 			console.error("Failed to invite by email:", err);
+			toast.error(getErrorMessage(err, "Failed to send invitation"));
 		} finally {
 			setSendingEmail(false);
 		}

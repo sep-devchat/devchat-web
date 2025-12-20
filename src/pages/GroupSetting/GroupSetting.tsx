@@ -36,7 +36,7 @@ import InviteSection from "./Sections/InviteSection/InviteSection";
 import ActivitySection from "./Sections/ActivitySection/ActivitySection";
 import MemberSection from "./MemberSection/MemberSection";
 import { OutGroupSection } from "./Sections/OutGroupSection";
-import SubscriptionSection from "./Sections/SubscriptionSection";
+import SubscriptionSection from "./Sections/SubscriptionSection/SubscriptionSection";
 import TaskOverviewSection from "./Sections/TaskOverviewSection/TaskOverviewSection";
 
 type SettingsSection =
