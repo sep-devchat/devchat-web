@@ -44,7 +44,7 @@ const calcVndFromVnpAmount = (raw: unknown): number | null => {
 	const n = Number(str);
 	if (!Number.isFinite(n)) return null;
 	// VNPay returns vnp_Amount in VND * 100
-	return Math.round(n) / 100;
+	return Math.round(n);
 };
 
 const formatVnpPayDate = (raw: unknown): string | null => {
