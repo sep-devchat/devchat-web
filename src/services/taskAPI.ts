@@ -64,6 +64,49 @@ export interface TaskQuery {
 	priority?: MaybeArray<TaskPriority>;
 	search?: string;
 	unassigned?: boolean;
+	startDateFrom?: string;
+	startDateTo?: string;
+	dueDateFrom?: string;
+	dueDateTo?: string;
+}
+
+/**
+ * Response for task statistics.
+ */
+export interface TaskStatisticsByStatus {
+	todo: number;
+	inProgress: number;
+	done: number;
+}
+
+export interface TaskStatisticsByPriority {
+	low: number;
+	medium: number;
+	high: number;
+}
+
+export interface TaskStatisticsResponse {
+	totalTasks: number;
+	pendingTasks: number;
+	completedTasks: number;
+	unassignedTasks: number;
+	overdueTasks: number;
+	byStatus: TaskStatisticsByStatus;
+	byPriority: TaskStatisticsByPriority;
+}
+
+/**
+ * Response for task audit log/history.
+ */
+export interface AuditLogResponse {
+	id: string;
+	userId: string;
+	action: string;
+	entityType: string;
+	oldValues: string | null;
+	newValues: string | null;
+	timestamp: string;
+	userName: string;
 }
 
 /**
@@ -142,6 +185,29 @@ const deleteTask = (groupId: string, taskId: string) => {
 };
 
 /**
+ * Retrieves task statistics for a specific group.
+ * Corresponds to `GET /group/:groupId/task/statistics`.
+ * @param groupId - The ID of the group.
+ * @returns A promise that resolves to task statistics.
+ */
+const getTaskStatistics = (groupId: string) => {
+	return get<TaskStatisticsResponse>(`/api/group/${groupId}/task/statistics`);
+};
+
+/**
+ * Retrieves task history/audit logs for a specific task.
+ * Corresponds to `GET /group/:groupId/task/:taskId/history`.
+ * @param groupId - The ID of the group.
+ * @param taskId - The ID of the task.
+ * @returns A promise that resolves to task history.
+ */
+const getTaskHistory = (groupId: string, taskId: string) => {
+	return get<AuditLogResponse[]>(
+		`/api/group/${groupId}/task/${taskId}/history`,
+	);
+};
+
+/**
  * Retrieves all tasks for the currently authenticated user within a specific group.
  * Corresponds to `GET /user/task/:groupId`.
  * @param groupId - The ID of the group.
@@ -154,4 +220,6 @@ export const taskAPI = {
 	updateTask,
 	updateTaskStatus,
 	deleteTask,
+	getTaskStatistics,
+	getTaskHistory,
 };

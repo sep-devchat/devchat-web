@@ -57,4 +57,8 @@ export type TaskFilters = {
 	priority?: TaskPriority[];
 	assigneeId?: string;
 	unassigned?: boolean;
+	startDateFrom?: string;
+	startDateTo?: string;
+	dueDateFrom?: string;
+	dueDateTo?: string;
 };
