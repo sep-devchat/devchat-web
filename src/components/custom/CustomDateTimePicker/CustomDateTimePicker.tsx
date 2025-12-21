@@ -8,12 +8,16 @@ const CustomDateTimePicker: React.FC<{
 	disabled?: boolean;
 	allowClear?: boolean;
 	showTime?: boolean;
+	minDate?: string;
+	maxDate?: string;
 }> = ({
 	value,
 	onChange,
 	disabled = false,
 	allowClear = false,
 	showTime = true,
+	minDate,
+	maxDate,
 }) => {
 	const [isOpen, setIsOpen] = useState(false);
 	const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -107,8 +111,38 @@ const CustomDateTimePicker: React.FC<{
 	const today = new Date();
 	today.setHours(0, 0, 0, 0);
 
+	const isDateDisabled = (date: Date): boolean => {
+		const dateToCheck = new Date(date);
+		dateToCheck.setHours(0, 0, 0, 0);
+
+		// Check if date is in the past (before today)
+		if (dateToCheck < today) {
+			return true;
+		}
+
+		// Check if date is before minDate
+		if (minDate) {
+			const min = new Date(minDate);
+			min.setHours(0, 0, 0, 0);
+			if (dateToCheck < min) {
+				return true;
+			}
+		}
+
+		// Check if date is after maxDate
+		if (maxDate) {
+			const max = new Date(maxDate);
+			max.setHours(0, 0, 0, 0);
+			if (dateToCheck > max) {
+				return true;
+			}
+		}
+
+		return false;
+	};
+
 	const handleDateClick = (date: Date) => {
-		if (disabled) return;
+		if (disabled || isDateDisabled(date)) return;
 		const year = date.getFullYear();
 		const month = String(date.getMonth() + 1).padStart(2, "0");
 		const day = String(date.getDate()).padStart(2, "0");
@@ -122,12 +156,13 @@ const CustomDateTimePicker: React.FC<{
 		}
 	};
 
-	const handleTimeChange = (type: "hour" | "minute", value: string) => {
-		const newTime = { ...selectedTime, [type]: value };
+	const handleTimeChange = (type: "hour" | "minute", timeValue: string) => {
+		const newTime = { ...selectedTime, [type]: timeValue };
 		setSelectedTime(newTime);
 
+		// Use the existing value to get the date part
 		if (value) {
-			const currentDate = value ? new Date(value) : new Date();
+			const currentDate = new Date(value);
 			const year = currentDate.getFullYear();
 			const month = String(currentDate.getMonth() + 1).padStart(2, "0");
 			const day = String(currentDate.getDate()).padStart(2, "0");
@@ -244,6 +279,13 @@ const CustomDateTimePicker: React.FC<{
 									isCurrentMonth={item.isCurrentMonth}
 									isSelected={isSelectedDate(item.date)}
 									isToday={isToday(item.date)}
+									isDisabled={isDateDisabled(item.date)}
+									style={{
+										cursor: isDateDisabled(item.date)
+											? "not-allowed"
+											: "pointer",
+										opacity: isDateDisabled(item.date) ? 0.4 : 1,
+									}}
 								>
 									{item.day}
 								</S.DayCell>

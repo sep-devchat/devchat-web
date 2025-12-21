@@ -127,7 +127,20 @@ export default function TaskHistoryDialog({
 	const formatTimestamp = (timestamp: string) => {
 		const now = new Date();
 		const date = new Date(timestamp);
+
+		// Ensure we're working with valid dates
+		if (isNaN(date.getTime())) {
+			return "Invalid date";
+		}
+
+		// Calculate difference in milliseconds
 		const diffMs = now.getTime() - date.getTime();
+
+		// If difference is negative (future date), show "just now"
+		if (diffMs < 0) {
+			return "just now";
+		}
+
 		const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
 
 		if (diffDays === 0) {
@@ -168,6 +181,7 @@ export default function TaskHistoryDialog({
 		const labels: Record<string, string> = {
 			status: "Status",
 			priority: "Priority",
+			assigneeId: "Assignee",
 			assignedTo: "Assignee",
 			name: "Title",
 			description: "Description",
@@ -226,9 +240,20 @@ export default function TaskHistoryDialog({
 											<ArrowRight size={14} color="#9ca3af" />
 										</>
 									) : null}
-									<ValueBadge type={key === "status" ? "status" : undefined}>
-										{String(newValue)}
-									</ValueBadge>
+									{newValue !== undefined &&
+									newValue !== null &&
+									newValue !== "" ? (
+										<ValueBadge type={key === "status" ? "status" : undefined}>
+											{String(newValue)}
+										</ValueBadge>
+									) : (
+										<ValueBadge
+											type={key === "status" ? "status" : undefined}
+											style={{ color: "#9ca3af", fontStyle: "italic" }}
+										>
+											Unassigned
+										</ValueBadge>
+									)}
 								</ChangeValue>
 							</ChangeItem>
 						);

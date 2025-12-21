@@ -46,6 +46,8 @@ type SettingsSection =
 	| "invite"
 	| "member"
 	| "programming-languages"
+	| "activity"
+	| "task-overview"
 	| "subscription"
 	| "activity"
 	| "task-overview"
