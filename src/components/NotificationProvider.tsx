@@ -12,6 +12,20 @@ import { useInfiniteQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { PropsWithChildren, useCallback, useEffect, useMemo } from "react";
 
+function navigateToGroupChannel(
+	navigate: ReturnType<typeof useNavigate>,
+	groupId?: string,
+	channelId?: string,
+) {
+	if (!groupId) return;
+	navigate({
+		to: "/chat/group/$groupId",
+		params: { groupId },
+		replace: true,
+		search: channelId ? { channel: channelId } : {},
+	});
+}
+
 async function handleElectronMessageNotification(data: MessageResponse) {
 	await window.nativeAPI.showMessageNotification(data);
 }
@@ -39,14 +53,7 @@ async function handleBrowserMessageNotification(
 
 	notification.onclick = () => {
 		window.focus();
-		navigate({
-			to: "/chat/group/$groupId",
-			params: { groupId: data.channel?.groupId },
-			replace: true,
-			search: {
-				channel: data.channel?.id,
-			},
-		});
+		navigateToGroupChannel(navigate, data.channel?.groupId, data.channel?.id);
 	};
 }
 
@@ -143,14 +150,11 @@ export default function NotificationProvider({
 			const dispose = window.nativeAPI.nativeAPICallback(
 				"notification-clicked",
 				(_, message: MessageResponse) => {
-					navigate({
-						to: "/chat/group/$groupId",
-						params: { groupId: message.channel?.groupId },
-						replace: true,
-						search: {
-							channel: message.channel?.id,
-						},
-					});
+					navigateToGroupChannel(
+						navigate,
+						message.channel?.groupId,
+						message.channel?.id,
+					);
 				},
 			);
 

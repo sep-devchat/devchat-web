@@ -5,7 +5,10 @@ import { fetchCurrentProfile, FetchProfileError } from "@/store/user.slice";
 import { AppDispatch, RootState } from "@/store";
 import publicRuntimeConfig from "@/config/publicRuntime";
 import cookieUtils from "@/services/cookieUtils";
-import { useNavigate } from "@tanstack/react-router";
+import { toast } from "sonner";
+import { router } from "@/router";
+
+const LOGOUT_MESSAGE = "Your login session is expired, please login again";
 
 const PROFILE_POLL_INTERVAL_MS = 5000;
 const AUTH_ROUTE_PREFIX = "/auth";
@@ -16,7 +19,6 @@ export default function AuthProvider({ children }: PropsWithChildren) {
 	const profile = useSelector((s: RootState) => s.user.profile);
 	const isLoading = useSelector((s: RootState) => s.user.loading);
 	const redirectingRef = useRef(false);
-	const navigate = useNavigate();
 
 	const handleUnauthorized = useCallback(() => {
 		if (redirectingRef.current) return;
@@ -27,14 +29,14 @@ export default function AuthProvider({ children }: PropsWithChildren) {
 			? "/auth/login-electron"
 			: "/auth/login";
 
-		navigate({
-			to: loginPath,
+		toast.warning("You have been logged out. Please log in again.");
+
+		router.navigate({
+			to: loginPath as "/auth/login" | "/auth/login-electron",
 			replace: true,
-			search: {
-				message: "Your login session is expired, please login again",
-			},
+			search: () => ({ message: LOGOUT_MESSAGE }),
 		});
-	}, [navigate]);
+	}, []);
 
 	const shouldSkipProfileFetch = useCallback(() => {
 		if (typeof window === "undefined") return false;

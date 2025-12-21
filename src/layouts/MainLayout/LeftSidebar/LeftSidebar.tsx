@@ -487,20 +487,24 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
 							channel={c}
 							groupId={params.groupId!}
 							isActive={search.channel === c.id}
-							onClick={() =>
+							onClick={() => {
+								const groupId = params.groupId;
+								if (!groupId) return;
 								navigate({
 									to: "/chat/group/$groupId",
-									params: { groupId: params.groupId },
+									params: { groupId },
 									search: (s: any) => ({ ...s, channel: c.id }),
-								})
-							}
+								});
+							}}
 							onChannelUpdated={() => fetchChannelsList(false)}
 							onChannelDeleted={() => {
 								fetchChannelsList(false);
 								if (search.channel === c.id) {
+									const groupId = params.groupId;
+									if (!groupId) return;
 									navigate({
 										to: "/chat/group/$groupId",
-										params: { groupId: params.groupId },
+										params: { groupId },
 										search: {},
 									});
 								}

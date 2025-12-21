@@ -43,13 +43,6 @@ import ConfirmModal from "@/components/custom/ConfirmModal/ConfirmModal";
 import ChannelInfor from "@/components/custom/RightPanel/ChannelInfor/ChannelInfor";
 import { Toaster } from "@/components/ui/sonner";
 
-type SearchState = {
-	channel?: string;
-	tab?: string;
-	thread?: string;
-	[key: string]: unknown;
-};
-
 const MainLayout = () => {
 	const [settingSelect, setSettingSelect] = useState<boolean>(false);
 	const [showThreadPanel, setShowThreadPanel] = useState<boolean>(false);
@@ -60,7 +53,8 @@ const MainLayout = () => {
 		codeBlockId?: string;
 	};
 	const navigate = useNavigate();
-	const search = useSearch({ strict: false }) as SearchState;
+	const search = useSearch({ strict: false });
+	type LayoutSearchState = typeof search;
 	const groupId = params.groupId;
 	const directUserId = params.userId;
 	const isCodeCollabRoute = Boolean(params.codeBlockId);
@@ -80,11 +74,11 @@ const MainLayout = () => {
 	const currentUserId = currentUserProfile?.id || "";
 
 	const setPanelTab = useCallback(
-		(nextTab?: string) => {
+		(nextTab?: LayoutSearchState["tab"]) => {
 			navigate({
 				to: ".",
-				search: (prev: SearchState | undefined) => {
-					const nextSearch: SearchState = { ...(prev || {}) };
+				search: (prev: LayoutSearchState | undefined) => {
+					const nextSearch: LayoutSearchState = { ...(prev || {}) };
 					if (nextTab) {
 						nextSearch.tab = nextTab;
 					} else {
@@ -99,11 +93,11 @@ const MainLayout = () => {
 	);
 
 	const setThreadSearch = useCallback(
-		(nextThread?: string) => {
+		(nextThread?: LayoutSearchState["thread"]) => {
 			navigate({
 				to: ".",
-				search: (prev: SearchState | undefined) => {
-					const nextSearch: SearchState = { ...(prev || {}) };
+				search: (prev: LayoutSearchState | undefined) => {
+					const nextSearch: LayoutSearchState = { ...(prev || {}) };
 					if (nextThread) {
 						nextSearch.thread = nextThread;
 					} else {
@@ -388,7 +382,7 @@ const MainLayout = () => {
 			setPanelTab(undefined);
 			return;
 		}
-		setPanelTab(icon);
+		setPanelTab(icon as LayoutSearchState["tab"]);
 	};
 
 	const handleBackToChat = () => {
