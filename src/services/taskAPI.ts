@@ -14,7 +14,7 @@ export interface CreateTaskRequest {
 	status?: TaskStatus;
 	startDate?: string;
 	dueDate?: string;
-	assigneeId?: string;
+	assigneeId?: string | null;
 }
 
 /**
@@ -28,7 +28,7 @@ export interface UpdateTaskRequest {
 	status?: TaskStatus;
 	startDate?: string;
 	dueDate?: string;
-	assigneeId?: string;
+	assigneeId?: string | null;
 }
 
 /**

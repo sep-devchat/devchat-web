@@ -112,7 +112,10 @@ export const convertLocalToApiUpdate = (
 		dueDate: localTask.dueDate
 			? new Date(localTask.dueDate).toISOString()
 			: undefined,
-		assigneeId: localTask.assignedTo || undefined,
+		assigneeId:
+			localTask.assignedTo && localTask.assignedTo.trim() !== ""
+				? localTask.assignedTo
+				: null,
 	};
 };
 

@@ -117,6 +117,7 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
 							onChange={onStartDateChange}
 							allowClear
 							showTime
+							minDate={new Date().toISOString()}
 						/>
 						{formErrors.startDate && (
 							<S.FieldError role="alert">{formErrors.startDate}</S.FieldError>
@@ -130,12 +131,12 @@ export const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
 							onChange={onDueDateChange}
 							allowClear
 							showTime
+							minDate={new Date().toISOString()}
 						/>
 						{formErrors.dueDate && (
 							<S.FieldError role="alert">{formErrors.dueDate}</S.FieldError>
 						)}
 					</S.FormGroup>
-
 					<S.FormGroup>
 						<S.Label>Assign To</S.Label>
 						<CustomSelect
@@ -314,6 +315,7 @@ export const UpdateTaskDialog: React.FC<UpdateTaskDialogProps> = ({
 							allowClear
 							disabled={!editPermissions.fullAccess}
 							showTime
+							minDate={new Date().toISOString()}
 						/>
 						{formErrors.startDate && (
 							<S.FieldError role="alert">{formErrors.startDate}</S.FieldError>
@@ -328,6 +330,7 @@ export const UpdateTaskDialog: React.FC<UpdateTaskDialogProps> = ({
 							disabled={!editPermissions.fullAccess}
 							allowClear
 							showTime
+							minDate={new Date().toISOString()}
 						/>
 						{formErrors.dueDate && (
 							<S.FieldError role="alert">{formErrors.dueDate}</S.FieldError>

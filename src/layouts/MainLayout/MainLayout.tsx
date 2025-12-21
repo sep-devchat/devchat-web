@@ -138,6 +138,38 @@ const MainLayout = () => {
 		(showThreadPanel || Boolean(panelTab)) &&
 		panelTab !== "users";
 
+	// Refetch groups function
+	const refetchGroups = useCallback(async () => {
+		try {
+			const res = await listGroups();
+			const payload = (res && (res.data ?? res)) as GroupResponse[];
+
+			const mapped = (payload || []).map((g) => {
+				const initials = (g.name || "")
+					.split(" ")
+					.map((s) => s[0] ?? "")
+					.join("")
+					.slice(0, 2)
+					.toUpperCase();
+				return {
+					id: g.id,
+					name: g.name,
+					initials,
+					avatarColor: `${theme.color.primary}`,
+					unread: 0,
+					avatar: g.avatar ?? undefined,
+					isActive: g.isActive ?? true,
+				} as any;
+			});
+
+			const onlyActive = mapped.filter((mg) => mg.isActive === true);
+
+			setLocalGroups(onlyActive);
+		} catch (err) {
+			console.error("Failed to load groups:", err);
+		}
+	}, []);
+
 	// Handle resize
 	useEffect(() => {
 		const handleResize = () => setIsHalf(window.innerWidth < 1220);
@@ -173,11 +205,11 @@ const MainLayout = () => {
 		}
 	}, [groupId, isHalf, setPanelTab, setThreadSearch]);
 
-	// Load groups
+	// Load groups on mount
 	useEffect(() => {
 		let mounted = true;
 
-		const fetch = async () => {
+		const initLoad = async () => {
 			try {
 				const res = await listGroups();
 				const payload = (res && (res.data ?? res)) as GroupResponse[];
@@ -209,17 +241,17 @@ const MainLayout = () => {
 			}
 		};
 
-		fetch();
+		initLoad();
 
 		// Listen for refresh event
-		const handleRefresh = () => fetch();
+		const handleRefresh = () => refetchGroups();
 		window.addEventListener("app:refreshTodoGroups", handleRefresh);
 
 		return () => {
 			mounted = false;
 			window.removeEventListener("app:refreshTodoGroups", handleRefresh);
 		};
-	}, []);
+	}, [refetchGroups]);
 
 	// Fetch group detail để check admin
 	useEffect(() => {
@@ -489,7 +521,7 @@ const MainLayout = () => {
 	return (
 		<AuthLayout>
 			<MainBg />
-			<TodoFloatingManager groups={localGroups} />
+			<TodoFloatingManager groups={localGroups} onRefresh={refetchGroups} />
 			<Toaster richColors />
 
 			{!settingSelect ? (

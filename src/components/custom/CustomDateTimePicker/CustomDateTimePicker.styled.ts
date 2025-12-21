@@ -175,33 +175,40 @@ export const DayCell = styled.button<{
 	isCurrentMonth: boolean;
 	isSelected: boolean;
 	isToday: boolean;
+	isDisabled?: boolean;
 }>`
 	border: none;
 	border-radius: 0.6rem;
 	padding: 0.55rem 0;
 	font-weight: ${({ isSelected, isToday }) =>
 		isSelected || isToday ? 600 : 500};
-	cursor: pointer;
-	color: ${({ isCurrentMonth, isSelected }) => {
+	cursor: ${({ isDisabled }) => (isDisabled ? "not-allowed" : "pointer")};
+	color: ${({ isCurrentMonth, isSelected, isDisabled }) => {
+		if (isDisabled) return theme.color.grey300;
 		if (!isCurrentMonth) return theme.color.grey300;
 		if (isSelected) return theme.color.white;
 		return theme.color.grey900;
 	}};
-	background: ${({ isSelected, isToday }) => {
+	background: ${({ isSelected, isToday, isDisabled }) => {
+		if (isDisabled) return "transparent";
 		if (isSelected) return theme.color.primary80;
 		if (isToday) return theme.color.indigoLight;
 		return "transparent";
 	}};
 	transition: all 0.2s ease;
+	opacity: ${({ isDisabled }) => (isDisabled ? 0.4 : 1)};
 
 	&:hover {
-		background: ${({ isSelected }) =>
-			isSelected ? theme.color.primary80 : theme.color.grey100};
+		background: ${({ isSelected, isDisabled }) => {
+			if (isDisabled) return "transparent";
+			return isSelected ? theme.color.primary80 : theme.color.grey100;
+		}};
 	}
 
 	&:focus-visible {
 		outline: none;
-		box-shadow: 0 0 0 2px rgba(25, 82, 179, 0.3);
+		box-shadow: ${({ isDisabled }) =>
+			isDisabled ? "none" : "0 0 0 2px rgba(25, 82, 179, 0.3)"};
 	}
 `;
 

@@ -316,6 +316,12 @@ export default function TaskGroup({ onClose, groupId }: TaskGroupProps) {
 			queryClient.invalidateQueries({
 				queryKey: ["tasks", groupId, JSON.stringify(tasksQueryParams)],
 			});
+			// Invalidate task history to show updated changes
+			if (selectedTask) {
+				queryClient.invalidateQueries({
+					queryKey: ["task-history", groupId, selectedTask.id],
+				});
+			}
 			fireAlert("success", "Task updated successfully");
 		},
 		onError: (mutationError) => {
@@ -336,6 +342,12 @@ export default function TaskGroup({ onClose, groupId }: TaskGroupProps) {
 			queryClient.invalidateQueries({
 				queryKey: ["tasks", groupId, JSON.stringify(tasksQueryParams)],
 			});
+			// Invalidate task history to show updated changes
+			if (selectedTask) {
+				queryClient.invalidateQueries({
+					queryKey: ["task-history", groupId, selectedTask.id],
+				});
+			}
 			fireAlert("success", "Task status updated successfully");
 		},
 		onError: (mutationError) => {

@@ -7,9 +7,9 @@ const buildGroupTabId = (id: string) => `group-${id}`;
 
 export type Group = { id: string; name: string };
 
-type Props = { groups?: Group[] };
+type Props = { groups?: Group[]; onRefresh?: () => void | Promise<void> };
 
-export default function TodoFloatingManager({ groups = [] }: Props) {
+export default function TodoFloatingManager({ groups = [], onRefresh }: Props) {
 	const [visible, setVisible] = useState(false);
 	const [minimized, setMinimized] = useState(false);
 
@@ -29,13 +29,18 @@ export default function TodoFloatingManager({ groups = [] }: Props) {
 			setVisible(true);
 			setMinimized(false);
 
+			// Refetch groups when opening the todo window
+			if (onRefresh) {
+				onRefresh();
+			}
+
 			// Dispatch event to notify GroupTodo to refresh
 			window.dispatchEvent(new CustomEvent("app:todoWindowOpened"));
 		}
 		window.addEventListener("app:openTodoWindow", onOpen as any);
 		return () =>
 			window.removeEventListener("app:openTodoWindow", onOpen as any);
-	}, [firstGroupTabId]);
+	}, [firstGroupTabId, onRefresh]);
 
 	useEffect(() => {
 		if (!groups.length) {
@@ -76,6 +81,11 @@ export default function TodoFloatingManager({ groups = [] }: Props) {
 		setVisible(true);
 		setMinimized(false);
 		setActiveTabId((current) => current ?? firstGroupTabId);
+
+		// Refetch groups when restoring from minimized
+		if (onRefresh) {
+			onRefresh();
+		}
 
 		// Dispatch event to notify GroupTodo to refresh
 		window.dispatchEvent(new CustomEvent("app:todoWindowOpened"));
