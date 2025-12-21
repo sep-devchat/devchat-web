@@ -57,11 +57,9 @@ export default function GroupSubscriptionsTab({
 	shareFundsLoading,
 	shareFundsError,
 	shareFunds,
-	donatingFundId,
 	deletingFundId,
 	canBuy,
 	canSafelyDeleteFundInUI,
-	openDonateDialog,
 	openDeleteDialog,
 	getTargetSubscriptionPrice,
 }: Props) {
@@ -250,7 +248,8 @@ export default function GroupSubscriptionsTab({
 							const targetPriceRaw =
 								fund.subscription?.price ??
 								getTargetSubscriptionPrice(fund.subscriptionId);
-							const targetVnd = Number(targetPriceRaw);
+							const monthQuantity = Number(fund.monthQuantity ?? "0");
+							const targetVnd = Number(targetPriceRaw) * monthQuantity;
 							const currentVnd = Number(fund.currentVndAmount ?? "0");
 							const progressPct =
 								Number.isFinite(targetVnd) &&
@@ -284,14 +283,6 @@ export default function GroupSubscriptionsTab({
 
 									<CardFooter className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-center sm:justify-end">
 										<div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:justify-end">
-											<Button
-												className="w-full sm:w-auto"
-												disabled={!groupId || donatingFundId === fund.id}
-												onClick={() => openDonateDialog(fund)}
-											>
-												{donatingFundId === fund.id ? "Donating..." : "Donate"}
-											</Button>
-
 											{canBuy && (
 												<Button
 													variant="destructive"

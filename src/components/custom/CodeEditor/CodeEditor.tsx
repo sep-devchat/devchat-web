@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/select";
 import { ProgrammingLanguageEnum } from "@/utils/enum";
 import { getActiveProgrammingLanguages } from "@/services/programmingLanguagesAPI";
+import { listGroupSupportedProgrammingLanguages } from "@/services/groupSupportedProgrammingLanguageAPI";
 
 export type CodeEditorRef = {
 	/** Get current editor text value */
@@ -47,6 +48,8 @@ export type CodeEditorProps = {
 	defaultValue?: string;
 	/** Monaco language id (e.g., 'typescript', 'javascript', 'python') */
 	language?: string;
+	/** If provided, fetch languages allowed for this group */
+	groupId?: string;
 	/** Called when language changes via selector */
 	onLanguageChange?: (lang: string) => void;
 	/** Custom language options for selector */
@@ -121,6 +124,7 @@ const CodeEditor = React.forwardRef<CodeEditorRef, CodeEditorProps>(
 			onChange,
 			defaultValue,
 			language,
+			groupId,
 			onLanguageChange,
 			languages,
 			showLanguageSelector = true,
@@ -155,7 +159,9 @@ const CodeEditor = React.forwardRef<CodeEditorRef, CodeEditorProps>(
 			let isMounted = true;
 			const fetchLanguages = async () => {
 				try {
-					const response = await getActiveProgrammingLanguages();
+					const response = groupId
+						? await listGroupSupportedProgrammingLanguages(groupId)
+						: await getActiveProgrammingLanguages();
 					const data = Array.isArray(response?.data) ? response.data : [];
 					const executableLanguages = data.map<LanguageOption>((lang) => ({
 						label: lang.languageName,
@@ -180,7 +186,7 @@ const CodeEditor = React.forwardRef<CodeEditorRef, CodeEditorProps>(
 			return () => {
 				isMounted = false;
 			};
-		}, [languages]);
+		}, [languages, groupId]);
 
 		const fallbackLanguages = useMemo<LanguageOption[]>(() => {
 			if (languages && languages.length > 0) {
