@@ -8,12 +8,12 @@ import LoginPage from "@/pages/Login";
 import { useAuth, useSocket } from "@/hooks";
 import cookieUtils from "@/services/cookieUtils";
 import publicRuntimeConfig from "@/config/publicRuntime";
-import { useEffect } from "react";
 import { store } from "@/store";
 
 const loginSearchParamsSchema = z.object({
 	codeChallenge: z.string().optional(),
 	codeChallengeMethod: z.string().optional(),
+	message: z.string().optional(),
 });
 
 export const Route = createFileRoute("/auth/login")({
@@ -28,7 +28,7 @@ export const Route = createFileRoute("/auth/login")({
 
 function RouteComponent() {
 	const { refetchProfile } = useAuth();
-	const { codeChallenge, codeChallengeMethod } = Route.useSearch();
+	const { codeChallenge, codeChallengeMethod, message } = Route.useSearch();
 	const { socket } = useSocket();
 
 	const getPostLoginRedirect = () => {
@@ -56,19 +56,13 @@ function RouteComponent() {
 		},
 	});
 
-	useEffect(() => {
-		console.log("codeChallenge", codeChallenge);
-		console.log("codeChallengeMethod", codeChallengeMethod);
-		console.log("loginMutation", loginMutation);
-		console.log("loginPkceMutation", loginPkceMutation);
-	}, [codeChallenge, codeChallengeMethod, loginMutation, loginPkceMutation]);
-
 	return (
 		<LoginPage
 			codeChallenge={codeChallenge}
 			codeChallengeMethod={codeChallengeMethod}
 			loginMutation={loginMutation}
 			loginPkceMutation={loginPkceMutation}
+			sessionMessage={message}
 		/>
 	);
 }

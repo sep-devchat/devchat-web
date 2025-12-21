@@ -2,11 +2,17 @@ import { Profile } from "@/services/auth/auth.type";
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import { fetchProfile as apiFetchProfile } from "@/services/auth/authAPI";
 
+export interface FetchProfileError {
+	message: string;
+	status?: number;
+}
+
 interface UserState {
 	profile: Profile | null;
 	pendingEmail: string | null;
 	loading: boolean;
 	error?: string | null;
+	lastErrorStatus?: number | null;
 }
 
 const initialState: UserState = {
@@ -14,20 +20,22 @@ const initialState: UserState = {
 	pendingEmail: null,
 	loading: false,
 	error: null,
+	lastErrorStatus: null,
 };
 
 // Thunk: fetch the current user's profile (used on page reload/app init)
 export const fetchCurrentProfile = createAsyncThunk<
 	Profile,
 	void,
-	{ rejectValue: string }
+	{ rejectValue: FetchProfileError }
 >("user/fetchCurrentProfile", async (_, { rejectWithValue }) => {
 	try {
 		const res = await apiFetchProfile();
 		return res.data;
 	} catch (err: any) {
 		const message = err?.response?.data?.message || "Failed to fetch profile";
-		return rejectWithValue(message);
+		const status = err?.response?.status;
+		return rejectWithValue({ message, status });
 	}
 });
 
@@ -48,17 +56,20 @@ const userSlice = createSlice({
 	extraReducers: (builder) => {
 		builder
 			.addCase(fetchCurrentProfile.pending, (state) => {
-				state.loading = true;
+				state.loading = state.profile ? false : true;
 				state.error = null;
+				state.lastErrorStatus = null;
 			})
 			.addCase(fetchCurrentProfile.fulfilled, (state, action) => {
 				state.loading = false;
 				state.profile = action.payload ?? null;
+				state.lastErrorStatus = null;
 			})
 			.addCase(fetchCurrentProfile.rejected, (state, action) => {
 				state.loading = false;
 				state.profile = null;
-				state.error = action.payload ?? "Failed to fetch profile";
+				state.error = action.payload?.message ?? "Failed to fetch profile";
+				state.lastErrorStatus = action.payload?.status ?? null;
 			});
 	},
 });

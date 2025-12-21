@@ -38,6 +38,7 @@ import { type RootState } from "@/store";
 import aiAPI from "@/services/ai/ai.api";
 import { CreateCodeBlockRequest } from "@/services/code-block/code-block.type";
 import { toast } from "sonner";
+import { useParams } from "@tanstack/react-router";
 
 const MAX_ATTACHMENTS = 10;
 
@@ -102,9 +103,18 @@ export default function ChatInput({
 	const currentGroupId = useSelector(
 		(s: RootState) => s.groupMembers.currentGroupId,
 	);
+	const routeParams = useParams({ strict: false }) as {
+		groupId?: string;
+		userId?: string;
+	};
+	const routeGroupId = routeParams.groupId ?? undefined;
+	const isDirectMode = !!routeParams.userId && !routeGroupId;
+	const effectiveGroupId = isDirectMode
+		? undefined
+		: (routeGroupId ?? currentGroupId ?? undefined);
 	const groupMembers = useSelector((s: RootState) =>
-		currentGroupId
-			? s.groupMembers.byGroupId[currentGroupId]?.members || []
+		effectiveGroupId
+			? s.groupMembers.byGroupId[effectiveGroupId]?.members || []
 			: [],
 	);
 	const aiProviders = useSelector((s: RootState) => s.ai?.providers || []);
@@ -1263,6 +1273,7 @@ export default function ChatInput({
 							<CodeEditor
 								value={codeValue}
 								onChange={setCodeValue}
+								groupId={effectiveGroupId}
 								language={codeLang}
 								onLanguageChange={setCodeLang}
 								minLines={5}

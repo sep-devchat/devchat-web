@@ -39,6 +39,7 @@ interface LoginPageProps {
 	codeChallengeMethod?: string;
 	loginMutation: UseMutationResult<any, unknown, any, unknown>;
 	loginPkceMutation: UseMutationResult<any, unknown, any, unknown>;
+	sessionMessage?: string;
 }
 
 interface ValidationErrors {
@@ -52,6 +53,7 @@ const LoginPage: React.FC<LoginPageProps> = ({
 	codeChallengeMethod,
 	loginMutation,
 	loginPkceMutation,
+	sessionMessage,
 }) => {
 	const [loginData, setLoginData] = useState({
 		usernameOrEmail: "",
@@ -64,6 +66,13 @@ const LoginPage: React.FC<LoginPageProps> = ({
 	const [errors, setErrors] = useState<ValidationErrors>({});
 	const [touched, setTouched] = useState<Set<string>>(new Set());
 	const [successMessage, setSuccessMessage] = useState<string>("");
+	const [sessionInfoMessage, setSessionInfoMessage] = useState<string>(
+		sessionMessage ?? "",
+	);
+
+	useEffect(() => {
+		setSessionInfoMessage(sessionMessage ?? "");
+	}, [sessionMessage]);
 
 	useEffect(() => {
 		if (loginMutation.error) {
@@ -220,6 +229,23 @@ const LoginPage: React.FC<LoginPageProps> = ({
 				<LoginCard>
 					<WelcomeTitle>Welcome Back!</WelcomeTitle>
 					<WelcomeSubtitle>Sign in to DevChat.</WelcomeSubtitle>
+
+					{sessionInfoMessage && (
+						<div
+							style={{
+								color: "#92400E",
+								fontSize: "14px",
+								marginBottom: "16px",
+								padding: "12px",
+								backgroundColor: "#FFFBEB",
+								border: "1px solid #FCD34D",
+								borderRadius: "6px",
+								fontWeight: "500",
+							}}
+						>
+							{sessionInfoMessage}
+						</div>
+					)}
 
 					{errors.general && (
 						<div

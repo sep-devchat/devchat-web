@@ -10,6 +10,7 @@ import {
 	Trash,
 	ExternalLink,
 	CheckSquare,
+	Code,
 } from "lucide-react";
 import {
 	Header,
@@ -38,11 +39,13 @@ import MemberSection from "./MemberSection/MemberSection";
 import { OutGroupSection } from "./Sections/OutGroupSection";
 import SubscriptionSection from "./Sections/SubscriptionSection/SubscriptionSection";
 import TaskOverviewSection from "./Sections/TaskOverviewSection/TaskOverviewSection";
+import GroupProgrammingLanguageSection from "./Sections/GroupProgrammingLanguageSection";
 
 type SettingsSection =
 	| "profile"
 	| "invite"
 	| "member"
+	| "programming-languages"
 	| "activity"
 	| "task-overview"
 	| "subscription"
@@ -80,6 +83,11 @@ export const GroupSetting: React.FC<GroupSettingProps> = ({
 		{ id: "profile", label: "Group Profile", icon: SettingsIcon },
 		{ id: "invite", label: "Invite", icon: Palette },
 		{ id: "member", label: "Member", icon: Bell },
+		{
+			id: "programming-languages",
+			label: "Programming Languages",
+			icon: Code,
+		},
 		{ id: "subscription", label: "Subscription", icon: CreditCard },
 		{ id: "task-overview", label: "Task Overview", icon: CheckSquare },
 		{
@@ -97,6 +105,13 @@ export const GroupSetting: React.FC<GroupSettingProps> = ({
 				return <InviteSection canInvite={isAdmin} />;
 			case "member":
 				return <MemberSection canManageMembers={isAdmin} />;
+			case "programming-languages":
+				return (
+					<GroupProgrammingLanguageSection
+						canManage={isAdmin}
+						groupId={groupId}
+					/>
+				);
 			case "subscription":
 				return <SubscriptionSection canBuy={isAdmin} groupId={groupId} />;
 			case "activity":
