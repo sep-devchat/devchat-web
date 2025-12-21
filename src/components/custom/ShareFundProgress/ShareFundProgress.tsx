@@ -154,7 +154,7 @@ export default function ShareFundProgress({ groupId }: Props) {
 								fund.subscription?.subscriptionName ?? "Subscription";
 
 							return (
-								<div key={fund.id} className="grid gap-2">
+								<div key={fund.id} className="flex flex-col gap-2">
 									<div className="flex items-start justify-between gap-2">
 										<div className="min-w-0">
 											<p className="text-xs font-medium truncate">{title}</p>
@@ -163,9 +163,6 @@ export default function ShareFundProgress({ groupId }: Props) {
 												{target > 0 ? currency(target) : "-"}
 											</p>
 										</div>
-										<p className="text-[11px] text-muted-foreground whitespace-nowrap">
-											{currency(current)}
-										</p>
 									</div>
 									<Progress value={pct} />
 									<div className="flex justify-between text-[11px] text-muted-foreground">

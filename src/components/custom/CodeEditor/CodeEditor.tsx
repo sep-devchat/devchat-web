@@ -16,6 +16,12 @@ import {
 	SelectItem,
 	SelectTrigger,
 } from "@/components/ui/select";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipProvider,
+	TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { ProgrammingLanguageEnum } from "@/utils/enum";
 import { getActiveProgrammingLanguages } from "@/services/programmingLanguagesAPI";
 import { listGroupSupportedProgrammingLanguages } from "@/services/groupSupportedProgrammingLanguageAPI";
@@ -195,10 +201,14 @@ const CodeEditor = React.forwardRef<CodeEditorRef, CodeEditorProps>(
 			if (dynamicLanguages.length > 0) {
 				return dynamicLanguages;
 			}
-			return DEFAULT_LANGUAGES;
+			return [];
 		}, [languages, dynamicLanguages]);
 
 		const availableLanguages = fallbackLanguages;
+		const isLanguageSelectDisabled = availableLanguages.length === 0;
+		const languageSelectTooltipText = groupId
+			? "No languages configured for this group. Set them in Group settings."
+			: "No programming languages available.";
 
 		const initialLang =
 			language ||
@@ -529,28 +539,61 @@ const CodeEditor = React.forwardRef<CodeEditorRef, CodeEditorProps>(
 								"min-[1920px]:gap-[8.8px]",
 							)}
 						>
-							<Select value={internalLang} onValueChange={handleLangChange}>
-								<SelectTrigger
-									className={cn(
-										"min-w-[180px] border-slate-300 bg-white text-[14px] font-medium text-slate-700 focus:ring-slate-400/60",
-										"max-[1220px]:rounded-[5.6px] max-[1220px]:px-[5.6px] max-[1220px]:py-[2.8px] max-[1220px]:text-[11px]",
-										"min-[1440px]:rounded-[6.4px] min-[1440px]:px-[6.4px] min-[1440px]:py-[3.2px] min-[1440px]:text-[12px]",
-										"min-[1920px]:rounded-[8.8px] min-[1920px]:px-[8.8px] min-[1920px]:py-[4.4px] min-[1920px]:text-[14px]",
-									)}
-									aria-label="Select a programming language"
-								>
-									<span className="flex items-center gap-1.5 truncate">
-										{selectedLanguage?.isExecutable ? (
-											<Play
-												className="h-3.5 w-3.5 text-emerald-500"
-												aria-hidden="true"
-											/>
-										) : null}
-										<span className="truncate">
-											{selectedLanguage?.label ?? "Select language"}
+							<Select
+								value={internalLang}
+								onValueChange={handleLangChange}
+								disabled={isLanguageSelectDisabled}
+							>
+								{isLanguageSelectDisabled ? (
+									<TooltipProvider>
+										<Tooltip>
+											<TooltipTrigger asChild>
+												<span className="inline-flex">
+													<SelectTrigger
+														disabled
+														className={cn(
+															"min-w-[180px] border-slate-300 bg-white text-[14px] font-medium text-slate-700 focus:ring-slate-400/60",
+															"max-[1220px]:rounded-[5.6px] max-[1220px]:px-[5.6px] max-[1220px]:py-[2.8px] max-[1220px]:text-[11px]",
+															"min-[1440px]:rounded-[6.4px] min-[1440px]:px-[6.4px] min-[1440px]:py-[3.2px] min-[1440px]:text-[12px]",
+															"min-[1920px]:rounded-[8.8px] min-[1920px]:px-[8.8px] min-[1920px]:py-[4.4px] min-[1920px]:text-[14px]",
+															"opacity-60",
+														)}
+														aria-label="Select a programming language"
+													>
+														<span className="flex items-center gap-1.5 truncate">
+															<span className="truncate">Select language</span>
+														</span>
+													</SelectTrigger>
+												</span>
+											</TooltipTrigger>
+											<TooltipContent>
+												{languageSelectTooltipText}
+											</TooltipContent>
+										</Tooltip>
+									</TooltipProvider>
+								) : (
+									<SelectTrigger
+										className={cn(
+											"min-w-[180px] border-slate-300 bg-white text-[14px] font-medium text-slate-700 focus:ring-slate-400/60",
+											"max-[1220px]:rounded-[5.6px] max-[1220px]:px-[5.6px] max-[1220px]:py-[2.8px] max-[1220px]:text-[11px]",
+											"min-[1440px]:rounded-[6.4px] min-[1440px]:px-[6.4px] min-[1440px]:py-[3.2px] min-[1440px]:text-[12px]",
+											"min-[1920px]:rounded-[8.8px] min-[1920px]:px-[8.8px] min-[1920px]:py-[4.4px] min-[1920px]:text-[14px]",
+										)}
+										aria-label="Select a programming language"
+									>
+										<span className="flex items-center gap-1.5 truncate">
+											{selectedLanguage?.isExecutable ? (
+												<Play
+													className="h-3.5 w-3.5 text-emerald-500"
+													aria-hidden="true"
+												/>
+											) : null}
+											<span className="truncate">
+												{selectedLanguage?.label ?? "Select language"}
+											</span>
 										</span>
-									</span>
-								</SelectTrigger>
+									</SelectTrigger>
+								)}
 								<SelectContent align="end" className="min-w-[220px]">
 									{availableLanguages.map((langOption) => (
 										<SelectItem key={langOption.value} value={langOption.value}>
