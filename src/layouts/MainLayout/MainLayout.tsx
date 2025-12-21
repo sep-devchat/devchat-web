@@ -129,6 +129,7 @@ const MainLayout = () => {
 	const previousGroupIdRef = useRef<string | undefined>();
 	const previousChannelIdRef = useRef<string | undefined>();
 	const previousDirectUserIdRef = useRef<string | undefined>();
+	const adminRedirectedRef = useRef(false);
 
 	const hasOpenPanel =
 		!isCodeCollabRoute && isHalf && (showThreadPanel || Boolean(panelTab));
@@ -195,6 +196,18 @@ const MainLayout = () => {
 			window.removeEventListener("app:profileUpdated", handleProfileUpdate);
 		};
 	}, [dispatch]);
+
+	// Redirect admins to the dedicated dashboard
+	useEffect(() => {
+		if (!currentUserProfile?.isAdmin || adminRedirectedRef.current) {
+			return;
+		}
+		adminRedirectedRef.current = true;
+		navigate({
+			to: "/admin",
+			replace: true,
+		});
+	}, [currentUserProfile?.isAdmin, navigate]);
 
 	useEffect(() => {
 		if (isHalf && groupId) {

@@ -21,7 +21,10 @@ export const Route = createFileRoute("/auth/login")({
 	validateSearch: zodValidator(loginSearchParamsSchema),
 	beforeLoad: () => {
 		if (publicRuntimeConfig.ELECTRON) {
-			throw redirect({ to: "/auth/login-electron" });
+			throw redirect({
+				to: "/auth/login-electron",
+				search: (prev: any) => prev,
+			});
 		}
 	},
 });

@@ -1,11 +1,8 @@
 import React, { useState } from "react";
-import { GoogleLogin } from "@react-oauth/google";
 import { UseMutationResult } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import publicRuntimeConfig from "@/config/publicRuntime";
 import registerBgImage from "@/assets/image/registerBackground.png";
 import testImage from "@/assets/image/test.jpg";
-import githubIcon from "@/assets/image/github-icon.png";
 import {
 	RegisterContainer,
 	ContentContainer,
@@ -18,20 +15,12 @@ import {
 	Label,
 	Input,
 	RegisterButton,
-	Divider,
 	// DividerText,
-	GitHubButton,
 	SignInText,
 	SignInLink,
-	GitHubIcon,
 	LabelOption,
 	PasswordInputWrapper,
 	EyeIcon,
-	SocialButtonsContainer,
-	SocialButtonsRow,
-	SocialButtonWrapper,
-	GoogleLoginWrapper,
-	IconWrapper,
 	AvatarUploadContainer,
 	AvatarUploadBox,
 	AvatarPreviewWrapper,
@@ -41,6 +30,9 @@ import {
 	LoadingSpinner,
 	DefaultAvatarCircle,
 	AvatarUploadInfo,
+	HeroDescription,
+	HeroHeading,
+	HeroTagline,
 	ProgressTitle,
 	ProgressBar,
 	ProgressContainer,
@@ -533,49 +525,6 @@ const RegisterPage: React.FC<RegisterPageProps> = ({
 		registerMutation.isPending || registerPkceMutation.isPending || isUploading;
 	console.log("RegisterPage render, isLoading:", isLoading);
 
-	const handleGoogleSuccess = async (credentialResponse: any) => {
-		console.log("Google registration success:", credentialResponse);
-		if (!credentialResponse.credential) {
-			console.error("No credential received from Google");
-			setErrors({
-				general: "Google registration failed. No credential received.",
-			});
-			return;
-		}
-
-		setErrors({});
-		setSuccessMessage("");
-
-		try {
-			if (codeChallenge && codeChallengeMethod) {
-				registerPkceMutation.mutate({
-					method: "google",
-					code: credentialResponse.credential,
-					codeChallenge: codeChallenge,
-					codeChallengeMethod: codeChallengeMethod,
-				});
-			} else {
-				registerMutation.mutate({
-					method: "google",
-					code: credentialResponse.credential,
-				});
-			}
-		} catch (error) {
-			console.error("Error during Google registration mutation:", error);
-			setErrors({ general: "Google registration failed. Please try again." });
-		}
-	};
-
-	const handleGoogleError = () => {
-		console.error("Google Registration Failed");
-		setErrors({ general: "Google registration failed. Please try again." });
-	};
-
-	const handleGitHubRegister = () => {
-		const githubAuthUrl = `https://github.com/login/oauth/authorize?scope=user:email&client_id=${publicRuntimeConfig.GITHUB_CLIENT_ID}`;
-		window.location.href = githubAuthUrl;
-	};
-
 	const hasError = (field: string) => {
 		return touched.has(field) && errors[field as keyof ValidationErrors];
 	};
@@ -583,7 +532,14 @@ const RegisterPage: React.FC<RegisterPageProps> = ({
 	return (
 		<RegisterContainer backgroundImage={registerBgImage}>
 			<ContentContainer>
-				<ImageSection backgroundImage={testImage} />
+				<ImageSection backgroundImage={testImage}>
+					<HeroTagline>Team up in real time</HeroTagline>
+					<HeroHeading>Build together without leaving chat</HeroHeading>
+					<HeroDescription>
+						Spin up focused rooms, swap code, and keep every decision in one
+						home for your team.
+					</HeroDescription>
+				</ImageSection>
 
 				<RegisterCard>
 					<WelcomeTitle>Register</WelcomeTitle>
@@ -1055,57 +1011,6 @@ const RegisterPage: React.FC<RegisterPageProps> = ({
 					>
 						{isLoading ? "Registering..." : "Register Account"}
 					</RegisterButton>
-
-					<Divider>{/* <DividerText>or</DividerText> */}</Divider>
-
-					<SocialButtonsContainer>
-						<SocialButtonsRow>
-							<SocialButtonWrapper>
-								<GoogleLoginWrapper>
-									<GoogleLogin
-										onSuccess={handleGoogleSuccess}
-										onError={handleGoogleError}
-										useOneTap={false}
-										auto_select={false}
-										text="signup_with"
-										theme="outline"
-										size="large"
-										width="250"
-										locale="en"
-										shape="rectangular"
-										type="standard"
-										logo_alignment="center"
-										containerProps={{
-											style: {
-												width: "100%",
-												opacity: isLoading ? 0.6 : 1,
-												pointerEvents: isLoading ? "none" : "auto",
-												filter: isLoading ? "grayscale(0.5)" : "none",
-												borderRadius: "16px",
-											},
-										}}
-									/>
-								</GoogleLoginWrapper>
-							</SocialButtonWrapper>
-
-							<SocialButtonWrapper>
-								<GitHubButton
-									onClick={handleGitHubRegister}
-									disabled={isLoading}
-									style={{
-										opacity: isLoading ? 0.6 : 1,
-										cursor: isLoading ? "not-allowed" : "pointer",
-										minHeight: "40px",
-									}}
-								>
-									<IconWrapper>
-										<GitHubIcon src={githubIcon} alt="GitHub Icon" />
-									</IconWrapper>
-									<span>Sign up with GitHub</span>
-								</GitHubButton>
-							</SocialButtonWrapper>
-						</SocialButtonsRow>
-					</SocialButtonsContainer>
 
 					<SignInText>
 						Already have an account?{" "}

@@ -5,6 +5,7 @@ import { fetchCurrentProfile, FetchProfileError } from "@/store/user.slice";
 import { AppDispatch, RootState } from "@/store";
 import publicRuntimeConfig from "@/config/publicRuntime";
 import cookieUtils from "@/services/cookieUtils";
+import { useNavigate } from "@tanstack/react-router";
 
 const PROFILE_POLL_INTERVAL_MS = 5000;
 const AUTH_ROUTE_PREFIX = "/auth";
@@ -15,6 +16,7 @@ export default function AuthProvider({ children }: PropsWithChildren) {
 	const profile = useSelector((s: RootState) => s.user.profile);
 	const isLoading = useSelector((s: RootState) => s.user.loading);
 	const redirectingRef = useRef(false);
+	const navigate = useNavigate();
 
 	const handleUnauthorized = useCallback(() => {
 		if (redirectingRef.current) return;
@@ -24,11 +26,15 @@ export default function AuthProvider({ children }: PropsWithChildren) {
 		const loginPath = publicRuntimeConfig.ELECTRON
 			? "/auth/login-electron"
 			: "/auth/login";
-		const url = `${loginPath}?message=${encodeURIComponent(
-			"Your login session is expired, please login again",
-		)}`;
-		window.location.replace(url);
-	}, []);
+
+		navigate({
+			to: loginPath,
+			replace: true,
+			search: {
+				message: "Your login session is expired, please login again",
+			},
+		});
+	}, [navigate]);
 
 	const shouldSkipProfileFetch = useCallback(() => {
 		if (typeof window === "undefined") return false;

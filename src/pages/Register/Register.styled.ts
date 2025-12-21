@@ -14,86 +14,102 @@ export const RegisterContainer = styled.div<{ backgroundImage: string }>`
 `;
 
 export const ContentContainer = styled.div`
-	display: flex;
 	width: 100%;
-	max-width: 1200px;
-	min-height: 500px;
-	gap: 10px;
+	max-width: 1120px;
+	display: grid;
+	grid-template-columns: minmax(320px, 0.9fr) minmax(420px, 1.1fr);
+	background: rgba(255, 255, 255, 0.92);
+	backdrop-filter: blur(12px);
+	border-radius: 32px;
+	box-shadow: 0 25px 60px rgba(15, 23, 42, 0.18);
+	border: 1px solid rgba(255, 255, 255, 0.6);
+	overflow: hidden;
+	min-height: 620px;
 
-	@media (max-width: 1220px) {
-		max-width: 1000px;
+	@media (max-width: 1024px) {
+		grid-template-columns: 1fr;
+		max-width: 720px;
 	}
 
-	@media (min-width: 1440px) and (max-width: 1919px) {
-		max-width: 1000px;
-	}
-
-	@media (min-width: 1920px) {
-		max-width: 1200px;
+	@media (max-width: 640px) {
+		border-radius: 24px;
+		min-height: unset;
 	}
 `;
 
 export const RegisterCard = styled.div`
-	flex: 0 0 50%;
-	max-width: none;
-	padding: 20px 30px;
+	width: 100%;
+	padding: 48px 56px;
 	background: rgba(255, 255, 255, 0.95);
-	backdrop-filter: blur(10px);
 	display: flex;
 	flex-direction: column;
 	justify-content: center;
-	border-radius: 16px;
-	box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+	gap: 6px;
 
-	@media (max-width: 1220px) {
-		margin: -20px auto;
-		width: 600px;
-	}
-
-	@media (min-width: 1440px) and (max-width: 1919px) {
-		padding: 16px 28px;
-	}
-
-	@media (min-width: 1920px) {
-		padding: 24px 32px;
+	@media (max-width: 1280px) {
+		padding: 40px;
 	}
 
 	@media (max-width: 768px) {
-		flex: none;
-		padding: 24px 32px;
-		max-width: 100%;
+		padding: 32px 28px;
+	}
+
+	@media (max-width: 480px) {
+		padding: 28px 20px;
 	}
 `;
 
 export const ImageSection = styled.div<{ backgroundImage: string }>`
-	flex: 0 0 50%;
-	min-height: 500px;
-	background-image: url(${(props) => props.backgroundImage});
+	position: relative;
+	min-height: 620px;
+	background-image:
+		linear-gradient(135deg, rgba(7, 13, 30, 0.55), rgba(19, 62, 135, 0.55)),
+		url(${(props) => props.backgroundImage});
 	background-size: cover;
 	background-position: center;
 	background-repeat: no-repeat;
-	border-radius: 16px;
-	box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-	margin: -15px;
-	margin-right: 10px;
+	display: flex;
+	flex-direction: column;
+	justify-content: flex-end;
+	padding: 48px;
+	color: #fff;
 
-	@media (max-width: 768px) {
-		flex: none;
+	@media (max-width: 1280px) {
+		padding: 40px;
+		min-height: 520px;
+	}
+
+	@media (max-width: 1024px) {
+		order: -1;
 		min-height: 300px;
-		margin: 10px;
+		padding: 32px 28px;
 	}
 
-	@media (max-width: 1220px) {
-		display: none;
+	@media (max-width: 640px) {
+		padding: 24px;
 	}
+`;
 
-	@media (min-width: 1440px) and (max-width: 1919px) {
-		min-height: calc(100vh - 80px);
-	}
+export const HeroTagline = styled.span`
+	font-size: 12px;
+	letter-spacing: 0.3em;
+	text-transform: uppercase;
+	color: rgba(255, 255, 255, 0.8);
+	margin-bottom: 16px;
+`;
 
-	@media (min-width: 1920px) {
-		min-height: calc(100vh - 150px);
-	}
+export const HeroHeading = styled.h2`
+	font-size: 32px;
+	font-weight: 600;
+	line-height: 1.2;
+	margin-bottom: 14px;
+`;
+
+export const HeroDescription = styled.p`
+	font-size: 16px;
+	line-height: 1.5;
+	color: rgba(255, 255, 255, 0.9);
+	max-width: 360px;
 `;
 
 export const WelcomeTitle = styled.h1`
@@ -139,26 +155,23 @@ export const WelcomeSubtitle = styled.p`
 `;
 
 export const FormGroup = styled.div`
-	margin-bottom: 20px;
+	margin-bottom: 16px;
 	position: relative;
 	flex: 1;
 
-	@media (max-width: 1220px) {
-		margin-bottom: 10px;
-	}
-
-	@media (min-width: 1440px) and (max-width: 1919px) {
-		margin-bottom: 10px;
-	}
-
-	@media (min-width: 1920px) {
+	@media (max-width: 768px) {
 		margin-bottom: 12px;
 	}
 `;
 
 export const FormRow = styled.div`
 	display: flex;
-	gap: 16px;
+	gap: 12px;
+
+	@media (max-width: 768px) {
+		flex-direction: column;
+		gap: 10px;
+	}
 `;
 
 export const Label = styled.label`
