@@ -1,28 +1,26 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useState } from "react";
+import CTable, { ColDef } from "@/components/custom/CTable/CTable";
+import { CancelButton } from "@/components/custom/ActionButton/CancelButton";
+import { SaveButton } from "@/components/custom/ActionButton/SaveButton";
+import {
+	Dialog,
+	DialogContent,
+	DialogFooter,
+	DialogHeader,
+	DialogTitle,
+} from "@/components/ui/dialog";
+import { deleteUser, listUsers, setUserActive } from "@/services/userAPI";
+import { LockKeyhole, LockKeyholeOpen, Search, X } from "lucide-react";
+import { toast } from "sonner";
+import ReportDetailModal from "./ReportDetailModal";
 import {
 	BanButton,
 	ContentArea,
 	ContentHeader,
 	Divider,
 } from "../UserManagement.styled";
-import CTable, { ColDef } from "@/components/custom/CTable/CTable";
-import {
-	Dialog,
-	DialogContent,
-	DialogHeader,
-	DialogTitle,
-	DialogFooter,
-} from "@/components/ui/dialog";
-import { listUsers, setUserActive } from "@/services/userAPI";
-import { LockKeyhole, LockKeyholeOpen, Search, X } from "lucide-react";
-import { toast } from "sonner";
-import ReportDetailModal from "./ReportDetailModal";
-import { CancelButton } from "@/components/custom/ActionButton/CancelButton";
-import { DeleteButton } from "@/components/custom/ActionButton/DeleteButton";
-import { SaveButton } from "@/components/custom/ActionButton/SaveButton";
 
-// Types
 type Reporter = {
 	id: string | number;
 	name: string;
@@ -95,11 +93,20 @@ export default function UserTab() {
 	const [searchTerm, setSearchTerm] = useState("");
 	const [searchInput, setSearchInput] = useState("");
 
-	const [confirmState, setConfirmState] = useState<{
-		open: boolean;
-		mode: "ban" | "unban" | null;
-		targetId: string | number | null;
-	}>({ open: false, mode: null, targetId: null });
+	const [deleteDialog, setDeleteDialog] = useState({
+		open: false,
+		targetId: null as string | number | null,
+		targetName: "",
+		reason: "",
+		submitting: false,
+		error: "",
+	});
+
+	const [reactivateDialog, setReactivateDialog] = useState({
+		open: false,
+		targetId: null as string | number | null,
+		submitting: false,
+	});
 
 	const fetchData = async (
 		pageParam?: number,
@@ -228,45 +235,66 @@ export default function UserTab() {
 	const getRowById = (id: string | number) =>
 		rowData.find((r) => r.id === id) ?? null;
 
-	const openConfirm = (mode: "ban" | "unban", id: string | number) => {
-		const target = rowData.find((r) => String(r.id) === String(id));
-		if (mode === "ban" && target?.originalApi?.isAdmin) {
-			toast.warning("Admin accounts cannot be deactivated");
+	const resetDeleteDialog = () =>
+		setDeleteDialog({
+			open: false,
+			targetId: null,
+			targetName: "",
+			reason: "",
+			submitting: false,
+			error: "",
+		});
+
+	const openDeleteDialog = (id: string | number) => {
+		const target = getRowById(id);
+		if (target?.originalApi?.isAdmin) {
+			toast.warning("Admin accounts cannot be deleted");
 			return;
 		}
-		setConfirmState({ open: true, mode, targetId: id });
+		setDeleteDialog({
+			open: true,
+			targetId: id,
+			targetName: target?.userName || target?.userCode || "this user",
+			reason: "",
+			submitting: false,
+			error: "",
+		});
 	};
 
-	const closeConfirm = () =>
-		setConfirmState({ open: false, mode: null, targetId: null });
+	const openReactivateDialog = (id: string | number) => {
+		setReactivateDialog({ open: true, targetId: id, submitting: false });
+	};
 
-	const performBan = async (id: string | number) => {
-		const target = rowData.find((r) => String(r.id) === String(id));
-		if (target?.originalApi?.isAdmin) {
-			toast.warning("Admin accounts cannot be deactivated");
-			closeConfirm();
+	const closeReactivateDialog = () =>
+		setReactivateDialog({ open: false, targetId: null, submitting: false });
+
+	const handleDeleteConfirm = async () => {
+		if (!deleteDialog.targetId) return;
+		const trimmedReason = deleteDialog.reason.trim();
+		if (!trimmedReason) {
+			setDeleteDialog((prev) => ({
+				...prev,
+				error: "Ban reason is required",
+			}));
 			return;
 		}
-		const previous = rowData;
-		setRowData((prev) =>
-			prev.map((r) =>
-				r.id === id ? { ...r, isActive: false, banned: true } : r,
-			),
-		);
+		setDeleteDialog((prev) => ({ ...prev, submitting: true }));
 		try {
-			await setUserActive(String(id), false);
-			toast.success("User deactivated successfully");
+			await deleteUser(String(deleteDialog.targetId), trimmedReason);
+			toast.success("User deleted successfully");
+			resetDeleteDialog();
 			fetchData();
 		} catch (err) {
-			console.error("Failed to deactivate user", err);
-			toast.error("Failed to deactivate user");
-			setRowData(previous);
-		} finally {
-			closeConfirm();
+			console.error("Failed to delete user", err);
+			toast.error("Failed to delete user");
+			setDeleteDialog((prev) => ({ ...prev, submitting: false }));
 		}
 	};
 
-	const performUnban = async (id: string | number) => {
+	const handleReactivateConfirm = async () => {
+		const id = reactivateDialog.targetId;
+		if (!id) return;
+		setReactivateDialog((prev) => ({ ...prev, submitting: true }));
 		const previous = rowData;
 		setRowData((prev) =>
 			prev.map((r) =>
@@ -282,12 +310,12 @@ export default function UserTab() {
 			toast.error("Failed to activate user");
 			setRowData(previous);
 		} finally {
-			closeConfirm();
+			closeReactivateDialog();
 		}
 	};
 
-	const handleBanClick = (id: string | number) => openConfirm("ban", id);
-	const handleUnbanClick = (id: string | number) => openConfirm("unban", id);
+	const handleReactivateClick = (id: string | number) =>
+		openReactivateDialog(id);
 
 	const computeInitials = (name?: string | null) => {
 		if (!name) return "--";
@@ -371,38 +399,23 @@ export default function UserTab() {
 				if (!row) return null;
 				const isActive = row.isActive ?? true;
 				const isAdminRow = !!row.originalApi?.isAdmin;
-				if (isAdminRow) {
-					if (isActive) {
-						return (
-							<span
-								className="text-xs text-gray-400"
-								title="Admin account cannot be deactivated"
-							>
-								Active (admin)
-							</span>
-						);
-					} else {
-						return (
-							<BanButton
-								onClick={(e) => {
-									e.preventDefault();
-									handleUnbanClick(row.id);
-								}}
-								className="unban"
-								title="Activate admin account"
-							>
-								<LockKeyholeOpen size={12} />
-								Activate
-							</BanButton>
-						);
-					}
+				if (isAdminRow && isActive) {
+					return (
+						<span
+							className="text-xs text-gray-400"
+							title="Admin account cannot be deactivated"
+						>
+							Active (admin)
+						</span>
+					);
 				}
+
 				if (isActive) {
 					return (
 						<BanButton
 							onClick={(e) => {
 								e.preventDefault();
-								handleBanClick(row.id);
+								openDeleteDialog(row.id);
 							}}
 							className="ban"
 							title="Deactivate user"
@@ -412,11 +425,12 @@ export default function UserTab() {
 						</BanButton>
 					);
 				}
+
 				return (
 					<BanButton
 						onClick={(e) => {
 							e.preventDefault();
-							handleUnbanClick(row.id);
+							handleReactivateClick(row.id);
 						}}
 						className="unban"
 						title="Activate user"
@@ -602,61 +616,90 @@ export default function UserTab() {
 				}}
 			/>
 
-			{/* Confirm dialog */}
 			<Dialog
-				open={confirmState.open}
+				open={reactivateDialog.open}
 				onOpenChange={(open) => {
-					if (!open)
-						setConfirmState({ open: false, mode: null, targetId: null });
+					if (!open) closeReactivateDialog();
 				}}
 			>
 				<DialogContent className="max-w-md w-full">
 					<DialogHeader>
-						<DialogTitle>
-							{confirmState.mode === "ban" ? "Confirm ban" : "Confirm unban"}
-						</DialogTitle>
+						<DialogTitle>Activate user</DialogTitle>
 					</DialogHeader>
 
 					<div className="py-2">
 						<p className="text-sm text-gray-700">
-							{confirmState.mode === "ban"
-								? "Are you sure you want to deactivate this user? This action cannot be undone."
-								: "Are you sure you want to activate this user?"}
+							Are you sure you want to reactivate this user?
 						</p>
 					</div>
 
 					<DialogFooter className="flex justify-end gap-2">
-						<CancelButton
-							className="px-4 py-2 rounded bg-gray-100 hover:bg-gray-200"
-							onClick={() =>
-								setConfirmState({ open: false, mode: null, targetId: null })
-							}
+						<CancelButton onClick={closeReactivateDialog}>Cancel</CancelButton>
+						<SaveButton
+							onClick={handleReactivateConfirm}
+							disabled={reactivateDialog.submitting}
 						>
-							Cancel
-						</CancelButton>
+							{reactivateDialog.submitting ? "Activating..." : "Activate"}
+						</SaveButton>
+					</DialogFooter>
+				</DialogContent>
+			</Dialog>
 
-						{confirmState.mode === "ban" ? (
-							<DeleteButton
-								onClick={async () => {
-									const id = confirmState.targetId;
-									if (!id) return;
-									await performBan(id);
-								}}
-							>
-								Deactivate
-							</DeleteButton>
-						) : (
-							<SaveButton
-								className="px-4 py-2 rounded bg-green-600 text-white"
-								onClick={async () => {
-									const id = confirmState.targetId;
-									if (!id) return;
-									await performUnban(id);
-								}}
-							>
-								Activate
-							</SaveButton>
+			<Dialog
+				open={deleteDialog.open}
+				onOpenChange={(open) => {
+					if (!open) resetDeleteDialog();
+				}}
+			>
+				<DialogContent className="max-w-md w-full">
+					<DialogHeader>
+						<DialogTitle>Ban & Delete User</DialogTitle>
+					</DialogHeader>
+
+					<div className="space-y-4 py-2">
+						<p className="text-sm text-gray-700">
+							You are about to permanently delete
+							<span className="font-semibold">
+								{" "}
+								{deleteDialog.targetName || "this user"}
+							</span>
+							. Provide a ban reason for the audit log.
+						</p>
+						<label className="flex flex-col gap-2 text-sm text-gray-600">
+							<span>Ban reason</span>
+							<textarea
+								value={deleteDialog.reason}
+								onChange={(e) =>
+									setDeleteDialog((prev) => ({
+										...prev,
+										reason: e.target.value,
+										error: "",
+									}))
+								}
+								minLength={10}
+								maxLength={1024}
+								rows={4}
+								placeholder="Describe why this account is being banned"
+								className={`w-full rounded-md border p-3 text-gray-800 focus:outline-none ${deleteDialog.error ? "border-red-500 focus:border-red-500" : "border-gray-200 focus:border-indigo-500"}`}
+								disabled={deleteDialog.submitting}
+								aria-invalid={deleteDialog.error ? "true" : "false"}
+								required
+							/>
+						</label>
+						{deleteDialog.error && (
+							<p className="text-sm text-red-600">{deleteDialog.error}</p>
 						)}
+					</div>
+
+					<DialogFooter className="flex justify-end gap-2">
+						<CancelButton onClick={resetDeleteDialog}>Cancel</CancelButton>
+						<BanButton
+							className="ban"
+							onClick={handleDeleteConfirm}
+							disabled={deleteDialog.submitting}
+						>
+							{deleteDialog.submitting ? "Deactivating..." : "Deactivate user"}
+						</BanButton>
 					</DialogFooter>
 				</DialogContent>
 			</Dialog>

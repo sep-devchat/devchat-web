@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { get, put, remove } from "./apiCaller";
+import { get, post, put } from "./apiCaller";
 
 export interface UserResponse {
 	id: string;
@@ -52,8 +52,10 @@ export const updateUser = (id: string, data: UserPostRequest) => {
 	return put<UserPostRequest>(`/api/user/${id}`, data);
 };
 
-export const deleteUser = (id: string) => {
-	return remove<UserResponse>(`/api/user/${id}`);
+export const deleteUser = (id: string, banReason: string) => {
+	return post<UserResponse>(`/api/user/${id}/delete`, {
+		banReason: banReason.trim(),
+	});
 };
 
 export const setUserActive = (id: string, isActive: boolean) => {

@@ -431,7 +431,10 @@ export const useAccountSettings = () => {
 		if (deleteConfirmText !== (original.username ?? "")) return;
 		setIsDeleting(true);
 		try {
-			await deleteUser(String(original.id));
+			await deleteUser(
+				String(original.id),
+				"Account owner requested account deletion",
+			);
 			fireAlert("success", "Account deleted");
 			setIsDeleteOpen(false);
 			window.location.href = "/auth/login";
