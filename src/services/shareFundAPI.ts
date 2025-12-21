@@ -30,6 +30,7 @@ export type ShareFund = {
 	id: string;
 	groupId: string;
 	subscriptionId: string;
+	monthQuantity?: number;
 	fundName: string | null;
 	contributeTime?: number | null;
 	currentVndAmount: string;
@@ -41,7 +42,9 @@ export type ShareFund = {
 
 export type CreateShareFundPayload = {
 	subscriptionId: string;
+	monthQuantity?: number;
 	fundName?: string | null;
+	contributeTime?: number | null;
 };
 
 export const createShareFund = async (

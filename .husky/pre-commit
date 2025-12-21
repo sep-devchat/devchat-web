@@ -1,10 +1,10 @@
 echo "Pre-commit hook running..."
 
 echo "Run prettier..."
-yarn prettier:run
+bun run prettier:run
 
 echo "Test build..."
-yarn build
+bun run build
 
 echo "Add changes to git..."
 git add .

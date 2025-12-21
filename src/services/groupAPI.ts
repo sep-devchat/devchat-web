@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { get, post, put, remove } from "./apiCaller";
+import { get, post, put, remove, ApiResponseDto } from "./apiCaller";
+import type { Subscription } from "./subscriptionAPI";
 
 export interface GroupResponse {
 	id: string;
@@ -38,4 +39,31 @@ export const updateGroup = (id: string, data: GroupPostRequest) => {
 
 export const deleteGroup = (id: string) => {
 	return remove<GroupResponse>(`/api/group/${id}`);
+};
+
+export type GroupSubscriptionInGroup = {
+	id: string;
+	groupId: string;
+	subscriptionId: string;
+	groupSubscriptionStatus: string;
+	monthQuantity: number;
+	paymentBy: string | null;
+	isPaid: boolean;
+	startedAt: string | null;
+	endedAt: string | null;
+	// Backend returns SubscriptionResponse; allowUseAI may be missing depending on backend version.
+	subscription?: Partial<Subscription> | null;
+};
+
+export type GroupSubscriptionsInGroupResponse = {
+	currentSubscription: GroupSubscriptionInGroup | null;
+	subscriptions: GroupSubscriptionInGroup[];
+};
+
+export const getGroupSubscriptions = async (
+	groupId: string,
+): Promise<ApiResponseDto<GroupSubscriptionsInGroupResponse>> => {
+	return get<GroupSubscriptionsInGroupResponse>(
+		`/api/group/${groupId}/subscriptions`,
+	);
 };

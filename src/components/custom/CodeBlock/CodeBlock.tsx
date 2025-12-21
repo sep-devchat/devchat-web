@@ -15,7 +15,7 @@ import {
 	TooltipProvider,
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Pencil, Play } from "lucide-react";
+import { Play, Users } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import CodeRunResultDialog from "@/components/custom/CodeRunResultDialog";
 import useCodeRunner from "@/hooks/useCodeRunner";
@@ -313,22 +313,21 @@ const CodeBlock = ({
 													width: `${getResponsiveSize(28)}px`,
 													height: `${getResponsiveSize(28)}px`,
 												}}
-												aria-label="Edit code"
+												aria-label="Open code collaboration"
 												onClick={handleEditClick}
 												disabled={!codeBlockId || !hasCollabContext}
 											>
-												<Pencil
+												<Users
 													style={{
 														width: `${getResponsiveSize(16)}px`,
 														height: `${getResponsiveSize(16)}px`,
 													}}
 												/>
-												<span className="sr-only">Edit code</span>
 											</Button>
 										</TooltipTrigger>
 										<TooltipContent side="bottom">
 											{codeBlockId && hasCollabContext
-												? "Collaborate on code"
+												? "Open code collaboration"
 												: "Code block info not available"}
 										</TooltipContent>
 									</Tooltip>
