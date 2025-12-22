@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React from "react";
-import { Search, Users, UserPlus, Mail, Send } from "lucide-react";
+import { Search, Users, UserPlus, Mail, Send, Eye, CheckIcon, X } from "lucide-react";
 import {
 	Title,
 	Subtitle,
@@ -17,6 +17,8 @@ import {
 	SectionHeader,
 } from "../Friend.styled";
 
+import { UserLanguage } from "@/services/auth/auth.type"
+
 interface PendingFriend {
 	id: string;
 	name: string;
@@ -24,6 +26,8 @@ interface PendingFriend {
 	avatar?: string;
 	direction: "received" | "sent";
 	raw?: any;
+	userLanguages?: UserLanguage[];
+	userId?: string; 
 }
 
 interface PendingGroup {
@@ -49,6 +53,7 @@ interface Props {
 	onAcceptGroup: (id: string) => void;
 	onDeclineGroup: (id: string) => void;
 	onCancelGroup: (id: string) => void;
+	onViewFriendProfile?: (friend: PendingFriend) => void;
 	isLoadingPending?: boolean;
 }
 
@@ -111,6 +116,75 @@ const GroupAvatarComponent: React.FC<{
 			}}
 		>
 			{initials}
+		</div>
+	);
+};
+
+// NEW: Component to display user's top languages
+const UserLanguagesDisplay: React.FC<{ userLanguages?: UserLanguage[] }> = ({ userLanguages }) => {
+	// DEBUG: Log to check what we receive
+	React.useEffect(() => {
+		console.log('UserLanguagesDisplay received:', userLanguages);
+	}, [userLanguages]);
+
+	if (!userLanguages || userLanguages.length === 0) {
+		return null;
+	}
+
+	// Sort by orderIndex and take top 3
+	const sortedLanguages = [...userLanguages]
+		.sort((a, b) => (a.orderIndex ?? 999) - (b.orderIndex ?? 999))
+		.slice(0, 3);
+
+	return (
+		<div
+			style={{
+				display: "flex",
+				gap: "6px",
+				marginTop: "4px",
+				flexWrap: "wrap",
+			}}
+		>
+			{sortedLanguages.map((lang, idx) => {
+				const languageName = lang.language?.languageName || "Unknown";
+				const iconUrl = lang.language?.languageIcon;
+
+				return (
+					<div
+						key={lang.id || `${lang.languageId}-${idx}`}
+						style={{
+							display: "flex",
+							alignItems: "center",
+							gap: "4px",
+							padding: "2px 8px",
+							backgroundColor: "#F3F4F6",
+							borderRadius: "12px",
+							fontSize: "11px",
+							color: "#374151",
+							fontWeight: 500,
+						}}
+						title={`${languageName} - ${lang.proficiencyLevel}`}
+					>
+						{iconUrl && (
+							<img
+								src={iconUrl}
+								alt={languageName}
+								style={{
+									width: "14px",
+									height: "14px",
+									borderRadius: "2px",
+									objectFit: "contain",
+								}}
+								onError={(e) => {
+									const img = e.target as HTMLImageElement;
+									img.style.display = "none";
+								}}
+							/>
+						)}
+						<span>{languageName}</span>
+					</div>
+				);
+			})}
 		</div>
 	);
 };
@@ -185,6 +259,7 @@ const Pending: React.FC<Props> = ({
 	onAcceptGroup,
 	onDeclineGroup,
 	onCancelGroup,
+	onViewFriendProfile,
 	isLoadingPending,
 }) => {
 	const q = searchPending.toLowerCase();
@@ -258,20 +333,31 @@ const Pending: React.FC<Props> = ({
 							{filteredFriendReceived.map((req) => (
 								<ResultItem key={req.id}>
 									<Avatar src={req.avatar} alt={req.name} />
-									<UserInfo>
+									<UserInfo style={{ flex: 1 }}>
 										<div style={{ display: "flex", alignItems: "center" }}>
 											<UserName>{req.name}</UserName>
 										</div>
 										<UserHandle>{req.handle}</UserHandle>
+										<UserLanguagesDisplay userLanguages={req.userLanguages} />
 									</UserInfo>
 									<ActionButtons>
+										{onViewFriendProfile && (
+											<ActionButton
+												variant="view"
+												onClick={() => onViewFriendProfile(req)}
+												aria-label={`View profile of ${req.name}`}
+												title="View profile"
+											>
+												<Eye size={16} />
+											</ActionButton>
+										)}
 										<ActionButton
 											variant="accept"
 											onClick={() => onAcceptFriend(req.id)}
 											aria-label={`Accept friend ${req.name}`}
 											title="Accept friend"
 										>
-											✓
+											<CheckIcon size={16} />
 										</ActionButton>
 										<ActionButton
 											variant="decline"
@@ -279,7 +365,7 @@ const Pending: React.FC<Props> = ({
 											aria-label={`Decline friend ${req.name}`}
 											title="Decline friend"
 										>
-											✕
+											<X size={16} />
 										</ActionButton>
 									</ActionButtons>
 								</ResultItem>
@@ -305,21 +391,33 @@ const Pending: React.FC<Props> = ({
 							{filteredFriendSent.map((req) => (
 								<ResultItem key={req.id}>
 									<Avatar src={req.avatar} alt={req.name} />
-									<UserInfo>
+									<UserInfo style={{ flex: 1 }}>
 										<div style={{ display: "flex", alignItems: "center" }}>
 											<UserName>{req.name}</UserName>
 										</div>
 										<UserHandle>{req.handle}</UserHandle>
+										<UserLanguagesDisplay userLanguages={req.userLanguages} />
 									</UserInfo>
-
-									<ActionButton
-										variant="unfriend"
-										onClick={() => onCancelFriend(req.id)}
-										aria-label={`Cancel friend request to ${req.name}`}
-										title="Cancel Request"
-									>
-										✕
-									</ActionButton>
+									<ActionButtons>
+										{onViewFriendProfile && (
+											<ActionButton
+												variant="view"
+												onClick={() => onViewFriendProfile(req)}
+												aria-label={`View profile of ${req.name}`}
+												title="View profile"
+											>
+												<Eye size={16} />
+											</ActionButton>
+										)}
+										<ActionButton
+											variant="unfriend"
+											onClick={() => onCancelFriend(req.id)}
+											aria-label={`Cancel friend request to ${req.name}`}
+											title="Cancel Request"
+										>
+											✕
+										</ActionButton>
+									</ActionButtons>
 								</ResultItem>
 							))}
 						</ResultsList>

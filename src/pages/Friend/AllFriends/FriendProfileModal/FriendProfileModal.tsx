@@ -4,11 +4,11 @@ import {
 	X,
 	Mail,
 	Calendar,
-	Shield,
 	UserMinus,
 	UserPlus,
 	MoreVertical,
 	Edit,
+	Shield,
 } from "lucide-react";
 import { toast } from "sonner";
 import { inviteToGroup } from "@/services/userGroupAPI";
@@ -39,7 +39,6 @@ import {
 	ModalContainer,
 	ModalHeader,
 	ModalOverlay,
-	StatusBadge,
 	Username,
 	UserName,
 	LanguagesSection,
@@ -52,6 +51,7 @@ import {
 	LanguageName,
 	LanguageProficiency,
 	LanguagesEmptyState,
+	StatusBadge,
 } from "./FriendProfileModal.styled";
 import {
 	listFriends,
@@ -76,6 +76,7 @@ interface FriendProfileModalProps {
 	friend: FriendUser | null;
 	onUnfriend?: (id: string, name: string) => void;
 	groupId?: string;
+	hideActionButton?: boolean;
 }
 
 const FriendProfileModal: React.FC<FriendProfileModalProps> = ({
@@ -84,25 +85,29 @@ const FriendProfileModal: React.FC<FriendProfileModalProps> = ({
 	friend,
 	onUnfriend,
 	groupId,
+	hideActionButton = false,
 }) => {
 	const [groups, setGroups] = useState<Group[]>([]);
 	const [loadingGroups, setLoadingGroups] = useState(false);
 	const [menuOpen, setMenuOpen] = useState(false);
 
-	// New: isFriend state (true if friend is in my friend list)
 	const [isFriend, setIsFriend] = useState(false);
 	const [addingFriend, setAddingFriend] = useState(false);
 	const currentUserProfile = useSelector(
-		(state: RootState) => state.user.profile,
+		(state: RootState) => (state as any).user?.profile,
 	);
 	const currentUserId = currentUserProfile?.id || "";
 	const [isYou, setIsYou] = useState(false);
 	const [selfProfile, setSelfProfile] = useState<any | null>(null);
+
 	const resolvedLanguages = useMemo(() => {
-		if (!friend) return [] as UserLanguage[];
+		console.log("friend object:", friend);
+		console.log("friend.userLanguages:", friend?.userLanguages);
+
 		if (isYou) {
 			const langs =
 				selfProfile?.userLanguages ?? currentUserProfile?.userLanguages;
+			console.log("isYou langs:", langs);
 			if (langs) {
 				return [...langs].sort(
 					(a, b) =>
@@ -111,16 +116,21 @@ const FriendProfileModal: React.FC<FriendProfileModalProps> = ({
 				);
 			}
 		}
-		if (friend.userLanguages) {
+		if (friend?.userLanguages) {
+			console.log("friend userLanguages found:", friend.userLanguages);
 			return [...friend.userLanguages].sort(
 				(a, b) =>
 					(a.orderIndex ?? Number.MAX_SAFE_INTEGER) -
 					(b.orderIndex ?? Number.MAX_SAFE_INTEGER),
 			);
 		}
+		console.log("No languages found, returning empty array");
 		return [] as UserLanguage[];
-	}, [friend, isYou, currentUserProfile]);
+	}, [friend, isYou, currentUserProfile, selfProfile]);
+
 	const topLanguages = resolvedLanguages.slice(0, 4);
+	console.log("topLanguages:", topLanguages);
+
 	const friendDisplayName = useMemo(() => {
 		if (!friend) return "";
 		return (
@@ -151,7 +161,6 @@ const FriendProfileModal: React.FC<FriendProfileModalProps> = ({
 		}
 	};
 
-	// NEW: fetch friend list and check if `friend.id` exists
 	const checkIsFriend = async () => {
 		if (!friend) {
 			setIsFriend(false);
@@ -165,7 +174,6 @@ const FriendProfileModal: React.FC<FriendProfileModalProps> = ({
 			setIsFriend(Boolean(found));
 		} catch (err) {
 			console.error("Failed to fetch friends for checking:", err);
-			// default to false on error
 			setIsFriend(false);
 		}
 	};
@@ -179,7 +187,6 @@ const FriendProfileModal: React.FC<FriendProfileModalProps> = ({
 		try {
 			if (friend.id === currentUserId) {
 				setIsYou(true);
-				// fetch fresh profile for languages when viewing your own profile
 				try {
 					const resp = await fetchProfile();
 					const data = resp?.data ?? resp;
@@ -194,23 +201,20 @@ const FriendProfileModal: React.FC<FriendProfileModalProps> = ({
 			setSelfProfile(null);
 		} catch (err) {
 			console.error("Failed to check isYou:", err);
-			// default to false on error
 			setIsYou(false);
 		}
 	};
 
 	useEffect(() => {
 		if (isOpen && friend) {
-			// check both flags when modal opens
 			checkIsYou().catch((e) => console.error(e));
 			checkIsFriend().catch((e) => console.error(e));
 		} else {
-			// reset isYou/isFriend when modal is closed or friend missing
 			setIsYou(false);
 			setIsFriend(false);
 		}
 
-		console.log("friend", friend);
+		console.log("friend in useEffect:", friend);
 	}, [isOpen, friend?.id, groupId, currentUserId]);
 
 	useEffect(() => {
@@ -260,7 +264,6 @@ const FriendProfileModal: React.FC<FriendProfileModalProps> = ({
 
 	const fullName = friendDisplayName || friend?.username || "";
 
-	// New: Add friend flow with feedback + state update
 	const handleAddFriend = async () => {
 		if (!friend) return;
 		setAddingFriend(true);
@@ -279,9 +282,7 @@ const FriendProfileModal: React.FC<FriendProfileModalProps> = ({
 		}
 	};
 
-	// NEW: navigate to settings when user edits own profile
 	const handleEditProfile = () => {
-		// using full page navigation for simplicity; replace with your router navigate if needed
 		window.location.href = "/settings";
 	};
 
@@ -291,7 +292,7 @@ const FriendProfileModal: React.FC<FriendProfileModalProps> = ({
 				<>
 					<ModalHeader>
 						<HeaderActions>
-							{isFriend ? (
+							{!isYou && (
 								<DropdownMenu
 									open={menuOpen}
 									onOpenChange={(open) => {
@@ -342,7 +343,7 @@ const FriendProfileModal: React.FC<FriendProfileModalProps> = ({
 										</DropdownMenuSub>
 									</DropdownMenuContent>
 								</DropdownMenu>
-							) : null}
+							)}
 
 							<IconButton onClick={onClose} icon={X} iconSize={20} />
 						</HeaderActions>
@@ -358,14 +359,13 @@ const FriendProfileModal: React.FC<FriendProfileModalProps> = ({
 										<Avatar
 											src={
 												(friend?.avatar ?? friend?.avatarUrl ?? undefined) as
-													| string
-													| undefined
+												| string
+												| undefined
 											}
 											alt={friendDisplayName}
 										/>
 										<UserName>{friendDisplayName}</UserName>
 										<Username>@{friend.username}</Username>
-
 										{isYou ?? (
 											<StatusBadge $isActive={isFriend}>
 												<span
@@ -378,8 +378,8 @@ const FriendProfileModal: React.FC<FriendProfileModalProps> = ({
 												/>
 												{isFriend ? "Friend" : "Not Friend"}
 											</StatusBadge>
-										)}
-									</AvatarSection>
+										)}									</AvatarSection>
+
 									<InfoItem>
 										<IconWrapper>
 											<Mail size={18} />
@@ -388,7 +388,8 @@ const FriendProfileModal: React.FC<FriendProfileModalProps> = ({
 											<InfoLabel>Email</InfoLabel>
 											<InfoValue>{friend.email}</InfoValue>
 										</InfoContent>
-									</InfoItem>{" "}
+									</InfoItem>
+
 									<InfoItem>
 										<IconWrapper>
 											<Calendar size={18} />
@@ -413,8 +414,7 @@ const FriendProfileModal: React.FC<FriendProfileModalProps> = ({
 												</InfoValue>
 											</InfoContent>
 										</InfoItem>
-									)}
-								</InfoSection>
+									)}								</InfoSection>
 							</div>
 
 							{/* Right Column - Top Programming Languages */}
@@ -468,10 +468,8 @@ const FriendProfileModal: React.FC<FriendProfileModalProps> = ({
 															decoding="async"
 															onError={(e) => {
 																const img = e.target as HTMLImageElement;
-																// prevent infinite loop: if we've already attempted a fallback, do nothing
 																if (img.dataset.fallback === "1") return;
 																img.dataset.fallback = "1";
-																// remove onerror to avoid recursive calls in some browsers
 																img.onerror = null;
 																img.src = `https://via.placeholder.com/40?text=${encodeURIComponent(
 																	iconFallbackText,
@@ -497,30 +495,35 @@ const FriendProfileModal: React.FC<FriendProfileModalProps> = ({
 									)}
 								</LanguagesSection>
 							</div>
-						</div>{" "}
-						{/* Show Edit Profile if isYou, otherwise Unfriend/Add Friend */}
-						{isYou ? (
-							<InfoButton
-								leftIcon={<Edit size={18} />}
-								onClick={handleEditProfile}
-								children={"Edit Profile"}
-								style={{ marginTop: "12px", width: "100%" }}
-							/>
-						) : isFriend ? (
-							<DeleteButton
-								onClick={handleUnfriend}
-								leftIcon={<UserMinus size={18} />}
-								children={"Unfriend"}
-								style={{ marginTop: "12px", width: "100%" }}
-							/>
-						) : (
-							<SaveButton
-								onClick={handleAddFriend}
-								leftIcon={<UserPlus size={18} />}
-								children={addingFriend ? "Sending..." : "Add Friend"}
-								style={{ marginTop: "12px", width: "100%" }}
-								disabled={addingFriend}
-							/>
+						</div>
+
+						{/* Action Buttons */}
+						{!hideActionButton && (
+							<>
+								{isYou ? (
+									<InfoButton
+										leftIcon={<Edit size={18} />}
+										onClick={handleEditProfile}
+										children={"Edit Profile"}
+										style={{ marginTop: "12px", width: "100%" }}
+									/>
+								) : isFriend ? (
+									<DeleteButton
+										onClick={handleUnfriend}
+										leftIcon={<UserMinus size={18} />}
+										children={"Unfriend"}
+										style={{ marginTop: "12px", width: "100%" }}
+									/>
+								) : (
+									<SaveButton
+										onClick={handleAddFriend}
+										leftIcon={<UserPlus size={18} />}
+										children={addingFriend ? "Sending..." : "Add Friend"}
+										style={{ marginTop: "12px", width: "100%" }}
+										disabled={addingFriend}
+									/>
+								)}
+							</>
 						)}
 					</ModalBody>
 				</>

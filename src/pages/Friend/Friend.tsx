@@ -39,6 +39,9 @@ import {
 import { showGlobalAlert } from "@/components/custom/AlertCustom/Alert";
 import ConfirmModal from "@/components/custom/ConfirmModal/ConfirmModal";
 import { toast } from "sonner";
+import FriendProfileModal from "./AllFriends/FriendProfileModal/FriendProfileModal";
+import { detailUser } from "@/services/userAPI";
+import { UserLanguage } from "@/services/auth/auth.type";
 
 interface PendingFriend {
 	id: string;
@@ -46,8 +49,12 @@ interface PendingFriend {
 	handle: string;
 	avatar?: string;
 	direction: "received" | "sent";
-	raw: FriendRequest;
+	userLanguages?: UserLanguage[];
+	userId?: string;
+	raw?: FriendRequest;
 }
+
+
 
 const Friend: React.FC = () => {
 	const search = useSearch({ from: "/chat/friend" });
@@ -75,7 +82,9 @@ const Friend: React.FC = () => {
 
 	const [currentPage, setCurrentPage] = useState(1);
 	const friendsPerPage = 18;
-	const SEARCH_DEBOUNCE_MS = 400; // debounce delay for user search
+	const SEARCH_DEBOUNCE_MS = 400;
+	const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+	const [selectedUserForProfile, setSelectedUserForProfile] = useState<FriendUser | null>(null);
 
 	const [isUnfriendModalOpen, setIsUnfriendModalOpen] = useState(false);
 	const [unfriendTarget, setUnfriendTarget] = useState<{
@@ -90,6 +99,76 @@ const Friend: React.FC = () => {
 	>([]);
 	const [pendingGroupInvites, setPendingGroupInvites] = useState<any[]>([]);
 	const [isLoadingPending, setIsLoadingPending] = useState(false);
+
+	const handleViewFriendProfile = async (pendingFriend: PendingFriend) => {
+		// Try to get userId from pendingFriend first, then from raw data
+		let userId = pendingFriend.userId;
+
+		if (!userId && pendingFriend.raw) {
+			const isReceived = pendingFriend.direction === "received";
+			const targetUser = isReceived ? pendingFriend.raw.fromUser : pendingFriend.raw.toUser;
+			userId = targetUser?.id;
+		}
+
+		if (!userId) {
+			console.error('Cannot find user ID');
+			return;
+		}
+
+		try {
+			// Use detailUser from userAPI instead of raw get call
+			const profileResponse = await detailUser(userId);
+			const fullProfile = profileResponse?.data || profileResponse;
+
+			const friendUser: FriendUser = {
+				id: fullProfile.id || userId,
+				name: `${fullProfile.firstName ?? ""} ${fullProfile.lastName ?? ""}`.trim() ||
+					fullProfile.username ||
+					pendingFriend.name,
+				username: fullProfile.username || pendingFriend.handle.replace('@', ''),
+				email: fullProfile.email || '',
+				avatar: fullProfile.avatarUrl || pendingFriend.avatar,
+				avatarUrl: fullProfile.avatarUrl || null,
+				firstName: fullProfile.firstName || '',
+				lastName: fullProfile.lastName || '',
+				createdAt: fullProfile.createdAt ? new Date(fullProfile.createdAt).toISOString() : new Date().toISOString(),
+				emailVerified: fullProfile.emailVerified || false,
+				isAdmin: fullProfile.isAdmin || false,
+				userLanguages: fullProfile.userLanguages || [],
+				isActive: fullProfile.isActive || false,
+			};
+
+			console.log('🔍 Full Friend Profile with languages:', friendUser);
+			setSelectedUserForProfile(friendUser);
+			setIsProfileModalOpen(true);
+		} catch (error) {
+			console.error('Failed to fetch user profile:', error);
+
+			// Fallback: try to use userLanguages from pendingFriend if available
+			const friendUser: FriendUser = {
+				id: userId,
+				name: pendingFriend.name,
+				username: pendingFriend.handle.replace('@', ''),
+				email: '',
+				avatar: pendingFriend.avatar,
+				avatarUrl: pendingFriend.avatar || null,
+				firstName: '',
+				lastName: '',
+				createdAt: new Date().toISOString(),
+				emailVerified: false,
+				isActive: false,
+				userLanguages: pendingFriend.userLanguages || [], // Use languages from pendingFriend if available
+			};
+
+			console.log('⚠️ Fallback profile (with languages from pending):', friendUser);
+			setSelectedUserForProfile(friendUser);
+			setIsProfileModalOpen(true);
+		}
+	};
+	const handleCloseProfileModal = () => {
+		setIsProfileModalOpen(false);
+		setSelectedUserForProfile(null);
+	};
 
 	useEffect(() => {
 		const refetchCurrentTab = async () => {
@@ -468,7 +547,7 @@ const Friend: React.FC = () => {
 			setModalType("success");
 			setModalMessage(
 				response?.message ||
-					`Your friend request to ${selectedUser.name} was sent!`,
+				`Your friend request to ${selectedUser.name} was sent!`,
 			);
 			setShowModal(true);
 
@@ -757,6 +836,7 @@ const Friend: React.FC = () => {
 						onAcceptGroup={handleAcceptGroup}
 						onDeclineGroup={handleDeclineGroup}
 						onCancelGroup={handleCancelGroup}
+						onViewFriendProfile={handleViewFriendProfile}
 						isLoadingPending={isLoadingPending}
 					/>
 				)}
@@ -808,6 +888,14 @@ const Friend: React.FC = () => {
 					onConfirm={confirmUnfriendAction}
 					onCancel={handleCloseUnfriendModal}
 					isLoading={isUnfriendLoading}
+				/>
+			)}
+			{isProfileModalOpen && selectedUserForProfile && (
+				<FriendProfileModal
+					isOpen={isProfileModalOpen}
+					onClose={handleCloseProfileModal}
+					friend={selectedUserForProfile}
+					hideActionButton={true}
 				/>
 			)}
 		</Container>
