@@ -39,6 +39,9 @@ import {
 import { showGlobalAlert } from "@/components/custom/AlertCustom/Alert";
 import ConfirmModal from "@/components/custom/ConfirmModal/ConfirmModal";
 import { toast } from "sonner";
+import FriendProfileModal from "./AllFriends/FriendProfileModal/FriendProfileModal";
+import { detailUser } from "@/services/userAPI";
+import { UserLanguage } from "@/services/auth/auth.type";
 
 interface PendingFriend {
 	id: string;
@@ -46,8 +49,12 @@ interface PendingFriend {
 	handle: string;
 	avatar?: string;
 	direction: "received" | "sent";
-	raw: FriendRequest;
+	userLanguages?: UserLanguage[];
+	userId?: string;
+	raw?: FriendRequest;
 }
+
+
 
 const Friend: React.FC = () => {
 	const search = useSearch({ from: "/chat/friend" });
@@ -75,7 +82,9 @@ const Friend: React.FC = () => {
 
 	const [currentPage, setCurrentPage] = useState(1);
 	const friendsPerPage = 18;
-	const SEARCH_DEBOUNCE_MS = 400; // debounce delay for user search
+	const SEARCH_DEBOUNCE_MS = 400;
+	const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+	const [selectedUserForProfile, setSelectedUserForProfile] = useState<FriendUser | null>(null);
 
 	const [isUnfriendModalOpen, setIsUnfriendModalOpen] = useState(false);
 	const [unfriendTarget, setUnfriendTarget] = useState<{
@@ -90,6 +99,73 @@ const Friend: React.FC = () => {
 	>([]);
 	const [pendingGroupInvites, setPendingGroupInvites] = useState<any[]>([]);
 	const [isLoadingPending, setIsLoadingPending] = useState(false);
+
+	const handleViewFriendProfile = async (pendingFriend: PendingFriend) => {
+		// Try to get userId from pendingFriend first, then from raw data
+		let userId = pendingFriend.userId;
+
+		if (!userId && pendingFriend.raw) {
+			const isReceived = pendingFriend.direction === "received";
+			const targetUser = isReceived ? pendingFriend.raw.fromUser : pendingFriend.raw.toUser;
+			userId = targetUser?.id;
+		}
+
+		if (!userId) {
+			console.error('Cannot find user ID');
+			return;
+		}
+
+		try {
+			// Use detailUser from userAPI instead of raw get call
+			const profileResponse = await detailUser(userId);
+			const fullProfile = profileResponse?.data || profileResponse;
+
+			const friendUser: FriendUser = {
+				id: fullProfile.id || userId,
+				name: `${fullProfile.firstName ?? ""} ${fullProfile.lastName ?? ""}`.trim() ||
+					fullProfile.username ||
+					pendingFriend.name,
+				username: fullProfile.username || pendingFriend.handle.replace('@', ''),
+				email: fullProfile.email || '',
+				avatar: fullProfile.avatarUrl || pendingFriend.avatar,
+				avatarUrl: fullProfile.avatarUrl || null,
+				firstName: fullProfile.firstName || '',
+				lastName: fullProfile.lastName || '',
+				createdAt: fullProfile.createdAt ? new Date(fullProfile.createdAt).toISOString() : new Date().toISOString(),
+				emailVerified: fullProfile.emailVerified || false,
+				isAdmin: fullProfile.isAdmin || false,
+				userLanguages: fullProfile.userLanguages || [],
+				isActive: fullProfile.isActive || false,
+			};
+
+			setSelectedUserForProfile(friendUser);
+			setIsProfileModalOpen(true);
+		} catch (error) {
+
+			// Fallback: try to use userLanguages from pendingFriend if available
+			const friendUser: FriendUser = {
+				id: userId,
+				name: pendingFriend.name,
+				username: pendingFriend.handle.replace('@', ''),
+				email: '',
+				avatar: pendingFriend.avatar,
+				avatarUrl: pendingFriend.avatar || null,
+				firstName: '',
+				lastName: '',
+				createdAt: new Date().toISOString(),
+				emailVerified: false,
+				isActive: false,
+				userLanguages: pendingFriend.userLanguages || [], // Use languages from pendingFriend if available
+			};
+
+			setSelectedUserForProfile(friendUser);
+			setIsProfileModalOpen(true);
+		}
+	};
+	const handleCloseProfileModal = () => {
+		setIsProfileModalOpen(false);
+		setSelectedUserForProfile(null);
+	};
 
 	useEffect(() => {
 		const refetchCurrentTab = async () => {
@@ -237,7 +313,6 @@ const Friend: React.FC = () => {
 		try {
 			const response = await listFriends(1, 100);
 			const friends = response?.data ?? [];
-			console.log("Friends API Response:", friends);
 			setAllFriends(friends);
 		} catch (err) {
 			console.error("Failed to fetch friends", err);
@@ -310,7 +385,6 @@ const Friend: React.FC = () => {
 				}
 
 				setPendingFriendRequests(allFriendRequests);
-				console.log("Pending friend requests:", allFriendRequests);
 
 				const allGroupInvites: any[] = [];
 
@@ -375,7 +449,6 @@ const Friend: React.FC = () => {
 				}
 
 				setPendingGroupInvites(allGroupInvites);
-				console.log("Pending group invites:", allGroupInvites);
 			} catch (err) {
 				console.error("Failed to fetch pending invites", err);
 			} finally {
@@ -463,12 +536,10 @@ const Friend: React.FC = () => {
 				message: "Hi! I'd like to be friends.",
 			});
 
-			console.log("Send request response:", response);
-
 			setModalType("success");
 			setModalMessage(
 				response?.message ||
-					`Your friend request to ${selectedUser.name} was sent!`,
+				`Your friend request to ${selectedUser.name} was sent!`,
 			);
 			setShowModal(true);
 
@@ -598,8 +669,6 @@ const Friend: React.FC = () => {
 
 	const handleAcceptGroup = async (inviteId: string) => {
 		try {
-			console.log("Accepting group invitation with ID:", inviteId);
-
 			await acceptGroupInvitation(inviteId);
 			setPendingGroupInvites((prev) => prev.filter((r) => r.id !== inviteId));
 
@@ -618,7 +687,6 @@ const Friend: React.FC = () => {
 
 	const handleDeclineGroup = async (inviteId: string) => {
 		try {
-			console.log("Declining group invitation with ID:", inviteId);
 			await declineGroupInvitation(inviteId);
 			setPendingGroupInvites((prev) => prev.filter((r) => r.id !== inviteId));
 			toast.success("Group invitation declined successfully!");
@@ -634,8 +702,6 @@ const Friend: React.FC = () => {
 
 	const handleCancelGroup = async (inviteId: string) => {
 		try {
-			console.log("Deleting sent group invitation with ID:", inviteId);
-
 			await deleteGroupInvitation(inviteId);
 			setPendingGroupInvites((prev) => prev.filter((r) => r.id !== inviteId));
 			toast.success("Group invitation cancelled successfully!");
@@ -757,6 +823,7 @@ const Friend: React.FC = () => {
 						onAcceptGroup={handleAcceptGroup}
 						onDeclineGroup={handleDeclineGroup}
 						onCancelGroup={handleCancelGroup}
+						onViewFriendProfile={handleViewFriendProfile}
 						isLoadingPending={isLoadingPending}
 					/>
 				)}
@@ -808,6 +875,14 @@ const Friend: React.FC = () => {
 					onConfirm={confirmUnfriendAction}
 					onCancel={handleCloseUnfriendModal}
 					isLoading={isUnfriendLoading}
+				/>
+			)}
+			{isProfileModalOpen && selectedUserForProfile && (
+				<FriendProfileModal
+					isOpen={isProfileModalOpen}
+					onClose={handleCloseProfileModal}
+					friend={selectedUserForProfile}
+					hideActionButton={true}
 				/>
 			)}
 		</Container>

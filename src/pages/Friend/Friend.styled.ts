@@ -376,6 +376,18 @@ export const UserHandle = styled.div`
 	}
 `;
 
+export const UserInfoDetails = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 6px;
+`;
+
+export const Dot = styled.span`
+  font-size: 18px;
+  line-height: 1;
+  color: #999;
+`;
+
 export const MutualFriends = styled.div`
 	font-size: 0.8125rem;
 	color: #999;
@@ -412,68 +424,80 @@ export const SectionHeader = styled.div`
 `;
 
 export const ActionButton = styled.button<{
-	variant?: "accept" | "decline" | "unfriend";
+	variant?: "accept" | "decline" | "unfriend" | "view";
 }>`
-	background: ${(props) =>
+    background: ${(props) =>
 		props.variant === "accept"
 			? "#00885D"
 			: props.variant === "decline" || props.variant === "unfriend"
 				? "#ef4444"
-				: "#133E87"};
-	color: white;
-	border: none;
-	padding: 0.375rem 0.75rem;
-	border-radius: 0.375rem;
-	font-size: 0.75rem;
-	font-weight: 500;
-	cursor: pointer;
-	transition: background-color 0.2s ease;
-	margin-left: 0.5rem;
-
-	&:hover {
-		background: ${(props) =>
-			props.variant === "accept"
-				? "#16a34a"
-				: props.variant === "decline" || props.variant === "unfriend"
-					? "#dc2626"
+				: props.variant === "view"
+					? "#133E87"
+					: "#133E87"};
+    color: white;
+    border: none;
+    padding: 0.5rem;
+    border-radius: 0.375rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    margin-left: 0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 2rem;
+    min-height: 2rem;
+    
+    &:hover {
+        background: ${(props) =>
+		props.variant === "accept"
+			? "#16a34a"
+			: props.variant === "decline" || props.variant === "unfriend"
+				? "#dc2626"
+				: props.variant === "view"
+					? "#2563EB"
 					: "#1565c0"};
-	}
-
-	&:first-child {
-		margin-left: 0;
-	}
-
-	&:focus {
-		outline: none;
-	}
-
-	@media (max-width: 1220px) {
-		padding: 0.3125rem 0.625rem;
-		border-radius: 0.3125rem;
-		font-size: 0.6875rem;
-		margin-left: 0.375rem;
-	}
-
-	@media (min-width: 1440px) {
-		padding: 0.45rem 0.75rem;
-		border-radius: 0.5rem;
-		font-size: 0.8rem;
-		margin-left: 0.25rem;
-	}
+    }
+    
+    &:first-child {
+        margin-left: 0;
+    }
+    
+    &:focus {
+        outline: none;
+    }
+    
+    @media (max-width: 1220px) {
+        padding: 0.4rem;
+        border-radius: 0.3125rem;
+        font-size: 0.75rem;
+        margin-left: 0.375rem;
+        min-width: 1.75rem;
+        min-height: 1.75rem;
+    }
+    
+    @media (min-width: 1440px) {
+        padding: 0.55rem;
+        border-radius: 0.5rem;
+        font-size: 0.9375rem;
+        margin-left: 0.25rem;
+        min-width: 2.25rem;
+        min-height: 2.25rem;
+    }
 `;
 
 export const ActionButtons = styled.div`
-	display: flex;
-	align-items: center;
-	gap: 0.5rem;
-
-	@media (max-width: 1220px) {
-		gap: 0.375rem;
-	}
-
-	@media (min-width: 1440px) {
-		gap: 0.625rem;
-	}
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    
+    @media (max-width: 1220px) {
+        gap: 0.375rem;
+    }
+    
+    @media (min-width: 1440px) {
+        gap: 0.625rem;
+    }
 `;
 
 //note
