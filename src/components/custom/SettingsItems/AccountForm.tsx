@@ -236,6 +236,7 @@ const AccountForm: React.FC<AccountFormProps> = ({
 							onChange={(e: any) =>
 								handleInputChange("timezone", e.target.value)
 							}
+							disabled
 						>
 							<option value="Viet Nam">Viet Nam</option>
 							<option value="United States">United States</option>

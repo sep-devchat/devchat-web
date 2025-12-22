@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import bgImage from "@/assets/image/loginBackground.png";
-import { useNavigate } from "@tanstack/react-router";
+import { useNavigate, useRouter } from "@tanstack/react-router";
 import {
 	CircleX,
 	LogOut,
@@ -57,6 +57,7 @@ export const SettingsMenu: React.FC<SettingsMenuProps> = ({
 }) => {
 	const contentWrapperRef = useRef<HTMLDivElement>(null);
 	const navigate = useNavigate();
+	const router = useRouter();
 	const { socket } = useSocket();
 
 	const menuItems: MenuItemType[] = [
@@ -81,7 +82,7 @@ export const SettingsMenu: React.FC<SettingsMenuProps> = ({
 	};
 
 	const handleReturn = () => {
-		navigate({ to: "/chat/friend" });
+		router.history.back();
 	};
 
 	const handleLogout = async () => {
