@@ -1474,4 +1474,11 @@ export const SelectAccount = styled.select`
 	&:focus {
 		outline: none;
 	}
+
+	&:disabled {
+		background: #f5f6f8;
+		color: #6b7280;
+		border-color: #e5e7eb;
+		cursor: not-allowed;
+	}
 `;

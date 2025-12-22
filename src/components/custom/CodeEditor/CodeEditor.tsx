@@ -211,10 +211,7 @@ const CodeEditor = React.forwardRef<CodeEditorRef, CodeEditorProps>(
 			: "No programming languages available.";
 
 		const initialLang =
-			language ||
-			availableLanguages[0]?.value ||
-			DEFAULT_LANGUAGES[0]?.value ||
-			"javascript";
+			language || availableLanguages[0]?.value || "javascript";
 		const [internalLang, setInternalLang] = useState<string>(initialLang);
 		const selectedLanguage = useMemo(
 			() => availableLanguages.find((item) => item.value === internalLang),
@@ -277,7 +274,7 @@ const CodeEditor = React.forwardRef<CodeEditorRef, CodeEditorProps>(
 		const applyPresetForLanguage = useCallback(
 			(langValue: string, options?: { force?: boolean }) => {
 				const presetText =
-					availableLanguages.find((item) => item.value === langValue)?.preset ??
+					DEFAULT_LANGUAGES.find((item) => item.value === langValue)?.preset ??
 					"";
 				const isControlled = typeof value !== "undefined";
 				const force = options?.force ?? false;
