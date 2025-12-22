@@ -138,11 +138,9 @@ const Friend: React.FC = () => {
 				isActive: fullProfile.isActive || false,
 			};
 
-			console.log('🔍 Full Friend Profile with languages:', friendUser);
 			setSelectedUserForProfile(friendUser);
 			setIsProfileModalOpen(true);
 		} catch (error) {
-			console.error('Failed to fetch user profile:', error);
 
 			// Fallback: try to use userLanguages from pendingFriend if available
 			const friendUser: FriendUser = {
@@ -160,7 +158,6 @@ const Friend: React.FC = () => {
 				userLanguages: pendingFriend.userLanguages || [], // Use languages from pendingFriend if available
 			};
 
-			console.log('⚠️ Fallback profile (with languages from pending):', friendUser);
 			setSelectedUserForProfile(friendUser);
 			setIsProfileModalOpen(true);
 		}
@@ -316,7 +313,6 @@ const Friend: React.FC = () => {
 		try {
 			const response = await listFriends(1, 100);
 			const friends = response?.data ?? [];
-			console.log("Friends API Response:", friends);
 			setAllFriends(friends);
 		} catch (err) {
 			console.error("Failed to fetch friends", err);
@@ -389,7 +385,6 @@ const Friend: React.FC = () => {
 				}
 
 				setPendingFriendRequests(allFriendRequests);
-				console.log("Pending friend requests:", allFriendRequests);
 
 				const allGroupInvites: any[] = [];
 
@@ -454,7 +449,6 @@ const Friend: React.FC = () => {
 				}
 
 				setPendingGroupInvites(allGroupInvites);
-				console.log("Pending group invites:", allGroupInvites);
 			} catch (err) {
 				console.error("Failed to fetch pending invites", err);
 			} finally {
@@ -541,8 +535,6 @@ const Friend: React.FC = () => {
 				toUserId: selectedUser.id,
 				message: "Hi! I'd like to be friends.",
 			});
-
-			console.log("Send request response:", response);
 
 			setModalType("success");
 			setModalMessage(
@@ -677,8 +669,6 @@ const Friend: React.FC = () => {
 
 	const handleAcceptGroup = async (inviteId: string) => {
 		try {
-			console.log("Accepting group invitation with ID:", inviteId);
-
 			await acceptGroupInvitation(inviteId);
 			setPendingGroupInvites((prev) => prev.filter((r) => r.id !== inviteId));
 
@@ -697,7 +687,6 @@ const Friend: React.FC = () => {
 
 	const handleDeclineGroup = async (inviteId: string) => {
 		try {
-			console.log("Declining group invitation with ID:", inviteId);
 			await declineGroupInvitation(inviteId);
 			setPendingGroupInvites((prev) => prev.filter((r) => r.id !== inviteId));
 			toast.success("Group invitation declined successfully!");
@@ -713,8 +702,6 @@ const Friend: React.FC = () => {
 
 	const handleCancelGroup = async (inviteId: string) => {
 		try {
-			console.log("Deleting sent group invitation with ID:", inviteId);
-
 			await deleteGroupInvitation(inviteId);
 			setPendingGroupInvites((prev) => prev.filter((r) => r.id !== inviteId));
 			toast.success("Group invitation cancelled successfully!");

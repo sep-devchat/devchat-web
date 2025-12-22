@@ -124,7 +124,6 @@ const GroupAvatarComponent: React.FC<{
 const UserLanguagesDisplay: React.FC<{ userLanguages?: UserLanguage[] }> = ({ userLanguages }) => {
 	// DEBUG: Log to check what we receive
 	React.useEffect(() => {
-		console.log('UserLanguagesDisplay received:', userLanguages);
 	}, [userLanguages]);
 
 	if (!userLanguages || userLanguages.length === 0) {

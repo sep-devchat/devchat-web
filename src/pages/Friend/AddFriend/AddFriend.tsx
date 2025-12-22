@@ -115,14 +115,9 @@ const AddFriend: React.FC<Props> = ({
 		setLoadingProfile(true);
 
 		try {
-			// Fetch user details from userAPI
 			const response = await detailUser(user.id);
 			const userData: UserResponse = response.data || response;
 
-			console.log('📌 userData from API:', userData);
-			console.log('📌 userLanguages:', userData.userLanguages);
-
-			// Convert UserResponse to FriendUser format
 			const friendUser: FriendUser = {
 				id: userData.id,
 				name: `${userData.firstName || ""} ${userData.lastName || ""}`.trim() || userData.username,
@@ -138,18 +133,14 @@ const AddFriend: React.FC<Props> = ({
 				emailVerified: userData.emailVerified || false,
 				isAdmin: userData.isAdmin || false,
 				isActive: userData.isActive || true,
-				userLanguages: userData.userLanguages || [], // ← Đảm bảo field này có data
+				userLanguages: userData.userLanguages || [], 
 			};
-
-			console.log('📌 friendUser object being passed to modal:', friendUser);
-			console.log('📌 friendUser.userLanguages:', friendUser.userLanguages);
 
 			setSelectedUserForProfile(friendUser);
 			setIsProfileModalOpen(true);
 		} catch (error) {
 			console.error("Error fetching user profile:", error);
 
-			// Fallback to basic user info if API call fails
 			const friendUser: FriendUser = {
 				id: user.id,
 				name: user.name,

@@ -101,13 +101,10 @@ const FriendProfileModal: React.FC<FriendProfileModalProps> = ({
 	const [selfProfile, setSelfProfile] = useState<any | null>(null);
 
 	const resolvedLanguages = useMemo(() => {
-		console.log("friend object:", friend);
-		console.log("friend.userLanguages:", friend?.userLanguages);
 
 		if (isYou) {
 			const langs =
 				selfProfile?.userLanguages ?? currentUserProfile?.userLanguages;
-			console.log("isYou langs:", langs);
 			if (langs) {
 				return [...langs].sort(
 					(a, b) =>
@@ -117,19 +114,16 @@ const FriendProfileModal: React.FC<FriendProfileModalProps> = ({
 			}
 		}
 		if (friend?.userLanguages) {
-			console.log("friend userLanguages found:", friend.userLanguages);
 			return [...friend.userLanguages].sort(
 				(a, b) =>
 					(a.orderIndex ?? Number.MAX_SAFE_INTEGER) -
 					(b.orderIndex ?? Number.MAX_SAFE_INTEGER),
 			);
 		}
-		console.log("No languages found, returning empty array");
 		return [] as UserLanguage[];
 	}, [friend, isYou, currentUserProfile, selfProfile]);
 
 	const topLanguages = resolvedLanguages.slice(0, 4);
-	console.log("topLanguages:", topLanguages);
 
 	const friendDisplayName = useMemo(() => {
 		if (!friend) return "";
@@ -214,7 +208,6 @@ const FriendProfileModal: React.FC<FriendProfileModalProps> = ({
 			setIsFriend(false);
 		}
 
-		console.log("friend in useEffect:", friend);
 	}, [isOpen, friend?.id, groupId, currentUserId]);
 
 	useEffect(() => {
