@@ -1,4 +1,4 @@
-import { createFileRoute, redirect } from "@tanstack/react-router";
+import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { zodValidator } from "@tanstack/zod-adapter";
 import { useMutation } from "@tanstack/react-query";
 import z from "zod";
@@ -8,7 +8,7 @@ import LoginPage from "@/pages/Login";
 import { useAuth, useSocket } from "@/hooks";
 import cookieUtils from "@/services/cookieUtils";
 import publicRuntimeConfig from "@/config/publicRuntime";
-import { store } from "@/store";
+import { useEffect } from "react";
 
 const loginSearchParamsSchema = z.object({
 	codeChallenge: z.string().optional(),
@@ -30,14 +30,24 @@ export const Route = createFileRoute("/auth/login")({
 });
 
 function RouteComponent() {
-	const { refetchProfile } = useAuth();
+	const { refetchProfile, profile } = useAuth();
 	const { codeChallenge, codeChallengeMethod, message } = Route.useSearch();
 	const { socket } = useSocket();
+	const navigate = useNavigate();
 
-	const getPostLoginRedirect = () => {
-		const latestProfile = store.getState().user.profile;
-		return latestProfile?.isAdmin ? "/admin" : "/chat/friend";
-	};
+	useEffect(() => {
+		refetchProfile();
+	}, []);
+
+	useEffect(() => {
+		if (profile) {
+			if (profile.isAdmin) {
+				navigate({ to: "/admin", replace: true });
+			} else {
+				navigate({ to: "/chat", replace: true });
+			}
+		}
+	}, [profile]);
 
 	const loginMutation = useMutation({
 		mutationFn: login,
@@ -45,7 +55,7 @@ function RouteComponent() {
 			cookieUtils.setToken(res.data.accessToken);
 			await refetchProfile();
 			socket.connect();
-			window.location.href = getPostLoginRedirect();
+			navigate({ to: "/chat", replace: true });
 		},
 	});
 

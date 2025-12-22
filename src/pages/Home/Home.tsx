@@ -4,16 +4,14 @@ import { Button } from "@/components/ui/button";
 import { Sparkles } from "lucide-react";
 import MainBg from "@/components/custom/MainBackground/MainBg";
 import heroVisual from "@/assets/image/laptop-chat-3d-icon-png-download.png";
+import { useNavigate } from "@tanstack/react-router";
 
 const desktopDownloadUrl =
 	"https://github.com/sep-devchat/devchat-web-electron/releases/download/v1.0.1/DevChat-1.0.1.Setup.exe";
 
 const Home = () => {
 	useDocumentTitle("DevChat — AI workspace for product engineers");
-
-	const redirectToApp = () => {
-		window.location.href = "/chat/friend";
-	};
+	const navigate = useNavigate();
 
 	const downloadDesktopApp = () => {
 		window.open(desktopDownloadUrl, "_blank");
@@ -41,7 +39,7 @@ const Home = () => {
 						</p>
 
 						<div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap" }}>
-							<Button size="lg" onClick={redirectToApp}>
+							<Button size="lg" onClick={() => navigate({ to: "/auth/login" })}>
 								Open DevChat in browser
 							</Button>
 							<Button size="lg" variant="outline" onClick={downloadDesktopApp}>

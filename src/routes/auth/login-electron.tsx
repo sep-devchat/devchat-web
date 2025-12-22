@@ -26,11 +26,21 @@ export const Route = createFileRoute("/auth/login-electron")({
 
 function RouteComponent() {
 	const { message } = Route.useSearch();
-	const { refetchProfile } = useAuth();
+	const { refetchProfile, profile } = useAuth();
 	const [codeVerifier, setCodeVerifier] = useState<string>("");
 	const [isOpening, setIsOpening] = useState<boolean>(false);
 	const { socket } = useSocket();
 	const navigate = useNavigate();
+
+	useEffect(() => {
+		if (profile) {
+			if (profile.isAdmin) {
+				navigate({ to: "/admin", replace: true });
+			} else {
+				navigate({ to: "/chat", replace: true });
+			}
+		}
+	}, [profile]);
 
 	const loginPkceMutation = useMutation({
 		mutationFn: pkceIssueToken,

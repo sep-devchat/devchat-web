@@ -13,12 +13,21 @@ const LOGOUT_MESSAGE = "Your login session is expired, please login again";
 const PROFILE_POLL_INTERVAL_MS = 5000;
 const AUTH_ROUTE_PREFIX = "/auth";
 const LANDING_ROUTE_PATH = "/"; // adjust if landing page path changes
+const LOGIN_PATHS = new Set(["/auth/login", "/auth/login-electron"]);
+
+const getCurrentPath = () => {
+	if (typeof window === "undefined") return "";
+	return window.location.pathname || "";
+};
+
+const isLoginRoutePath = (path: string) => LOGIN_PATHS.has(path);
 
 export default function AuthProvider({ children }: PropsWithChildren) {
 	const dispatch = useDispatch<AppDispatch>();
 	const profile = useSelector((s: RootState) => s.user.profile);
 	const isLoading = useSelector((s: RootState) => s.user.loading);
 	const redirectingRef = useRef(false);
+	const loginRouteFetchAttemptedRef = useRef(false);
 
 	const handleUnauthorized = useCallback(() => {
 		if (redirectingRef.current) return;
@@ -39,8 +48,14 @@ export default function AuthProvider({ children }: PropsWithChildren) {
 	}, []);
 
 	const shouldSkipProfileFetch = useCallback(() => {
-		if (typeof window === "undefined") return false;
-		const path = window.location.pathname || "";
+		const path = getCurrentPath();
+		if (isLoginRoutePath(path)) {
+			if (!loginRouteFetchAttemptedRef.current) {
+				loginRouteFetchAttemptedRef.current = true;
+				return false;
+			}
+			return true;
+		}
 		if (path === LANDING_ROUTE_PATH || path === "") return true;
 		return path.startsWith(AUTH_ROUTE_PREFIX);
 	}, []);
@@ -53,6 +68,12 @@ export default function AuthProvider({ children }: PropsWithChildren) {
 		if (fetchCurrentProfile.rejected.match(action)) {
 			const payload = action.payload as FetchProfileError | undefined;
 			if (payload?.status === 401) {
+				const currentPath = getCurrentPath();
+				if (isLoginRoutePath(currentPath)) {
+					cookieUtils.clear();
+					cookieUtils.setToken("");
+					return;
+				}
 				handleUnauthorized();
 			}
 		}

@@ -30,9 +30,6 @@ import {
 	LoadingSpinner,
 	DefaultAvatarCircle,
 	AvatarUploadInfo,
-	HeroDescription,
-	HeroHeading,
-	HeroTagline,
 	ProgressTitle,
 	ProgressBar,
 	ProgressContainer,
@@ -532,20 +529,10 @@ const RegisterPage: React.FC<RegisterPageProps> = ({
 	return (
 		<RegisterContainer backgroundImage={registerBgImage}>
 			<ContentContainer>
-				<ImageSection backgroundImage={testImage}>
-					<HeroTagline>Team up in real time</HeroTagline>
-					<HeroHeading>Build together without leaving chat</HeroHeading>
-					<HeroDescription>
-						Spin up focused rooms, swap code, and keep every decision in one
-						home for your team.
-					</HeroDescription>
-				</ImageSection>
+				<ImageSection backgroundImage={testImage} />
 
 				<RegisterCard>
 					<WelcomeTitle>Register</WelcomeTitle>
-					{/* <WelcomeSubtitle>
-						Please fill in the form to create an account.
-					</WelcomeSubtitle> */}
 
 					{errors.general && (
 						<div
