@@ -15,6 +15,7 @@ export interface UserResponse {
 	updatedAt: Date;
 	lastLogin: Date;
 	timezone: string;
+	userLanguages?: import("./auth/auth.type").UserLanguage[];
 }
 
 export interface UserLanguage {
@@ -33,7 +34,7 @@ export interface UserPostRequest {
 	timezone?: string;
 	isActive?: boolean;
 	password?: string;
-	userLanguages?: UserLanguage[];
+	userLanguages?: import("./auth/auth.type").UserLanguage[];
 }
 
 export const listUsers = (page: number, limit: number, search?: string) => {
