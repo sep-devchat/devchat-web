@@ -32,7 +32,7 @@ export const Route = createFileRoute("/auth/login")({
 function RouteComponent() {
 	const { refetchProfile, profile } = useAuth();
 	const { codeChallenge, codeChallengeMethod, message } = Route.useSearch();
-	const { socket } = useSocket();
+	const { authenticate } = useSocket();
 	const navigate = useNavigate();
 
 	useEffect(() => {
@@ -54,7 +54,7 @@ function RouteComponent() {
 		onSuccess: async (res) => {
 			cookieUtils.setToken(res.data.accessToken);
 			await refetchProfile();
-			socket.connect();
+			authenticate();
 			navigate({ to: "/chat/friend", replace: true });
 		},
 	});
