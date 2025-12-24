@@ -44,7 +44,7 @@ function RouteComponent() {
 			if (profile.isAdmin) {
 				navigate({ to: "/admin", replace: true });
 			} else {
-				navigate({ to: "/chat", replace: true });
+				navigate({ to: "/chat/friend", replace: true });
 			}
 		}
 	}, [profile]);
@@ -55,7 +55,7 @@ function RouteComponent() {
 			cookieUtils.setToken(res.data.accessToken);
 			await refetchProfile();
 			socket.connect();
-			navigate({ to: "/chat", replace: true });
+			navigate({ to: "/chat/friend", replace: true });
 		},
 	});
 
