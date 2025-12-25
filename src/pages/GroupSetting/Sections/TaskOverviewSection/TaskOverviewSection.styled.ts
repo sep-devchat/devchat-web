@@ -318,7 +318,7 @@ export const DropdownMenu = styled.div`
 	border-radius: 0.5rem;
 	box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
 	z-index: 1000;
-	min-width: 160px;
+	min-width: 420px;
 	overflow: hidden;
 `;
 
@@ -394,40 +394,45 @@ export const FilterTagClose = styled.button`
 `;
 
 export const CustomRangeContainer = styled.div`
-	padding: 1rem;
+	padding: 1.5rem;
 	border-top: 1px solid #e5e7eb;
 	background: #f9fafb;
 `;
 
 export const CustomRangeInputs = styled.div`
 	display: flex;
-	flex-direction: column;
-	gap: 0.75rem;
+	flex-direction: row;
+	align-items: center;
+	gap: 0.5rem;
 	margin-bottom: 0.75rem;
+	width: 100%;
 `;
 
 export const DateInputWrapper = styled.div`
 	display: flex;
 	flex-direction: column;
-	gap: 0.375rem;
+	gap: 0.25rem;
+	flex: 1;
+	min-width: 250px;
 
 	label {
-		font-size: 0.75rem;
+		font-size: 0.7rem;
 		font-weight: 600;
 		color: #374151;
 		text-transform: uppercase;
 		letter-spacing: 0.5px;
+		line-height: 1;
 	}
 
 	@media (min-width: 1440px) {
 		label {
-			font-size: 0.8125rem;
+			font-size: 0.75rem;
 		}
 	}
 
 	@media (max-width: 1220px) {
 		label {
-			font-size: 0.6875rem;
+			font-size: 0.65rem;
 		}
 	}
 `;

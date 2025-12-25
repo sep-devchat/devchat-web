@@ -30,6 +30,8 @@ import {
 	DateInputWrapper,
 } from "./TaskOverviewSection.styled";
 
+type DateFilterType = "today" | "yesterday" | "last7days" | "all" | "custom";
+
 export default function TaskOverviewSection() {
 	const params = useParams({ strict: false }) as { groupId?: string };
 	const groupId = params.groupId;
@@ -39,9 +41,7 @@ export default function TaskOverviewSection() {
 	);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
-	const [dateFilter, setDateFilter] = useState<
-		"today" | "yesterday" | "last7days" | "all" | "custom"
-	>("all");
+	const [dateFilter, setDateFilter] = useState<DateFilterType>("all");
 	const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 	const [customStartDate, setCustomStartDate] = useState<string>("");
 	const [customEndDate, setCustomEndDate] = useState<string>("");
