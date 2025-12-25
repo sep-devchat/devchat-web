@@ -49,55 +49,55 @@ export const MemberAvatar = styled.img`
 	}
 `;
 
-export const OnlineIndicator = styled.div`
-	position: absolute;
-	bottom: 0.125rem;
-	right: 0.125rem;
-	width: 0.75rem;
-	height: 0.75rem;
-	background: #10b981;
-	border: 0.125rem solid white;
-	border-radius: 50%;
+// export const OnlineIndicator = styled.div`
+// 	position: absolute;
+// 	bottom: 0.125rem;
+// 	right: 0.125rem;
+// 	width: 0.75rem;
+// 	height: 0.75rem;
+// 	background: #10b981;
+// 	border: 0.125rem solid white;
+// 	border-radius: 50%;
 
-	@media (max-width: 1220px) {
-		width: 0.625rem;
-		height: 0.625rem;
-		border-width: 0.0625rem;
-	}
+// 	@media (max-width: 1220px) {
+// 		width: 0.625rem;
+// 		height: 0.625rem;
+// 		border-width: 0.0625rem;
+// 	}
 
-	@media (min-width: 1440px) {
-		bottom: 0.05rem;
-		right: 0.005rem;
-		width: 0.8rem;
-		height: 0.8rem;
-		border-width: 0.1875rem;
-	}
-`;
+// 	@media (min-width: 1440px) {
+// 		bottom: 0.05rem;
+// 		right: 0.005rem;
+// 		width: 0.8rem;
+// 		height: 0.8rem;
+// 		border-width: 0.1875rem;
+// 	}
+// `;
 
-export const OfflineIndicator = styled.div`
-	position: absolute;
-	bottom: 0.125rem;
-	right: 0.125rem;
-	width: 0.75rem;
-	height: 0.75rem;
-	background: #6b7280;
-	border: 0.125rem solid white;
-	border-radius: 50%;
+// export const OfflineIndicator = styled.div`
+// 	position: absolute;
+// 	bottom: 0.125rem;
+// 	right: 0.125rem;
+// 	width: 0.75rem;
+// 	height: 0.75rem;
+// 	background: #6b7280;
+// 	border: 0.125rem solid white;
+// 	border-radius: 50%;
 
-	@media (max-width: 1220px) {
-		width: 0.625rem;
-		height: 0.625rem;
-		border-width: 0.0625rem;
-	}
+// 	@media (max-width: 1220px) {
+// 		width: 0.625rem;
+// 		height: 0.625rem;
+// 		border-width: 0.0625rem;
+// 	}
 
-	@media (min-width: 1440px) {
-		bottom: 0.05rem;
-		right: 0.005rem;
-		width: 0.8rem;
-		height: 0.8rem;
-		border-width: 0.1875rem;
-	}
-`;
+// 	@media (min-width: 1440px) {
+// 		bottom: 0.05rem;
+// 		right: 0.005rem;
+// 		width: 0.8rem;
+// 		height: 0.8rem;
+// 		border-width: 0.1875rem;
+// 	}
+// `;
 
 export const MemberName = styled.span`
 	font-size: 0.875rem;
