@@ -188,10 +188,21 @@ const deleteTask = (groupId: string, taskId: string) => {
  * Retrieves task statistics for a specific group.
  * Corresponds to `GET /group/:groupId/task/statistics`.
  * @param groupId - The ID of the group.
+ * @param startDate - Optional start date for filtering (ISO string).
+ * @param endDate - Optional end date for filtering (ISO string).
  * @returns A promise that resolves to task statistics.
  */
-const getTaskStatistics = (groupId: string) => {
-	return get<TaskStatisticsResponse>(`/api/group/${groupId}/task/statistics`);
+const getTaskStatistics = (
+	groupId: string,
+	startDate?: string,
+	endDate?: string,
+) => {
+	const params = new URLSearchParams();
+	if (startDate) params.append("startDate", startDate);
+	if (endDate) params.append("endDate", endDate);
+	const queryString = params.toString();
+	const url = `/api/group/${groupId}/task/statistics${queryString ? `?${queryString}` : ""}`;
+	return get<TaskStatisticsResponse>(url);
 };
 
 /**

@@ -1,6 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams } from "@tanstack/react-router";
+import { ChevronDown, X } from "lucide-react";
 import { taskAPI, TaskStatisticsResponse } from "@/services/taskAPI";
+import CustomDateTimePicker from "@/components/custom/CustomDateTimePicker/CustomDateTimePicker";
 import {
 	SectionWrapper,
 	TitleSection,
@@ -16,6 +18,16 @@ import {
 	DetailValue,
 	LoadingContainer,
 	ErrorContainer,
+	HeaderWithFilter,
+	DateRangeDropdown,
+	DropdownTrigger,
+	DropdownMenu,
+	DropdownOption,
+	FilterTag,
+	FilterTagClose,
+	CustomRangeContainer,
+	CustomRangeInputs,
+	DateInputWrapper,
 } from "./TaskOverviewSection.styled";
 
 export default function TaskOverviewSection() {
@@ -27,6 +39,82 @@ export default function TaskOverviewSection() {
 	);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
+	const [dateFilter, setDateFilter] = useState<
+		"today" | "yesterday" | "last7days" | "all" | "custom"
+	>("all");
+	const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+	const [customStartDate, setCustomStartDate] = useState<string>("");
+	const [customEndDate, setCustomEndDate] = useState<string>("");
+	const dropdownRef = useRef<HTMLDivElement>(null);
+
+	useEffect(() => {
+		const handleClickOutside = (event: MouseEvent) => {
+			if (
+				dropdownRef.current &&
+				!dropdownRef.current.contains(event.target as Node)
+			) {
+				setIsDropdownOpen(false);
+			}
+		};
+
+		document.addEventListener("mousedown", handleClickOutside);
+		return () => document.removeEventListener("mousedown", handleClickOutside);
+	}, []);
+
+	const getDateFilterLabel = () => {
+		const labels: Record<string, string> = {
+			today: "Today",
+			yesterday: "Yesterday",
+			last7days: "Last 7 days",
+			all: "All",
+			custom: "Custom range",
+		};
+		return labels[dateFilter];
+	};
+
+	const getDateRange = () => {
+		const today = new Date();
+		today.setHours(0, 0, 0, 0);
+
+		let startDate: Date | null = null;
+		let endDate: Date | null = null;
+
+		switch (dateFilter) {
+			case "today":
+				startDate = new Date(today);
+				endDate = new Date(today);
+				endDate.setHours(23, 59, 59, 999);
+				break;
+			case "yesterday":
+				startDate = new Date(today);
+				startDate.setDate(startDate.getDate() - 1);
+				endDate = new Date(startDate);
+				endDate.setHours(23, 59, 59, 999);
+				break;
+			case "last7days":
+				startDate = new Date(today);
+				startDate.setDate(startDate.getDate() - 6);
+				endDate = new Date(today);
+				endDate.setHours(23, 59, 59, 999);
+				break;
+			case "custom":
+				if (customStartDate) {
+					startDate = new Date(customStartDate);
+					startDate.setHours(0, 0, 0, 0);
+				}
+				if (customEndDate) {
+					endDate = new Date(customEndDate);
+					endDate.setHours(23, 59, 59, 999);
+				}
+				break;
+			case "all":
+			default:
+				startDate = null;
+				endDate = null;
+		}
+
+		return { startDate, endDate };
+	};
 
 	useEffect(() => {
 		const fetchStatistics = async () => {
@@ -39,7 +127,13 @@ export default function TaskOverviewSection() {
 			try {
 				setLoading(true);
 				setError(null);
-				const response = await taskAPI.getTaskStatistics(groupId);
+
+				const { startDate, endDate } = getDateRange();
+				const response = await taskAPI.getTaskStatistics(
+					groupId,
+					startDate?.toISOString(),
+					endDate?.toISOString(),
+				);
 				setStatistics(response.data);
 			} catch (err) {
 				console.error("Failed to fetch task statistics:", err);
@@ -50,18 +144,26 @@ export default function TaskOverviewSection() {
 		};
 
 		fetchStatistics();
-	}, [groupId]);
+	}, [groupId, dateFilter, customStartDate, customEndDate]);
 
 	if (loading) {
-		return <LoadingContainer>Loading task statistics...</LoadingContainer>;
+		return (
+			<LoadingContainer>
+				<div>Loading...</div>
+			</LoadingContainer>
+		);
 	}
 
-	if (error || !statistics) {
+	if (error) {
 		return (
 			<ErrorContainer>
 				{error || "Failed to load task statistics"}
 			</ErrorContainer>
 		);
+	}
+
+	if (!statistics) {
+		return <ErrorContainer>No data available</ErrorContainer>;
 	}
 
 	const completionRate =
@@ -71,7 +173,115 @@ export default function TaskOverviewSection() {
 
 	return (
 		<SectionWrapper>
-			<TitleSection>Task Overview</TitleSection>
+			<HeaderWithFilter>
+				<TitleSection>Task Overview</TitleSection>
+				<div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+					{dateFilter !== "all" && (
+						<FilterTag>
+							{getDateFilterLabel()}
+							<FilterTagClose onClick={() => setDateFilter("all")}>
+								<X size={14} />
+							</FilterTagClose>
+						</FilterTag>
+					)}
+					<DateRangeDropdown ref={dropdownRef}>
+						<DropdownTrigger onClick={() => setIsDropdownOpen(!isDropdownOpen)}>
+							{getDateFilterLabel()}
+							<ChevronDown size={16} />
+						</DropdownTrigger>
+						{isDropdownOpen && (
+							<DropdownMenu>
+								<DropdownOption
+									$isSelected={dateFilter === "all"}
+									onClick={() => {
+										setDateFilter("all");
+										setIsDropdownOpen(false);
+									}}
+								>
+									All
+								</DropdownOption>
+								<DropdownOption
+									$isSelected={dateFilter === "today"}
+									onClick={() => {
+										setDateFilter("today");
+										setIsDropdownOpen(false);
+									}}
+								>
+									Today
+								</DropdownOption>
+								<DropdownOption
+									$isSelected={dateFilter === "yesterday"}
+									onClick={() => {
+										setDateFilter("yesterday");
+										setIsDropdownOpen(false);
+									}}
+								>
+									Yesterday
+								</DropdownOption>
+								<DropdownOption
+									$isSelected={dateFilter === "last7days"}
+									onClick={() => {
+										setDateFilter("last7days");
+										setIsDropdownOpen(false);
+									}}
+								>
+									Last 7 days
+								</DropdownOption>
+								<DropdownOption
+									$isSelected={dateFilter === "custom"}
+									onClick={() => {
+										setDateFilter("custom");
+									}}
+								>
+									Custom range
+								</DropdownOption>
+								{dateFilter === "custom" && (
+									<CustomRangeContainer>
+										<CustomRangeInputs>
+											<DateInputWrapper>
+												<label>From</label>
+												<CustomDateTimePicker
+													value={customStartDate}
+													onChange={setCustomStartDate}
+													allowClear
+													showTime={false}
+													isAllowedPast
+												/>
+											</DateInputWrapper>
+											<DateInputWrapper>
+												<label>To</label>
+												<CustomDateTimePicker
+													value={customEndDate}
+													onChange={setCustomEndDate}
+													allowClear
+													showTime={false}
+													isAllowedPast
+												/>
+											</DateInputWrapper>
+										</CustomRangeInputs>
+										<button
+											onClick={() => setIsDropdownOpen(false)}
+											style={{
+												padding: "0.5rem 1rem",
+												background: "#3b82f6",
+												color: "white",
+												border: "none",
+												borderRadius: "0.375rem",
+												cursor: "pointer",
+												fontSize: "0.875rem",
+												fontWeight: "500",
+												marginTop: "0.75rem",
+											}}
+										>
+											Apply
+										</button>
+									</CustomRangeContainer>
+								)}
+							</DropdownMenu>
+						)}
+					</DateRangeDropdown>
+				</div>
+			</HeaderWithFilter>
 
 			<StatisticsGrid>
 				<StatCard $color="rgba(59, 130, 246, 0.1)">
