@@ -282,14 +282,20 @@ export const useThreadPanelController = ({
 	}, [groupId, channelId, safeEmit]);
 
 	const fetchThreadMessages = useCallback(
-		async (options: { page?: number; replace?: boolean } = {}) => {
-			const { page = 1, replace = true } = options;
+		async (
+			options: { page?: number; replace?: boolean; blockUI?: boolean } = {},
+		) => {
+			const { page = 1, replace = true, blockUI = false } = options;
 			await waitUntilReady();
+			const shouldShowBlockingLoader = blockUI && page === 1 && replace;
 			if (!threadId || !groupId || !channelId) {
 				setBaseMessages([]);
 				setRealtimeMessages([]);
 				hasMoreMessagesRef.current = false;
 				setHasMoreMessages(false);
+				if (shouldShowBlockingLoader) {
+					setIsLoading(false);
+				}
 				return;
 			}
 			const run = async (allowRetry: boolean) => {
@@ -318,13 +324,13 @@ export const useThreadPanelController = ({
 					}
 				}
 			};
-			if (page === 1 && replace) {
+			if (shouldShowBlockingLoader) {
 				setIsLoading(true);
 			}
 			try {
 				await run(true);
 			} finally {
-				if (page === 1 && replace) {
+				if (shouldShowBlockingLoader) {
 					setIsLoading(false);
 				}
 			}
@@ -341,6 +347,10 @@ export const useThreadPanelController = ({
 	);
 
 	const processedThreadMessageIds = useRef<Set<string>>(new Set());
+	const fetchThreadMessagesRef = useRef(fetchThreadMessages);
+	useEffect(() => {
+		fetchThreadMessagesRef.current = fetchThreadMessages;
+	}, [fetchThreadMessages]);
 
 	const onServerThreadMessage = useCallback(
 		(payload: any) => {
@@ -563,7 +573,6 @@ export const useThreadPanelController = ({
 		}
 		const contextKey = `${groupId}:${channelId}:${threadId}`;
 		activeDetailRequestKeyRef.current = contextKey;
-		setIsLoading(true);
 		try {
 			const response = await detailThread(groupId, channelId, threadId);
 			if (activeDetailRequestKeyRef.current !== contextKey) {
@@ -617,13 +626,6 @@ export const useThreadPanelController = ({
 				alert("Failed to load thread. Please try again.");
 				if (onClose) onClose();
 			}
-		} finally {
-			if (
-				activeDetailRequestKeyRef.current === contextKey &&
-				isMountedRef.current
-			) {
-				setIsLoading(false);
-			}
 		}
 	}, [threadId, groupId, channelId, onClose]);
 
@@ -675,9 +677,16 @@ export const useThreadPanelController = ({
 		setHasMoreMessages(true);
 		setIsFetchingOlderMessages(false);
 		pendingPrependScrollRef.current = null;
-		if (!threadId || !groupId || !channelId) return;
-		void fetchThreadMessages({ page: 1, replace: true });
-	}, [threadId, groupId, channelId, fetchThreadMessages]);
+		if (!threadId || !groupId || !channelId) {
+			setIsLoading(false);
+			return;
+		}
+		void fetchThreadMessagesRef.current?.({
+			page: 1,
+			replace: true,
+			blockUI: true,
+		});
+	}, [threadId, groupId, channelId]);
 
 	const onJoinedRoom = useCallback(
 		(payload: any) => {
@@ -686,7 +695,7 @@ export const useThreadPanelController = ({
 			if (!groupId || !channelId) return;
 			if (joinedGroupId !== groupId || joinedChannelId !== channelId) return;
 			if (!threadId) return;
-			void fetchThreadMessages({ page: 1, replace: true });
+			void fetchThreadMessages({ page: 1, replace: true, blockUI: false });
 		},
 		[groupId, channelId, threadId, fetchThreadMessages],
 	);
