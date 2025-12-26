@@ -10,6 +10,7 @@ const CustomDateTimePicker: React.FC<{
 	showTime?: boolean;
 	minDate?: string;
 	maxDate?: string;
+	isAllowedPast?: boolean;
 }> = ({
 	value,
 	onChange,
@@ -18,6 +19,7 @@ const CustomDateTimePicker: React.FC<{
 	showTime = true,
 	minDate,
 	maxDate,
+	isAllowedPast = false,
 }) => {
 	const [isOpen, setIsOpen] = useState(false);
 	const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -115,8 +117,8 @@ const CustomDateTimePicker: React.FC<{
 		const dateToCheck = new Date(date);
 		dateToCheck.setHours(0, 0, 0, 0);
 
-		// Check if date is in the past (before today)
-		if (dateToCheck < today) {
+		// Check if date is in the past (before today) - only if past is not allowed
+		if (!isAllowedPast && dateToCheck < today) {
 			return true;
 		}
 

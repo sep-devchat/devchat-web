@@ -391,6 +391,7 @@ const SearchFilter: React.FC<Props> = ({
 												}
 												allowClear
 												showTime
+												isAllowedPast
 											/>
 										</S.FormGroup>
 										<S.FormGroup>
@@ -406,6 +407,7 @@ const SearchFilter: React.FC<Props> = ({
 												}
 												allowClear
 												showTime
+												isAllowedPast
 											/>
 										</S.FormGroup>
 									</S.FormGroup>
@@ -427,6 +429,7 @@ const SearchFilter: React.FC<Props> = ({
 												}
 												allowClear
 												showTime
+												isAllowedPast
 											/>
 										</S.FormGroup>
 										<S.FormGroup>
@@ -442,6 +445,7 @@ const SearchFilter: React.FC<Props> = ({
 												}
 												allowClear
 												showTime
+												isAllowedPast
 											/>
 										</S.FormGroup>
 									</S.FormGroup>
