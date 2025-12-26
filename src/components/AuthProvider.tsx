@@ -1,12 +1,17 @@
 import { AuthContext } from "@/contexts/auth.context";
 import { PropsWithChildren, useCallback, useEffect, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { fetchCurrentProfile, FetchProfileError } from "@/store/user.slice";
+import {
+	fetchCurrentProfile,
+	FetchProfileError,
+	setProfile as setProfileAction,
+} from "@/store/user.slice";
 import { AppDispatch, RootState } from "@/store";
 import publicRuntimeConfig from "@/config/publicRuntime";
 import cookieUtils from "@/services/cookieUtils";
 import { toast } from "sonner";
 import { router } from "@/router";
+import { Profile } from "@/services/auth/auth.type";
 
 const LOGOUT_MESSAGE = "Your login session is expired, please login again";
 
@@ -29,11 +34,19 @@ export default function AuthProvider({ children }: PropsWithChildren) {
 	const redirectingRef = useRef(false);
 	const loginRouteFetchAttemptedRef = useRef(false);
 
+	const setAuthProfile = useCallback(
+		(nextProfile: Profile | null) => {
+			dispatch(setProfileAction(nextProfile));
+		},
+		[dispatch],
+	);
+
 	const handleUnauthorized = useCallback(() => {
 		if (redirectingRef.current) return;
 		redirectingRef.current = true;
 		cookieUtils.clear();
 		cookieUtils.setToken("");
+		setAuthProfile(null);
 		const loginPath = publicRuntimeConfig.ELECTRON
 			? "/auth/login-electron"
 			: "/auth/login";
@@ -45,7 +58,7 @@ export default function AuthProvider({ children }: PropsWithChildren) {
 			replace: true,
 			search: () => ({ message: LOGOUT_MESSAGE }),
 		});
-	}, []);
+	}, [setAuthProfile]);
 
 	const shouldSkipProfileFetch = useCallback(() => {
 		const path = getCurrentPath();
@@ -72,12 +85,13 @@ export default function AuthProvider({ children }: PropsWithChildren) {
 				if (isLoginRoutePath(currentPath)) {
 					cookieUtils.clear();
 					cookieUtils.setToken("");
+					setAuthProfile(null);
 					return;
 				}
 				handleUnauthorized();
 			}
 		}
-	}, [dispatch, handleUnauthorized, shouldSkipProfileFetch]);
+	}, [dispatch, handleUnauthorized, setAuthProfile, shouldSkipProfileFetch]);
 
 	const refetchProfile = useCallback(async () => {
 		await fetchProfileWithHandling();
@@ -104,6 +118,7 @@ export default function AuthProvider({ children }: PropsWithChildren) {
 				profile,
 				refetchProfile,
 				isLoading,
+				setProfile: setAuthProfile,
 			}}
 		>
 			{children}

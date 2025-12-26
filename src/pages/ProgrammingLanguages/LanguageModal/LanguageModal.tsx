@@ -14,6 +14,8 @@ const blankFormData: RolePermission = {
 	preset: "",
 	isExecutable: true,
 	useAiCheck: true,
+	languageIconFile: null,
+	languageIconRemoved: false,
 };
 
 export interface LanguageModalProps {
@@ -24,6 +26,8 @@ export interface LanguageModalProps {
 	mode: "create" | "edit";
 	initialData?: RolePermission;
 	title?: string;
+	isSubmitting?: boolean;
+	uploadProgress?: number | null;
 }
 
 export const LanguageModal: React.FC<LanguageModalProps> = ({
@@ -34,28 +38,39 @@ export const LanguageModal: React.FC<LanguageModalProps> = ({
 	mode,
 	initialData,
 	title,
+	isSubmitting = false,
+	uploadProgress = null,
 }) => {
-	const [formData, setFormData] = useState<RolePermission>({});
+	const [formData, setFormData] = useState<RolePermission>(blankFormData);
 	const [errors, setErrors] = useState<Record<string, string>>({});
 	const [iconPreview, setIconPreview] = useState<string>("");
 	const fileInputRef = useRef<HTMLInputElement>(null);
 
 	useEffect(() => {
-		if (isOpen) {
-			if (mode === "edit" && initialData) {
-				setFormData({ ...blankFormData, ...initialData });
-				if (
-					initialData.languageIcon &&
-					typeof initialData.languageIcon === "string"
-				) {
-					setIconPreview(initialData.languageIcon);
-				}
-			} else {
-				setFormData(blankFormData);
-				setIconPreview("");
-			}
-			setErrors({});
+		if (!isOpen) return;
+		const nextData =
+			mode === "edit" && initialData
+				? {
+						...blankFormData,
+						...initialData,
+						languageIconFile: null,
+						languageIconRemoved: false,
+					}
+				: { ...blankFormData };
+		setFormData(nextData);
+		if (fileInputRef.current) {
+			fileInputRef.current.value = "";
 		}
+		if (
+			mode === "edit" &&
+			initialData?.languageIcon &&
+			typeof initialData.languageIcon === "string"
+		) {
+			setIconPreview(initialData.languageIcon);
+		} else {
+			setIconPreview("");
+		}
+		setErrors({});
 	}, [isOpen, mode, initialData]);
 
 	const isRequiredField = (key: string): boolean => {
@@ -75,6 +90,7 @@ export const LanguageModal: React.FC<LanguageModalProps> = ({
 	};
 
 	const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+		if (isSubmitting) return;
 		const file = e.target.files?.[0];
 		if (!file) return;
 
@@ -100,6 +116,8 @@ export const LanguageModal: React.FC<LanguageModalProps> = ({
 			return;
 		}
 
+		handleChange("languageIconFile", file);
+		handleChange("languageIconRemoved", false);
 		const reader = new FileReader();
 		reader.onloadend = () => {
 			const base64String = reader.result as string;
@@ -110,8 +128,11 @@ export const LanguageModal: React.FC<LanguageModalProps> = ({
 	};
 
 	const handleRemoveIcon = () => {
+		if (isSubmitting) return;
 		setIconPreview("");
 		handleChange("languageIcon", "");
+		handleChange("languageIconFile", null);
+		handleChange("languageIconRemoved", true);
 		if (fileInputRef.current) {
 			fileInputRef.current.value = "";
 		}
@@ -140,6 +161,7 @@ export const LanguageModal: React.FC<LanguageModalProps> = ({
 
 	const handleSubmit = (e: React.FormEvent) => {
 		e.preventDefault();
+		if (isSubmitting) return;
 
 		if (validateForm()) {
 			const submittedData = {
@@ -150,7 +172,6 @@ export const LanguageModal: React.FC<LanguageModalProps> = ({
 			};
 
 			onSubmit(submittedData);
-			onClose();
 		}
 	};
 
@@ -163,13 +184,15 @@ export const LanguageModal: React.FC<LanguageModalProps> = ({
 		(col) => col.key !== "actions" && col.key !== "isActive",
 	);
 	const hasPresetColumn = filteredColumns.some((col) => col.key === "preset");
+	const showUploadProgress =
+		isSubmitting && typeof uploadProgress === "number" && uploadProgress >= 0;
 
 	return (
 		<S.Overlay>
 			<S.ModalContainer onClick={(e) => e.stopPropagation()}>
 				<S.ModalHeader>
 					<S.ModalTitle>{modalTitle}</S.ModalTitle>
-					<S.CloseButton onClick={onClose}>
+					<S.CloseButton onClick={onClose} disabled={isSubmitting}>
 						<X size={20} />
 					</S.CloseButton>
 				</S.ModalHeader>
@@ -226,6 +249,7 @@ export const LanguageModal: React.FC<LanguageModalProps> = ({
 													<S.RemoveIconButton
 														type="button"
 														onClick={handleRemoveIcon}
+														disabled={isSubmitting}
 													>
 														<X size={16} />
 													</S.RemoveIconButton>
@@ -234,6 +258,7 @@ export const LanguageModal: React.FC<LanguageModalProps> = ({
 												<S.UploadButton
 													type="button"
 													onClick={() => fileInputRef.current?.click()}
+													disabled={isSubmitting}
 												>
 													<Upload size={20} />
 													<span>Upload Icon (Optional)</span>
@@ -245,11 +270,28 @@ export const LanguageModal: React.FC<LanguageModalProps> = ({
 												type="file"
 												accept=".png,.svg,.jpg,.jpeg"
 												onChange={handleFileUpload}
+												disabled={isSubmitting}
 											/>
 
 											<S.UploadHint>
 												Supported formats: PNG, SVG, JPG (max 2MB)
 											</S.UploadHint>
+
+											{showUploadProgress && (
+												<S.UploadProgressWrapper>
+													<S.UploadProgressLabel>
+														Uploading icon… {Math.min(uploadProgress ?? 0, 100)}
+														%
+													</S.UploadProgressLabel>
+													<S.UploadProgressTrack>
+														<S.UploadProgressFill
+															style={{
+																width: `${Math.min(uploadProgress ?? 0, 100)}%`,
+															}}
+														/>
+													</S.UploadProgressTrack>
+												</S.UploadProgressWrapper>
+											)}
 										</S.IconUploadContainer>
 
 										{errors[column.key] && (
@@ -302,11 +344,19 @@ export const LanguageModal: React.FC<LanguageModalProps> = ({
 						)}
 
 						<S.ModalFooter>
-							<S.CancelButton type="button" onClick={onClose}>
+							<S.CancelButton
+								type="button"
+								onClick={onClose}
+								disabled={isSubmitting}
+							>
 								Cancel
 							</S.CancelButton>
-							<S.SubmitButton type="submit">
-								{mode === "create" ? "Create Language" : "Update Language"}
+							<S.SubmitButton type="submit" disabled={isSubmitting}>
+								{isSubmitting
+									? "Saving..."
+									: mode === "create"
+										? "Create Language"
+										: "Update Language"}
 							</S.SubmitButton>
 						</S.ModalFooter>
 					</S.Form>

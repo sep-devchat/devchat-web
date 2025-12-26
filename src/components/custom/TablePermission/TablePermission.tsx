@@ -35,7 +35,14 @@ export interface Column {
 }
 
 export interface RolePermission {
-	[key: string]: boolean | string | number | React.ReactNode;
+	[key: string]:
+		| boolean
+		| string
+		| number
+		| React.ReactNode
+		| File
+		| null
+		| undefined;
 }
 
 export interface TablePermissionProps {
@@ -205,6 +212,10 @@ export const TablePermission: React.FC<TablePermissionProps> = ({
 			}
 
 			return value;
+		}
+
+		if (value instanceof File) {
+			return value.name;
 		}
 
 		return value;
