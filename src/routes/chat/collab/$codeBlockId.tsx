@@ -107,6 +107,7 @@ function CollabPage() {
 			<Header>
 				<div>
 					<Title>{search.title || "Code Collaboration"}</Title>
+					<Subtitle>Code Block ID: {codeBlockId}</Subtitle>
 					{search.subtitle && <Subtitle>{search.subtitle}</Subtitle>}
 				</div>
 				<StyledButton variant="ghost" size="sm" onClick={handleBack}>
