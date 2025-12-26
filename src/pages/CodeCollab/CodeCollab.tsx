@@ -383,9 +383,6 @@ export default function CodeCollab({
 	return (
 		<S.Container>
 			<S.Toolbar>
-				<S.ToolbarHint>
-					Refresh whenever you need the latest collaborators' revisions.
-				</S.ToolbarHint>
 				<Button
 					variant="outline"
 					size="sm"
@@ -440,9 +437,7 @@ export default function CodeCollab({
 									<CodeEditor
 										code={editableCode}
 										onChange={setEditableCode}
-										title={
-											editingRevisionId ? "Editing Revision" : "Your Edits"
-										}
+										title="Your Suggestion"
 										showSave={true}
 										onSave={handleSave}
 										hasChanges={hasChanges}

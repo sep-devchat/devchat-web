@@ -61,6 +61,11 @@ export const CloseButton = styled.button`
 	&:focus {
 		outline: none;
 	}
+
+	&:disabled {
+		opacity: 0.5;
+		cursor: not-allowed;
+	}
 `;
 
 export const ModalBody = styled.div`
@@ -193,6 +198,11 @@ export const CancelButton = styled.button`
 	&:focus {
 		outline: none;
 	}
+
+	&:disabled {
+		opacity: 0.6;
+		cursor: not-allowed;
+	}
 `;
 
 export const SubmitButton = styled.button`
@@ -217,6 +227,12 @@ export const SubmitButton = styled.button`
 
 	&:focus {
 		outline: none;
+	}
+
+	&:disabled {
+		opacity: 0.7;
+		cursor: not-allowed;
+		background-color: #1e3a8a;
 	}
 `;
 export const CheckboxContainer = styled.div`
@@ -262,6 +278,11 @@ export const UploadButton = styled.button`
 	&:focus {
 		outline: none;
 	}
+
+	&:disabled {
+		opacity: 0.6;
+		cursor: not-allowed;
+	}
 `;
 
 export const HiddenFileInput = styled.input`
@@ -304,10 +325,41 @@ export const RemoveIconButton = styled.button`
 	&:focus {
 		outline: none;
 	}
+
+	&:disabled {
+		opacity: 0.5;
+		cursor: not-allowed;
+	}
 `;
 
 export const UploadHint = styled.p`
 	font-size: 12px;
 	color: #666;
 	margin: 0;
+`;
+
+export const UploadProgressWrapper = styled.div`
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	margin-top: 4px;
+`;
+
+export const UploadProgressLabel = styled.span`
+	font-size: 0.75rem;
+	color: #374151;
+`;
+
+export const UploadProgressTrack = styled.div`
+	height: 6px;
+	width: 100%;
+	border-radius: 999px;
+	background: #e5e7eb;
+	overflow: hidden;
+`;
+
+export const UploadProgressFill = styled.div`
+	height: 100%;
+	background: #2563eb;
+	transition: width 0.2s ease;
 `;

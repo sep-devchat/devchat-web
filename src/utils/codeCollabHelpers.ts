@@ -24,7 +24,7 @@ export const buildCodeBlockSubtitleFromBlock = (
 	block?: Pick<CodeBlock, "user" | "createdAt"> | null,
 ) => {
 	if (!block) return formatOwnerName();
-	const owner = formatOwnerName(block.user);
+	// const owner = formatOwnerName(block.user);
 	const timestamp = formatTimestamp(block.createdAt);
-	return [owner, timestamp].filter(Boolean).join(" • ");
+	return timestamp;
 };

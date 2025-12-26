@@ -17,6 +17,10 @@ import {
 	ProgrammingLanguageRequest,
 	ProgrammingLanguageUpdateRequest,
 } from "@/services/programmingLanguagesAPI";
+import {
+	directUploadWithSignature,
+	getUploadSignature,
+} from "@/services/upload/upload.api";
 import { toast } from "sonner";
 
 export const ProgrammingLanguages: React.FC = () => {
@@ -26,6 +30,8 @@ export const ProgrammingLanguages: React.FC = () => {
 	const [selectedLanguage, setSelectedLanguage] =
 		useState<ProgrammingLanguageResponse | null>(null);
 	const [isLoading, setIsLoading] = useState(false);
+	const [isSavingLanguage, setIsSavingLanguage] = useState(false);
+	const [uploadProgress, setUploadProgress] = useState<number | null>(null);
 	const [currentPage] = useState(1);
 	const [pageSize] = useState(20);
 	const [pagination, setPagination] = useState<{
@@ -61,6 +67,64 @@ export const ProgrammingLanguages: React.FC = () => {
 		}
 	};
 
+	const getStringValue = (value: unknown): string => {
+		if (typeof value === "string") {
+			return value.trim();
+		}
+		if (typeof value === "number") {
+			return String(value);
+		}
+		return "";
+	};
+
+	const getBooleanValue = (value: unknown): boolean => {
+		return (
+			value === true || value === "Enabled" || value === "true" || value === 1
+		);
+	};
+
+	const buildIconPublicId = (
+		codeValue: unknown,
+		nameValue: unknown,
+	): string => {
+		const fallback = "language";
+		const source =
+			getStringValue(codeValue) || getStringValue(nameValue) || fallback;
+		const slug = source
+			.toLowerCase()
+			.replace(/[^a-z0-9]+/g, "-")
+			.replace(/^-+|-+$/g, "")
+			.slice(0, 60);
+		return `${slug || fallback}-${Date.now()}`;
+	};
+
+	const uploadLanguageIcon = async (
+		file: File,
+		codeValue: unknown,
+		nameValue: unknown,
+		onProgress?: (progress: number) => void,
+	): Promise<string> => {
+		const signature = await getUploadSignature({
+			folder: "programming-languages/icons",
+			publicId: buildIconPublicId(codeValue, nameValue),
+		});
+		const uploadResult = await directUploadWithSignature({
+			file,
+			signature,
+			onProgress: (payload) => {
+				if (typeof payload?.progress === "number") {
+					onProgress?.(payload.progress);
+				}
+			},
+		});
+		const iconUrl =
+			uploadResult.upload?.secure_url ?? uploadResult.delivery?.url ?? "";
+		if (!iconUrl) {
+			throw new Error("Unable to retrieve uploaded icon URL");
+		}
+		return iconUrl;
+	};
+
 	useEffect(() => {
 		fetchLanguages();
 	}, [currentPage, pageSize]);
@@ -79,13 +143,24 @@ export const ProgrammingLanguages: React.FC = () => {
 	const handleAddLanguage = () => {
 		setModalMode("create");
 		setSelectedLanguage(null);
+		setUploadProgress(null);
+		setIsSavingLanguage(false);
 		setIsModalOpen(true);
 	};
 
 	const handleEditLanguage = (index: number) => {
 		setModalMode("edit");
 		setSelectedLanguage(languages[index]);
+		setUploadProgress(null);
+		setIsSavingLanguage(false);
 		setIsModalOpen(true);
+	};
+
+	const handleCloseModal = () => {
+		if (isSavingLanguage) return;
+		setUploadProgress(null);
+		setIsModalOpen(false);
+		setSelectedLanguage(null);
 	};
 
 	const handleToggleLanguage = async (index: number) => {
@@ -113,44 +188,60 @@ export const ProgrammingLanguages: React.FC = () => {
 		}
 
 		setIsLoading(true);
+		setIsSavingLanguage(true);
+		setUploadProgress(null);
 		try {
-			if (modalMode === "create") {
-				const requestData: ProgrammingLanguageRequest = {
-					languageCode: String(data.languageCode),
-					languageName: String(data.languageName),
-					languageVersion: data.languageVersion
-						? String(data.languageVersion)
-						: undefined,
-					languageIcon:
-						typeof data.languageIcon === "string"
-							? data.languageIcon
-							: undefined,
-					preset: typeof data.preset === "string" ? data.preset : undefined,
-					isExecutable:
-						data.isExecutable === true || data.isExecutable === "Enabled",
-					useAiCheck: data.useAiCheck === true || data.useAiCheck === "Enabled",
-				};
+			const iconFile = data.languageIconFile;
+			const isNewIconFile =
+				typeof File !== "undefined" && iconFile instanceof File;
+			const iconRemoved =
+				data.languageIconRemoved === true ||
+				data.languageIconRemoved === "true";
+			let languageIconValue: string | null | undefined = undefined;
 
-				await createProgrammingLanguage(requestData);
+			if (isNewIconFile) {
+				setUploadProgress(0);
+				languageIconValue = await uploadLanguageIcon(
+					iconFile as File,
+					data.languageCode,
+					data.languageName,
+					(progress) => setUploadProgress(Math.min(Math.max(progress, 0), 100)),
+				);
+			} else {
+				const existingIcon = getStringValue(data.languageIcon);
+				if (existingIcon) {
+					languageIconValue = existingIcon;
+				} else if (
+					modalMode === "edit" &&
+					selectedLanguage?.languageIcon &&
+					iconRemoved
+				) {
+					languageIconValue = null;
+				}
+			}
+
+			const versionValue = getStringValue(data.languageVersion);
+			const presetValue = getStringValue(data.preset);
+			const basePayload: ProgrammingLanguageRequest = {
+				languageCode: getStringValue(data.languageCode),
+				languageName: getStringValue(data.languageName),
+				isExecutable: getBooleanValue(data.isExecutable),
+				useAiCheck: getBooleanValue(data.useAiCheck),
+			};
+			if (versionValue) basePayload.languageVersion = versionValue;
+			if (presetValue) basePayload.preset = presetValue;
+			if (languageIconValue !== undefined) {
+				basePayload.languageIcon = languageIconValue;
+			}
+
+			if (modalMode === "create") {
+				await createProgrammingLanguage(basePayload);
 				toast.success("Language created successfully");
 			} else if (modalMode === "edit" && selectedLanguage) {
-				const requestData: ProgrammingLanguageUpdateRequest = {
-					languageCode: String(data.languageCode),
-					languageName: String(data.languageName),
-					languageVersion: data.languageVersion
-						? String(data.languageVersion)
-						: undefined,
-					languageIcon:
-						typeof data.languageIcon === "string"
-							? data.languageIcon
-							: undefined,
-					preset: typeof data.preset === "string" ? data.preset : undefined,
-					isExecutable:
-						data.isExecutable === true || data.isExecutable === "Enabled",
-					useAiCheck: data.useAiCheck === true || data.useAiCheck === "Enabled",
+				const updatePayload: ProgrammingLanguageUpdateRequest = {
+					...basePayload,
 				};
-
-				await updateProgrammingLanguage(selectedLanguage.id, requestData);
+				await updateProgrammingLanguage(selectedLanguage.id, updatePayload);
 				toast.success("Language updated successfully");
 			}
 
@@ -163,41 +254,44 @@ export const ProgrammingLanguages: React.FC = () => {
 			);
 		} finally {
 			setIsLoading(false);
+			setIsSavingLanguage(false);
+			setUploadProgress(null);
 		}
 	};
 
 	const renderCell = (value: any, column: Column): React.ReactNode => {
 		if (column.key === "languageIcon") {
-			if (
-				value &&
-				typeof value === "string" &&
-				value.startsWith("data:image")
-			) {
-				return (
-					<div
-						style={{
-							display: "flex",
-							alignItems: "center",
-							justifyContent: "center",
-							width: "100%",
-							height: "100%",
-						}}
-					>
-						<img
-							src={value}
-							alt="Language icon"
+			if (value && typeof value === "string") {
+				const trimmed = value.trim();
+				const isInlineImage = trimmed.startsWith("data:image");
+				const isRemoteImage = /^https?:\/\//i.test(trimmed);
+				if (isInlineImage || isRemoteImage) {
+					return (
+						<div
 							style={{
-								width: "32px",
-								height: "32px",
-								objectFit: "contain",
-								borderRadius: "4px",
+								display: "flex",
+								alignItems: "center",
+								justifyContent: "center",
+								width: "100%",
+								height: "100%",
 							}}
-						/>
-					</div>
-				);
-			}
-			if (value && typeof value === "string" && value.trim() !== "") {
-				return <S.IconCell>{value}</S.IconCell>;
+						>
+							<img
+								src={trimmed}
+								alt="Language icon"
+								style={{
+									width: "32px",
+									height: "32px",
+									objectFit: "contain",
+									borderRadius: "4px",
+								}}
+							/>
+						</div>
+					);
+				}
+				if (trimmed !== "") {
+					return <S.IconCell>{trimmed}</S.IconCell>;
+				}
 			}
 			return <span style={{ color: "#999", fontSize: "12px" }}>No icon</span>;
 		}
@@ -315,12 +409,14 @@ export const ProgrammingLanguages: React.FC = () => {
 
 			<LanguageModal
 				isOpen={isModalOpen}
-				onClose={() => setIsModalOpen(false)}
+				onClose={handleCloseModal}
 				onSubmit={handleModalSubmit}
 				columns={PROGRAMMING_LANGUAGES_COLUMNS}
 				mode={modalMode}
 				initialData={getInitialDataForEdit()}
 				title={modalMode === "create" ? "Add New Language" : "Edit Language"}
+				isSubmitting={isSavingLanguage}
+				uploadProgress={uploadProgress}
 			/>
 		</S.Container>
 	);

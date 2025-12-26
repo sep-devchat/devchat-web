@@ -282,7 +282,6 @@ export default function MemberList({ onClose, isHalf }: MemberListProps) {
 									id: member.id,
 									name: member.name,
 									avatar: member.avatar || "",
-									isOnline: member.isOnline ?? false,
 									email: member.email,
 									createdAt: (member as any).createdAt ?? undefined,
 								};

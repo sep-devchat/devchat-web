@@ -4,8 +4,6 @@ import {
 	MemberItem as StyledMemberItem,
 	MemberAvatarContainer,
 	MemberAvatar,
-	OnlineIndicator,
-	OfflineIndicator,
 	MemberName,
 	Tooltip,
 	TooltipCard,
@@ -21,7 +19,7 @@ export interface Member {
 	id: number | string;
 	name: string;
 	avatar: string;
-	isOnline: boolean;
+	// isOnline: boolean;
 	email?: string;
 	createdAt?: string;
 }
@@ -137,7 +135,6 @@ export default function MemberItem({
 		<StyledMemberItem>
 			<MemberAvatarContainer>
 				<MemberAvatar src={member.avatar} alt={member.name} />
-				{member.isOnline ? <OnlineIndicator /> : <OfflineIndicator />}
 			</MemberAvatarContainer>
 			<MemberName>{member.name}</MemberName>
 			{renderButton()}

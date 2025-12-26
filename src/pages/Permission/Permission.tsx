@@ -364,13 +364,18 @@ export const Permission: React.FC = () => {
 		if (activeTab === "feature" && column.key === "feature") {
 			const currentData = tableData["feature"] || [];
 			const rowData = currentData.find((row) => row.name === value);
+			const descriptionValue = rowData?.description;
+			const safeDescription =
+				descriptionValue instanceof File
+					? descriptionValue.name
+					: descriptionValue;
 
 			return (
 				<div>
 					<div style={{ fontWeight: 600 }}>{value}</div>
-					{rowData && rowData.description && (
+					{rowData && safeDescription && (
 						<div style={{ fontSize: "12px", color: "#666" }}>
-							{rowData.description}
+							{safeDescription}
 						</div>
 					)}
 				</div>

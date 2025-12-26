@@ -154,7 +154,6 @@ const FriendList: React.FC<Props> = ({ onMenuAction }) => {
 									id: friend.id,
 									name: getFriendName(friend),
 									avatar: getAvatarSrc(friend),
-									isOnline: friend.isOnline ?? false,
 									email: friend.email,
 									createdAt: friend.createdAt,
 								};
