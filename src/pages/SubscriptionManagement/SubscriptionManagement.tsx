@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { Edit3, Search } from "lucide-react";
 import * as S from "./SubscriptionManagement.styled";
+import { formatVnd } from "@/utils/format-currency";
 
 type FormState = {
 	price: number;
@@ -244,7 +245,7 @@ const SubscriptionManagement: React.FC = () => {
 												<S.NameCell>{item.subscriptionCode}</S.NameCell>
 											</S.Td>
 											<S.Td>{item.subscriptionName}</S.Td>
-											<S.Td>{item.price}</S.Td>
+											<S.Td>{formatVnd(item.price)}</S.Td>
 											<S.Td>{item.limitMembers}</S.Td>
 											<S.Td>
 												<S.StatusBadge
