@@ -53,6 +53,7 @@ const fireAlert = (type: AlertType, message: string, duration = 4000) => {
 type SubscriptionSectionProps = {
 	canBuy?: boolean;
 	groupId: string;
+	onDangerStateChanged?: () => void;
 };
 
 type ActiveTab = "group" | "system" | "transactions";
@@ -60,6 +61,7 @@ type ActiveTab = "group" | "system" | "transactions";
 export default function SubscriptionSection({
 	canBuy = false,
 	groupId,
+	onDangerStateChanged,
 }: SubscriptionSectionProps) {
 	const [activeTab, setActiveTab] = useState<ActiveTab>("group");
 
@@ -390,6 +392,7 @@ export default function SubscriptionSection({
 				contributeTime,
 			});
 			await refreshShareFunds();
+			onDangerStateChanged?.();
 			setPlanPendingCreateFund(null);
 			fireAlert("success", `Created share fund for '${planName}'.`);
 		} catch (err: any) {
@@ -447,6 +450,7 @@ export default function SubscriptionSection({
 			setDeletingFundId(fundPendingDelete.id);
 			await deleteShareFund(groupId, fundPendingDelete.id);
 			await refreshShareFunds();
+			onDangerStateChanged?.();
 			setFundPendingDelete(null);
 			fireAlert("success", "Deleted share fund.");
 		} catch (err: any) {

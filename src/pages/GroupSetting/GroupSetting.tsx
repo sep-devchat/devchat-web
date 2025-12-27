@@ -1,5 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useRef, useEffect, useState, Suspense } from "react";
+import React, {
+	useRef,
+	useEffect,
+	useState,
+	Suspense,
+	useCallback,
+} from "react";
 import {
 	Palette,
 	Search,
@@ -40,6 +46,8 @@ import { OutGroupSection } from "./Sections/OutGroupSection";
 import SubscriptionSection from "./Sections/SubscriptionSection/SubscriptionSection";
 import TaskOverviewSection from "./Sections/TaskOverviewSection/TaskOverviewSection";
 import GroupProgrammingLanguageSection from "./Sections/GroupProgrammingLanguageSection";
+import { getGroupSubscriptions } from "@/services/groupAPI";
+import { listShareFundsInGroup } from "@/services/shareFundAPI";
 
 type SettingsSection =
 	| "profile"
@@ -73,11 +81,64 @@ export const GroupSetting: React.FC<GroupSettingProps> = ({
 }) => {
 	const [activeSection, setActiveSection] =
 		useState<SettingsSection>("profile");
+	const [dangerActionLocked, setDangerActionLocked] = useState(true);
+	const [dangerActionCheckLoading, setDangerActionCheckLoading] =
+		useState(true);
 	const contentWrapperRef = useRef<HTMLDivElement | null>(null);
+	const dangerCheckSeqRef = useRef(0);
 
 	useEffect(() => {
 		if (contentWrapperRef.current) contentWrapperRef.current.scrollTop = 0;
 	}, [activeSection]);
+
+	const refreshDangerActionState = useCallback(async () => {
+		if (!groupId) {
+			setDangerActionLocked(true);
+			setDangerActionCheckLoading(false);
+			return;
+		}
+
+		const seq = ++dangerCheckSeqRef.current;
+		setDangerActionCheckLoading(true);
+		// Safe default: hide until we confirm it's allowed.
+		setDangerActionLocked(true);
+
+		try {
+			const [subscriptionsRes, shareFundsRes] = await Promise.all([
+				getGroupSubscriptions(groupId),
+				listShareFundsInGroup(groupId),
+			]);
+			if (dangerCheckSeqRef.current !== seq) return;
+
+			const currentSubscription = subscriptionsRes?.data?.currentSubscription;
+
+			const hasCurrentSubscription = Boolean(
+				currentSubscription?.subscription?.subscriptionCode !== "FREE_00",
+			);
+			const hasShareFund = (shareFundsRes?.data?.length ?? 0) > 0;
+
+			setDangerActionLocked(hasCurrentSubscription || hasShareFund);
+		} catch {
+			// Be conservative: if we can't validate state, hide dangerous actions.
+			if (dangerCheckSeqRef.current !== seq) return;
+			setDangerActionLocked(true);
+		} finally {
+			if (dangerCheckSeqRef.current !== seq) return;
+			setDangerActionCheckLoading(false);
+		}
+	}, [groupId]);
+
+	useEffect(() => {
+		void refreshDangerActionState();
+	}, [refreshDangerActionState]);
+
+	const shouldHideDangerAction = dangerActionCheckLoading || dangerActionLocked;
+
+	useEffect(() => {
+		if (activeSection === "delete" && shouldHideDangerAction) {
+			setActiveSection("profile");
+		}
+	}, [activeSection, shouldHideDangerAction]);
 
 	const menuItems: MenuItemType[] = [
 		{ id: "profile", label: "Group Profile", icon: SettingsIcon },
@@ -90,12 +151,15 @@ export const GroupSetting: React.FC<GroupSettingProps> = ({
 		},
 		{ id: "subscription", label: "Subscription", icon: CreditCard },
 		{ id: "task-overview", label: "Task Overview", icon: CheckSquare },
-		{
+	];
+
+	if (!shouldHideDangerAction) {
+		menuItems.push({
 			id: "delete",
 			label: isAdmin ? "Delete Group" : "Out group",
 			icon: isAdmin ? Trash : ExternalLink,
-		},
-	];
+		});
+	}
 
 	const renderActiveSection = () => {
 		switch (activeSection) {
@@ -113,13 +177,19 @@ export const GroupSetting: React.FC<GroupSettingProps> = ({
 					/>
 				);
 			case "subscription":
-				return <SubscriptionSection canBuy={isAdmin} groupId={groupId} />;
+				return (
+					<SubscriptionSection
+						canBuy={isAdmin}
+						groupId={groupId}
+						onDangerStateChanged={refreshDangerActionState}
+					/>
+				);
 			case "activity":
 				return <ActivitySection />;
 			case "task-overview":
 				return <TaskOverviewSection />;
 			case "delete":
-				// Nếu là admin thì show DeleteSection, không thì fallback về ActivitySection
+				if (shouldHideDangerAction) return <ProfileSection canEdit={isAdmin} />;
 				return isAdmin ? (
 					<DeleteSection setSettingSelect={setSettingSelect} />
 				) : (
