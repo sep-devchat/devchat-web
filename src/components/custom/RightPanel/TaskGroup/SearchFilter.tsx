@@ -81,6 +81,10 @@ const SearchFilter: React.FC<Props> = ({
 }) => {
 	const [isOpen, setIsOpen] = useState(false);
 	const [tempFilters, setTempFilters] = useState<TaskFilters>({});
+	const [dateErrors, setDateErrors] = useState<{
+		startDate?: string;
+		dueDate?: string;
+	}>({});
 
 	const openModal = () => {
 		setTempFilters({
@@ -95,6 +99,7 @@ const SearchFilter: React.FC<Props> = ({
 			dueDateFrom: appliedFilters.dueDateFrom || "",
 			dueDateTo: appliedFilters.dueDateTo || "",
 		});
+		setDateErrors({});
 		setIsOpen(true);
 	};
 
@@ -120,6 +125,71 @@ const SearchFilter: React.FC<Props> = ({
 			delete next[key];
 			return next;
 		});
+	};
+
+	const validateDateRanges = (filters: TaskFilters) => {
+		const errors: { startDate?: string; dueDate?: string } = {};
+
+		// Helper function to parse date string properly, handling various formats
+		const parseDate = (dateStr: string): Date | null => {
+			if (!dateStr || typeof dateStr !== "string") return null;
+			try {
+				// Trim whitespace
+				const trimmed = dateStr.trim();
+				if (!trimmed) return null;
+
+				// Parse the date
+				const date = new Date(trimmed);
+
+				// Check if date is valid
+				if (isNaN(date.getTime())) return null;
+
+				return date;
+			} catch {
+				return null;
+			}
+		};
+
+		// Validate start date range
+		if (filters.startDateFrom && filters.startDateTo) {
+			const startFrom = parseDate(filters.startDateFrom);
+			const startTo = parseDate(filters.startDateTo);
+			if (startFrom && startTo) {
+				const fromTime = startFrom.getTime();
+				const toTime = startTo.getTime();
+				if (fromTime > toTime) {
+					errors.startDate = "Start date 'From' cannot be later than 'To'.";
+				}
+			}
+		}
+
+		// Validate due date range
+		if (filters.dueDateFrom && filters.dueDateTo) {
+			const dueFrom = parseDate(filters.dueDateFrom);
+			const dueTo = parseDate(filters.dueDateTo);
+			if (dueFrom && dueTo) {
+				const fromTime = dueFrom.getTime();
+				const toTime = dueTo.getTime();
+				if (fromTime > toTime) {
+					errors.dueDate = "Due date 'From' cannot be later than 'To'.";
+				}
+			}
+		}
+
+		// Validate due date >= start date (due date start must be >= start date end)
+		if (filters.startDateTo && filters.dueDateFrom) {
+			const startTo = parseDate(filters.startDateTo);
+			const dueFrom = parseDate(filters.dueDateFrom);
+			if (startTo && dueFrom) {
+				if (dueFrom.getTime() < startTo.getTime()) {
+					errors.dueDate =
+						"Due date must be greater than or equal to start date.";
+				}
+			}
+		}
+
+		setDateErrors(errors);
+		return Object.keys(errors).length === 0;
 	};
 
 	const statusSummary = formatSelection(
@@ -386,9 +456,13 @@ const SearchFilter: React.FC<Props> = ({
 											</S.Label>
 											<CustomDateTimePicker
 												value={tempFilters.startDateFrom || ""}
-												onChange={(val) =>
-													setTempFilters((t) => ({ ...t, startDateFrom: val }))
-												}
+												onChange={(val) => {
+													setTempFilters((t) => ({ ...t, startDateFrom: val }));
+													validateDateRanges({
+														...tempFilters,
+														startDateFrom: val,
+													});
+												}}
 												allowClear
 												showTime
 												isAllowedPast
@@ -402,14 +476,23 @@ const SearchFilter: React.FC<Props> = ({
 											</S.Label>
 											<CustomDateTimePicker
 												value={tempFilters.startDateTo || ""}
-												onChange={(val) =>
-													setTempFilters((t) => ({ ...t, startDateTo: val }))
-												}
+												onChange={(val) => {
+													setTempFilters((t) => ({ ...t, startDateTo: val }));
+													validateDateRanges({
+														...tempFilters,
+														startDateTo: val,
+													});
+												}}
 												allowClear
 												showTime
 												isAllowedPast
 											/>
 										</S.FormGroup>
+										{dateErrors.startDate && (
+											<S.FieldError role="alert">
+												{dateErrors.startDate}
+											</S.FieldError>
+										)}
 									</S.FormGroup>
 								</S.FormColumn>
 
@@ -424,9 +507,13 @@ const SearchFilter: React.FC<Props> = ({
 											</S.Label>
 											<CustomDateTimePicker
 												value={tempFilters.dueDateFrom || ""}
-												onChange={(val) =>
-													setTempFilters((t) => ({ ...t, dueDateFrom: val }))
-												}
+												onChange={(val) => {
+													setTempFilters((t) => ({ ...t, dueDateFrom: val }));
+													validateDateRanges({
+														...tempFilters,
+														dueDateFrom: val,
+													});
+												}}
 												allowClear
 												showTime
 												isAllowedPast
@@ -440,14 +527,23 @@ const SearchFilter: React.FC<Props> = ({
 											</S.Label>
 											<CustomDateTimePicker
 												value={tempFilters.dueDateTo || ""}
-												onChange={(val) =>
-													setTempFilters((t) => ({ ...t, dueDateTo: val }))
-												}
+												onChange={(val) => {
+													setTempFilters((t) => ({ ...t, dueDateTo: val }));
+													validateDateRanges({
+														...tempFilters,
+														dueDateTo: val,
+													});
+												}}
 												allowClear
 												showTime
 												isAllowedPast
 											/>
 										</S.FormGroup>
+										{dateErrors.dueDate && (
+											<S.FieldError role="alert">
+												{dateErrors.dueDate}
+											</S.FieldError>
+										)}
 									</S.FormGroup>
 								</S.FormColumn>
 							</S.DialogBody>
@@ -459,6 +555,9 @@ const SearchFilter: React.FC<Props> = ({
 								<S.Button
 									variant="primary"
 									onClick={() => {
+										if (!validateDateRanges(tempFilters)) {
+											return;
+										}
 										const unassignedOnly = tempFilters.unassigned
 											? true
 											: undefined;

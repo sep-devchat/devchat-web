@@ -40,6 +40,7 @@ import SystemSubscriptionsTab, {
 	type ComparisonRow,
 	type ComparisonRowKey,
 } from "./SystemSubscriptionsTab";
+import RequiredMark from "@/components/custom/RequiredMark";
 
 type AlertType = "success" | "warning" | "error";
 const fireAlert = (type: AlertType, message: string, duration = 4000) => {
@@ -52,6 +53,7 @@ const fireAlert = (type: AlertType, message: string, duration = 4000) => {
 type SubscriptionSectionProps = {
 	canBuy?: boolean;
 	groupId: string;
+	onDangerStateChanged?: () => void;
 };
 
 type ActiveTab = "group" | "system" | "transactions";
@@ -59,6 +61,7 @@ type ActiveTab = "group" | "system" | "transactions";
 export default function SubscriptionSection({
 	canBuy = false,
 	groupId,
+	onDangerStateChanged,
 }: SubscriptionSectionProps) {
 	const [activeTab, setActiveTab] = useState<ActiveTab>("group");
 
@@ -389,6 +392,7 @@ export default function SubscriptionSection({
 				contributeTime,
 			});
 			await refreshShareFunds();
+			onDangerStateChanged?.();
 			setPlanPendingCreateFund(null);
 			fireAlert("success", `Created share fund for '${planName}'.`);
 		} catch (err: any) {
@@ -446,6 +450,7 @@ export default function SubscriptionSection({
 			setDeletingFundId(fundPendingDelete.id);
 			await deleteShareFund(groupId, fundPendingDelete.id);
 			await refreshShareFunds();
+			onDangerStateChanged?.();
 			setFundPendingDelete(null);
 			fireAlert("success", "Deleted share fund.");
 		} catch (err: any) {
@@ -694,7 +699,9 @@ export default function SubscriptionSection({
 						</div>
 
 						<div className="grid gap-2">
-							<p className="text-sm font-medium">Month quantity</p>
+							<p className="text-sm font-medium">
+								Month quantity <RequiredMark />
+							</p>
 							<Input
 								type="number"
 								min={1}
@@ -710,7 +717,9 @@ export default function SubscriptionSection({
 						</div>
 
 						<div className="grid gap-2">
-							<p className="text-sm font-medium">Contribution limit</p>
+							<p className="text-sm font-medium">
+								Contribution limit <RequiredMark />
+							</p>
 							<Input
 								type="number"
 								min={1}
@@ -718,7 +727,7 @@ export default function SubscriptionSection({
 								value={createFundContributeTimeRaw}
 								onChange={(e) => setCreateFundContributeTimeRaw(e.target.value)}
 								disabled={!!creatingPlanId}
-								placeholder="Leave blank for unlimited"
+								placeholder="1"
 							/>
 							<p className="text-xs text-muted-foreground">
 								Max donation times allowed for this fund.
