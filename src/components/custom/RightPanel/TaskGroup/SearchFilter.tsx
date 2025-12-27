@@ -130,31 +130,61 @@ const SearchFilter: React.FC<Props> = ({
 	const validateDateRanges = (filters: TaskFilters) => {
 		const errors: { startDate?: string; dueDate?: string } = {};
 
+		// Helper function to parse date string properly, handling various formats
+		const parseDate = (dateStr: string): Date | null => {
+			if (!dateStr || typeof dateStr !== "string") return null;
+			try {
+				// Trim whitespace
+				const trimmed = dateStr.trim();
+				if (!trimmed) return null;
+
+				// Parse the date
+				const date = new Date(trimmed);
+
+				// Check if date is valid
+				if (isNaN(date.getTime())) return null;
+
+				return date;
+			} catch {
+				return null;
+			}
+		};
+
 		// Validate start date range
 		if (filters.startDateFrom && filters.startDateTo) {
-			const startFrom = new Date(filters.startDateFrom).getTime();
-			const startTo = new Date(filters.startDateTo).getTime();
-			if (startFrom > startTo) {
-				errors.startDate = "Start date 'From' cannot be later than 'To'.";
+			const startFrom = parseDate(filters.startDateFrom);
+			const startTo = parseDate(filters.startDateTo);
+			if (startFrom && startTo) {
+				const fromTime = startFrom.getTime();
+				const toTime = startTo.getTime();
+				if (fromTime > toTime) {
+					errors.startDate = "Start date 'From' cannot be later than 'To'.";
+				}
 			}
 		}
 
 		// Validate due date range
 		if (filters.dueDateFrom && filters.dueDateTo) {
-			const dueFrom = new Date(filters.dueDateFrom).getTime();
-			const dueTo = new Date(filters.dueDateTo).getTime();
-			if (dueFrom > dueTo) {
-				errors.dueDate = "Due date 'From' cannot be later than 'To'.";
+			const dueFrom = parseDate(filters.dueDateFrom);
+			const dueTo = parseDate(filters.dueDateTo);
+			if (dueFrom && dueTo) {
+				const fromTime = dueFrom.getTime();
+				const toTime = dueTo.getTime();
+				if (fromTime > toTime) {
+					errors.dueDate = "Due date 'From' cannot be later than 'To'.";
+				}
 			}
 		}
 
 		// Validate due date >= start date (due date start must be >= start date end)
 		if (filters.startDateTo && filters.dueDateFrom) {
-			const startTo = new Date(filters.startDateTo).getTime();
-			const dueFrom = new Date(filters.dueDateFrom).getTime();
-			if (dueFrom < startTo) {
-				errors.dueDate =
-					"Due date must be greater than or equal to start date.";
+			const startTo = parseDate(filters.startDateTo);
+			const dueFrom = parseDate(filters.dueDateFrom);
+			if (startTo && dueFrom) {
+				if (dueFrom.getTime() < startTo.getTime()) {
+					errors.dueDate =
+						"Due date must be greater than or equal to start date.";
+				}
 			}
 		}
 

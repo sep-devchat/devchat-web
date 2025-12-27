@@ -75,10 +75,17 @@ export default function TaskOverviewSection() {
 
 	const validateCustomDateRange = (start: string, end: string): string => {
 		if (start && end) {
-			const startDate = new Date(start).getTime();
-			const endDate = new Date(end).getTime();
-			if (startDate > endDate) {
-				return "End date must be greater than or equal to start date.";
+			try {
+				const startDate = new Date(start).getTime();
+				const endDate = new Date(end).getTime();
+				if (isNaN(startDate) || isNaN(endDate)) {
+					return "";
+				}
+				if (startDate > endDate) {
+					return "End date must be greater than or equal to start date.";
+				}
+			} catch {
+				return "";
 			}
 		}
 		return "";
