@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/table";
 import type { ShareFund } from "@/services/shareFundAPI";
 import type { Subscription } from "@/services/subscriptionAPI";
+import { formatVnd } from "@/utils/format-currency";
 import { CreditCard, Verified } from "lucide-react";
 
 export type ComparisonRowKey =
@@ -110,7 +111,7 @@ export default function SystemSubscriptionsTab({
 								<div className="grid grid-cols-1 gap-2 text-sm">
 									<div className="flex items-center justify-between">
 										<span className="text-muted-foreground">Price</span>
-										<span className="font-medium">{plan.price}</span>
+										<span className="font-medium">{formatVnd(plan.price)}</span>
 									</div>
 									<div className="flex items-center justify-between">
 										<span className="text-muted-foreground">Limit members</span>

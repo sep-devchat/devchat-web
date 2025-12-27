@@ -40,6 +40,7 @@ import SystemSubscriptionsTab, {
 	type ComparisonRow,
 	type ComparisonRowKey,
 } from "./SystemSubscriptionsTab";
+import RequiredMark from "@/components/custom/RequiredMark";
 
 type AlertType = "success" | "warning" | "error";
 const fireAlert = (type: AlertType, message: string, duration = 4000) => {
@@ -694,7 +695,9 @@ export default function SubscriptionSection({
 						</div>
 
 						<div className="grid gap-2">
-							<p className="text-sm font-medium">Month quantity</p>
+							<p className="text-sm font-medium">
+								Month quantity <RequiredMark />
+							</p>
 							<Input
 								type="number"
 								min={1}
@@ -710,7 +713,9 @@ export default function SubscriptionSection({
 						</div>
 
 						<div className="grid gap-2">
-							<p className="text-sm font-medium">Contribution limit</p>
+							<p className="text-sm font-medium">
+								Contribution limit <RequiredMark />
+							</p>
 							<Input
 								type="number"
 								min={1}
@@ -718,7 +723,7 @@ export default function SubscriptionSection({
 								value={createFundContributeTimeRaw}
 								onChange={(e) => setCreateFundContributeTimeRaw(e.target.value)}
 								disabled={!!creatingPlanId}
-								placeholder="Leave blank for unlimited"
+								placeholder="1"
 							/>
 							<p className="text-xs text-muted-foreground">
 								Max donation times allowed for this fund.
