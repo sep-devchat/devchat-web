@@ -45,6 +45,7 @@ export default function TaskOverviewSection() {
 	const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 	const [customStartDate, setCustomStartDate] = useState<string>("");
 	const [customEndDate, setCustomEndDate] = useState<string>("");
+	const [dateRangeError, setDateRangeError] = useState<string>("");
 	const dropdownRef = useRef<HTMLDivElement>(null);
 
 	useEffect(() => {
@@ -70,6 +71,24 @@ export default function TaskOverviewSection() {
 			custom: "Custom range",
 		};
 		return labels[dateFilter];
+	};
+
+	const validateCustomDateRange = (start: string, end: string): string => {
+		if (start && end) {
+			try {
+				const startDate = new Date(start).getTime();
+				const endDate = new Date(end).getTime();
+				if (isNaN(startDate) || isNaN(endDate)) {
+					return "";
+				}
+				if (startDate > endDate) {
+					return "End date must be greater than or equal to start date.";
+				}
+			} catch {
+				return "";
+			}
+		}
+		return "";
 	};
 
 	const getDateRange = () => {
@@ -242,7 +261,14 @@ export default function TaskOverviewSection() {
 												<label>From</label>
 												<CustomDateTimePicker
 													value={customStartDate}
-													onChange={setCustomStartDate}
+													onChange={(val) => {
+														setCustomStartDate(val);
+														const error = validateCustomDateRange(
+															val,
+															customEndDate,
+														);
+														setDateRangeError(error);
+													}}
 													allowClear
 													showTime={false}
 													isAllowedPast
@@ -252,22 +278,46 @@ export default function TaskOverviewSection() {
 												<label>To</label>
 												<CustomDateTimePicker
 													value={customEndDate}
-													onChange={setCustomEndDate}
+													onChange={(val) => {
+														setCustomEndDate(val);
+														const error = validateCustomDateRange(
+															customStartDate,
+															val,
+														);
+														setDateRangeError(error);
+													}}
 													allowClear
 													showTime={false}
 													isAllowedPast
 												/>
 											</DateInputWrapper>
 										</CustomRangeInputs>
+										{dateRangeError && (
+											<div
+												style={{
+													color: "#dc2626",
+													fontSize: "0.875rem",
+													marginBottom: "0.75rem",
+													marginTop: "-0.25rem",
+												}}
+											>
+												{dateRangeError}
+											</div>
+										)}
 										<button
-											onClick={() => setIsDropdownOpen(false)}
+											onClick={() => {
+												if (!dateRangeError) {
+													setIsDropdownOpen(false);
+												}
+											}}
+											disabled={!!dateRangeError}
 											style={{
 												padding: "0.5rem 1rem",
-												background: "#3b82f6",
+												background: dateRangeError ? "#d1d5db" : "#3b82f6",
 												color: "white",
 												border: "none",
 												borderRadius: "0.375rem",
-												cursor: "pointer",
+												cursor: dateRangeError ? "not-allowed" : "pointer",
 												fontSize: "0.875rem",
 												fontWeight: "500",
 												marginTop: "0.75rem",
