@@ -123,6 +123,18 @@ const PaymentResult: React.FC = () => {
 	const groupId = result?.groupId ?? null;
 	const isDonation = result?.transactionType === "DONATION";
 
+	const iconResult = isLoading ? (
+		<></>
+	) : error ? (
+		<CircleX size={100} className="text-red-500" />
+	) : isVerified && isSuccess ? (
+		<CircleCheck size={100} className="text-green-500" />
+	) : isVerified ? (
+		<CircleX size={100} className="text-red-500" />
+	) : (
+		<CircleX size={100} className="text-red-500" />
+	);
+
 	const title = isLoading
 		? "Verifying payment…"
 		: error
@@ -146,13 +158,7 @@ const PaymentResult: React.FC = () => {
 			<MainBg />
 			<div className="min-h-screen w-full flex items-center justify-center px-4 py-10">
 				<Card className="w-full max-w-xl">
-					<div className="flex justify-center mt-8">
-						{isVerified && isSuccess ? (
-							<CircleCheck size={100} className="text-green-500" />
-						) : (
-							<CircleX size={100} className="text-red-500" />
-						)}
-					</div>
+					<div className="flex justify-center mt-8">{iconResult}</div>
 					<CardHeader>
 						<CardTitle className="text-xl text-center">{title}</CardTitle>
 						<CardDescription className="text-center">
