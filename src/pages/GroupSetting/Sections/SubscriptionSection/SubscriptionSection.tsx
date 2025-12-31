@@ -33,9 +33,11 @@ import {
 	type ShareFund,
 } from "@/services/shareFundAPI";
 import { listTransactions, type Transaction } from "@/services/transactionAPI";
+import { listOrders, type Order } from "@/services/orderAPI";
 import CheckoutSection from "./CheckoutSection";
 import GroupSubscriptionsTab from "./GroupSubscriptionsTab";
 import GroupTransactionsTab from "./GroupTransactionsTab";
+import GroupOrdersTab from "./GroupOrdersTab";
 import SystemSubscriptionsTab, {
 	type ComparisonRow,
 	type ComparisonRowKey,
@@ -56,7 +58,7 @@ type SubscriptionSectionProps = {
 	onDangerStateChanged?: () => void;
 };
 
-type ActiveTab = "group" | "system" | "transactions";
+type ActiveTab = "group" | "system" | "transactions" | "orders";
 
 export default function SubscriptionSection({
 	canBuy = false,
@@ -114,6 +116,11 @@ export default function SubscriptionSection({
 	const [transactionsError, setTransactionsError] = useState<string | null>(
 		null,
 	);
+
+	const [orders, setOrders] = useState<Order[]>([]);
+	const [ordersLoadedFor, setOrdersLoadedFor] = useState<LoadedMarker>(null);
+	const [ordersLoading, setOrdersLoading] = useState(false);
+	const [ordersError, setOrdersError] = useState<string | null>(null);
 
 	const getErrorMessage = (err: any, fallback: string) => {
 		return String(err?.response?.data?.message ?? err?.message ?? fallback);
@@ -206,6 +213,11 @@ export default function SubscriptionSection({
 		setTransactionsError(null);
 		setTransactionsLoadedFor(null);
 		setTransactionsLoading(false);
+		// Reset order state when group changes.
+		setOrders([]);
+		setOrdersError(null);
+		setOrdersLoadedFor(null);
+		setOrdersLoading(false);
 	}, [groupId]);
 
 	useEffect(() => {
@@ -483,6 +495,29 @@ export default function SubscriptionSection({
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [activeTab, groupId, transactionsLoadedFor?.groupId]);
 
+	const refreshOrders = async () => {
+		if (!groupId) return;
+		setOrdersLoading(true);
+		setOrdersError(null);
+		try {
+			const res = await listOrders({ groupId });
+			setOrders(res?.data ?? []);
+			setOrdersLoadedFor({ groupId });
+		} catch (err: any) {
+			setOrdersError(getErrorMessage(err, "Failed to load orders"));
+		} finally {
+			setOrdersLoading(false);
+		}
+	};
+
+	useEffect(() => {
+		if (activeTab !== "orders") return;
+		if (!groupId) return;
+		if (ordersLoadedFor?.groupId === groupId) return;
+		void refreshOrders();
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [activeTab, groupId, ordersLoadedFor?.groupId]);
+
 	const resolveTransactionTarget = (tx: Transaction): string => {
 		if (tx.subscriptionId) {
 			const planName =
@@ -525,6 +560,7 @@ export default function SubscriptionSection({
 					<TabsTrigger value="group">Group</TabsTrigger>
 					<TabsTrigger value="system">System subscriptions</TabsTrigger>
 					<TabsTrigger value="transactions">Transactions</TabsTrigger>
+					<TabsTrigger value="orders">Orders</TabsTrigger>
 				</TabsList>
 
 				<TabsContent value="group">
@@ -582,6 +618,16 @@ export default function SubscriptionSection({
 						transactions={transactions}
 						resolveTransactionTarget={resolveTransactionTarget}
 						onRefresh={() => void refreshTransactions()}
+					/>
+				</TabsContent>
+
+				<TabsContent value="orders">
+					<GroupOrdersTab
+						groupId={groupId}
+						loading={ordersLoading}
+						error={ordersError}
+						orders={orders}
+						onRefresh={() => void refreshOrders()}
 					/>
 				</TabsContent>
 			</Tabs>
