@@ -20,6 +20,26 @@ export type Order = {
 	orderTransactions?: Transaction[];
 };
 
+export type OrderOverviewReport = {
+	totalOrdersSold: number;
+	totalSubscriptionsSold: number;
+	totalRevenueVnd: string;
+	bySubscription: Array<{
+		subscriptionId: string;
+		subscriptionCode: string;
+		subscriptionName: string;
+		ordersSold: number;
+		subscriptionsSold: number;
+		revenueVnd: string;
+	}>;
+	byDay: Array<{
+		date: string;
+		ordersSold: number;
+		subscriptionsSold: number;
+		revenueVnd: string;
+	}>;
+};
+
 export const listOrders = async (params?: {
 	page?: number;
 	limit?: number;
@@ -34,4 +54,11 @@ export const getOrderDetail = async (
 	orderId: string,
 ): Promise<ApiResponseDto<Order>> => {
 	return get<Order>(`${apiUrl}/${orderId}`);
+};
+
+export const getOrderOverviewReport = async (params?: {
+	from?: string;
+	to?: string;
+}): Promise<ApiResponseDto<OrderOverviewReport>> => {
+	return get<OrderOverviewReport>(`${apiUrl}/report/overview`, params ?? {});
 };

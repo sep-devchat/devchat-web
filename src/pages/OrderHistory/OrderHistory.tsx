@@ -19,7 +19,16 @@ import {
 	TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { getOrderDetail, listOrders, type Order } from "@/services/orderAPI";
+import {
+	getOrderDetail,
+	getOrderOverviewReport,
+	listOrders,
+	type Order,
+	type OrderOverviewReport,
+} from "@/services/orderAPI";
+import CustomDateTimePicker from "@/components/custom/CustomDateTimePicker/CustomDateTimePicker";
+import CustomBarChart from "@/components/custom/BarChart/BarChart";
+import CustomLineChart from "@/components/custom/LineChart/LineChart";
 import type { Pagination as PaginationMeta } from "@/services/transactionAPI";
 import {
 	Pagination,
@@ -30,6 +39,7 @@ import {
 	PaginationNext,
 	PaginationPrevious,
 } from "@/components/ui/pagination";
+import { RefreshCcw } from "lucide-react";
 
 type AlertType = "success" | "warning" | "error";
 const fireAlert = (type: AlertType, message: string, duration = 4000) => {
@@ -40,10 +50,74 @@ const fireAlert = (type: AlertType, message: string, duration = 4000) => {
 };
 
 const OrderHistory = () => {
+	const formatYmd = (date: Date) => {
+		const y = date.getFullYear();
+		const m = String(date.getMonth() + 1).padStart(2, "0");
+		const d = String(date.getDate()).padStart(2, "0");
+		return `${y}-${m}-${d}`;
+	};
+
+	const formatByDayLabel = (raw: unknown) => {
+		if (raw === null || raw === undefined) return "";
+		const value = String(raw).trim();
+		if (!value) return "";
+		// If backend already returns YYYY-MM-DD, keep as-is.
+		if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
+		// Handle verbose Date strings, e.g. "Mon Dec 29 2025 00:00:00 GMT+0700 (Indochina Time)"
+		const parsed = new Date(value);
+		if (Number.isNaN(parsed.getTime())) return value;
+		return formatYmd(parsed);
+	};
+
+	const parseYmdToLocalDate = (value: string) => {
+		const [yy, mm, dd] = String(value).split("-");
+		const year = Number(yy);
+		const monthIndex = Number(mm) - 1;
+		const day = Number(dd);
+		if (
+			!Number.isFinite(year) ||
+			!Number.isFinite(monthIndex) ||
+			!Number.isFinite(day)
+		) {
+			return new Date(NaN);
+		}
+		return new Date(year, monthIndex, day);
+	};
+
+	const syncOverviewRange = (nextFrom?: string, nextTo?: string) => {
+		const fromValue = nextFrom ?? overviewFrom;
+		const toValue = nextTo ?? overviewTo;
+		if (!fromValue || !toValue) return;
+		const fromDate = parseYmdToLocalDate(fromValue);
+		const toDate = parseYmdToLocalDate(toValue);
+		if (Number.isNaN(fromDate.getTime()) || Number.isNaN(toDate.getTime()))
+			return;
+		if (fromDate > toDate) {
+			// Keep range valid by aligning the other bound.
+			if (nextFrom !== undefined) setOverviewTo(fromValue);
+			else if (nextTo !== undefined) setOverviewFrom(toValue);
+		}
+	};
+
+	const [overviewFrom, setOverviewFrom] = useState<string>(() => {
+		const today = new Date();
+		const from = new Date(today);
+		from.setDate(from.getDate() - 30);
+		return formatYmd(from);
+	});
+	const [overviewTo, setOverviewTo] = useState<string>(() =>
+		formatYmd(new Date()),
+	);
+
 	const [isLoading, setIsLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	const [orders, setOrders] = useState<Order[]>([]);
 	const [pagination, setPagination] = useState<PaginationMeta | null>(null);
+
+	const [overview, setOverview] = useState<OrderOverviewReport | null>(null);
+	const [overviewLoading, setOverviewLoading] = useState(false);
+	const [overviewError, setOverviewError] = useState<string | null>(null);
+	const activeOverviewRequestRef = useRef(0);
 
 	const [page, setPage] = useState(1);
 	const [pageSize, setPageSize] = useState(20);
@@ -80,6 +154,34 @@ const OrderHistory = () => {
 
 	const getErrorMessage = (err: any, fallback: string) => {
 		return String(err?.response?.data?.message ?? err?.message ?? fallback);
+	};
+
+	const toIsoStartOfDay = (date: Date) => {
+		const d = new Date(date);
+		d.setHours(0, 0, 0, 0);
+		return d.toISOString();
+	};
+
+	const toIsoEndOfDay = (date: Date) => {
+		const d = new Date(date);
+		d.setHours(23, 59, 59, 999);
+		return d.toISOString();
+	};
+
+	const formatVnd = (value: string | number | null | undefined) => {
+		const raw = value ?? "0";
+		const num = typeof raw === "number" ? raw : Number(String(raw));
+		if (!Number.isFinite(num)) return String(raw);
+		return new Intl.NumberFormat("vi-VN", {
+			style: "currency",
+			currency: "VND",
+			maximumFractionDigits: 0,
+		}).format(num);
+	};
+
+	const toNumberSafe = (value: unknown) => {
+		const n = typeof value === "number" ? value : Number(String(value ?? "0"));
+		return Number.isFinite(n) ? n : 0;
 	};
 
 	const resolveSubscriptionName = (order: Order) => {
@@ -181,14 +283,53 @@ const OrderHistory = () => {
 		}
 	};
 
+	const fetchOverview = async () => {
+		const requestId = ++activeOverviewRequestRef.current;
+		setOverviewLoading(true);
+		setOverviewError(null);
+		try {
+			const fromDate = overviewFrom
+				? parseYmdToLocalDate(overviewFrom)
+				: undefined;
+			const toDate = overviewTo ? parseYmdToLocalDate(overviewTo) : undefined;
+			const from = fromDate ? toIsoStartOfDay(fromDate) : undefined;
+			const to = toDate ? toIsoEndOfDay(toDate) : undefined;
+			const res = await getOrderOverviewReport({ from, to });
+			if (activeOverviewRequestRef.current !== requestId) return;
+			setOverview(res?.data ?? null);
+		} catch (err: any) {
+			if (activeOverviewRequestRef.current !== requestId) return;
+			const message = getErrorMessage(err, "Failed to load order overview");
+			setOverviewError(message);
+		} finally {
+			if (activeOverviewRequestRef.current !== requestId) return;
+			setOverviewLoading(false);
+		}
+	};
+
 	const refreshOrders = async () => {
-		await fetchOrders();
+		await Promise.all([fetchOrders(), fetchOverview()]);
 	};
 
 	useEffect(() => {
 		void fetchOrders();
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [page, pageSize, sortBy, sortOrder, groupId]);
+
+	useEffect(() => {
+		if (!overviewFrom || !overviewTo) return;
+		const fromDate = parseYmdToLocalDate(overviewFrom);
+		const toDate = parseYmdToLocalDate(overviewTo);
+		if (Number.isNaN(fromDate.getTime()) || Number.isNaN(toDate.getTime())) {
+			return;
+		}
+		if (fromDate > toDate) {
+			setOverviewTo(overviewFrom);
+			return;
+		}
+		void fetchOverview();
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [overviewFrom, overviewTo]);
 
 	const applyFilters = () => {
 		setPage(1);
@@ -314,6 +455,175 @@ const OrderHistory = () => {
 
 	return (
 		<S.PageContainer>
+			<S.Panel>
+				<S.HeaderRow>
+					<S.TitleBlock>
+						<S.Title>Overview</S.Title>
+						<S.Subtitle>Sold orders and revenue.</S.Subtitle>
+					</S.TitleBlock>
+					<div className="flex flex-wrap items-center gap-2">
+						<div className="flex flex-wrap items-center gap-2">
+							<div className="flex flex-col gap-1">
+								<div className="text-xs text-muted-foreground">From</div>
+								<CustomDateTimePicker
+									value={overviewFrom}
+									onChange={(next) => {
+										setOverviewFrom(next);
+										syncOverviewRange(next, undefined);
+									}}
+									showTime={false}
+									isAllowedPast={true}
+									maxDate={overviewTo}
+								/>
+							</div>
+							<div className="flex flex-col gap-1">
+								<div className="text-xs text-muted-foreground">To</div>
+								<CustomDateTimePicker
+									value={overviewTo}
+									onChange={(next) => {
+										setOverviewTo(next);
+										syncOverviewRange(undefined, next);
+									}}
+									showTime={false}
+									isAllowedPast={true}
+									minDate={overviewFrom}
+								/>
+							</div>
+						</div>
+
+						<Button
+							variant="outline"
+							disabled={overviewLoading}
+							onClick={() => void fetchOverview()}
+						>
+							{overviewLoading ? (
+								"Refreshing..."
+							) : (
+								<RefreshCcw className="icon-size" />
+							)}
+						</Button>
+					</div>
+				</S.HeaderRow>
+
+				{overviewError ? (
+					<div className="mt-3 text-sm text-muted-foreground">
+						{overviewError}
+					</div>
+				) : overviewLoading && !overview ? (
+					<div className="mt-3 text-sm text-muted-foreground">
+						Loading overview...
+					</div>
+				) : (
+					<div className="mt-4 grid gap-4">
+						<div className="grid gap-3 sm:grid-cols-3">
+							<div className="rounded-md p-4 shadow-sm">
+								<div className="text-xs text-muted-foreground">Orders sold</div>
+								<div className="mt-1 text-2xl font-semibold">
+									{overview?.totalOrdersSold ?? 0}
+								</div>
+							</div>
+							<div className="rounded-md p-4 shadow-sm">
+								<div className="text-xs text-muted-foreground">
+									Subscription months sold
+								</div>
+								<div className="mt-1 text-2xl font-semibold">
+									{overview?.totalSubscriptionsSold ?? 0}
+								</div>
+							</div>
+							<div className="rounded-md p-4 shadow-sm">
+								<div className="text-xs text-muted-foreground">Revenue</div>
+								<div className="mt-1 text-2xl font-semibold">
+									{formatVnd(overview?.totalRevenueVnd ?? "0")}
+								</div>
+							</div>
+						</div>
+
+						{/* Charts */}
+						<div className="grid gap-3 lg:grid-cols-2">
+							{(overview?.bySubscription?.length ?? 0) === 0 ? (
+								<div className="rounded-md border p-4">
+									<div className="text-sm font-medium">
+										Revenue by subscription
+									</div>
+									<div className="mt-1 text-xs text-muted-foreground">
+										Top subscriptions by revenue
+									</div>
+									<div className="mt-3 text-sm text-muted-foreground">
+										No data.
+									</div>
+								</div>
+							) : (
+								(() => {
+									const data = (overview?.bySubscription ?? [])
+										.slice(0, 8)
+										.map((r) => ({
+											name:
+												r.subscriptionName ||
+												r.subscriptionCode ||
+												r.subscriptionId,
+											revenueVnd: toNumberSafe(r.revenueVnd),
+										}));
+
+									return (
+										<CustomBarChart
+											title="Revenue by subscription"
+											description="Top subscriptions by revenue"
+											data={data}
+											bars={[
+												{
+													dataKey: "revenueVnd",
+													fill: "#8b5cf6",
+													name: "Revenue",
+												},
+											]}
+											height={220}
+										/>
+									);
+								})()
+							)}
+
+							{(overview?.byDay?.length ?? 0) === 0 ? (
+								<div className="rounded-md border p-4">
+									<div className="text-sm font-medium">Revenue by day</div>
+									<div className="mt-1 text-xs text-muted-foreground">
+										Last 30 days (UTC date buckets)
+									</div>
+									<div className="mt-3 text-sm text-muted-foreground">
+										No data.
+									</div>
+								</div>
+							) : (
+								(() => {
+									const rowsAll = overview?.byDay ?? [];
+									const rows = rowsAll.slice(Math.max(0, rowsAll.length - 30));
+									const data = rows.map((r) => ({
+										name: formatByDayLabel(r.date),
+										revenueVnd: toNumberSafe(r.revenueVnd),
+									}));
+
+									return (
+										<CustomLineChart
+											title="Revenue by day"
+											description="Last 30 days (UTC date buckets)"
+											data={data}
+											lines={[
+												{
+													dataKey: "revenueVnd",
+													stroke: "#6366f1",
+													name: "Revenue",
+												},
+											]}
+											height={220}
+											timeButtons={null as unknown as string[]}
+										/>
+									);
+								})()
+							)}
+						</div>
+					</div>
+				)}
+			</S.Panel>
+
 			<Dialog
 				open={detailOpen}
 				onOpenChange={(open) => {

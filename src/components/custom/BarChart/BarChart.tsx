@@ -5,6 +5,7 @@ import {
 	YAxis,
 	CartesianGrid,
 	ResponsiveContainer,
+	Tooltip,
 	Cell,
 } from "recharts";
 
@@ -30,6 +31,30 @@ interface CustomBarChartProps {
 	colors?: string[];
 }
 
+const formatTooltipValue = (value: unknown) => {
+	if (value === null || value === undefined) return "-";
+	const num = typeof value === "number" ? value : Number(String(value));
+	if (!Number.isFinite(num)) return String(value);
+	return new Intl.NumberFormat("vi-VN", { maximumFractionDigits: 0 }).format(
+		num,
+	);
+};
+
+const CustomTooltip = ({ active, payload, label }: any) => {
+	if (!active || !payload || payload.length === 0) return null;
+	return (
+		<div className="bg-gray-800 text-white px-3 py-2 rounded-md shadow-lg border border-gray-700">
+			<p className="text-xs font-medium mb-1">{String(label ?? "")}</p>
+			{payload.map((entry: any, index: number) => (
+				<p key={index} className="text-xs">
+					<span style={{ color: entry.color }}>●</span>{" "}
+					{formatTooltipValue(entry.value)}
+				</p>
+			))}
+		</div>
+	);
+};
+
 export default function CustomBarChart({
 	data,
 	bars,
@@ -41,17 +66,17 @@ export default function CustomBarChart({
 	showLegend = true,
 	colors = ["#AEF5DF", "#7BFFD5", "#33EFB3", "#1CCA93"],
 }: CustomBarChartProps) {
-	const calculatePercentage = (index: number) => {
-		const item = data[index];
-		const dataKey = bars[0]?.dataKey || "value";
-		const value = item[dataKey];
-		const numValue = typeof value === "number" ? value : 0;
+	// const calculatePercentage = (index: number) => {
+	// 	const item = data[index];
+	// 	const dataKey = bars[0]?.dataKey || "value";
+	// 	const value = item[dataKey];
+	// 	const numValue = typeof value === "number" ? value : 0;
 
-		const totalGroups = data.length;
-		const percentage =
-			totalGroups > 0 ? ((numValue / totalGroups) * 100).toFixed(1) : "0.0";
-		return percentage + "%";
-	};
+	// 	const totalGroups = data.length;
+	// 	const percentage =
+	// 		totalGroups > 0 ? ((numValue / totalGroups) * 100).toFixed(1) : "0.0";
+	// 	return percentage + "%";
+	// };
 
 	const renderCustomLegend = () => {
 		if (!showLegend) return null;
@@ -67,9 +92,9 @@ export default function CustomBarChart({
 							/>
 							<span className="text-sm text-gray-700">{item[xAxisKey]}</span>
 						</div>
-						<span className="text-sm font-semibold text-gray-900">
+						{/* <span className="text-sm font-semibold text-gray-900">
 							{calculatePercentage(index)}
-						</span>
+						</span> */}
 					</div>
 				))}
 			</div>
@@ -112,6 +137,7 @@ export default function CustomBarChart({
 							tickLine={false}
 							ticks={[0, 0]}
 						/>
+						<Tooltip content={<CustomTooltip />} />
 						<Bar
 							dataKey={bars[0]?.dataKey || "value"}
 							radius={[4, 4, 0, 0]}
