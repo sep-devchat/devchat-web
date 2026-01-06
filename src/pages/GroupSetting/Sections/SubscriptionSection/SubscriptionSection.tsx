@@ -254,10 +254,14 @@ export default function SubscriptionSection({
 		};
 	}, [groupId]);
 
-	const hasPlans = subscriptions.length > 0;
 	const currentSubscriptionPlanId = currentGroupSubscription?.subscriptionId;
-	const sortedPlans = useMemo(() => {
-		return [...subscriptions].sort((a, b) => {
+
+	const systemPlans = useMemo(() => {
+		return subscriptions.filter((s) => Boolean(s.isActive));
+	}, [subscriptions]);
+	const systemHasPlans = systemPlans.length > 0;
+	const systemSortedPlans = useMemo(() => {
+		return [...systemPlans].sort((a, b) => {
 			const aPrice = Number(a.price);
 			const bPrice = Number(b.price);
 			if (Number.isFinite(aPrice) && Number.isFinite(bPrice))
@@ -266,7 +270,7 @@ export default function SubscriptionSection({
 				String(b.subscriptionName),
 			);
 		});
-	}, [subscriptions]);
+	}, [systemPlans]);
 
 	const comparisonRows = useMemo<ComparisonRow[]>(
 		() => [
@@ -299,7 +303,7 @@ export default function SubscriptionSection({
 	const getCellValue = (plan: Subscription, key: ComparisonRowKey) => {
 		switch (key) {
 			case "isAIActive":
-				return renderEnabledTag(Boolean(plan.allowUseAI ?? plan.isAIActive));
+				return renderEnabledTag(Boolean(plan.isAIActive));
 			case "price":
 				return String(plan.price);
 			case "limitMembers":
@@ -594,8 +598,8 @@ export default function SubscriptionSection({
 						groupId={groupId}
 						loading={loading}
 						error={error}
-						hasPlans={hasPlans}
-						sortedPlans={sortedPlans}
+						hasPlans={systemHasPlans}
+						sortedPlans={systemSortedPlans}
 						currentSubscriptionPlanId={currentSubscriptionPlanId}
 						checkoutPlan={checkoutPlan}
 						creatingPlanId={creatingPlanId}

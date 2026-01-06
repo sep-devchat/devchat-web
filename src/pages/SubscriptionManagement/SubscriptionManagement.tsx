@@ -1,95 +1,51 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+	createSubscription,
+	deleteSubscription,
 	listSubscriptions,
+	CreateSubscriptionPayload,
 	Subscription,
+	UpdateSubscriptionPayload,
 	updateSubscription,
 } from "@/services/subscriptionAPI";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Spinner } from "@/components/ui/spinner";
-import { Edit3, Search } from "lucide-react";
+import { Edit3, Search, Ban, Plus, Trash2 } from "lucide-react";
 import * as S from "./SubscriptionManagement.styled";
 import { formatVnd } from "@/utils/format-currency";
-
-type FormState = {
-	price: number;
-};
+import {
+	ConfirmModal,
+	SubscriptionModal,
+	type SubscriptionFormState as FormState,
+	type ConfirmModalVariant,
+	type SubscriptionModalProps,
+} from "./components";
 
 const emptyForm: FormState = {
+	subscriptionCode: "",
+	subscriptionName: "",
 	price: 0,
+	limitMembers: 0,
+	isAIActive: false,
+	runCodePerDay: 0,
+	programmingLanguageInGroups: 0,
+	levelSubscription: 1,
+	isActive: true,
 };
-
-interface SubscriptionModalProps {
-	isOpen: boolean;
-	title: string;
-	description: string;
-	fields: Array<{
-		key: keyof FormState;
-		label: string;
-		placeholder?: string;
-		type?: string;
-		min?: number;
-		required?: boolean;
-	}>;
-	form: FormState;
-	onChange: (key: keyof FormState, value: number) => void;
-	onSubmit: (event: React.FormEvent) => void;
-	onClose: () => void;
-	isSubmitting: boolean;
-}
-
-const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
-	isOpen,
-	title,
-	description,
-	fields,
-	form,
-	onChange,
-	onSubmit,
-	onClose,
-	isSubmitting,
-}) => {
-	if (!isOpen) return null;
-
-	return (
-		<S.ModalOverlay>
-			<S.ModalCard as="form" onSubmit={onSubmit}>
-				<div>
-					<S.ModalTitle>{title}</S.ModalTitle>
-					<p style={{ margin: 0, color: "#64748b" }}>{description}</p>
-				</div>
-				{fields.map(({ key, label, placeholder, type, min, required }) => (
-					<S.Field key={key}>
-						<S.Label htmlFor={key}>{label}</S.Label>
-						<S.Input
-							id={key}
-							type={type || "text"}
-							value={form[key] as string | number}
-							onChange={(e) => onChange(key, Number(e.target.value))}
-							placeholder={placeholder}
-							min={min ?? undefined}
-							required={required}
-						/>
-					</S.Field>
-				))}
-				<S.ModalActions>
-					<Button variant="outline" type="button" onClick={onClose}>
-						Cancel
-					</Button>
-					<Button type="submit" disabled={isSubmitting}>
-						{isSubmitting && <Spinner className="mr-2" />}Save
-					</Button>
-				</S.ModalActions>
-			</S.ModalCard>
-		</S.ModalOverlay>
-	);
-};
-
 const SubscriptionManagement: React.FC = () => {
 	const queryClient = useQueryClient();
 	const [form, setForm] = useState<FormState>(emptyForm);
 	const [editingId, setEditingId] = useState<string | null>(null);
+	const [mode, setMode] = useState<"create" | "edit">("create");
+	const [confirmState, setConfirmState] = useState<null | {
+		action: "disable" | "delete";
+		subscription: Subscription;
+		title: string;
+		description: string;
+		confirmText: string;
+		confirmVariant: ConfirmModalVariant;
+	}>(null);
 
 	const [searchTerm, setSearchTerm] = useState("");
 
@@ -119,40 +75,145 @@ const SubscriptionManagement: React.FC = () => {
 	};
 
 	const updateMut = useMutation({
-		mutationFn: async ({ id, price }: { id: string; price: number }) => {
-			return updateSubscription(id, { price });
-		},
+		mutationFn: async ({
+			id,
+			payload,
+		}: {
+			id: string;
+			payload: UpdateSubscriptionPayload;
+		}) => updateSubscription(id, payload),
 		onSuccess: (res) => {
-			toast.success(res?.message ?? "Price updated");
+			toast.success(res?.message ?? "Subscription updated");
 			queryClient.invalidateQueries({ queryKey: ["subscriptions"] });
 			setEditingId(null);
 			setForm(emptyForm);
 			setDialogOpen(false);
 		},
 		onError: (err) =>
-			toast.error(getErrorMessage(err, "Failed to update price")),
+			toast.error(getErrorMessage(err, "Failed to update subscription")),
 	});
 
-	const handleChange = (field: keyof FormState, value: number) => {
-		setForm((prev) => ({ ...prev, [field]: value }));
+	const createMut = useMutation({
+		mutationFn: async (payload: CreateSubscriptionPayload) =>
+			createSubscription(payload),
+		onSuccess: (res) => {
+			toast.success(res?.message ?? "Created successfully");
+			queryClient.invalidateQueries({ queryKey: ["subscriptions"] });
+			setDialogOpen(false);
+			setEditingId(null);
+			setForm(emptyForm);
+		},
+		onError: (err) =>
+			toast.error(getErrorMessage(err, "Failed to create subscription")),
+	});
+
+	const disableMut = useMutation({
+		mutationFn: async (id: string) =>
+			updateSubscription(id, { isActive: false }),
+		onSuccess: (res) => {
+			toast.success(res?.message ?? "Disabled");
+			queryClient.invalidateQueries({ queryKey: ["subscriptions"] });
+			setConfirmState(null);
+		},
+		onError: (err) => toast.error(getErrorMessage(err, "Failed to disable")),
+	});
+
+	const deleteMut = useMutation({
+		mutationFn: async (id: string) => deleteSubscription(id),
+		onSuccess: (res) => {
+			toast.success(res?.message ?? "Deleted");
+			queryClient.invalidateQueries({ queryKey: ["subscriptions"] });
+			setConfirmState(null);
+		},
+		onError: (err) => toast.error(getErrorMessage(err, "Failed to delete")),
+	});
+
+	const openDisableConfirm = (item: Subscription) => {
+		setConfirmState({
+			action: "disable",
+			subscription: item,
+			title: "Disable subscription",
+			description: `Disable ${item.subscriptionCode}? This keeps the plan in history but prevents new purchases.`,
+			confirmText: "Disable",
+			confirmVariant: "danger",
+		});
+	};
+
+	const openDeleteConfirm = (item: Subscription) => {
+		setConfirmState({
+			action: "delete",
+			subscription: item,
+			title: "Delete subscription",
+			description: `Delete ${item.subscriptionCode}? This may affect existing group subscriptions.`,
+			confirmText: "Delete",
+			confirmVariant: "danger",
+		});
+	};
+
+	const handleChange = (
+		field: keyof FormState,
+		value: string | number | boolean,
+	) => {
+		setForm((prev) => ({ ...prev, [field]: value as any }));
 	};
 
 	const handleEdit = (item: Subscription) => {
 		setEditingId(item.id);
 		setForm({
-			price: item.price,
+			subscriptionCode: item.subscriptionCode ?? "",
+			subscriptionName: item.subscriptionName ?? "",
+			price: item.price ?? 0,
+			limitMembers: item.limitMembers ?? 0,
+			isAIActive: Boolean(item.isAIActive),
+			runCodePerDay: item.runCodePerDay ?? 0,
+			programmingLanguageInGroups: item.programmingLanguageInGroups ?? 0,
+			levelSubscription: item.levelSubscription ?? 1,
+			isActive: Boolean((item as any).isActive ?? true),
 		});
 	};
 
 	const handleSubmit = (e: React.FormEvent) => {
 		e.preventDefault();
-		if (!editingId) return;
-		const nextPrice = Number(form.price);
-		if (!Number.isFinite(nextPrice) || nextPrice < 0) {
+
+		const payload: CreateSubscriptionPayload = {
+			subscriptionCode: String(form.subscriptionCode || "").trim(),
+			subscriptionName: String(form.subscriptionName || "").trim(),
+			price: Number(form.price),
+			limitMembers: Number(form.limitMembers),
+			isAIActive: Boolean(form.isAIActive),
+			runCodePerDay: Number(form.runCodePerDay),
+			programmingLanguageInGroups: Number(form.programmingLanguageInGroups),
+			levelSubscription: Number(form.levelSubscription),
+			isActive: Boolean(form.isActive),
+		};
+
+		if (!payload.subscriptionCode) {
+			toast.error("Subscription code is required.");
+			return;
+		}
+		if (!payload.subscriptionName) {
+			toast.error("Subscription name is required.");
+			return;
+		}
+		if (!Number.isFinite(payload.price) || payload.price < 0) {
 			toast.error("Invalid price.");
 			return;
 		}
-		updateMut.mutate({ id: editingId, price: nextPrice });
+		if (
+			!Number.isFinite(payload.levelSubscription) ||
+			payload.levelSubscription < 0
+		) {
+			toast.error("Invalid level.");
+			return;
+		}
+
+		if (mode === "create") {
+			createMut.mutate(payload);
+			return;
+		}
+
+		if (!editingId) return;
+		updateMut.mutate({ id: editingId, payload });
 	};
 
 	useEffect(() => {
@@ -161,29 +222,87 @@ const SubscriptionManagement: React.FC = () => {
 		}
 	}, [editingId]);
 
-	const isSubmitting = updateMut.isPending;
+	const isSubmitting = updateMut.isPending || createMut.isPending;
+	const isConfirming = disableMut.isPending || deleteMut.isPending;
 
 	const [dialogOpen, setDialogOpen] = useState(false);
 
 	const openEdit = (item: Subscription) => {
+		setMode("edit");
 		handleEdit(item);
 		setDialogOpen(true);
 	};
 
-	const fieldConfigs: Array<{
-		key: keyof FormState;
-		label: string;
-		placeholder?: string;
-		type?: string;
-		min?: number;
-		required?: boolean;
-	}> = [
+	const openCreate = () => {
+		setMode("create");
+		setEditingId(null);
+		setForm(emptyForm);
+		setDialogOpen(true);
+	};
+
+	const fieldConfigs: SubscriptionModalProps["fields"] = [
+		{
+			key: "subscriptionCode",
+			label: "Code",
+			placeholder: "SUB_BASIC",
+			type: "text",
+			required: true,
+		},
+		{
+			key: "subscriptionName",
+			label: "Name",
+			placeholder: "Basic Plan",
+			type: "text",
+			required: true,
+		},
 		{
 			key: "price",
 			label: "Price (VND)",
 			type: "number",
 			min: 0,
 			required: true,
+		},
+		{
+			key: "limitMembers",
+			label: "Limit members",
+			type: "number",
+			min: 0,
+			required: true,
+			row: 1,
+		},
+		{
+			key: "runCodePerDay",
+			label: "Run code per day",
+			type: "number",
+			min: 0,
+			required: true,
+			row: 1,
+		},
+		{
+			key: "programmingLanguageInGroups",
+			label: "Programming languages",
+			type: "number",
+			min: 0,
+			required: true,
+			row: 1,
+		},
+		{
+			key: "levelSubscription",
+			label: "Level",
+			type: "number",
+			min: 0,
+			required: true,
+			row: 1,
+		},
+		{
+			key: "isAIActive",
+			label: "AI active",
+			type: "checkbox",
+		},
+		{
+			key: "isActive",
+			label: "Active",
+			type: "checkbox",
 		},
 	];
 
@@ -202,6 +321,11 @@ const SubscriptionManagement: React.FC = () => {
 							onChange={(event) => setSearchTerm(event.target.value)}
 						/>
 					</S.SearchGroup>
+
+					<Button onClick={openCreate}>
+						<Plus size={16} className="mr-2" />
+						New subscription
+					</Button>
 				</S.HeaderRow>
 			</S.Panel>
 
@@ -229,12 +353,14 @@ const SubscriptionManagement: React.FC = () => {
 									<tr>
 										<S.Th>Code</S.Th>
 										<S.Th>Name</S.Th>
+										<S.Th>Version</S.Th>
 										<S.Th>Price (VND)</S.Th>
 										<S.Th>Limit Users</S.Th>
 										<S.Th>AI</S.Th>
 										<S.Th>Run code per day</S.Th>
 										<S.Th>Langs</S.Th>
 										<S.Th>Level</S.Th>
+										<S.Th>Status</S.Th>
 										<S.Th>Actions</S.Th>
 									</tr>
 								</S.TableHead>
@@ -245,6 +371,7 @@ const SubscriptionManagement: React.FC = () => {
 												<S.NameCell>{item.subscriptionCode}</S.NameCell>
 											</S.Td>
 											<S.Td>{item.subscriptionName}</S.Td>
+											<S.Td>{item.version ?? 1}</S.Td>
 											<S.Td>{formatVnd(item.price)}</S.Td>
 											<S.Td>{item.limitMembers}</S.Td>
 											<S.Td>
@@ -258,12 +385,47 @@ const SubscriptionManagement: React.FC = () => {
 											<S.Td>{item.programmingLanguageInGroups}</S.Td>
 											<S.Td>{item.levelSubscription}</S.Td>
 											<S.Td>
+												<S.StatusBadge
+													$variant={
+														(item as any).isActive === 0 ? "inactive" : "active"
+													}
+												>
+													{(item as any).isActive === 0 ? "Disabled" : "Active"}
+												</S.StatusBadge>
+											</S.Td>
+											<S.Td>
 												<S.Actions>
 													<S.IconButton
 														onClick={() => openEdit(item)}
 														aria-label="Edit"
 													>
 														<Edit3 size={16} />
+													</S.IconButton>
+													<S.IconButton
+														$variant="danger"
+														disabled={
+															(item as any).isActive === false ||
+															disableMut.isPending
+														}
+														onClick={() => {
+															if ((item as any).isActive === false) return;
+															openDisableConfirm(item);
+														}}
+														aria-label="Disable"
+														title="Disable"
+													>
+														<Ban size={16} />
+													</S.IconButton>
+													<S.IconButton
+														$variant="danger"
+														disabled={deleteMut.isPending}
+														onClick={() => {
+															openDeleteConfirm(item);
+														}}
+														aria-label="Delete"
+														title="Delete"
+													>
+														<Trash2 size={16} />
 													</S.IconButton>
 												</S.Actions>
 											</S.Td>
@@ -278,23 +440,40 @@ const SubscriptionManagement: React.FC = () => {
 
 			<SubscriptionModal
 				isOpen={dialogOpen}
-				title="Update subscription price"
-				description="Only price can be updated. Other fields are fixed."
+				title={mode === "create" ? "Create subscription" : "Edit subscription"}
+				description={
+					mode === "create"
+						? "Create a new subscription plan and its limits."
+						: "Update subscription fields or disable it."
+				}
 				fields={fieldConfigs}
 				form={form}
 				onChange={handleChange}
-				onSubmit={(event) => {
-					handleSubmit(event);
-					if (!isSubmitting) {
-						setDialogOpen(false);
-					}
-				}}
+				onSubmit={handleSubmit}
 				onClose={() => {
 					setDialogOpen(false);
 					setEditingId(null);
 					setForm(emptyForm);
 				}}
 				isSubmitting={isSubmitting}
+			/>
+
+			<ConfirmModal
+				isOpen={confirmState != null}
+				title={confirmState?.title ?? ""}
+				description={confirmState?.description ?? ""}
+				confirmText={confirmState?.confirmText ?? "Confirm"}
+				confirmVariant={confirmState?.confirmVariant ?? "default"}
+				isConfirming={isConfirming}
+				onClose={() => setConfirmState(null)}
+				onConfirm={() => {
+					if (!confirmState) return;
+					if (confirmState.action === "disable") {
+						disableMut.mutate(confirmState.subscription.id);
+						return;
+					}
+					deleteMut.mutate(confirmState.subscription.id);
+				}}
 			/>
 		</S.PageContainer>
 	);
