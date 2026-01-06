@@ -9,13 +9,15 @@ export type Subscription = {
 	price: number;
 	limitMembers: number;
 	isAIActive: boolean;
-	allowUseAI: boolean;
 	runCodePerDay: number;
 	programmingLanguageInGroups: number;
 	levelSubscription: number;
+	version: number;
+	isActive: boolean;
 };
 
-export type SubscriptionPayload = Omit<Subscription, "id">;
+export type CreateSubscriptionPayload = Omit<Subscription, "id" | "version">;
+export type UpdateSubscriptionPayload = Partial<CreateSubscriptionPayload>;
 
 export const listSubscriptions = async (): Promise<
 	ApiResponseDto<Subscription[]>
@@ -23,13 +25,15 @@ export const listSubscriptions = async (): Promise<
 	return get<Subscription[]>(`${apiUrl}`);
 };
 
-export const createSubscription = async (payload: SubscriptionPayload) => {
+export const createSubscription = async (
+	payload: CreateSubscriptionPayload,
+) => {
 	return post<Subscription>(`${apiUrl}`, payload);
 };
 
 export const updateSubscription = async (
 	id: string,
-	payload: Partial<SubscriptionPayload>,
+	payload: UpdateSubscriptionPayload,
 ) => {
 	return put<Subscription>(`${apiUrl}/${id}`, payload);
 };

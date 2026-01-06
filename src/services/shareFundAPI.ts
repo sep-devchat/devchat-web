@@ -20,10 +20,10 @@ export type ShareFundSubscription = {
 	price: number;
 	limitMembers: number;
 	isAIActive: boolean;
-	allowUseAI: boolean;
 	runCodePerDay: number;
 	programmingLanguageInGroups: number;
 	levelSubscription: number;
+	isActive: boolean;
 };
 
 export type ShareFund = {

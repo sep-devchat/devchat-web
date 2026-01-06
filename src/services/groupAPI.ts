@@ -51,7 +51,7 @@ export type GroupSubscriptionInGroup = {
 	isPaid: boolean;
 	startedAt: string | null;
 	endedAt: string | null;
-	// Backend returns SubscriptionResponse; allowUseAI may be missing depending on backend version.
+	// Backend returns SubscriptionResponse.
 	subscription?: Partial<Subscription> | null;
 };
 

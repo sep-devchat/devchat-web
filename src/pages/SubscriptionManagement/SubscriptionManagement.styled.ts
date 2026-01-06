@@ -127,8 +127,8 @@ export const Th = styled.th`
 	letter-spacing: 0.5px;
 
 	&:last-child {
-		text-align: right;
-		width: 120px;
+		text-align: center;
+		width: 150px;
 	}
 `;
 
@@ -259,6 +259,17 @@ export const Field = styled.div`
 	gap: 6px;
 `;
 
+export const FieldsRow = styled.div`
+	display: flex;
+	gap: 12px;
+	flex-wrap: wrap;
+
+	${Field} {
+		flex: 1;
+		min-width: 160px;
+	}
+`;
+
 export const Label = styled.label`
 	font-size: 14px;
 	font-weight: 600;
@@ -271,6 +282,20 @@ export const Input = styled.input`
 	padding: 12px 14px;
 	font-size: 14px;
 	background: rgba(248, 250, 252, 0.95);
+`;
+
+export const CheckboxRow = styled.div`
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	padding: 8px 2px;
+`;
+
+export const CheckboxLabel = styled.label`
+	font-size: 14px;
+	font-weight: 600;
+	color: #0f172a;
+	cursor: pointer;
 `;
 
 export const ModalActions = styled.div`

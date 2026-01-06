@@ -200,7 +200,15 @@ export default function GroupSubscriptionsTab({
 													{String(sub.groupSubscriptionStatus ?? "-")}
 												</Badge>
 											</TableCell>
-											<TableCell>{String(sub.monthQuantity ?? "-")}</TableCell>
+											<TableCell>
+												{String(
+													sub.monthQuantity
+														? sub.monthQuantity < 0
+															? "Unlimited"
+															: sub.monthQuantity
+														: "-",
+												)}
+											</TableCell>
 											<TableCell>{formatDateTime(sub.startedAt)}</TableCell>
 											<TableCell>{formatDateTime(sub.endedAt)}</TableCell>
 											<TableCell>{sub.paymentBy ?? "-"}</TableCell>
