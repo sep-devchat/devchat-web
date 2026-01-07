@@ -330,7 +330,7 @@ export default function GroupOrdersTab({
 				</DialogContent>
 			</Dialog>
 
-			<div className="rounded-md border bg-background p-4">
+			<div className="rounded-md bg-background p-4 shadow-sm">
 				<div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
 					<div>
 						<p className="text-sm font-medium">Orders</p>

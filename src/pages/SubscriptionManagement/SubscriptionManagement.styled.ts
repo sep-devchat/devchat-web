@@ -159,13 +159,22 @@ export const Actions = styled.div`
 	justify-content: flex-end;
 `;
 
-export const IconButton = styled.button<{ $variant?: "ghost" | "danger" }>`
+export const IconButton = styled.button<{
+	$variant?: "ghost" | "danger" | "success";
+}>`
 	border: none;
 	background: ${(props) =>
 		props.$variant === "danger"
 			? "rgba(239, 68, 68, 0.12)"
-			: "rgba(15, 23, 42, 0.08)"};
-	color: ${(props) => (props.$variant === "danger" ? "#b91c1c" : "#0f172a")};
+			: props.$variant === "success"
+				? "rgba(34, 197, 94, 0.12)"
+				: "rgba(15, 23, 42, 0.08)"};
+	color: ${(props) =>
+		props.$variant === "danger"
+			? "#b91c1c"
+			: props.$variant === "success"
+				? "#166534"
+				: "#0f172a"};
 	border-radius: 10px;
 	padding: 8px;
 	display: inline-flex;
