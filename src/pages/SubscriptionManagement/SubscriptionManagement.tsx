@@ -11,7 +11,7 @@ import {
 } from "@/services/subscriptionAPI";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Edit3, Search, Ban, Plus, Trash2 } from "lucide-react";
+import { Edit3, Search, Ban, Check, Plus, Trash2 } from "lucide-react";
 import * as S from "./SubscriptionManagement.styled";
 import { formatVnd } from "@/utils/format-currency";
 import {
@@ -39,8 +39,9 @@ const SubscriptionManagement: React.FC = () => {
 	const [editingId, setEditingId] = useState<string | null>(null);
 	const [mode, setMode] = useState<"create" | "edit">("create");
 	const [confirmState, setConfirmState] = useState<null | {
-		action: "disable" | "delete";
+		action: "toggleStatus" | "delete";
 		subscription: Subscription;
+		targetIsActive?: boolean;
 		title: string;
 		description: string;
 		confirmText: string;
@@ -107,15 +108,16 @@ const SubscriptionManagement: React.FC = () => {
 			toast.error(getErrorMessage(err, "Failed to create subscription")),
 	});
 
-	const disableMut = useMutation({
-		mutationFn: async (id: string) =>
-			updateSubscription(id, { isActive: false }),
+	const statusMut = useMutation({
+		mutationFn: async ({ id, isActive }: { id: string; isActive: boolean }) =>
+			updateSubscription(id, { isActive }),
 		onSuccess: (res) => {
-			toast.success(res?.message ?? "Disabled");
+			toast.success(res?.message ?? "Updated status");
 			queryClient.invalidateQueries({ queryKey: ["subscriptions"] });
 			setConfirmState(null);
 		},
-		onError: (err) => toast.error(getErrorMessage(err, "Failed to disable")),
+		onError: (err) =>
+			toast.error(getErrorMessage(err, "Failed to update status")),
 	});
 
 	const deleteMut = useMutation({
@@ -128,14 +130,22 @@ const SubscriptionManagement: React.FC = () => {
 		onError: (err) => toast.error(getErrorMessage(err, "Failed to delete")),
 	});
 
-	const openDisableConfirm = (item: Subscription) => {
+	const openToggleStatusConfirm = (item: Subscription) => {
+		const raw = (item as any).isActive;
+		const isActive =
+			raw === null || typeof raw === "undefined" ? true : Boolean(raw);
+		const nextIsActive = !isActive;
+		const actionVerb = nextIsActive ? "Enable" : "Disable";
 		setConfirmState({
-			action: "disable",
+			action: "toggleStatus",
 			subscription: item,
-			title: "Disable subscription",
-			description: `Disable ${item.subscriptionCode}? This keeps the plan in history but prevents new purchases.`,
-			confirmText: "Disable",
-			confirmVariant: "danger",
+			targetIsActive: nextIsActive,
+			title: `${actionVerb} subscription`,
+			description: nextIsActive
+				? `Enable ${item.subscriptionCode}? This allows new purchases again.`
+				: `Disable ${item.subscriptionCode}? This keeps the plan in history but prevents new purchases.`,
+			confirmText: actionVerb,
+			confirmVariant: nextIsActive ? "default" : "danger",
 		});
 	};
 
@@ -223,7 +233,7 @@ const SubscriptionManagement: React.FC = () => {
 	}, [editingId]);
 
 	const isSubmitting = updateMut.isPending || createMut.isPending;
-	const isConfirming = disableMut.isPending || deleteMut.isPending;
+	const isConfirming = statusMut.isPending || deleteMut.isPending;
 
 	const [dialogOpen, setDialogOpen] = useState(false);
 
@@ -402,19 +412,42 @@ const SubscriptionManagement: React.FC = () => {
 														<Edit3 size={16} />
 													</S.IconButton>
 													<S.IconButton
-														$variant="danger"
-														disabled={
-															(item as any).isActive === false ||
-															disableMut.isPending
+														$variant={
+															(
+																(item as any).isActive === null ||
+																typeof (item as any).isActive === "undefined"
+																	? true
+																	: Boolean((item as any).isActive)
+															)
+																? "danger"
+																: "success"
 														}
+														disabled={statusMut.isPending}
 														onClick={() => {
-															if ((item as any).isActive === false) return;
-															openDisableConfirm(item);
+															openToggleStatusConfirm(item);
 														}}
-														aria-label="Disable"
-														title="Disable"
+														aria-label="Toggle status"
+														title={
+															(
+																(item as any).isActive === null ||
+																typeof (item as any).isActive === "undefined"
+																	? true
+																	: Boolean((item as any).isActive)
+															)
+																? "Disable"
+																: "Enable"
+														}
 													>
-														<Ban size={16} />
+														{(
+															(item as any).isActive === null ||
+															typeof (item as any).isActive === "undefined"
+																? true
+																: Boolean((item as any).isActive)
+														) ? (
+															<Ban size={16} />
+														) : (
+															<Check size={16} />
+														)}
 													</S.IconButton>
 													<S.IconButton
 														$variant="danger"
@@ -468,8 +501,11 @@ const SubscriptionManagement: React.FC = () => {
 				onClose={() => setConfirmState(null)}
 				onConfirm={() => {
 					if (!confirmState) return;
-					if (confirmState.action === "disable") {
-						disableMut.mutate(confirmState.subscription.id);
+					if (confirmState.action === "toggleStatus") {
+						statusMut.mutate({
+							id: confirmState.subscription.id,
+							isActive: Boolean(confirmState.targetIsActive),
+						});
 						return;
 					}
 					deleteMut.mutate(confirmState.subscription.id);

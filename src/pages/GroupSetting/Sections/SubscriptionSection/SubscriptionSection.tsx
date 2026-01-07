@@ -83,6 +83,8 @@ export default function SubscriptionSection({
 	const [groupAllSubscriptions, setGroupAllSubscriptions] = useState<
 		GroupSubscriptionInGroup[]
 	>([]);
+	const [currentEntitlement, setCurrentEntitlement] = useState<any>(null);
+	const [currentUsage, setCurrentUsage] = useState<any>(null);
 
 	const [shareFunds, setShareFunds] = useState<ShareFund[]>([]);
 	const [shareFundsLoading, setShareFundsLoading] = useState(false);
@@ -237,12 +239,16 @@ export default function SubscriptionSection({
 				if (!mounted) return;
 				setCurrentGroupSubscription(res?.data?.currentSubscription ?? null);
 				setGroupAllSubscriptions(res?.data?.subscriptions ?? []);
+				setCurrentEntitlement((res as any)?.data?.currentEntitlement ?? null);
+				setCurrentUsage((res as any)?.data?.usage ?? null);
 			})
 			.catch((err: any) => {
 				if (!mounted) return;
 				setGroupSubscriptionsError(
 					getErrorMessage(err, "Failed to load group subscriptions"),
 				);
+				setCurrentEntitlement(null);
+				setCurrentUsage(null);
 			})
 			.finally(() => {
 				if (!mounted) return;
@@ -574,6 +580,8 @@ export default function SubscriptionSection({
 						groupSubscriptionsError={groupSubscriptionsError}
 						currentGroupSubscription={currentGroupSubscription}
 						groupAllSubscriptions={groupSubscriptionsInTab}
+						currentEntitlement={currentEntitlement}
+						currentUsage={currentUsage}
 						currentSubscriptionPlanId={currentSubscriptionPlanId}
 						resolveSubscriptionName={resolveSubscriptionName}
 						formatDateTime={formatDateTime}

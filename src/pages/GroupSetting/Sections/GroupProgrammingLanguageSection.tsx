@@ -10,6 +10,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
 import {
 	Select,
 	SelectContent,
@@ -27,6 +28,7 @@ import {
 
 import type { ProgrammingLanguageResponse } from "@/services/programmingLanguagesAPI";
 import { getActiveProgrammingLanguages } from "@/services/programmingLanguagesAPI";
+import { getGroupSubscriptions } from "@/services/groupAPI";
 import {
 	addGroupSupportedProgrammingLanguage,
 	listGroupSupportedProgrammingLanguages,
@@ -56,6 +58,12 @@ export default function GroupProgrammingLanguageSection({
 		ProgrammingLanguageResponse[]
 	>([]);
 	const [selectedLanguageId, setSelectedLanguageId] = useState<string>("");
+	const [languageLimitFromEntitlement, setLanguageLimitFromEntitlement] =
+		useState<number | null>(null);
+	const [languagesUsedFromUsage, setLanguagesUsedFromUsage] = useState<
+		number | null
+	>(null);
+	const [entitlementUsageLoading, setEntitlementUsageLoading] = useState(false);
 
 	const groupLanguageIdSet = useMemo(() => {
 		return new Set(groupLanguages.map((l) => l.id));
@@ -116,6 +124,83 @@ export default function GroupProgrammingLanguageSection({
 		void refreshGroupLanguages();
 	}, [refreshGroupLanguages]);
 
+	const refreshEntitlementUsage = useCallback(async () => {
+		if (!groupId) return;
+		setEntitlementUsageLoading(true);
+		try {
+			const res = await getGroupSubscriptions(groupId);
+			const entitlement = (res as any)?.data?.currentEntitlement;
+			const usage = (res as any)?.data?.usage;
+			const limitRaw =
+				entitlement?.entitlements?.limits?.programmingLanguagesInGroups;
+			const usedRaw = usage?.currentProgrammingLanguagesInGroups;
+			const parsedLimit = Number(limitRaw);
+			setLanguageLimitFromEntitlement(
+				Number.isFinite(parsedLimit) ? parsedLimit : null,
+			);
+			setLanguagesUsedFromUsage(
+				usedRaw === null || typeof usedRaw === "undefined"
+					? null
+					: Number(usedRaw),
+			);
+		} catch {
+			setLanguageLimitFromEntitlement(null);
+			setLanguagesUsedFromUsage(null);
+		} finally {
+			setEntitlementUsageLoading(false);
+		}
+	}, [groupId]);
+
+	useEffect(() => {
+		if (!groupId) {
+			setLanguageLimitFromEntitlement(null);
+			setLanguagesUsedFromUsage(null);
+			setEntitlementUsageLoading(false);
+			return;
+		}
+		void refreshEntitlementUsage();
+	}, [groupId, refreshEntitlementUsage]);
+
+	const languageLimitUi = useMemo(() => {
+		const usedFallback = groupLanguages.length;
+		const used = Number(languagesUsedFromUsage ?? usedFallback);
+		const limit = Number(languageLimitFromEntitlement);
+		const hasLimit =
+			languageLimitFromEntitlement !== null && Number.isFinite(limit);
+		if (entitlementUsageLoading) {
+			return {
+				text: "Loading language entitlement...",
+				pct: 0,
+			};
+		}
+		if (!hasLimit) {
+			return {
+				text:
+					languagesUsedFromUsage === null
+						? "Language entitlement: N/A"
+						: `Languages: ${used} • Limit: N/A`,
+				pct: 0,
+			};
+		}
+		const isUnlimited = Number.isFinite(limit) && limit < 0;
+		const isDisabled = !isUnlimited && limit <= 0;
+		const pct =
+			!isUnlimited && !isDisabled && limit > 0
+				? Math.min(100, Math.max(0, Math.round((used / limit) * 100)))
+				: 0;
+		const text = isUnlimited
+			? `Languages: ${used} • Limit: Unlimited`
+			: isDisabled
+				? `Languages: ${used} • Limit: 0`
+				: `Languages: ${used} / ${limit}`;
+		return { text, pct };
+	}, [
+		entitlementUsageLoading,
+		groupLanguages.length,
+		languagesUsedFromUsage,
+		languageLimitFromEntitlement,
+	]);
+
 	// If the selected language is already added, clear it.
 	useEffect(() => {
 		if (selectedLanguageId && groupLanguageIdSet.has(selectedLanguageId)) {
@@ -137,6 +222,7 @@ export default function GroupProgrammingLanguageSection({
 			showGlobalAlert({ type: "success", message: "Added successfully" });
 			setSelectedLanguageId("");
 			await refreshGroupLanguages();
+			await refreshEntitlementUsage();
 		} catch (err: any) {
 			showGlobalAlert({
 				type: "error",
@@ -162,6 +248,7 @@ export default function GroupProgrammingLanguageSection({
 			await removeGroupSupportedProgrammingLanguage(groupId, languageId);
 			showGlobalAlert({ type: "success", message: "Removed successfully" });
 			await refreshGroupLanguages();
+			await refreshEntitlementUsage();
 		} catch (err: any) {
 			showGlobalAlert({
 				type: "error",
@@ -191,6 +278,15 @@ export default function GroupProgrammingLanguageSection({
 				<DescripSection>
 					Manage which programming languages are enabled for this group.
 				</DescripSection>
+				<div className="mt-2 grid gap-2">
+					<div className="flex items-center justify-between">
+						<span className="text-sm font-medium">Entitlement usage</span>
+						<span className="text-xs text-muted-foreground">
+							{languageLimitUi.text}
+						</span>
+					</div>
+					<Progress value={languageLimitUi.pct} />
+				</div>
 			</TitleArea>
 
 			<Card className="mb-4">

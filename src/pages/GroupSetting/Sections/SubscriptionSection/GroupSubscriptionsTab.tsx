@@ -27,6 +27,8 @@ type Props = {
 	groupSubscriptionsError: string | null;
 	currentGroupSubscription: GroupSubscriptionInGroup | null;
 	groupAllSubscriptions: GroupSubscriptionInGroup[];
+	currentEntitlement: any;
+	currentUsage: any;
 	currentSubscriptionPlanId?: string | null;
 	resolveSubscriptionName: (sub: GroupSubscriptionInGroup) => string;
 	formatDateTime: (value: string | null | undefined) => string;
@@ -51,6 +53,8 @@ export default function GroupSubscriptionsTab({
 	groupSubscriptionsError,
 	currentGroupSubscription,
 	groupAllSubscriptions,
+	currentEntitlement,
+	currentUsage,
 	currentSubscriptionPlanId,
 	resolveSubscriptionName,
 	formatDateTime,
@@ -118,6 +122,126 @@ export default function GroupSubscriptionsTab({
 
 	return (
 		<div className="flex flex-col gap-4">
+			{!groupSubscriptionsLoading && !groupSubscriptionsError && groupId && (
+				<div className="rounded-md bg-background p-4 shadow-sm">
+					<p className="text-sm font-medium">Entitlement usage</p>
+					<p className="text-sm text-muted-foreground">
+						Current billing-cycle usage based on the group entitlement snapshot.
+					</p>
+
+					{!currentEntitlement || !currentUsage ? (
+						<div className="mt-3">
+							<p className="text-sm text-muted-foreground">
+								No entitlement/usage data available.
+							</p>
+						</div>
+					) : (
+						(() => {
+							const formatUsageLabel = (
+								used: number,
+								limit: number,
+								isUnlimited: boolean,
+								isDisabled: boolean,
+							) => {
+								if (isUnlimited) return `Used: ${used}  Limit: Unlimited`;
+								if (isDisabled) return `Used: ${used}  Limit: 0`;
+								return `Used: ${used} / ${limit}`;
+							};
+
+							const toProgress = (used: number, limit: number) => {
+								const isUnlimited = Number.isFinite(limit) && limit < 0;
+								const isDisabled =
+									!Number.isFinite(limit) || (!isUnlimited && limit <= 0);
+								const pct =
+									!isUnlimited && !isDisabled && limit > 0
+										? Math.min(
+												100,
+												Math.max(0, Math.round((used / limit) * 100)),
+											)
+										: 0;
+								return { isUnlimited, isDisabled, pct };
+							};
+
+							const runCodeLimit = Number(
+								currentEntitlement?.entitlements?.limits?.runCodePerDay,
+							);
+							const runCodeUsed = Number(currentUsage?.runCodeExecutions ?? 0);
+							const runCodeProgress = toProgress(runCodeUsed, runCodeLimit);
+
+							const memberLimit = Number(
+								currentEntitlement?.entitlements?.limits?.members,
+							);
+							const memberUsed = Number(currentUsage?.currentMembers ?? 0);
+							const memberProgress = toProgress(memberUsed, memberLimit);
+
+							const languagesLimit = Number(
+								currentEntitlement?.entitlements?.limits
+									?.programmingLanguagesInGroups,
+							);
+							const languagesUsed = Number(
+								currentUsage?.currentProgrammingLanguagesInGroups ?? 0,
+							);
+							const languagesProgress = toProgress(
+								languagesUsed,
+								languagesLimit,
+							);
+
+							return (
+								<div className="mt-3 grid gap-4">
+									<div className="grid gap-1">
+										<div className="flex items-center justify-between">
+											<span className="text-sm font-medium">Members</span>
+											<span className="text-xs text-muted-foreground">
+												{formatUsageLabel(
+													memberUsed,
+													memberLimit,
+													memberProgress.isUnlimited,
+													memberProgress.isDisabled,
+												)}
+											</span>
+										</div>
+										<Progress value={memberProgress.pct} />
+									</div>
+
+									<div className="grid gap-1">
+										<div className="flex items-center justify-between">
+											<span className="text-sm font-medium">Languages</span>
+											<span className="text-xs text-muted-foreground">
+												{formatUsageLabel(
+													languagesUsed,
+													languagesLimit,
+													languagesProgress.isUnlimited,
+													languagesProgress.isDisabled,
+												)}
+											</span>
+										</div>
+										<Progress value={languagesProgress.pct} />
+									</div>
+
+									<div className="grid gap-1">
+										<div className="flex items-center justify-between">
+											<span className="text-sm font-medium">Run code</span>
+											<span className="text-xs text-muted-foreground">
+												{formatUsageLabel(
+													runCodeUsed,
+													runCodeLimit,
+													runCodeProgress.isUnlimited,
+													runCodeProgress.isDisabled,
+												)}
+											</span>
+										</div>
+										<Progress value={runCodeProgress.pct} />
+										<div className="text-xs text-muted-foreground">
+											Only run code reset after 24 hours.
+										</div>
+									</div>
+								</div>
+							);
+						})()
+					)}
+				</div>
+			)}
+
 			{groupSubscriptionsLoading && (
 				<div className="rounded-md border bg-background p-4">
 					<p className="text-sm text-muted-foreground">
@@ -137,7 +261,7 @@ export default function GroupSubscriptionsTab({
 			{!groupSubscriptionsLoading &&
 				!groupSubscriptionsError &&
 				currentGroupSubscription?.subscription && (
-					<div className="rounded-md border bg-background p-4">
+					<div className="rounded-md bg-background p-4 shadow-sm">
 						<p className="text-sm">
 							<span className="text-muted-foreground">Current plan: </span>
 							<span className="font-medium">
@@ -151,7 +275,7 @@ export default function GroupSubscriptionsTab({
 				)}
 
 			{!groupSubscriptionsLoading && !groupSubscriptionsError && groupId && (
-				<div className="rounded-md border bg-background">
+				<div className="rounded-md bg-background p-2 shadow-sm">
 					<div className="p-4">
 						<p className="text-sm font-medium">Group subscriptions</p>
 						<p className="text-sm text-muted-foreground">
@@ -221,7 +345,7 @@ export default function GroupSubscriptionsTab({
 				</div>
 			)}
 
-			<div className="rounded-md border bg-background">
+			<div className="rounded-md bg-background shadow-sm">
 				<div className="p-4">
 					<p className="text-sm font-medium">Share funds</p>
 					<p className="text-sm text-muted-foreground">
