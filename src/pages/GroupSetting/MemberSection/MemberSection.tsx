@@ -8,13 +8,14 @@ import {
 	SectionWrapper,
 	TitleArea,
 	TitleSection,
+	DescripSection,
 } from "../GroupSetting.styled";
 import { ContentArea, Avatar } from "./MemberSection.styled";
 import { deleteMemberGroup, membersGroup } from "@/services/userGroupAPI";
 import { useForm } from "react-hook-form";
 import { useParams } from "@tanstack/react-router";
 import { useAuth } from "@/hooks";
-import { detailGroup } from "@/services/groupAPI";
+import { detailGroup, getGroupSubscriptions } from "@/services/groupAPI";
 
 // shadcn components (adjust import paths if your project uses different aliases)
 import { Button } from "@/components/ui/button";
@@ -74,6 +75,14 @@ export default function MemberSection({
 	const [roles] = useState<any[] | null>(null);
 	const [roleLoading] = useState(false);
 	const [isGroupOwner, setIsGroupOwner] = useState(Boolean(canManageMembers));
+	const [groupOwnerId, setGroupOwnerId] = useState<string | null>(null);
+	const [memberLimitFromEntitlement, setMemberLimitFromEntitlement] = useState<
+		number | null
+	>(null);
+	const [membersUsedFromUsage, setMembersUsedFromUsage] = useState<
+		number | null
+	>(null);
+	const [entitlementUsageLoading, setEntitlementUsageLoading] = useState(false);
 
 	const {
 		formState: { isSubmitting },
@@ -88,18 +97,22 @@ export default function MemberSection({
 
 	// fetch group details to determine if current user is owner
 	const fetchGroupDetails = useCallback(async () => {
-		if (typeof canManageMembers === "boolean") {
-			setIsGroupOwner(canManageMembers);
-			return;
-		}
-		if (!groupId || !profile?.id) return;
+		if (!groupId) return;
 		try {
 			const res = await detailGroup(groupId);
 			const createdBy = res?.data?.createdBy;
-			setIsGroupOwner(createdBy === profile.id);
+			setGroupOwnerId(createdBy ?? null);
+			if (typeof canManageMembers === "boolean") {
+				setIsGroupOwner(canManageMembers);
+			} else if (profile?.id) {
+				setIsGroupOwner(createdBy === profile.id);
+			} else {
+				setIsGroupOwner(false);
+			}
 		} catch (err) {
 			console.error("fetch group details failed", err);
 			setIsGroupOwner(false);
+			setGroupOwnerId(null);
 		}
 	}, [groupId, profile?.id, canManageMembers]);
 
@@ -110,16 +123,12 @@ export default function MemberSection({
 			setLoading(true);
 			const res = await membersGroup(groupId);
 			const members = res?.data ?? [];
-			// Filter out current logged-in user
-			const filteredMembers = members.filter(
-				(member: any) => member.id !== profile?.id,
-			);
-			setRowData(filteredMembers);
-			setAllMembersCache(filteredMembers);
+			setRowData(members);
+			setAllMembersCache(members);
 			if (res?.pagination) {
-				setTotalRow(res.pagination.total ?? filteredMembers.length);
+				setTotalRow(res.pagination.total ?? members.length);
 			} else {
-				setTotalRow(filteredMembers.length);
+				setTotalRow(members.length);
 			}
 		} catch (err) {
 			console.error("fetch members failed", err);
@@ -135,6 +144,70 @@ export default function MemberSection({
 	useEffect(() => {
 		fetchData();
 	}, [fetchData, profile?.id]);
+
+	useEffect(() => {
+		let mounted = true;
+		if (!groupId) {
+			setMemberLimitFromEntitlement(null);
+			setMembersUsedFromUsage(null);
+			setEntitlementUsageLoading(false);
+			return;
+		}
+
+		setEntitlementUsageLoading(true);
+		getGroupSubscriptions(groupId)
+			.then((res) => {
+				if (!mounted) return;
+				const entitlement = (res as any)?.data?.currentEntitlement;
+				const usage = (res as any)?.data?.usage;
+				const limitRaw = entitlement?.entitlements?.limits?.members;
+				const usedRaw = usage?.currentMembers;
+				const parsedLimit = Number(limitRaw);
+				setMemberLimitFromEntitlement(
+					Number.isFinite(parsedLimit) ? parsedLimit : null,
+				);
+				setMembersUsedFromUsage(
+					usedRaw === null || typeof usedRaw === "undefined"
+						? null
+						: Number(usedRaw),
+				);
+			})
+			.catch(() => {
+				if (!mounted) return;
+				setMemberLimitFromEntitlement(null);
+				setMembersUsedFromUsage(null);
+			})
+			.finally(() => {
+				if (!mounted) return;
+				setEntitlementUsageLoading(false);
+			});
+
+		return () => {
+			mounted = false;
+		};
+	}, [groupId]);
+
+	const membersLimitText = useMemo(() => {
+		if (entitlementUsageLoading) return "Loading member entitlement...";
+		const used = Number(membersUsedFromUsage ?? 0);
+		const limit = Number(memberLimitFromEntitlement);
+		const hasLimit =
+			memberLimitFromEntitlement !== null && Number.isFinite(limit);
+		if (!hasLimit) {
+			return membersUsedFromUsage === null
+				? "Member entitlement: N/A"
+				: `Members: ${used} • Limit: N/A`;
+		}
+		const isUnlimited = Number.isFinite(limit) && limit < 0;
+		const isDisabled = !isUnlimited && limit <= 0;
+		if (isUnlimited) return `Members: ${used} • Limit: Unlimited`;
+		if (isDisabled) return `Members: ${used} • Limit: 0`;
+		return `Members: ${used} / ${limit}`;
+	}, [
+		entitlementUsageLoading,
+		membersUsedFromUsage,
+		memberLimitFromEntitlement,
+	]);
 
 	// quick client-side search
 	useEffect(() => {
@@ -302,9 +375,19 @@ export default function MemberSection({
 				align: "left",
 				valueFormatter: (v: any) => v ?? "—",
 			},
+			{
+				field: "role",
+				headerName: "Role",
+				editable: false,
+				align: "left",
+				valueFormatter: (_v: any, row?: any) => {
+					if (!row?.id || !groupOwnerId) return "Member";
+					return String(row.id) === String(groupOwnerId) ? "Admin" : "Member";
+				},
+			},
 		],
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-		[roles, roleLoading],
+		[roles, roleLoading, groupOwnerId],
 	);
 
 	const actions: Action[] = isGroupOwner
@@ -341,6 +424,7 @@ export default function MemberSection({
 		<SectionWrapper>
 			<TitleArea>
 				<TitleSection>Members</TitleSection>
+				<DescripSection>{membersLimitText}</DescripSection>
 			</TitleArea>
 
 			<ContentArea>

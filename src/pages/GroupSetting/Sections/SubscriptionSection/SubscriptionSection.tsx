@@ -33,9 +33,11 @@ import {
 	type ShareFund,
 } from "@/services/shareFundAPI";
 import { listTransactions, type Transaction } from "@/services/transactionAPI";
+import { listOrders, type Order } from "@/services/orderAPI";
 import CheckoutSection from "./CheckoutSection";
 import GroupSubscriptionsTab from "./GroupSubscriptionsTab";
 import GroupTransactionsTab from "./GroupTransactionsTab";
+import GroupOrdersTab from "./GroupOrdersTab";
 import SystemSubscriptionsTab, {
 	type ComparisonRow,
 	type ComparisonRowKey,
@@ -56,7 +58,7 @@ type SubscriptionSectionProps = {
 	onDangerStateChanged?: () => void;
 };
 
-type ActiveTab = "group" | "system" | "transactions";
+type ActiveTab = "group" | "system" | "transactions" | "orders";
 
 export default function SubscriptionSection({
 	canBuy = false,
@@ -81,6 +83,8 @@ export default function SubscriptionSection({
 	const [groupAllSubscriptions, setGroupAllSubscriptions] = useState<
 		GroupSubscriptionInGroup[]
 	>([]);
+	const [currentEntitlement, setCurrentEntitlement] = useState<any>(null);
+	const [currentUsage, setCurrentUsage] = useState<any>(null);
 
 	const [shareFunds, setShareFunds] = useState<ShareFund[]>([]);
 	const [shareFundsLoading, setShareFundsLoading] = useState(false);
@@ -114,6 +118,11 @@ export default function SubscriptionSection({
 	const [transactionsError, setTransactionsError] = useState<string | null>(
 		null,
 	);
+
+	const [orders, setOrders] = useState<Order[]>([]);
+	const [ordersLoadedFor, setOrdersLoadedFor] = useState<LoadedMarker>(null);
+	const [ordersLoading, setOrdersLoading] = useState(false);
+	const [ordersError, setOrdersError] = useState<string | null>(null);
 
 	const getErrorMessage = (err: any, fallback: string) => {
 		return String(err?.response?.data?.message ?? err?.message ?? fallback);
@@ -206,6 +215,11 @@ export default function SubscriptionSection({
 		setTransactionsError(null);
 		setTransactionsLoadedFor(null);
 		setTransactionsLoading(false);
+		// Reset order state when group changes.
+		setOrders([]);
+		setOrdersError(null);
+		setOrdersLoadedFor(null);
+		setOrdersLoading(false);
 	}, [groupId]);
 
 	useEffect(() => {
@@ -225,12 +239,16 @@ export default function SubscriptionSection({
 				if (!mounted) return;
 				setCurrentGroupSubscription(res?.data?.currentSubscription ?? null);
 				setGroupAllSubscriptions(res?.data?.subscriptions ?? []);
+				setCurrentEntitlement((res as any)?.data?.currentEntitlement ?? null);
+				setCurrentUsage((res as any)?.data?.usage ?? null);
 			})
 			.catch((err: any) => {
 				if (!mounted) return;
 				setGroupSubscriptionsError(
 					getErrorMessage(err, "Failed to load group subscriptions"),
 				);
+				setCurrentEntitlement(null);
+				setCurrentUsage(null);
 			})
 			.finally(() => {
 				if (!mounted) return;
@@ -242,10 +260,14 @@ export default function SubscriptionSection({
 		};
 	}, [groupId]);
 
-	const hasPlans = subscriptions.length > 0;
 	const currentSubscriptionPlanId = currentGroupSubscription?.subscriptionId;
-	const sortedPlans = useMemo(() => {
-		return [...subscriptions].sort((a, b) => {
+
+	const systemPlans = useMemo(() => {
+		return subscriptions.filter((s) => Boolean(s.isActive));
+	}, [subscriptions]);
+	const systemHasPlans = systemPlans.length > 0;
+	const systemSortedPlans = useMemo(() => {
+		return [...systemPlans].sort((a, b) => {
 			const aPrice = Number(a.price);
 			const bPrice = Number(b.price);
 			if (Number.isFinite(aPrice) && Number.isFinite(bPrice))
@@ -254,7 +276,7 @@ export default function SubscriptionSection({
 				String(b.subscriptionName),
 			);
 		});
-	}, [subscriptions]);
+	}, [systemPlans]);
 
 	const comparisonRows = useMemo<ComparisonRow[]>(
 		() => [
@@ -287,7 +309,7 @@ export default function SubscriptionSection({
 	const getCellValue = (plan: Subscription, key: ComparisonRowKey) => {
 		switch (key) {
 			case "isAIActive":
-				return renderEnabledTag(Boolean(plan.allowUseAI ?? plan.isAIActive));
+				return renderEnabledTag(Boolean(plan.isAIActive));
 			case "price":
 				return String(plan.price);
 			case "limitMembers":
@@ -483,6 +505,29 @@ export default function SubscriptionSection({
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [activeTab, groupId, transactionsLoadedFor?.groupId]);
 
+	const refreshOrders = async () => {
+		if (!groupId) return;
+		setOrdersLoading(true);
+		setOrdersError(null);
+		try {
+			const res = await listOrders({ groupId });
+			setOrders(res?.data ?? []);
+			setOrdersLoadedFor({ groupId });
+		} catch (err: any) {
+			setOrdersError(getErrorMessage(err, "Failed to load orders"));
+		} finally {
+			setOrdersLoading(false);
+		}
+	};
+
+	useEffect(() => {
+		if (activeTab !== "orders") return;
+		if (!groupId) return;
+		if (ordersLoadedFor?.groupId === groupId) return;
+		void refreshOrders();
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [activeTab, groupId, ordersLoadedFor?.groupId]);
+
 	const resolveTransactionTarget = (tx: Transaction): string => {
 		if (tx.subscriptionId) {
 			const planName =
@@ -525,6 +570,7 @@ export default function SubscriptionSection({
 					<TabsTrigger value="group">Group</TabsTrigger>
 					<TabsTrigger value="system">System subscriptions</TabsTrigger>
 					<TabsTrigger value="transactions">Transactions</TabsTrigger>
+					<TabsTrigger value="orders">Orders</TabsTrigger>
 				</TabsList>
 
 				<TabsContent value="group">
@@ -534,6 +580,8 @@ export default function SubscriptionSection({
 						groupSubscriptionsError={groupSubscriptionsError}
 						currentGroupSubscription={currentGroupSubscription}
 						groupAllSubscriptions={groupSubscriptionsInTab}
+						currentEntitlement={currentEntitlement}
+						currentUsage={currentUsage}
 						currentSubscriptionPlanId={currentSubscriptionPlanId}
 						resolveSubscriptionName={resolveSubscriptionName}
 						formatDateTime={formatDateTime}
@@ -558,8 +606,8 @@ export default function SubscriptionSection({
 						groupId={groupId}
 						loading={loading}
 						error={error}
-						hasPlans={hasPlans}
-						sortedPlans={sortedPlans}
+						hasPlans={systemHasPlans}
+						sortedPlans={systemSortedPlans}
 						currentSubscriptionPlanId={currentSubscriptionPlanId}
 						checkoutPlan={checkoutPlan}
 						creatingPlanId={creatingPlanId}
@@ -582,6 +630,16 @@ export default function SubscriptionSection({
 						transactions={transactions}
 						resolveTransactionTarget={resolveTransactionTarget}
 						onRefresh={() => void refreshTransactions()}
+					/>
+				</TabsContent>
+
+				<TabsContent value="orders">
+					<GroupOrdersTab
+						groupId={groupId}
+						loading={ordersLoading}
+						error={ordersError}
+						orders={orders}
+						onRefresh={() => void refreshOrders()}
 					/>
 				</TabsContent>
 			</Tabs>

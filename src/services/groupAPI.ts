@@ -51,13 +51,43 @@ export type GroupSubscriptionInGroup = {
 	isPaid: boolean;
 	startedAt: string | null;
 	endedAt: string | null;
-	// Backend returns SubscriptionResponse; allowUseAI may be missing depending on backend version.
+	// Backend returns SubscriptionResponse.
 	subscription?: Partial<Subscription> | null;
+};
+
+export type GroupEntitlement = {
+	id: string;
+	groupId: string;
+	source: string;
+	subscriptionId: string | null;
+	effectiveFrom: string;
+	effectiveTo: string | null;
+	entitlements: Record<string, any>;
+	createdAt: string;
+	createdBy: string;
+};
+
+export type GroupUsage = {
+	id: string;
+	groupId: string;
+	billingCycleKey: string;
+	periodStart: string;
+	periodEnd: string;
+	messagesSent: number;
+	fileBytesUploaded: string;
+	runCodeExecutions: number;
+	aiTokensConsumed: string;
+	createdAt: string;
+	updatedAt: string;
+	currentMembers?: number;
+	currentProgrammingLanguagesInGroups?: number;
 };
 
 export type GroupSubscriptionsInGroupResponse = {
 	currentSubscription: GroupSubscriptionInGroup | null;
 	subscriptions: GroupSubscriptionInGroup[];
+	currentEntitlement: GroupEntitlement | null;
+	usage: GroupUsage | null;
 };
 
 export const getGroupSubscriptions = async (
