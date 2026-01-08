@@ -27,11 +27,29 @@ interface LineChartProps {
 	timeButtons?: string[];
 }
 
-const CustomTooltip = ({ active, payload }: any) => {
+const formatTooltipLabel = (label: unknown) => {
+	if (label === null || label === undefined) return "";
+	const raw = String(label).trim();
+	if (!raw) return "";
+	// If it's a YYYY-MM-DD label, format as "DD MMM, YYYY".
+	if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+		const d = new Date(`${raw}T00:00:00`);
+		if (!Number.isNaN(d.getTime())) {
+			return new Intl.DateTimeFormat(undefined, {
+				year: "numeric",
+				month: "short",
+				day: "2-digit",
+			}).format(d);
+		}
+	}
+	return raw;
+};
+
+const CustomTooltip = ({ active, payload, label }: any) => {
 	if (active && payload && payload.length) {
 		return (
 			<div className="bg-gray-800 text-white px-3 py-2 rounded-md shadow-lg border border-gray-700">
-				<p className="text-xs font-medium mb-1">{`20 Sep, 2025`}</p>
+				<p className="text-xs font-medium mb-1">{formatTooltipLabel(label)}</p>
 				{payload.map((entry: any, index: number) => (
 					<p key={index} className="text-xs">
 						<span style={{ color: entry.color }}>●</span> {entry.value}

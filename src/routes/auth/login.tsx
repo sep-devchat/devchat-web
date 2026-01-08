@@ -42,7 +42,7 @@ function RouteComponent() {
 	useEffect(() => {
 		if (profile) {
 			if (profile.isAdmin) {
-				navigate({ to: "/admin", replace: true });
+				navigate({ to: "/admin/dashboard", replace: true });
 			} else {
 				navigate({ to: "/chat/friend", replace: true });
 			}

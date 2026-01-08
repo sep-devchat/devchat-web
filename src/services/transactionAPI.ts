@@ -1,6 +1,7 @@
 import { get, ApiResponseDto } from "./apiCaller";
 import type { GroupResponse } from "./groupAPI";
 import type { Subscription } from "./subscriptionAPI";
+import { UserResponse } from "./userAPI";
 
 const apiUrl = "/api/transaction";
 
@@ -26,7 +27,7 @@ export type Transaction = {
 	shareFundId: string | null;
 	subscriptionId?: string | null;
 	// The API currently returns entity objects; relations may be present depending on backend config.
-	user?: any;
+	user?: UserResponse | any;
 	group?: GroupResponse | any;
 	shareFund?: any;
 	subscription?: Partial<Subscription> | any;

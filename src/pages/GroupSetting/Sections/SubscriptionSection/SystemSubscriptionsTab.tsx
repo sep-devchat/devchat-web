@@ -120,9 +120,7 @@ export default function SystemSubscriptionsTab({
 									<div className="flex items-center justify-between">
 										<span className="text-muted-foreground">AI</span>
 										<span className="font-medium">
-											{renderEnabledTag(
-												Boolean(plan.allowUseAI ?? plan.isAIActive),
-											)}
+											{renderEnabledTag(Boolean(plan.isAIActive))}
 										</span>
 									</div>
 									<div className="flex items-center justify-between">
@@ -164,8 +162,7 @@ export default function SystemSubscriptionsTab({
 													!groupId ||
 													creatingPlanId === plan.id ||
 													hasAnyShareFund ||
-													shareFundBySubscriptionId.has(plan.id) ||
-													currentSubscriptionPlanId === plan.id
+													shareFundBySubscriptionId.has(plan.id)
 												}
 												onClick={() => openCreateFundDialog(plan)}
 											>

@@ -101,6 +101,12 @@ const Sidebar: React.FC = () => {
 			path: "/admin/transactions",
 		},
 		{
+			id: "orders",
+			icon: ReceiptText,
+			label: "Orders",
+			path: "/admin/orders",
+		},
+		{
 			id: "report-category",
 			icon: Flag,
 			label: "Report Categories",
