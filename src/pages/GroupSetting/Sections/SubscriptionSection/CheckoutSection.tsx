@@ -9,13 +9,6 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import {
-	Select,
-	SelectContent,
-	SelectItem,
-	SelectTrigger,
-	SelectValue,
-} from "@/components/ui/select";
 import type { Subscription } from "@/services/subscriptionAPI";
 import { createDepositUrl } from "@/services/paymentAPI";
 
@@ -40,8 +33,7 @@ export default function CheckoutSection({
 	groupId,
 	plan,
 }: CheckoutSectionProps) {
-	const monthOptions = useMemo(() => [1, 3, 6, 12] as const, []);
-	const [monthsRaw, setMonthsRaw] = useState<(typeof monthOptions)[number]>(1);
+	const months = 1;
 	const [paying, setPaying] = useState(false);
 
 	const formatVnd = useMemo(() => {
@@ -55,7 +47,6 @@ export default function CheckoutSection({
 
 	useEffect(() => {
 		if (!open) return;
-		setMonthsRaw(1);
 		setPaying(false);
 	}, [open, plan?.id]);
 
@@ -63,14 +54,6 @@ export default function CheckoutSection({
 		const amount = Number(plan?.price);
 		return Number.isFinite(amount) ? amount : NaN;
 	}, [plan?.price]);
-
-	const months = useMemo(() => {
-		const parsed = Number(monthsRaw);
-		if (!Number.isFinite(parsed) || !Number.isInteger(parsed)) return NaN;
-		if (!monthOptions.includes(parsed as (typeof monthOptions)[number]))
-			return NaN;
-		return parsed;
-	}, [monthOptions, monthsRaw]);
 
 	const total = useMemo(() => {
 		if (!Number.isFinite(unitPrice) || !Number.isFinite(months)) return NaN;
@@ -100,7 +83,7 @@ export default function CheckoutSection({
 			setPaying(true);
 			const res = await createDepositUrl({
 				amount: Math.round(total),
-				monthQuantity: months,
+				monthQuantity: 1,
 				groupId,
 				subscriptionId: plan.id,
 			});
@@ -138,7 +121,7 @@ export default function CheckoutSection({
 				<DialogHeader>
 					<DialogTitle>Checkout</DialogTitle>
 					<DialogDescription>
-						Review invoice details, choose months, then proceed to VNPay.
+						Review invoice details, then proceed to VNPay.
 					</DialogDescription>
 				</DialogHeader>
 
@@ -161,9 +144,7 @@ export default function CheckoutSection({
 							</div>
 							<div className="flex items-center justify-between gap-4">
 								<span className="text-muted-foreground">Months</span>
-								<span className="font-medium">
-									{Number.isFinite(months) ? String(months) : "N/A"}
-								</span>
+								<span className="font-medium">{String(months)}</span>
 							</div>
 							<div className="flex items-center justify-between gap-4">
 								<span className="text-muted-foreground">Total</span>
@@ -176,38 +157,6 @@ export default function CheckoutSection({
 						</div>
 					</CardContent>
 				</Card>
-
-				<div className="grid gap-2">
-					<p className="text-sm font-medium">Duration</p>
-					<Select
-						value={String(monthsRaw)}
-						onValueChange={(value) => {
-							const parsed = Number(value);
-							if (
-								Number.isFinite(parsed) &&
-								Number.isInteger(parsed) &&
-								monthOptions.includes(parsed as (typeof monthOptions)[number])
-							) {
-								setMonthsRaw(parsed as (typeof monthOptions)[number]);
-							}
-						}}
-						disabled={paying}
-					>
-						<SelectTrigger>
-							<SelectValue placeholder="Select duration" />
-						</SelectTrigger>
-						<SelectContent>
-							{monthOptions.map((m) => (
-								<SelectItem key={m} value={String(m)}>
-									{m} month{m > 1 ? "s" : ""}
-								</SelectItem>
-							))}
-						</SelectContent>
-					</Select>
-					<p className="text-xs text-muted-foreground">
-						Total will be calculated as unit price × duration.
-					</p>
-				</div>
 
 				<DialogFooter className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
 					<Button
