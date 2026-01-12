@@ -27,7 +27,7 @@ import {
 	type OrderOverviewReport,
 } from "@/services/orderAPI";
 import CustomDateTimePicker from "@/components/custom/CustomDateTimePicker/CustomDateTimePicker";
-import CustomBarChart from "@/components/custom/BarChart/BarChart";
+import CustomPieChart from "@/components/custom/PieChart/PieChart";
 import CustomLineChart from "@/components/custom/LineChart/LineChart";
 import type { Pagination as PaginationMeta } from "@/services/transactionAPI";
 import {
@@ -121,9 +121,7 @@ const OrderHistory = () => {
 
 	const [page, setPage] = useState(1);
 	const [pageSize, setPageSize] = useState(20);
-	const [sortBy, setSortBy] = useState<
-		"createdAt" | "orderCode" | "orderStatus"
-	>("createdAt");
+	const [sortBy, setSortBy] = useState<"createdAt" | "orderCode">("createdAt");
 	const [sortOrder, setSortOrder] = useState<"ASC" | "DESC">("DESC");
 	const [groupId, setGroupId] = useState<string>("");
 	const [groupIdDraft, setGroupIdDraft] = useState<string>("");
@@ -554,29 +552,35 @@ const OrderHistory = () => {
 								</div>
 							) : (
 								(() => {
+									const colors = [
+										"#2563eb", // blue
+										"#dc2626", // red
+										"#16a34a", // green
+										"#d97706", // amber
+										"#7c3aed", // violet
+										"#0d9488", // teal
+										"#db2777", // pink
+										"#0891b2", // cyan
+									] as const;
 									const data = (overview?.bySubscription ?? [])
 										.slice(0, 8)
-										.map((r) => ({
+										.map((r, index) => ({
 											name:
 												r.subscriptionName ||
 												r.subscriptionCode ||
 												r.subscriptionId,
-											revenueVnd: toNumberSafe(r.revenueVnd),
+											value: toNumberSafe(r.revenueVnd),
+											color: colors[index % colors.length],
 										}));
 
 									return (
-										<CustomBarChart
+										<CustomPieChart
 											title="Revenue by subscription"
 											description="Top subscriptions by revenue"
 											data={data}
-											bars={[
-												{
-													dataKey: "revenueVnd",
-													fill: "#8b5cf6",
-													name: "Revenue",
-												},
-											]}
 											height={220}
+											showLegend={true}
+											showPercentages={true}
 										/>
 									);
 								})()
@@ -810,7 +814,6 @@ const OrderHistory = () => {
 						>
 							<option value="createdAt">Created at</option>
 							<option value="orderCode">Order code</option>
-							<option value="orderStatus">Order status</option>
 						</select>
 					</div>
 

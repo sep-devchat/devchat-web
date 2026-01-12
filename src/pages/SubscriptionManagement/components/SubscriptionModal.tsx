@@ -53,8 +53,120 @@ const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
 }) => {
 	if (!isOpen) return null;
 
+	// Draft state for number inputs so users can clear/edit without immediately snapping to 0.
+	const [numberDrafts, setNumberDrafts] = React.useState<
+		Record<string, string>
+	>({});
+
+	React.useEffect(() => {
+		if (!isOpen) return;
+		const next: Record<string, string> = {};
+		for (const field of fields) {
+			if (field.type === "number") {
+				next[String(field.key)] = String((form as any)[field.key] ?? 0);
+			}
+		}
+		setNumberDrafts(next);
+	}, [isOpen, fields, form]);
+
+	const formatPriceDisplay = (digitsOnly: string) => {
+		const raw = String(digitsOnly ?? "").trim();
+		if (!raw) return "";
+		const num = Number(raw);
+		if (!Number.isFinite(num)) return raw;
+		// Currency-like formatting (grouping) without the "₫" suffix to keep editing simple.
+		return new Intl.NumberFormat("vi-VN", {
+			maximumFractionDigits: 0,
+		}).format(num);
+	};
+
+	const getPriceDraftValue = () => {
+		const digits = numberDrafts.price ?? String((form as any).price ?? 0);
+		return formatPriceDisplay(digits);
+	};
+
+	const handlePriceFocus = () => {
+		const cur = numberDrafts.price ?? String((form as any).price ?? 0);
+		if (cur === "0") {
+			setNumberDrafts((prev) => ({ ...prev, price: "" }));
+		}
+	};
+
+	const handlePriceBlur = () => {
+		const cur = (numberDrafts.price ?? "").trim();
+		if (cur === "") {
+			setNumberDrafts((prev) => ({ ...prev, price: "0" }));
+			onChange("price", 0);
+			return;
+		}
+		const parsed = Number(cur);
+		if (!Number.isFinite(parsed)) {
+			setNumberDrafts((prev) => ({ ...prev, price: "0" }));
+			onChange("price", 0);
+		}
+	};
+
+	const handlePriceChange = (raw: string) => {
+		// Accept formatted input (e.g. "1.234") by stripping non-digits.
+		const digitsOnly = String(raw ?? "").replace(/\D+/g, "");
+		setNumberDrafts((prev) => ({ ...prev, price: digitsOnly }));
+		if (digitsOnly.trim() === "") {
+			onChange("price", 0);
+			return;
+		}
+		const parsed = Number(digitsOnly);
+		if (Number.isFinite(parsed)) {
+			onChange("price", parsed);
+		}
+	};
+
+	const getNumberDraftValue = (key: keyof SubscriptionFormState) => {
+		return numberDrafts[String(key)] ?? String((form as any)[key] ?? 0);
+	};
+
+	const handleNumberFocus = (key: keyof SubscriptionFormState) => {
+		const k = String(key);
+		const cur = numberDrafts[k] ?? String((form as any)[key] ?? 0);
+		if (cur === "0") {
+			setNumberDrafts((prev) => ({ ...prev, [k]: "" }));
+		}
+	};
+
+	const handleNumberBlur = (key: keyof SubscriptionFormState) => {
+		const k = String(key);
+		const cur = numberDrafts[k] ?? "";
+		if (cur.trim() === "") {
+			setNumberDrafts((prev) => ({ ...prev, [k]: "0" }));
+			onChange(key, 0);
+			return;
+		}
+		const parsed = Number(cur);
+		if (!Number.isFinite(parsed)) {
+			setNumberDrafts((prev) => ({ ...prev, [k]: "0" }));
+			onChange(key, 0);
+		}
+	};
+
+	const handleNumberChange = (
+		key: keyof SubscriptionFormState,
+		raw: string,
+	) => {
+		const k = String(key);
+		setNumberDrafts((prev) => ({ ...prev, [k]: raw }));
+		// While editing, allow empty string (UI) but treat as 0 in form state.
+		if (raw.trim() === "") {
+			onChange(key, 0);
+			return;
+		}
+		const parsed = Number(raw);
+		if (Number.isFinite(parsed)) {
+			onChange(key, parsed);
+		}
+	};
+
 	const renderField = (field: SubscriptionModalProps["fields"][number]) => {
 		const { key, label, placeholder, type, min, required, disabled } = field;
+		const isPriceCurrency = type === "number" && key === "price";
 		return (
 			<S.Field key={String(key)}>
 				{type === "checkbox" ? (
@@ -72,15 +184,41 @@ const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
 						<S.Label htmlFor={key}>{label}</S.Label>
 						<S.Input
 							id={key}
-							type={type || "text"}
+							type={isPriceCurrency ? "text" : type || "text"}
+							inputMode={isPriceCurrency ? "numeric" : undefined}
 							disabled={disabled}
-							value={form[key] as string | number}
-							onChange={(e) =>
-								onChange(
-									key,
-									type === "number" ? Number(e.target.value) : e.target.value,
-								)
+							value={
+								isPriceCurrency
+									? getPriceDraftValue()
+									: type === "number"
+										? getNumberDraftValue(key)
+										: (form[key] as string | number)
 							}
+							onFocus={() => {
+								if (isPriceCurrency) {
+									handlePriceFocus();
+									return;
+								}
+								if (type === "number") handleNumberFocus(key);
+							}}
+							onBlur={() => {
+								if (isPriceCurrency) {
+									handlePriceBlur();
+									return;
+								}
+								if (type === "number") handleNumberBlur(key);
+							}}
+							onChange={(e) => {
+								if (isPriceCurrency) {
+									handlePriceChange(e.target.value);
+									return;
+								}
+								if (type !== "number") {
+									onChange(key, e.target.value);
+									return;
+								}
+								handleNumberChange(key, e.target.value);
+							}}
 							placeholder={placeholder}
 							min={min ?? undefined}
 							required={required}

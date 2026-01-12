@@ -113,7 +113,7 @@ export const GroupSetting: React.FC<GroupSettingProps> = ({
 			const currentSubscription = subscriptionsRes?.data?.currentSubscription;
 
 			const hasCurrentSubscription = Boolean(
-				currentSubscription?.subscription?.subscriptionCode !== "FREE_00",
+				currentSubscription?.subscription?.subscriptionCode !== "FREE",
 			);
 			const hasShareFund = (shareFundsRes?.data?.length ?? 0) > 0;
 
