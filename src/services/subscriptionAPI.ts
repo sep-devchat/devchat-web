@@ -14,15 +14,26 @@ export type Subscription = {
 	levelSubscription: number;
 	version: number;
 	isActive: boolean;
+	isAllowDelete: boolean;
 };
 
-export type CreateSubscriptionPayload = Omit<Subscription, "id" | "version">;
+export type CreateSubscriptionPayload = Omit<
+	Subscription,
+	"id" | "version" | "isAllowDelete"
+>;
 export type UpdateSubscriptionPayload = Partial<CreateSubscriptionPayload>;
 
-export const listSubscriptions = async (): Promise<
-	ApiResponseDto<Subscription[]>
-> => {
-	return get<Subscription[]>(`${apiUrl}`);
+export type ListSubscriptionsParams = {
+	isActive?: boolean;
+	isAIActive?: boolean;
+	sortBy?: "limitMembers" | "runCodePerDay" | "programmingLanguageInGroups";
+	sortOrder?: "ASC" | "DESC";
+};
+
+export const listSubscriptions = async (
+	params: ListSubscriptionsParams = {},
+): Promise<ApiResponseDto<Subscription[]>> => {
+	return get<Subscription[]>(`${apiUrl}`, params);
 };
 
 export const createSubscription = async (
@@ -40,4 +51,8 @@ export const updateSubscription = async (
 
 export const deleteSubscription = async (id: string) => {
 	return remove(`${apiUrl}/${id}`);
+};
+
+export const duplicateSubscription = async (id: string) => {
+	return post<Subscription>(`${apiUrl}/${id}/duplicate`);
 };

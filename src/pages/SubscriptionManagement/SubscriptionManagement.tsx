@@ -3,15 +3,24 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
 	createSubscription,
 	deleteSubscription,
+	duplicateSubscription,
 	listSubscriptions,
 	CreateSubscriptionPayload,
+	type ListSubscriptionsParams,
 	Subscription,
 	UpdateSubscriptionPayload,
 	updateSubscription,
 } from "@/services/subscriptionAPI";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Edit3, Search, Ban, Check, Plus, Trash2 } from "lucide-react";
+import { Edit3, Search, Ban, Check, Plus, Trash2, Copy } from "lucide-react";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
 import * as S from "./SubscriptionManagement.styled";
 import { formatVnd } from "@/utils/format-currency";
 import {
@@ -50,10 +59,26 @@ const SubscriptionManagement: React.FC = () => {
 
 	const [searchTerm, setSearchTerm] = useState("");
 
+	const [statusFilter, setStatusFilter] = useState<
+		"all" | "active" | "inactive"
+	>("all");
+	const [aiFilter, setAiFilter] = useState<"all" | "on" | "off">("all");
+	const [sortBy, setSortBy] = useState<
+		"none" | NonNullable<ListSubscriptionsParams["sortBy"]>
+	>("none");
+	const [sortOrder, setSortOrder] =
+		useState<NonNullable<ListSubscriptionsParams["sortOrder"]>>("ASC");
+
 	const { data, isLoading, isError } = useQuery({
-		queryKey: ["subscriptions"],
+		queryKey: ["subscriptions", statusFilter, aiFilter, sortBy, sortOrder],
 		queryFn: async () => {
-			const res = await listSubscriptions();
+			const params: ListSubscriptionsParams = {};
+			if (statusFilter !== "all") params.isActive = statusFilter === "active";
+			if (aiFilter !== "all") params.isAIActive = aiFilter === "on";
+			if (sortBy !== "none") params.sortBy = sortBy;
+			if (sortBy !== "none") params.sortOrder = sortOrder;
+
+			const res = await listSubscriptions(params);
 			return res.data ?? [];
 		},
 	});
@@ -63,7 +88,7 @@ const SubscriptionManagement: React.FC = () => {
 		const term = searchTerm.trim().toLowerCase();
 		if (!term) return base;
 		return base.filter((item) =>
-			[item.subscriptionCode, item.subscriptionName, item.levelSubscription]
+			[item.subscriptionCode, item.subscriptionName]
 				.filter(Boolean)
 				.some((value) => value?.toString().toLowerCase().includes(term)),
 		);
@@ -130,6 +155,16 @@ const SubscriptionManagement: React.FC = () => {
 		onError: (err) => toast.error(getErrorMessage(err, "Failed to delete")),
 	});
 
+	const duplicateMut = useMutation({
+		mutationFn: async (id: string) => duplicateSubscription(id),
+		onSuccess: (res) => {
+			toast.success(res?.message ?? "Duplicated");
+			queryClient.invalidateQueries({ queryKey: ["subscriptions"] });
+		},
+		onError: (err) =>
+			toast.error(getErrorMessage(err, "Failed to duplicate subscription")),
+	});
+
 	const openToggleStatusConfirm = (item: Subscription) => {
 		const raw = (item as any).isActive;
 		const isActive =
@@ -150,6 +185,7 @@ const SubscriptionManagement: React.FC = () => {
 	};
 
 	const openDeleteConfirm = (item: Subscription) => {
+		if (item.isAllowDelete === false) return;
 		setConfirmState({
 			action: "delete",
 			subscription: item,
@@ -297,14 +333,6 @@ const SubscriptionManagement: React.FC = () => {
 			row: 1,
 		},
 		{
-			key: "levelSubscription",
-			label: "Level",
-			type: "number",
-			min: 0,
-			required: true,
-			row: 1,
-		},
-		{
 			key: "isAIActive",
 			label: "AI active",
 			type: "checkbox",
@@ -331,6 +359,64 @@ const SubscriptionManagement: React.FC = () => {
 							onChange={(event) => setSearchTerm(event.target.value)}
 						/>
 					</S.SearchGroup>
+
+					<div className="flex flex-wrap items-center gap-2">
+						<Select
+							value={statusFilter}
+							onValueChange={(v) => setStatusFilter(v as any)}
+						>
+							<SelectTrigger className="h-10 w-[150px]">
+								<SelectValue placeholder="Status" />
+							</SelectTrigger>
+							<SelectContent>
+								<SelectItem value="all">All status</SelectItem>
+								<SelectItem value="active">Active</SelectItem>
+								<SelectItem value="inactive">Disabled</SelectItem>
+							</SelectContent>
+						</Select>
+
+						<Select
+							value={aiFilter}
+							onValueChange={(v) => setAiFilter(v as any)}
+						>
+							<SelectTrigger className="h-10 w-[150px]">
+								<SelectValue placeholder="AI" />
+							</SelectTrigger>
+							<SelectContent>
+								<SelectItem value="all">All AI</SelectItem>
+								<SelectItem value="on">AI Active</SelectItem>
+								<SelectItem value="off">AI Off</SelectItem>
+							</SelectContent>
+						</Select>
+
+						<Select value={sortBy} onValueChange={(v) => setSortBy(v as any)}>
+							<SelectTrigger className="h-10 w-[220px]">
+								<SelectValue placeholder="Sort by" />
+							</SelectTrigger>
+							<SelectContent>
+								<SelectItem value="none">No sorting</SelectItem>
+								<SelectItem value="limitMembers">Limit users</SelectItem>
+								<SelectItem value="runCodePerDay">Run code per day</SelectItem>
+								<SelectItem value="programmingLanguageInGroups">
+									Programming languages
+								</SelectItem>
+							</SelectContent>
+						</Select>
+
+						<Select
+							value={sortOrder}
+							onValueChange={(v) => setSortOrder(v as any)}
+							disabled={sortBy === "none"}
+						>
+							<SelectTrigger className="h-10 w-[120px]">
+								<SelectValue placeholder="Order" />
+							</SelectTrigger>
+							<SelectContent>
+								<SelectItem value="ASC">ASC</SelectItem>
+								<SelectItem value="DESC">DESC</SelectItem>
+							</SelectContent>
+						</Select>
+					</div>
 
 					<Button onClick={openCreate}>
 						<Plus size={16} className="mr-2" />
@@ -369,7 +455,6 @@ const SubscriptionManagement: React.FC = () => {
 										<S.Th>AI</S.Th>
 										<S.Th>Run code per day</S.Th>
 										<S.Th>Langs</S.Th>
-										<S.Th>Level</S.Th>
 										<S.Th>Status</S.Th>
 										<S.Th>Actions</S.Th>
 									</tr>
@@ -392,8 +477,11 @@ const SubscriptionManagement: React.FC = () => {
 												</S.StatusBadge>
 											</S.Td>
 											<S.Td>{item.runCodePerDay}</S.Td>
-											<S.Td>{item.programmingLanguageInGroups}</S.Td>
-											<S.Td>{item.levelSubscription}</S.Td>
+											<S.Td>
+												{item.programmingLanguageInGroups < 0
+													? "All supported languages in system"
+													: item.programmingLanguageInGroups}
+											</S.Td>
 											<S.Td>
 												<S.StatusBadge
 													$variant={
@@ -410,6 +498,14 @@ const SubscriptionManagement: React.FC = () => {
 														aria-label="Edit"
 													>
 														<Edit3 size={16} />
+													</S.IconButton>
+													<S.IconButton
+														disabled={duplicateMut.isPending}
+														onClick={() => duplicateMut.mutate(item.id)}
+														aria-label="Duplicate"
+														title="Duplicate"
+													>
+														<Copy size={16} />
 													</S.IconButton>
 													<S.IconButton
 														$variant={
@@ -451,12 +547,19 @@ const SubscriptionManagement: React.FC = () => {
 													</S.IconButton>
 													<S.IconButton
 														$variant="danger"
-														disabled={deleteMut.isPending}
+														disabled={
+															deleteMut.isPending ||
+															item.isAllowDelete === false
+														}
 														onClick={() => {
 															openDeleteConfirm(item);
 														}}
 														aria-label="Delete"
-														title="Delete"
+														title={
+															item.isAllowDelete === false
+																? "Cannot delete"
+																: "Delete"
+														}
 													>
 														<Trash2 size={16} />
 													</S.IconButton>
