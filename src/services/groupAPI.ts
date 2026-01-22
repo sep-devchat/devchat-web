@@ -87,6 +87,8 @@ export type GroupSubscriptionsInGroupResponse = {
 	currentSubscription: GroupSubscriptionInGroup | null;
 	subscriptions: GroupSubscriptionInGroup[];
 	currentEntitlement: GroupEntitlement | null;
+	entitlementsHistory: GroupEntitlement[];
+	entitlements: Record<string, any> | null;
 	usage: GroupUsage | null;
 };
 

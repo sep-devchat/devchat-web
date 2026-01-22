@@ -103,9 +103,7 @@ export default function SystemSubscriptionsTab({
 						<Card key={plan.id} className="min-w-[280px] flex flex-col">
 							<CardHeader>
 								<CardTitle>{plan.subscriptionName}</CardTitle>
-								<CardDescription>
-									{plan.subscriptionCode} • Level: {plan.levelSubscription}
-								</CardDescription>
+								<CardDescription>Code: {plan.subscriptionCode}</CardDescription>
 							</CardHeader>
 							<CardContent>
 								<div className="grid grid-cols-1 gap-2 text-sm">

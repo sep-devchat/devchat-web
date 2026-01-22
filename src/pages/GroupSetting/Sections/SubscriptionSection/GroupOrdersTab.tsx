@@ -92,12 +92,6 @@ export default function GroupOrdersTab({
 		return `${firstName ?? ""} ${lastName ?? ""}`.trim();
 	};
 
-	const handleHiddenCode = (code: string) => {
-		if (code.length <= 4) return "****";
-		const splitCode = code.split("_")[1] || code;
-		return `${splitCode.slice(0, 6)}****${splitCode.slice(-6)}`;
-	};
-
 	const getErrorMessage = (err: any, fallback: string) => {
 		return String(err?.response?.data?.message ?? err?.message ?? fallback);
 	};
@@ -133,13 +127,6 @@ export default function GroupOrdersTab({
 	const detailFields = useMemo(() => {
 		if (!selectedOrder) return [];
 		return [
-			{
-				key: "orderCode",
-				label: "Order code:",
-				render: () => (
-					<div className="font-medium">{selectedOrder.orderCode ?? "-"}</div>
-				),
-			},
 			{
 				key: "status",
 				label: "Status:",
@@ -254,7 +241,7 @@ export default function GroupOrdersTab({
 							<Table>
 								<TableHeader>
 									<TableRow>
-										<TableHead className="min-w-[50px]">Code</TableHead>
+										<TableHead className="min-w-[50px]">#</TableHead>
 										<TableHead className="min-w-[150px]">Type</TableHead>
 										<TableHead className="min-w-[100px]">Method</TableHead>
 										<TableHead className="min-w-[100px]">Amount</TableHead>
@@ -265,48 +252,48 @@ export default function GroupOrdersTab({
 								<TableBody>
 									{selectedOrder.orderTransactions &&
 									selectedOrder.orderTransactions.length > 0 ? (
-										selectedOrder.orderTransactions.map((transaction) => (
-											<TableRow key={transaction.id}>
-												<TableCell>
-													{handleHiddenCode(transaction.transactionCode) ?? "-"}
-												</TableCell>
-												<TableCell>
-													{transaction.transactionType ?? "-"}
-												</TableCell>
-												<TableCell>
-													{transaction.paymentMethod ?? "-"}
-												</TableCell>
-												<TableCell>
-													{transaction.vndAmount != null
-														? `${formatVnd(transaction.vndAmount)}`
-														: "-"}
-												</TableCell>
-												<TableCell className="flex">
-													<div
-														className={`font-medium px-2 py-1 rounded-md ${handleStatusColor(
-															transaction.transactionStatus ?? "",
-														)}`}
-													>
-														{transaction.transactionStatus ?? "-"}
-													</div>
-												</TableCell>
-												<TableCell>
-													{transaction.user?.avatarUrl ? (
-														<img
-															src={transaction.user.avatarUrl}
-															alt="avatar"
-															className="inline-block w-6 h-6 rounded-full mr-2"
-														/>
-													) : (
-														""
-													)}
-													{handleFullname(
-														transaction.user?.firstName,
-														transaction.user?.lastName,
-													)}
-												</TableCell>
-											</TableRow>
-										))
+										selectedOrder.orderTransactions.map(
+											(transaction, index) => (
+												<TableRow key={transaction.id}>
+													<TableCell>{index + 1}</TableCell>
+													<TableCell>
+														{transaction.transactionType ?? "-"}
+													</TableCell>
+													<TableCell>
+														{transaction.paymentMethod ?? "-"}
+													</TableCell>
+													<TableCell>
+														{transaction.vndAmount != null
+															? `${formatVnd(transaction.vndAmount)}`
+															: "-"}
+													</TableCell>
+													<TableCell className="flex">
+														<div
+															className={`font-medium px-2 py-1 rounded-md ${handleStatusColor(
+																transaction.transactionStatus ?? "",
+															)}`}
+														>
+															{transaction.transactionStatus ?? "-"}
+														</div>
+													</TableCell>
+													<TableCell>
+														{transaction.user?.avatarUrl ? (
+															<img
+																src={transaction.user.avatarUrl}
+																alt="avatar"
+																className="inline-block w-6 h-6 rounded-full mr-2"
+															/>
+														) : (
+															""
+														)}
+														{handleFullname(
+															transaction.user?.firstName,
+															transaction.user?.lastName,
+														)}
+													</TableCell>
+												</TableRow>
+											),
+										)
 									) : (
 										<TableRow>
 											<TableCell
@@ -372,7 +359,6 @@ export default function GroupOrdersTab({
 					<Table>
 						<TableHeader>
 							<TableRow>
-								<TableHead className="min-w-[220px]">Order code</TableHead>
 								<TableHead className="min-w-[220px]">Subscription</TableHead>
 								<TableHead className="min-w-[120px]">Months</TableHead>
 								<TableHead className="min-w-[180px]">Payment by</TableHead>
@@ -384,7 +370,6 @@ export default function GroupOrdersTab({
 						<TableBody>
 							{orders.map((order) => (
 								<TableRow key={order.id}>
-									<TableCell>{order.orderCode ?? "-"}</TableCell>
 									<TableCell>{resolveSubscriptionName(order)}</TableCell>
 									<TableCell>{order.monthQuantity ?? "-"}</TableCell>
 									<TableCell>{order.paymentBy ?? "-"}</TableCell>

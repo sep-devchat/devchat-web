@@ -28,6 +28,7 @@ export type OrderOverviewReport = {
 		subscriptionId: string;
 		subscriptionCode: string;
 		subscriptionName: string;
+		subscriptionVersion: number;
 		ordersSold: number;
 		subscriptionsSold: number;
 		revenueVnd: string;
