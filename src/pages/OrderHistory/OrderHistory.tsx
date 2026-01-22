@@ -562,22 +562,48 @@ const OrderHistory = () => {
 										"#db2777", // pink
 										"#0891b2", // cyan
 									] as const;
-									const data = (overview?.bySubscription ?? [])
-										.slice(0, 8)
-										.map((r, index) => ({
-											name:
+									const data = (overview?.bySubscription ?? []).slice(0, 8);
+
+									const labelCounts = data.reduce(
+										(acc, r) => {
+											const baseLabel = String(
 												r.subscriptionName ||
+													r.subscriptionCode ||
+													r.subscriptionId,
+											).trim();
+											const key = baseLabel.toLowerCase();
+											acc[key] = (acc[key] ?? 0) + 1;
+											return acc;
+										},
+										{} as Record<string, number>,
+									);
+
+									const chartData = data.map((r, index) => {
+										const baseLabel = String(
+											r.subscriptionName ||
 												r.subscriptionCode ||
 												r.subscriptionId,
+										).trim();
+										const key = baseLabel.toLowerCase();
+										const shouldShowVersion = (labelCounts[key] ?? 0) > 1;
+										const version = (r as any)?.subscriptionVersion;
+										const versionSuffix =
+											shouldShowVersion && Number.isFinite(Number(version))
+												? ` (v${Number(version)})`
+												: "";
+
+										return {
+											name: `${baseLabel}${versionSuffix}`,
 											value: toNumberSafe(r.revenueVnd),
 											color: colors[index % colors.length],
-										}));
+										};
+									});
 
 									return (
 										<CustomPieChart
 											title="Revenue by subscription"
 											description="Top subscriptions by revenue"
-											data={data}
+											data={chartData}
 											height={220}
 											showLegend={true}
 											showPercentages={true}

@@ -2,6 +2,7 @@ import React from "react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Spinner } from "@/components/ui/spinner";
+import RequiredMark from "@/components/custom/RequiredMark";
 import * as S from "../SubscriptionManagement.styled";
 
 export type SubscriptionFormState = {
@@ -167,6 +168,12 @@ const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
 	const renderField = (field: SubscriptionModalProps["fields"][number]) => {
 		const { key, label, placeholder, type, min, required, disabled } = field;
 		const isPriceCurrency = type === "number" && key === "price";
+		const labelNode = (
+			<>
+				{label}
+				{required ? <RequiredMark /> : null}
+			</>
+		);
 		return (
 			<S.Field key={String(key)}>
 				{type === "checkbox" ? (
@@ -177,11 +184,11 @@ const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
 							checked={Boolean(form[key])}
 							onCheckedChange={(checked) => onChange(key, checked === true)}
 						/>
-						<S.CheckboxLabel htmlFor={String(key)}>{label}</S.CheckboxLabel>
+						<S.CheckboxLabel htmlFor={String(key)}>{labelNode}</S.CheckboxLabel>
 					</S.CheckboxRow>
 				) : (
 					<>
-						<S.Label htmlFor={key}>{label}</S.Label>
+						<S.Label htmlFor={String(key)}>{labelNode}</S.Label>
 						<S.Input
 							id={key}
 							type={isPriceCurrency ? "text" : type || "text"}

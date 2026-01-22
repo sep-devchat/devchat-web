@@ -328,7 +328,7 @@ const SubscriptionManagement: React.FC = () => {
 			key: "programmingLanguageInGroups",
 			label: "Programming languages",
 			type: "number",
-			min: 0,
+			min: -1,
 			required: true,
 			row: 1,
 		},
